@@ -1,26 +1,170 @@
 @import "tailwindcss";
+@config "../tailwind.config.js";
+
+/* ─── Design Tokens ─────────────────────────────────────────────────────────── */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Fonts — set via next/font CSS variables; fallbacks for safety */
+  --font-heading: var(--font-lora,   'Lora', Georgia, serif);
+  --font-body:    var(--font-nunito, 'Nunito', system-ui, sans-serif);
+  --font-code:    'JetBrains Mono', 'Menlo', monospace;
+
+  /* Surfaces — Light */
+  --surface-0: #F5F5F5;
+  --surface-1: #ECECEC;
+  --surface-2: #FFFFFF;
+
+  /* Text — Light */
+  --text-primary:   #1A1A1A;
+  --text-secondary: #696969;
+  --text-tertiary:  #737373;
+  --text-disabled:  #A0A0A0;
+  --text-hint:      #A8A8A8;
+
+  /* Action — Light */
+  --action-primary:         #1A6FC4;
+  --action-primary-hover:   #155AA3;
+  --action-secondary:       #5A7A96;
+  --action-secondary-hover: #4A6880;
+
+  /* Borders — Light */
+  --border-subtle:  rgba(0,0,0,0.08);
+  --border-default: rgba(0,0,0,0.14);
+  --border-strong:  rgba(0,0,0,0.22);
+
+  /* Status */
+  --status-error:        #D32F2F;
+  --status-error-bg:     #FDEEEE;
+  --status-error-text:   #7A1515;
+  --status-warning:      #A67C00;
+  --status-warning-bg:   #FFFBE6;
+  --status-warning-text: #6B5000;
+  --status-success:      #2E7D32;
+  --status-success-bg:   #EDFAF0;
+  --status-success-text: #174A1A;
 }
+
+/* Dark Mode — toggled by .dark class on <html> via ThemeProvider */
+.dark {
+  --surface-0: #141414;
+  --surface-1: #1E1E1E;
+  --surface-2: #292929;
+
+  --text-primary:   #E8E8E8;
+  --text-secondary: #9E9E9E;
+  --text-tertiary:  #737373;
+  --text-disabled:  #525252;
+  --text-hint:      #5E5E5E;
+
+  --action-primary:         #4A90D4;
+  --action-primary-hover:   #5FA0E0;
+  --action-secondary:       #6EA8D8;
+  --action-secondary-hover: #82B8E2;
+
+  --border-subtle:  rgba(255,255,255,0.07);
+  --border-default: rgba(255,255,255,0.12);
+  --border-strong:  rgba(255,255,255,0.20);
+
+  --status-warning:      #D4A800;
+  --status-warning-bg:   #3A2E00;
+  --status-warning-text: #FAD84A;
+  --status-error-bg:     #3D1212;
+  --status-error-text:   #F09595;
+  --status-success-bg:   #122412;
+  --status-success-text: #97C459;
+}
+
+/* Admin Context — light mode only; overrides dark vars within admin area */
+.admin-context {
+  --font-heading: var(--font-literata, 'Literata', Georgia, serif);
+  --font-body:    var(--font-literata, 'Literata', Georgia, serif);
+  font-family: var(--font-body);
+
+  --surface-0: #F7F8FA;
+  --surface-1: #EDF0F5;
+  --surface-2: #FFFFFF;
+
+  --text-primary:   #131F2E;
+  --text-secondary: #5A6C82;
+  --text-tertiary:  #7E8EA3;
+  --text-hint:      #A8B4C0;
+
+  --action-primary:         #1E4D8C;
+  --action-primary-hover:   #163A6B;
+  --action-secondary:       #4A6880;
+  --action-secondary-hover: #3A5468;
+
+  --border-subtle:  #D8DDE7;
+  --border-default: #B0BACA;
+  --border-strong:  #7E8EA3;
+
+  /* Admin sidebar nav */
+  --admin-nav-bg:          #26374C;
+  --admin-nav-text:        #F7F8FA;
+  --admin-nav-text-muted:  #7E8EA3;
+  --admin-nav-active-bg:   #1E4D8C;
+}
+
+/* ─── Tailwind Token Mapping ─────────────────────────────────────────────────── */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Surfaces */
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+
+  /* Content/text */
+  --color-content-primary:   var(--text-primary);
+  --color-content-secondary: var(--text-secondary);
+  --color-content-tertiary:  var(--text-tertiary);
+  --color-content-disabled:  var(--text-disabled);
+  --color-content-muted:     var(--text-hint);
+
+  /* Actions */
+  --color-action-primary:        var(--action-primary);
+  --color-action-primary-hover:  var(--action-primary-hover);
+  --color-action-secondary:      var(--action-secondary);
+
+  /* Borders */
+  --color-border-subtle:  var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-strong:  var(--border-strong);
+
+  /* Status */
+  --color-status-error:         var(--status-error);
+  --color-status-error-bg:      var(--status-error-bg);
+  --color-status-error-text:    var(--status-error-text);
+  --color-status-warning:       var(--status-warning);
+  --color-status-warning-bg:    var(--status-warning-bg);
+  --color-status-warning-text:  var(--status-warning-text);
+  --color-status-success:       var(--status-success);
+  --color-status-success-bg:    var(--status-success-bg);
+  --color-status-success-text:  var(--status-success-text);
+
+  /* Admin nav (fallbacks ensure correct color even outside admin-context) */
+  --color-admin-nav:        var(--admin-nav-bg, #26374C);
+  --color-admin-nav-text:   var(--admin-nav-text, #F7F8FA);
+  --color-admin-nav-muted:  var(--admin-nav-text-muted, #7E8EA3);
+  --color-admin-nav-active: var(--admin-nav-active-bg, #1E4D8C);
+
+  /* Fonts */
+  --font-sans:    var(--font-body);
+  --font-heading: var(--font-heading);
+  --font-mono:    var(--font-code);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ─── Base Styles ────────────────────────────────────────────────────────────── */
+
+@layer base {
+  body {
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-primary);
+    background-color: var(--surface-0);
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  h1, h2, h3, h4 {
+    font-family: var(--font-heading);
+  }
 }
