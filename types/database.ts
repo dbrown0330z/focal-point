@@ -6,6 +6,15 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export interface RemindersSent {
+  admin7Day:           boolean
+  admin1Day:           boolean
+  adminOnOpen:         boolean
+  adminFollowUpCount:  number   // 0–3
+  judge1Day:           boolean
+  judgeClosingDay:     boolean
+}
+
 export type Database = {
   graphql_public: {
     Tables: {
@@ -34,6 +43,132 @@ export type Database = {
   }
   public: {
     Tables: {
+      club_settings: {
+        Row: {
+          id: string
+          club_name: string
+          club_short_name: string | null
+          club_location: string | null
+          timezone: string
+          logo_path: string | null
+          season_start_month: number
+          season_end_month: number
+          member_classes_enabled: boolean
+          default_meeting_location_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          club_name?: string
+          club_short_name?: string | null
+          club_location?: string | null
+          timezone?: string
+          logo_path?: string | null
+          season_start_month?: number
+          season_end_month?: number
+          member_classes_enabled?: boolean
+          default_meeting_location_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          club_name?: string
+          club_short_name?: string | null
+          club_location?: string | null
+          timezone?: string
+          logo_path?: string | null
+          season_start_month?: number
+          season_end_month?: number
+          member_classes_enabled?: boolean
+          default_meeting_location_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      meeting_locations: {
+        Row: {
+          id: string
+          name: string
+          address: string | null
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          address?: string | null
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          name?: string
+          address?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      member_classes: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          name?: string
+          description?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      competition_templates: {
+        Row: {
+          id: string
+          name: string
+          config: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          config?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          name?: string
+          config?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      competition_default_categories: {
+        Row: {
+          id:         string
+          name:       string
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?:         string
+          name:        string
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          name?:       string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       competition_categories: {
         Row: {
           competition_id: string
@@ -62,33 +197,113 @@ export type Database = {
       }
       competitions: {
         Row: {
-          closes_at: string | null
-          created_at: string
-          id: string
-          opens_at: string | null
-          status: Database["public"]["Enums"]["competition_status"]
-          submission_limit: number
-          title: string
+          closes_at:            string | null
+          created_at:           string
+          description:          string | null
+          id:                   string
+          judging_at:           string | null
+          judging_opens_at:     string | null
+          judging_closes_at:    string | null
+          reminders_sent:       RemindersSent
+          opens_at:             string | null
+          status:               Database["public"]["Enums"]["competition_status"]
+          submission_limit:     number
+          template_id:          string | null
+          title:                string
+          archived_at:          string | null
+          cancelled_at:         string | null
+          cancellation_reason:  string | null
+          deleted_at:           string | null
+          results_at:           string | null
+          results_event_type:   string | null
+          score_min:            number
+          score_max:            number
+          judge_instructions:   string | null
+          preset:               string
+          allow_half_points:    boolean
+          anonymise_members:    boolean
+          anonymise_exif:       boolean
+          require_feedback:     boolean
+          awards_enabled:       boolean
+          award_types:          Json
+          score_aggregation:    'sum' | 'average' | 'drop_extremes'
+          blind_judging:        boolean
         }
         Insert: {
-          closes_at?: string | null
-          created_at?: string
-          id?: string
-          opens_at?: string | null
-          status?: Database["public"]["Enums"]["competition_status"]
-          submission_limit?: number
-          title: string
+          closes_at?:            string | null
+          created_at?:           string
+          description?:          string | null
+          id?:                   string
+          judging_at?:           string | null
+          judging_opens_at?:     string | null
+          judging_closes_at?:    string | null
+          reminders_sent?:       RemindersSent
+          opens_at?:             string | null
+          status?:               Database["public"]["Enums"]["competition_status"]
+          submission_limit?:     number
+          template_id?:          string | null
+          title:                 string
+          archived_at?:          string | null
+          cancelled_at?:         string | null
+          cancellation_reason?:  string | null
+          deleted_at?:           string | null
+          results_at?:           string | null
+          results_event_type?:   string | null
+          score_min?:            number
+          score_max?:            number
+          judge_instructions?:   string | null
+          preset?:               string
+          allow_half_points?:    boolean
+          anonymise_members?:    boolean
+          anonymise_exif?:       boolean
+          require_feedback?:     boolean
+          awards_enabled?:       boolean
+          award_types?:          Json
+          score_aggregation?:    'sum' | 'average' | 'drop_extremes'
+          blind_judging?:        boolean
         }
         Update: {
-          closes_at?: string | null
-          created_at?: string
-          id?: string
-          opens_at?: string | null
-          status?: Database["public"]["Enums"]["competition_status"]
-          submission_limit?: number
-          title?: string
+          closes_at?:            string | null
+          created_at?:           string
+          description?:          string | null
+          id?:                   string
+          judging_at?:           string | null
+          judging_opens_at?:     string | null
+          judging_closes_at?:    string | null
+          reminders_sent?:       RemindersSent
+          opens_at?:             string | null
+          status?:               Database["public"]["Enums"]["competition_status"]
+          submission_limit?:     number
+          template_id?:          string | null
+          title?:                string
+          archived_at?:          string | null
+          cancelled_at?:         string | null
+          cancellation_reason?:  string | null
+          deleted_at?:           string | null
+          results_at?:           string | null
+          results_event_type?:   string | null
+          score_min?:            number
+          score_max?:            number
+          judge_instructions?:   string | null
+          preset?:               string
+          allow_half_points?:    boolean
+          anonymise_members?:    boolean
+          anonymise_exif?:       boolean
+          require_feedback?:     boolean
+          awards_enabled?:       boolean
+          award_types?:          Json
+          score_aggregation?:    'sum' | 'average' | 'drop_extremes'
+          blind_judging?:        boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "competitions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "competition_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       images: {
         Row: {
@@ -130,28 +345,37 @@ export type Database = {
       }
       judge_tokens: {
         Row: {
-          competition_id: string
-          created_at: string
-          id: string
-          judge_email: string
-          judge_name: string
-          token: string
+          competition_id:     string
+          created_at:         string
+          id:                 string
+          judge_email:        string
+          judge_name:         string
+          token:              string
+          invitation_sent_at: string | null
+          access_code:        string
+          submitted_at:       string | null
         }
         Insert: {
-          competition_id: string
-          created_at?: string
-          id?: string
-          judge_email: string
-          judge_name: string
-          token?: string
+          competition_id:      string
+          created_at?:         string
+          id?:                 string
+          judge_email:         string
+          judge_name:          string
+          token?:              string
+          invitation_sent_at?: string | null
+          access_code?:        string
+          submitted_at?:       string | null
         }
         Update: {
-          competition_id?: string
-          created_at?: string
-          id?: string
-          judge_email?: string
-          judge_name?: string
-          token?: string
+          competition_id?:     string
+          created_at?:         string
+          id?:                 string
+          judge_email?:        string
+          judge_name?:         string
+          token?:              string
+          invitation_sent_at?: string | null
+          access_code?:        string
+          submitted_at?:       string | null
         }
         Relationships: [
           {
@@ -251,28 +475,37 @@ export type Database = {
       }
       scores: {
         Row: {
-          created_at: string
-          id: string
+          created_at:     string
+          id:             string
           judge_token_id: string
-          notes: string | null
-          score: number
-          submission_id: string
+          notes:          string | null
+          rank:           number | null
+          score:          number
+          flagged:        boolean
+          submission_id:  string
+          award_id:       string | null
         }
         Insert: {
-          created_at?: string
-          id?: string
-          judge_token_id: string
-          notes?: string | null
-          score: number
-          submission_id: string
+          created_at?:     string
+          id?:             string
+          judge_token_id:  string
+          notes?:          string | null
+          rank?:           number | null
+          score:           number
+          flagged?:        boolean
+          submission_id:   string
+          award_id?:       string | null
         }
         Update: {
-          created_at?: string
-          id?: string
+          created_at?:     string
+          id?:             string
           judge_token_id?: string
-          notes?: string | null
-          score?: number
-          submission_id?: string
+          notes?:          string | null
+          rank?:           number | null
+          score?:          number
+          flagged?:        boolean
+          submission_id?:  string
+          award_id?:       string | null
         }
         Relationships: [
           {
@@ -287,6 +520,39 @@ export type Database = {
             columns: ["submission_id"]
             isOneToOne: false
             referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      judge_category_awards: {
+        Row: {
+          judge_token_id: string
+          category_id:    string
+          completed_at:   string
+        }
+        Insert: {
+          judge_token_id: string
+          category_id:    string
+          completed_at?:  string
+        }
+        Update: {
+          judge_token_id?: string
+          category_id?:    string
+          completed_at?:   string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "judge_category_awards_judge_token_id_fkey"
+            columns: ["judge_token_id"]
+            isOneToOne: false
+            referencedRelation: "judge_tokens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "judge_category_awards_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "competition_categories"
             referencedColumns: ["id"]
           },
         ]
@@ -359,7 +625,7 @@ export type Database = {
       is_approved_member: { Args: never; Returns: boolean }
     }
     Enums: {
-      competition_status: "draft" | "open" | "judging" | "closed"
+      competition_status: "draft" | "open" | "judging" | "judging_on_hold" | "closed" | "cancelled" | "results_pending" | "results_published"
       membership_status: "pending" | "approved" | "active" | "expired" | "paused" | "complimentary" | "banned" | "cancelled"
       submission_status: "submitted" | "withdrawn"
       user_role: "admin" | "member"
@@ -493,7 +759,7 @@ export const Constants = {
   },
   public: {
     Enums: {
-      competition_status: ["draft", "open", "judging", "closed"],
+      competition_status: ["draft", "open", "judging", "judging_on_hold", "closed"],
       membership_status: ["pending", "approved", "active", "expired", "paused", "complimentary", "banned", "cancelled"],
       submission_status: ["submitted", "withdrawn"],
       user_role: ["admin", "member"],

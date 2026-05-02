@@ -11,6 +11,8 @@ export async function completeProfile(formData: FormData) {
 
   const experienceLevel = formData.get('experienceLevel') as string
   const bio = (formData.get('bio') as string | null)?.trim() ?? ''
+  const location = (formData.get('location') as string | null)?.trim() ?? ''
+  const phone = (formData.get('phone') as string | null)?.trim() ?? ''
   const avatarUrl = formData.get('avatarUrl') as string | null
   const shootingInterests = formData.getAll('shootingInterests') as string[]
   const cameraBrands = formData.getAll('cameraBrands') as string[]
@@ -22,6 +24,8 @@ export async function completeProfile(formData: FormData) {
       shooting_interests: shootingInterests,
       camera_brands: cameraBrands,
       bio: bio || null,
+      location: location || null,
+      phone: phone || null,
       ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
     })
     .eq('id', user.id)
@@ -29,7 +33,7 @@ export async function completeProfile(formData: FormData) {
   redirect('/onboarding/payment')
 }
 
-export async function completePayment(formData: FormData) {
+export async function completePayment(_formData?: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

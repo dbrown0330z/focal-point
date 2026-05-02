@@ -1,77 +1,140 @@
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import CompetitionsClient from './CompetitionsClient'
 
-const statusStyles: Record<string, string> = {
-  open:    'bg-status-success-bg text-status-success-text',
-  judging: 'bg-status-warning-bg text-status-warning-text',
-  closed:  'bg-surface-1 text-content-tertiary',
-}
+export const dynamic = 'force-dynamic'
 
 export default async function CompetitionsPage() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: competitions } = await supabase
+  // Current competitions: open or judging
+  const { data: currentRaw } = await supabase
     .from('competitions')
-    .select('id, title, status, opens_at, closes_at, submission_limit')
-    .neq('status', 'draft')
+    .select('id, title, short_title, status, closes_at, results_at, submission_limit, competition_categories(id, name), judge_tokens(judge_name)')
+    .in('status', ['open', 'judging'])
+    .is('archived_at', null)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
 
-  const open = competitions?.filter(c => c.status === 'open') ?? []
-  const past = competitions?.filter(c => c.status !== 'open') ?? []
+  // For each current competition, fetch member submissions and club stats
+  const currentCompetitions = await Promise.all(
+    (currentRaw ?? []).map(async comp => {
+      const mySubmissions = user ? await (async () => {
+        const { data } = await supabase
+          .from('submissions')
+          .select('id, image_id, category_id, images(title, storage_path), competition_categories(name)')
+          .eq('competition_id', comp.id)
+          .eq('member_id', user.id)
+          .eq('status', 'submitted')
+        return (data ?? []).map(s => {
+          const img = s.images as unknown as { title: string; storage_path: string }
+          const cat = s.competition_categories as unknown as { name: string }
+          return {
+            id: s.id,
+            imageId: s.image_id,
+            categoryId: s.category_id,
+            categoryName: cat?.name ?? '',
+            imageTitle: img?.title ?? '',
+            publicUrl: supabase.storage.from('images').getPublicUrl(img?.storage_path ?? '').data.publicUrl,
+          }
+        })
+      })() : []
+
+      const { data: allSubs } = await supabase
+        .from('submissions')
+        .select('member_id, category_id, competition_categories(name)')
+        .eq('competition_id', comp.id)
+        .eq('status', 'submitted')
+
+      const subs = allSubs ?? []
+      const totalImages = subs.length
+      const memberSet = new Set(subs.map(s => s.member_id))
+      const membersEntered = memberSet.size
+
+      const byCat: Record<string, { name: string; count: number }> = {}
+      for (const sub of subs) {
+        const cat = sub.competition_categories as unknown as { name: string } | null
+        const key = sub.category_id
+        if (!byCat[key]) byCat[key] = { name: cat?.name ?? 'Unknown', count: 0 }
+        byCat[key].count++
+      }
+
+      const tokens = comp.judge_tokens as unknown as { judge_name: string }[] | null
+
+      return {
+        id: comp.id,
+        title: (comp as unknown as { short_title: string | null }).short_title ?? comp.title,
+        status: comp.status,
+        closes_at: comp.closes_at,
+        results_at: (comp as unknown as { results_at: string | null }).results_at ?? null,
+        submission_limit: comp.submission_limit,
+        categoryLimit: null as number | null, // TODO: add per-category limit to competition_categories table
+        categories: (comp.competition_categories as unknown as { id: string; name: string }[]) ?? [],
+        judgeName: tokens?.[0]?.judge_name ?? null,
+        mySubmissions,
+        clubStats: { totalImages, membersEntered, byCat: Object.values(byCat) },
+      }
+    })
+  )
+
+  // Library images: exclude any image already submitted to any active competition
+  const allSubmittedImageIds = new Set(
+    currentCompetitions.flatMap(c => c.mySubmissions.map(s => s.imageId))
+  )
+
+  const libraryImages = user ? await (async () => {
+    const { data: imgs } = await supabase
+      .from('images')
+      .select('id, title, storage_path, created_at')
+      .eq('owner_id', user.id)
+      .order('created_at', { ascending: false })
+
+    return (imgs ?? [])
+      .filter(img => !allSubmittedImageIds.has(img.id))
+      .map(img => ({
+        id: img.id,
+        title: img.title,
+        storage_path: img.storage_path,
+        created_at: img.created_at,
+        publicUrl: supabase.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
+      }))
+  })() : []
+
+  // Previous competitions: closed only
+  const { data: pastRaw } = await supabase
+    .from('competitions')
+    .select('id, title, status, closes_at, judge_tokens(judge_name)')
+    .eq('status', 'closed')
+    .is('deleted_at', null)
+    .order('closes_at', { ascending: false })
+
+  const previousCompetitions = await Promise.all(
+    (pastRaw ?? []).map(async comp => {
+      const { count } = await supabase
+        .from('submissions')
+        .select('id', { count: 'exact', head: true })
+        .eq('competition_id', comp.id)
+        .eq('status', 'submitted')
+
+      const tokens = comp.judge_tokens as unknown as { judge_name: string }[] | null
+
+      return {
+        id: comp.id,
+        title: comp.title,
+        status: comp.status,
+        closes_at: comp.closes_at,
+        imageCount: count ?? 0,
+        judgeName: tokens?.[0]?.judge_name ?? null,
+      }
+    })
+  )
 
   return (
-    <div className="space-y-10">
-      <h1 className="text-xl font-semibold text-content-primary">Competitions</h1>
-
-      <section>
-        <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-content-tertiary">
-          Open for submissions
-        </h2>
-        {open.length === 0 ? (
-          <p className="text-sm text-content-tertiary">No competitions open right now.</p>
-        ) : (
-          <div className="space-y-3">
-            {open.map(c => (
-              <Link key={c.id} href={`/competitions/${c.id}`}
-                className="flex items-center justify-between rounded-xl border border-status-success bg-status-success-bg px-5 py-4 hover:bg-[#D5F0DA] transition-colors"
-              >
-                <div>
-                  <p className="font-medium text-content-primary">{c.title}</p>
-                  {c.closes_at && (
-                    <p className="mt-0.5 text-xs text-content-secondary">
-                      Closes {new Date(c.closes_at).toLocaleDateString()}
-                      {' · '}up to {c.submission_limit} {c.submission_limit === 1 ? 'submission' : 'submissions'}
-                    </p>
-                  )}
-                </div>
-                <span className="rounded-full bg-status-success-bg px-2.5 py-0.5 text-xs font-medium text-status-success-text border border-status-success">
-                  Open
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {past.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-content-tertiary">
-            Past competitions
-          </h2>
-          <div className="divide-y divide-border-subtle rounded-xl border border-border-default bg-surface-2">
-            {past.map(c => (
-              <Link key={c.id} href={`/competitions/${c.id}`}
-                className="flex items-center justify-between px-4 py-3 hover:bg-surface-1 transition-colors"
-              >
-                <p className="text-sm font-medium text-content-primary">{c.title}</p>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${statusStyles[c.status]}`}>
-                  {c.status}
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
+    <CompetitionsClient
+      userId={user?.id ?? ''}
+      currentCompetitions={currentCompetitions}
+      previousCompetitions={previousCompetitions}
+      libraryImages={libraryImages}
+    />
   )
 }

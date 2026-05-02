@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export default async function JudgeScoringGridPage({
   params,
@@ -8,15 +8,15 @@ export default async function JudgeScoringGridPage({
   params: Promise<{ token: string }>
 }) {
   const { token } = await params
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   const { data: judgeToken } = await supabase
     .from('judge_tokens')
-    .select('id, judge_name, competition_id, competitions(title, status)')
+    .select('id, judge_name, competition_id, competitions(title, short_title, status)')
     .eq('token', token)
     .single()
 
-  const competition = judgeToken?.competitions as unknown as { title: string; status: string } | null
+  const competition = judgeToken?.competitions as unknown as { title: string; short_title: string | null; status: string } | null
 
   if (!judgeToken || competition?.status !== 'judging') {
     redirect(`/judge/${token}/expired`)
@@ -44,7 +44,7 @@ export default async function JudgeScoringGridPage({
       {/* Header */}
       <div>
         <p className="text-sm text-content-tertiary">Judging as {judgeToken.judge_name}</p>
-        <h1 className="mt-1 text-xl font-semibold text-content-primary">{competition.title}</h1>
+        <h1 className="mt-1 text-xl font-semibold text-content-primary">{competition.short_title ?? competition.title}</h1>
         <p className="mt-1 text-sm text-content-secondary">
           {scoredCount} of {total} scored
         </p>

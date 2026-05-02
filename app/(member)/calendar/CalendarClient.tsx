@@ -14,7 +14,9 @@ import {
   Divider,
   FormControlLabel,
   IconButton,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Switch,
   TextField,
@@ -39,26 +41,19 @@ export const EVENT_TYPES: {
   lightBg: string      // subtle bg for hover / inactive button
   dotColor: string     // visible color dot in legend / list view
 }[] = [
-  { value: 'competition',      label: 'Competition',       color: '#1A6FC4', textColor: '#fff',    lightBg: 'rgba(26,111,196,0.10)',  dotColor: '#1A6FC4' },
-  { value: 'regular_meeting',  label: 'Regular Meeting',   color: '#0097A7', textColor: '#fff',    lightBg: 'rgba(0,151,167,0.10)',   dotColor: '#0097A7' },
-  { value: 'board_meeting',    label: 'Board Meeting',     color: '#6C47D4', textColor: '#fff',    lightBg: 'rgba(108,71,212,0.10)', dotColor: '#6C47D4' },
-  { value: 'field_trip',       label: 'Field Trip',        color: '#E65100', textColor: '#fff',    lightBg: 'rgba(230,81,0,0.10)',   dotColor: '#E65100' },
-  { value: 'other',            label: 'Other',             color: '#5A6C82', textColor: '#fff',    lightBg: 'rgba(90,108,130,0.10)', dotColor: '#5A6C82' },
+  { value: 'competition',      label: 'Competition',       color: '#1A6FC4',                      textColor: '#fff',    lightBg: 'rgba(26,111,196,0.12)',         dotColor: '#1A6FC4'                      },
+  { value: 'regular_meeting',  label: 'Regular Meeting',   color: '#0097A7',                      textColor: '#fff',    lightBg: 'rgba(0,151,167,0.12)',          dotColor: '#0097A7'                      },
+  { value: 'board_meeting',    label: 'Board Meeting',     color: '#6C47D4',                      textColor: '#fff',    lightBg: 'rgba(108,71,212,0.12)',         dotColor: '#6C47D4'                      },
+  { value: 'field_trip',       label: 'Field Trip',        color: '#E65100',                      textColor: '#fff',    lightBg: 'rgba(230,81,0,0.12)',           dotColor: '#E65100'                      },
+  { value: 'other',            label: 'Other',             color: '#5A7A96',                      textColor: '#fff',    lightBg: 'rgba(90,122,150,0.12)',         dotColor: '#5A7A96'                      },
   // Submission deadline types — light pastel bg with dark text
-  { value: 'submission_open',  label: 'Submissions Open',  color: '#EDFAF0', textColor: '#174A1A', lightBg: 'rgba(46,125,50,0.08)',   dotColor: '#2E7D32' },
-  { value: 'submission_closed',label: 'Submissions Closed',color: '#FDEEEE', textColor: '#7A1515', lightBg: 'rgba(211,47,47,0.08)',   dotColor: '#D32F2F' },
+  { value: 'submission_open',  label: 'Submissions Open',  color: 'var(--status-success-bg)',     textColor: 'var(--status-success-text)', lightBg: 'rgba(46,125,50,0.12)',    dotColor: 'var(--status-success)' },
+  { value: 'submission_closed',label: 'Submissions Closed',color: 'var(--status-error-bg)',       textColor: 'var(--status-error-text)',   lightBg: 'rgba(211,47,47,0.08)',    dotColor: 'var(--status-error)'   },
 ]
 
 // Meeting types (excludes submission deadline types) for the type selector upper row
 const MEETING_EVENT_TYPES = EVENT_TYPES.filter(t => t.value !== 'submission_open' && t.value !== 'submission_closed')
 
-// Club locations — shown in the location dropdown (plus free-entry)
-const CLUB_LOCATIONS = [
-  'Club Rooms',
-  'Main Hall',
-  'Community Centre',
-  'Remote (Zoom)',
-]
 
 export function eventTypeConfig(type: CalendarEventType) {
   return EVENT_TYPES.find(t => t.value === type) ?? EVENT_TYPES[EVENT_TYPES.length - 1]
@@ -148,44 +143,6 @@ function formatDateHeading(d: Date) {
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
 }
 
-// ─── Placeholder submission deadline events ───────────────────────────────────
-// Shown on the 1st (open) and 15th (closed) of each month until real competitions
-// are wired up.
-
-function placeholderSubmissionEvents(): CalendarEvent[] {
-  const events: CalendarEvent[] = []
-  const today = new Date()
-  // Generate for 18 months centred around today (6 past + 12 future)
-  for (let offset = -6; offset <= 12; offset++) {
-    const d = new Date(today.getFullYear(), today.getMonth() + offset, 1)
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-
-    events.push({
-      id:          `placeholder-open-${y}-${m}`,
-      title:       'Submissions Open',
-      description: 'Monthly Competition',
-      location:    null,
-      starts_at:   new Date(y, d.getMonth(), 1).toISOString(),
-      ends_at:     null,
-      all_day:     true,
-      event_type:  'submission_open',
-      created_by:  null,
-    })
-    events.push({
-      id:          `placeholder-closed-${y}-${m}`,
-      title:       'Submissions Closed',
-      description: 'Monthly Competition',
-      location:    null,
-      starts_at:   new Date(y, d.getMonth(), 15).toISOString(),
-      ends_at:     null,
-      all_day:     true,
-      event_type:  'submission_closed',
-      created_by:  null,
-    })
-  }
-  return events
-}
 
 // Upcoming events: today onwards, grouped by date
 function groupUpcoming(events: CalendarEvent[]) {
@@ -259,8 +216,19 @@ function EventChip({ event, onClick }: { event: CalendarEvent; onClick: () => vo
 
 // ─── Event detail dialog ──────────────────────────────────────────────────────
 
-function EventDetailDialog({ event, onClose }: { event: CalendarEvent; onClose: () => void }) {
+function GeoIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0, marginTop: 1 }}>
+      <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.667 3.5-8.077A8.5 8.5 0 003.25 12.191c0 3.41 1.555 6.064 3.5 8.077a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.107.801zM12 13.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" clipRule="evenodd" />
+    </svg>
+  )
+}
+
+function EventDetailDialog({ event, onClose, locations }: { event: CalendarEvent; onClose: () => void; locations: LocationOption[] }) {
   const typeConf = eventTypeConfig(event.event_type)
+  const locationMatch = event.location ? locations.find(l => l.name === event.location) : null
+  const address = locationMatch?.address ?? null
+
   return (
     <Dialog open onClose={onClose} maxWidth="xs" fullWidth>
       <DialogTitle sx={{ pb: 0.5 }}>
@@ -279,7 +247,15 @@ function EventDetailDialog({ event, onClose }: { event: CalendarEvent; onClose: 
             }
           </Typography>
           {event.location && (
-            <Typography variant="body2" color="text.secondary">📍 {event.location}</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, color: 'text.secondary' }}>
+              <GeoIcon />
+              <Box>
+                <Typography variant="body2" color="text.secondary">{event.location}</Typography>
+                {address && (
+                  <Typography variant="caption" color="text.disabled" sx={{ display: 'block' }}>{address}</Typography>
+                )}
+              </Box>
+            </Box>
           )}
           {event.description && (
             <Typography variant="body2">{event.description}</Typography>
@@ -340,7 +316,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-function AddEventDialog({ onClose }: { onClose: () => void }) {
+function AddEventDialog({ onClose, locations, timezone }: { onClose: () => void; locations: LocationOption[]; timezone: string }) {
   const [pending, startTransition] = useTransition()
   const [title, setTitle]         = useState('')
   const [description, setDesc]    = useState('')
@@ -350,7 +326,7 @@ function AddEventDialog({ onClose }: { onClose: () => void }) {
   const [eventType, setEventType] = useState<CalendarEventType>('regular_meeting')
   const [error, setError]         = useState<string | null>(null)
 
-  const defaultStart = dayjs().startOf('hour').add(1, 'hour')
+  const defaultStart = dayjs().hour(19).minute(0).second(0).millisecond(0)
   const [date,      setDate]      = useState<Dayjs | null>(dayjs())
   const [startTime, setStartTime] = useState<Dayjs | null>(defaultStart)
   const [endTime,   setEndTime]   = useState<Dayjs | null>(defaultStart.add(1, 'hour'))
@@ -412,23 +388,21 @@ function AddEventDialog({ onClose }: { onClose: () => void }) {
             {/* Event type */}
             <Box>
               <FieldLabel>Event type</FieldLabel>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                {MEETING_EVENT_TYPES.map(t => {
-                  const active = eventType === t.value
-                  return (
-                    <TypeButton key={t.value} t={t} active={active} onClick={() => setEventType(t.value)} />
-                  )
-                })}
-              </Box>
-              <Divider sx={{ my: 1 }} />
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                {EVENT_TYPES.filter(t => t.value === 'submission_open' || t.value === 'submission_closed').map(t => {
-                  const active = eventType === t.value
-                  return (
-                    <TypeButton key={t.value} t={t} active={active} onClick={() => setEventType(t.value)} />
-                  )
-                })}
-              </Box>
+              <Select
+                size="small"
+                fullWidth
+                value={eventType}
+                onChange={e => setEventType(e.target.value as CalendarEventType)}
+              >
+                {MEETING_EVENT_TYPES.map(t => (
+                  <MenuItem key={t.value} value={t.value}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: t.dotColor, flexShrink: 0 }} />
+                      {t.label}
+                    </Box>
+                  </MenuItem>
+                ))}
+              </Select>
             </Box>
 
             {/* Date row */}
@@ -438,6 +412,7 @@ function AddEventDialog({ onClose }: { onClose: () => void }) {
                 <DatePicker
                   value={date}
                   onChange={setDate}
+                  disablePast
                   slotProps={{ textField: tfProps }}
                 />
                 {multiDay && (
@@ -445,6 +420,7 @@ function AddEventDialog({ onClose }: { onClose: () => void }) {
                     label="End date"
                     value={endDate}
                     onChange={setEndDate}
+                    disablePast
                     minDate={date ?? undefined}
                     slotProps={{ textField: tfProps }}
                   />
@@ -469,6 +445,9 @@ function AddEventDialog({ onClose }: { onClose: () => void }) {
                     slotProps={{ textField: tfProps }}
                   />
                 </Stack>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
+                  {timezone}
+                </Typography>
               </Box>
             )}
 
@@ -489,7 +468,7 @@ function AddEventDialog({ onClose }: { onClose: () => void }) {
               <FieldLabel>Location (optional)</FieldLabel>
               <Autocomplete
                 freeSolo
-                options={CLUB_LOCATIONS}
+                options={locations.map(l => l.name)}
                 value={location}
                 onChange={(_, val) => setLocation(val)}
                 onInputChange={(_, val) => setLocation(val)}
@@ -532,7 +511,7 @@ function EventTypeLegend() {
   const meetingTypes    = EVENT_TYPES.filter(t => t.value !== 'submission_open' && t.value !== 'submission_closed')
   const submissionTypes = EVENT_TYPES.filter(t => t.value === 'submission_open' || t.value === 'submission_closed')
   return (
-    <Box sx={{ mt: 2, pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+    <Box sx={{ mt: 2 }}>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
         {meetingTypes.map(t => (
           <Box key={t.value} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
@@ -583,14 +562,14 @@ function MonthView({
       {/* Day headers */}
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 0.5 }}>
         {DAYS.map(d => (
-          <Typography key={d} variant="caption" sx={{ textAlign: 'center', fontWeight: 600, color: 'text.secondary', py: 0.5, fontSize: 11 }}>
+          <Typography key={d} variant="caption" sx={{ textAlign: 'center', fontWeight: 700, color: 'text.secondary', py: 0.5, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: "var(--font-nunito, 'Nunito', system-ui, sans-serif)" }}>
             {d}
           </Typography>
         ))}
       </Box>
 
       {/* Day cells */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', bgcolor: 'divider', border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', bgcolor: 'divider', border: '1px solid', borderColor: 'divider', borderRadius: '12px', overflow: 'hidden' }}>
         {cells.map((day, i) => {
           const isToday    = day ? isSameDay(day, today) : false
           const dayEvents  = day ? eventsForDay(events, day) : []
@@ -608,7 +587,7 @@ function MonthView({
                 <>
                   <Box sx={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    width: 24, height: 24, borderRadius: '50%', mb: 0.25,
+                    width: 27, height: 27, borderRadius: '50%', mb: 0.25,
                     bgcolor: isToday ? 'primary.main' : 'transparent',
                   }}>
                     <Typography sx={{
@@ -714,29 +693,26 @@ function ListView({
 
 type View = 'block' | 'list'
 
+type LocationOption = { name: string; address: string | null }
+
 export default function CalendarClient({
   events,
   isAdmin,
+  locations,
+  timezone,
 }: {
   events: CalendarEvent[]
   isAdmin: boolean
+  locations: LocationOption[]
+  timezone: string
 }) {
   const { theme: appTheme } = useAppTheme()
   const calTheme = useMemo(() => makeCalTheme(appTheme === 'dark' ? 'dark' : 'light'), [appTheme])
 
-  // Merge real events with placeholder submission deadlines
-  const allEvents = useMemo(() => {
-    const placeholders = placeholderSubmissionEvents()
-    // Real submission events take precedence — drop placeholder for any month
-    // where a real submission_open or submission_closed already exists
-    const realOpenMonths   = new Set(events.filter(e => e.event_type === 'submission_open').map(e => e.starts_at.slice(0, 7)))
-    const realClosedMonths = new Set(events.filter(e => e.event_type === 'submission_closed').map(e => e.starts_at.slice(0, 7)))
-    const filtered = placeholders.filter(p =>
-      (p.event_type === 'submission_open'   && !realOpenMonths.has(p.starts_at.slice(0, 7))) ||
-      (p.event_type === 'submission_closed' && !realClosedMonths.has(p.starts_at.slice(0, 7)))
-    )
-    return [...events, ...filtered].sort((a, b) => a.starts_at.localeCompare(b.starts_at))
-  }, [events])
+  const allEvents = useMemo(
+    () => [...events].sort((a, b) => a.starts_at.localeCompare(b.starts_at)),
+    [events]
+  )
 
   const today = new Date()
   const [view, setView]               = useState<View>('block')
@@ -762,7 +738,7 @@ export default function CalendarClient({
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 2 }}>
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, fontSize: 22, fontFamily: "var(--font-lora, 'Lora', Georgia, serif)" }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, fontSize: 28, fontFamily: "var(--font-lora, 'Lora', Georgia, serif)", letterSpacing: '-0.02em' }}>
               Calendar
             </Typography>
             <Typography variant="body2" color="text.secondary">Club events and meetings</Typography>
@@ -770,46 +746,38 @@ export default function CalendarClient({
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             {/* View toggle */}
-            <Box sx={{ display: 'flex', border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-              <Tooltip title="Month view">
-                <IconButton
-                  size="small"
-                  onClick={() => setView('block')}
-                  sx={{
-                    borderRadius: 0, px: 1.5,
-                    bgcolor: view === 'block' ? 'primary.main' : 'transparent',
-                    color:   view === 'block' ? '#fff' : 'text.secondary',
-                    '&:hover': { bgcolor: view === 'block' ? 'primary.dark' : 'action.hover' },
-                  }}
-                >
-                  {/* Grid icon */}
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3 3h7v7H3V3zm0 11h7v7H3v-7zm11-11h7v7h-7V3zm0 11h7v7h-7v-7z"/>
-                  </svg>
-                </IconButton>
-              </Tooltip>
-              <Divider orientation="vertical" flexItem />
-              <Tooltip title="List view">
-                <IconButton
-                  size="small"
-                  onClick={() => setView('list')}
-                  sx={{
-                    borderRadius: 0, px: 1.5,
-                    bgcolor: view === 'list' ? 'primary.main' : 'transparent',
-                    color:   view === 'list' ? '#fff' : 'text.secondary',
-                    '&:hover': { bgcolor: view === 'list' ? 'primary.dark' : 'action.hover' },
-                  }}
-                >
-                  {/* List icon */}
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-                  </svg>
-                </IconButton>
-              </Tooltip>
+            <Box sx={{ display: 'inline-flex' }}>
+              {([
+                { v: 'block', title: 'Month view', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h7v7H3V3zm0 11h7v7H3v-7zm11-11h7v7h-7V3zm0 11h7v7h-7v-7z"/></svg> },
+                { v: 'list',  title: 'List view',  icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg> },
+              ] as const).map(({ v, title, icon }, i) => (
+                <Tooltip key={v} title={title}>
+                  <Box
+                    component="button"
+                    onClick={() => setView(v)}
+                    aria-label={title}
+                    sx={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      px: 1.25, py: 0.75,
+                      background:   view === v ? 'var(--action-primary)' : 'transparent',
+                      border:       `1px solid ${view === v ? 'var(--action-primary)' : 'var(--border-default)'}`,
+                      borderRadius: i === 0 ? '7px 0 0 7px' : '0 7px 7px 0',
+                      ml:           i > 0 ? '-1px' : 0,
+                      cursor:       'pointer',
+                      color:        view === v ? '#fff' : 'var(--text-tertiary)',
+                      position:     'relative',
+                      zIndex:       view === v ? 1 : 0,
+                      transition:   'background 0.12s, color 0.12s',
+                    }}
+                  >
+                    {icon}
+                  </Box>
+                </Tooltip>
+              ))}
             </Box>
 
             {isAdmin && (
-              <Button variant="contained" size="small" onClick={() => setAddOpen(true)}>
+              <Button variant="contained" onClick={() => setAddOpen(true)}>
                 + Add event
               </Button>
             )}
@@ -819,16 +787,26 @@ export default function CalendarClient({
         {/* Month navigation (block view only) */}
         {view === 'block' && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <IconButton size="small" onClick={prevMonth} aria-label="Previous month">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <IconButton
+              size="small"
+              onClick={prevMonth}
+              aria-label="Previous month"
+              sx={{ border: '1px solid', borderColor: 'divider', width: 34, height: 34, borderRadius: '8px' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
               </svg>
             </IconButton>
-            <Typography sx={{ fontWeight: 600, minWidth: 160, textAlign: 'center' }}>
+            <Typography sx={{ fontWeight: 700, fontSize: 17, minWidth: 170, textAlign: 'center', fontFamily: "var(--font-lora, 'Lora', Georgia, serif)" }}>
               {MONTHS[month]} {year}
             </Typography>
-            <IconButton size="small" onClick={nextMonth} aria-label="Next month">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <IconButton
+              size="small"
+              onClick={nextMonth}
+              aria-label="Next month"
+              sx={{ border: '1px solid', borderColor: 'divider', width: 34, height: 34, borderRadius: '8px' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
               </svg>
             </IconButton>
@@ -850,8 +828,8 @@ export default function CalendarClient({
       </Box>
 
       {/* Dialogs */}
-      {addOpen    && <AddEventDialog onClose={() => setAddOpen(false)} />}
-      {detailEvent && <EventDetailDialog event={detailEvent} onClose={() => setDetailEvent(null)} />}
+      {addOpen    && <AddEventDialog onClose={() => setAddOpen(false)} locations={locations} timezone={timezone} />}
+      {detailEvent && <EventDetailDialog event={detailEvent} onClose={() => setDetailEvent(null)} locations={locations} />}
     </ThemeProvider>
     </LocalizationProvider>
   )

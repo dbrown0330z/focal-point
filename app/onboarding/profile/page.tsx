@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   Avatar,
   Box,
@@ -17,31 +17,21 @@ import AddAPhotoIcon from '@mui/icons-material/AddAPhoto'
 import { createClient } from '@/lib/supabase/client'
 import { completeProfile } from '../actions'
 import { logout } from '@/app/(auth)/actions'
+import { SHOOTING_INTERESTS, CAMERA_BRANDS, EXPERIENCE_LEVELS } from '@/lib/profile-options'
+import { formatPhone } from '@/lib/format-phone'
 
-const SHOOTING_INTERESTS = [
-  'Landscape', 'Portrait', 'Wildlife', 'Street', 'Macro',
-  'Architectural', 'Abstract', 'Black & white', 'Astrophotography',
-]
-
-const CAMERA_BRANDS = [
-  'Canon', 'Nikon', 'Sony', 'Fujifilm', 'Olympus',
-  'Panasonic', 'Leica', 'Pentax / Ricoh',
-  'iPhone', 'Android', 'Film — other',
-]
-
-const EXPERIENCE_LEVELS = [
-  { value: 'beginner',     label: 'Beginner — just getting started' },
-  { value: 'intermediate', label: 'Intermediate — shooting regularly' },
-  { value: 'advanced',     label: 'Advanced — experienced photographer' },
-]
+const TOKEN = { primary: 'var(--text-primary)', secondary: 'var(--text-secondary)', tertiary: 'var(--text-tertiary)' }
 
 function FieldLabel({ children, hint }: { children: React.ReactNode; hint?: string }) {
   return (
-    <Typography variant="body1" fontWeight={500} sx={{ mb: 1 }}>
+    <Typography
+      component="label"
+      sx={{ display: 'block', fontSize: 14, fontWeight: 500, mb: 1, color: TOKEN.primary }}
+    >
       {children}
       {hint && (
-        <Typography component="span" variant="body1" color="text.secondary" fontWeight={400}>
-          {' '}{hint}
+        <Typography component="span" sx={{ fontSize: 13, fontWeight: 400, color: TOKEN.secondary, ml: 0.5 }}>
+          {hint}
         </Typography>
       )}
     </Typography>
@@ -49,14 +39,36 @@ function FieldLabel({ children, hint }: { children: React.ReactNode; hint?: stri
 }
 
 export default function OnboardingProfilePage() {
-  const [avatarFile, setAvatarFile]       = useState<File | null>(null)
-  const [avatarPreview, setAvatarPreview] = useState<string>('')
+  const [firstName, setFirstName]             = useState('')
+  const [initials, setInitials]               = useState('')
+  const [avatarFile, setAvatarFile]           = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview]     = useState<string>('')
   const [experienceLevel, setExperienceLevel] = useState('')
-  const [interests, setInterests]         = useState<string[]>([])
-  const [brands, setBrands]               = useState<string[]>([])
-  const [bio, setBio]                     = useState('')
-  const [submitting, setSubmitting]       = useState(false)
+  const [interests, setInterests]             = useState<string[]>([])
+  const [brands, setBrands]                   = useState<string[]>([])
+  const [location, setLocation]               = useState('')
+  const [phone, setPhone]                     = useState('')
+  const [bio, setBio]                         = useState('')
+  const [submitting, setSubmitting]           = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return
+      const { data } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single()
+      if (data) {
+        setFirstName(data.first_name ?? '')
+        setInitials(
+          [(data.first_name?.[0] ?? ''), (data.last_name?.[0] ?? '')].join('').toUpperCase()
+        )
+      }
+    })
+  }, [])
 
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -89,6 +101,8 @@ export default function OnboardingProfilePage() {
     const formData = new FormData()
     formData.set('experienceLevel', experienceLevel)
     formData.set('bio', bio)
+    formData.set('location', location)
+    formData.set('phone', phone)
     interests.forEach(i => formData.append('shootingInterests', i))
     brands.forEach(b => formData.append('cameraBrands', b))
     if (avatarUrl) formData.set('avatarUrl', avatarUrl)
@@ -98,69 +112,127 @@ export default function OnboardingProfilePage() {
 
   const chipSx = (active: boolean) => ({
     cursor: 'pointer',
-    fontFamily: 'inherit',
     height: 32,
     fontSize: '13px',
+    fontFamily: 'inherit',
+    fontWeight: 400,
+    textTransform: 'none' as const,
+    letterSpacing: 'normal',
+    borderRadius: '9999px',
     ...(!active && {
-      borderColor: 'rgba(0,0,0,0.18)',
-      color: 'text.secondary',
-      '&:hover': { borderColor: 'rgba(0,0,0,0.32)', color: 'text.primary' },
+      backgroundColor: 'transparent',
+      borderColor: 'var(--border-default)',
+      color: TOKEN.secondary,
+      '&:hover': { borderColor: 'var(--border-strong)', color: TOKEN.primary },
     }),
   })
 
   return (
-    <>
-      {/* Step indicator */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 6 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: '#fff' }}>1</Typography>
-          </Box>
-          <Typography variant="body1" fontWeight={600}>Complete your profile</Typography>
-        </Box>
-        <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ width: 24, height: 24, borderRadius: '50%', border: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary' }}>2</Typography>
-          </Box>
-          <Typography variant="body1" color="text.secondary">Pay membership fee</Typography>
+    <Box sx={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+
+      {/* Left: Welcome panel */}
+      <Box sx={{ width: 460, flexShrink: 0, pt: 1 }}>
+        <Typography
+          sx={{
+            fontFamily: 'var(--font-lora)',
+            fontSize: '44px',
+            fontWeight: 700,
+            letterSpacing: '-0.02em',
+            lineHeight: 1.15,
+            color: TOKEN.primary,
+            mb: 3,
+          }}
+        >
+          {firstName
+            ? <>{`Welcome aboard, ${firstName} `}<span style={{ color: TOKEN.secondary }}>— happy to have you in the club!</span></>
+            : <>{'Welcome aboard '}<span style={{ color: TOKEN.secondary }}>— happy to have you in the club!</span></>
+          }
+        </Typography>
+        <Typography sx={{ fontSize: 20, lineHeight: 1.7, color: TOKEN.secondary }}>
+          We're looking forward to seeing your work. Set up your profile, complete your membership, and you'll be ready to enter your first competition before you know it.
+        </Typography>
+        <Box sx={{ mt: 5 }}>
+          <img src="/onboarding-approved.svg" alt="" width={510} height={357} />
         </Box>
       </Box>
 
-      <Typography variant="h2" sx={{ mb: 0.5 }}>About you</Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 5, lineHeight: 1.7 }}>
-        Tell us a bit about yourself. This helps other members get to know you.
-      </Typography>
+      {/* Right: Step indicator + form */}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+
+      {/* Step indicator */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{
+            width: 24, height: 24, borderRadius: '50%',
+            bgcolor: 'primary.main',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#fff', lineHeight: 1 }}>1</Typography>
+          </Box>
+          <Typography sx={{ fontSize: 14, fontWeight: 600, color: TOKEN.primary }}>Complete your profile</Typography>
+        </Box>
+        <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{
+            width: 24, height: 24, borderRadius: '50%',
+            border: '1.5px solid', borderColor: 'divider',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: TOKEN.secondary, lineHeight: 1 }}>2</Typography>
+          </Box>
+          <Typography sx={{ fontSize: 14, color: TOKEN.secondary }}>Pay membership fee</Typography>
+        </Box>
+      </Box>
 
       <form onSubmit={handleSubmit}>
-        <Stack spacing={5}>
+        <Stack spacing={8}>
 
           {/* Avatar */}
           <Box>
             <FieldLabel hint="(optional)">Profile photo</FieldLabel>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
               <Box sx={{ position: 'relative', display: 'inline-block' }}>
-                <Avatar src={avatarPreview || undefined} sx={{ width: 80, height: 80, bgcolor: 'action.selected', fontSize: 32 }} />
-                <IconButton
-                  onClick={() => fileInputRef.current?.click()}
-                  size="small"
-                  sx={{
-                    position: 'absolute', bottom: -4, right: -4,
-                    bgcolor: 'primary.main', color: '#fff', width: 28, height: 28,
-                    '&:hover': { bgcolor: 'primary.dark' },
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-                  }}
+                <Avatar
+                  src={avatarPreview || undefined}
+                  sx={{ width: 72, height: 72, bgcolor: 'primary.main', fontSize: 24, fontWeight: 600 }}
                 >
-                  <AddAPhotoIcon sx={{ fontSize: 14 }} />
-                </IconButton>
-                <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
+                  {!avatarPreview && initials}
+                </Avatar>
+                {avatarPreview && (
+                  <IconButton
+                    onClick={() => fileInputRef.current?.click()}
+                    size="small"
+                    sx={{
+                      position: 'absolute', bottom: -4, right: -4,
+                      bgcolor: 'primary.main', color: '#fff', width: 26, height: 26,
+                      '&:hover': { bgcolor: 'primary.dark' },
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                    }}
+                  >
+                    <AddAPhotoIcon sx={{ fontSize: 13 }} />
+                  </IconButton>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+                  style={{ display: 'none' }}
+                  onChange={handleAvatarChange}
+                />
               </Box>
               <Box>
-                <Button variant="outlined" size="small" color="secondary" onClick={() => fileInputRef.current?.click()}>
-                  {avatarPreview ? 'Change photo' : 'Upload photo'}
-                </Button>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
-                  JPG, PNG or WEBP. Max 5 MB.
+                <Typography
+                  component="span"
+                  onClick={() => fileInputRef.current?.click()}
+                  sx={{
+                    fontSize: 14, color: 'primary.main', cursor: 'pointer',
+                    '&:hover': { textDecoration: 'underline' },
+                  }}
+                >
+                  {avatarPreview ? 'Change photo' : 'Upload a photo'}
+                </Typography>
+                <Typography sx={{ fontSize: 13, color: TOKEN.secondary, mt: 0.5 }}>
+                  JPEG or PNG · Max 5 MB
                 </Typography>
               </Box>
             </Box>
@@ -175,13 +247,15 @@ export default function OnboardingProfilePage() {
               value={experienceLevel}
               onChange={e => setExperienceLevel(e.target.value)}
               input={<OutlinedInput />}
-              renderValue={val => val
-                ? EXPERIENCE_LEVELS.find(l => l.value === val)?.label
-                : <Typography component="span" sx={{ color: 'text.disabled', fontSize: '14px' }}>Select one…</Typography>
-              }
+              renderValue={val => {
+                const lvl = EXPERIENCE_LEVELS.find(l => l.value === val)
+                return lvl
+                  ? `${lvl.label} — ${lvl.description}`
+                  : <Typography component="span" sx={{ color: TOKEN.tertiary, fontSize: 14 }}>Select one…</Typography>
+              }}
             >
               {EXPERIENCE_LEVELS.map(l => (
-                <MenuItem key={l.value} value={l.value}>{l.label}</MenuItem>
+                <MenuItem key={l.value} value={l.value}>{l.label} — {l.description}</MenuItem>
               ))}
             </Select>
           </Box>
@@ -226,6 +300,29 @@ export default function OnboardingProfilePage() {
             </Box>
           </Box>
 
+          {/* Location + Phone — two-column row */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+            <Box>
+              <FieldLabel hint="(optional)">Location</FieldLabel>
+              <OutlinedInput
+                fullWidth
+                placeholder="e.g. Toronto, ON"
+                value={location}
+                onChange={e => setLocation(e.target.value)}
+              />
+            </Box>
+            <Box>
+              <FieldLabel hint="(optional)">Phone number</FieldLabel>
+              <OutlinedInput
+                fullWidth
+                placeholder="e.g. +1 416 555 0100"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                onBlur={e => setPhone(formatPhone(e.target.value))}
+              />
+            </Box>
+          </Box>
+
           {/* Bio */}
           <Box>
             <FieldLabel hint="(optional)">Bio</FieldLabel>
@@ -237,37 +334,25 @@ export default function OnboardingProfilePage() {
               value={bio}
               onChange={e => setBio(e.target.value)}
             />
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
-              This will be visible to other club members.
+            <Typography sx={{ fontSize: 13, color: TOKEN.secondary, mt: 0.75 }}>
+              Visible to other club members.
             </Typography>
           </Box>
 
           {/* Actions */}
           <Box sx={{ display: 'flex', gap: 2, pt: 1 }}>
-            <Button
-              type="submit"
-              variant="contained"
-              fullWidth
-              disabled={submitting}
-              sx={{ py: 1.5 }}
-            >
+            <Button variant="outlined" color="secondary" fullWidth onClick={() => logout()}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="contained" fullWidth disabled={submitting}>
               {submitting ? 'Saving…' : 'Continue to payment'}
             </Button>
-            <form action={logout} style={{ width: '100%' }}>
-              <Button
-                type="submit"
-                variant="outlined"
-                color="secondary"
-                fullWidth
-                sx={{ py: 1.5 }}
-              >
-                Cancel
-              </Button>
-            </form>
           </Box>
 
         </Stack>
       </form>
-    </>
+
+      </Box>{/* end right column */}
+    </Box>
   )
 }

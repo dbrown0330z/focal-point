@@ -2,14 +2,14 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
 export async function upsertScore(token: string, formData: FormData) {
-  const supabase = await createClient()
+  // Service client throughout — judges have no Supabase auth session
+  const service = createServiceClient()
 
   // Validate the token and that the competition is still in judging
-  const { data: judgeToken } = await supabase
+  const { data: judgeToken } = await service
     .from('judge_tokens')
     .select('id, competitions(status)')
     .eq('token', token)
@@ -24,9 +24,6 @@ export async function upsertScore(token: string, formData: FormData) {
   const submissionId = formData.get('submission_id') as string
   const score        = Number(formData.get('score'))
   const notes        = (formData.get('notes') as string).trim() || null
-
-  // Use service client to bypass RLS — judge has no Supabase session
-  const service = createServiceClient()
   await service.from('scores').upsert(
     { submission_id: submissionId, judge_token_id: judgeToken.id, score, notes },
     { onConflict: 'submission_id,judge_token_id' }
