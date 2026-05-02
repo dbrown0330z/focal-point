@@ -76,9 +76,11 @@ export async function saveFlag(
   const { judgeToken } = await getValidJudgeToken(token)
 
   const service = createServiceClient()
-  // Upsert so flagging works even on images that haven't been scored yet
+  // Upsert so flagging works even on images that haven't been scored yet.
+  // score is omitted intentionally — ON CONFLICT only updates the flagged column.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await service.from('scores').upsert(
-    { submission_id: submissionId, judge_token_id: judgeToken.id, flagged },
+    { submission_id: submissionId, judge_token_id: judgeToken.id, flagged } as any,
     { onConflict: 'submission_id,judge_token_id' },
   )
 }
