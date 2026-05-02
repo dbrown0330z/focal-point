@@ -17,22 +17,8 @@ import AddAPhotoIcon from '@mui/icons-material/AddAPhoto'
 import { createClient } from '@/lib/supabase/client'
 import { completeProfile } from '../actions'
 import { logout } from '@/app/(auth)/actions'
-
-const SHOOTING_INTERESTS = [
-  'Landscape', 'Portrait', 'Wildlife', 'Street', 'Macro',
-  'Architectural', 'Abstract', 'Black & white', 'Astrophotography', 'Other',
-]
-
-const CAMERA_BRANDS = [
-  'Canon', 'Nikon', 'Sony', 'Fujifilm', 'Olympus',
-  'Panasonic', 'Pentax / Ricoh', 'Phone', 'Film — other',
-]
-
-const EXPERIENCE_LEVELS = [
-  { value: 'beginner',     label: 'Beginner — just getting started' },
-  { value: 'intermediate', label: 'Intermediate — shooting regularly' },
-  { value: 'advanced',     label: 'Advanced — experienced photographer' },
-]
+import { SHOOTING_INTERESTS, CAMERA_BRANDS, EXPERIENCE_LEVELS } from '@/lib/profile-options'
+import { formatPhone } from '@/lib/format-phone'
 
 const TOKEN = { primary: 'var(--text-primary)', secondary: 'var(--text-secondary)', tertiary: 'var(--text-tertiary)' }
 
@@ -60,6 +46,8 @@ export default function OnboardingProfilePage() {
   const [experienceLevel, setExperienceLevel] = useState('')
   const [interests, setInterests]             = useState<string[]>([])
   const [brands, setBrands]                   = useState<string[]>([])
+  const [location, setLocation]               = useState('')
+  const [phone, setPhone]                     = useState('')
   const [bio, setBio]                         = useState('')
   const [submitting, setSubmitting]           = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -113,6 +101,8 @@ export default function OnboardingProfilePage() {
     const formData = new FormData()
     formData.set('experienceLevel', experienceLevel)
     formData.set('bio', bio)
+    formData.set('location', location)
+    formData.set('phone', phone)
     interests.forEach(i => formData.append('shootingInterests', i))
     brands.forEach(b => formData.append('cameraBrands', b))
     if (avatarUrl) formData.set('avatarUrl', avatarUrl)
@@ -257,13 +247,15 @@ export default function OnboardingProfilePage() {
               value={experienceLevel}
               onChange={e => setExperienceLevel(e.target.value)}
               input={<OutlinedInput />}
-              renderValue={val => val
-                ? EXPERIENCE_LEVELS.find(l => l.value === val)?.label
-                : <Typography component="span" sx={{ color: TOKEN.tertiary, fontSize: 14 }}>Select one…</Typography>
-              }
+              renderValue={val => {
+                const lvl = EXPERIENCE_LEVELS.find(l => l.value === val)
+                return lvl
+                  ? `${lvl.label} — ${lvl.description}`
+                  : <Typography component="span" sx={{ color: TOKEN.tertiary, fontSize: 14 }}>Select one…</Typography>
+              }}
             >
               {EXPERIENCE_LEVELS.map(l => (
-                <MenuItem key={l.value} value={l.value}>{l.label}</MenuItem>
+                <MenuItem key={l.value} value={l.value}>{l.label} — {l.description}</MenuItem>
               ))}
             </Select>
           </Box>
@@ -305,6 +297,29 @@ export default function OnboardingProfilePage() {
                   />
                 )
               })}
+            </Box>
+          </Box>
+
+          {/* Location + Phone — two-column row */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+            <Box>
+              <FieldLabel hint="(optional)">Location</FieldLabel>
+              <OutlinedInput
+                fullWidth
+                placeholder="e.g. Toronto, ON"
+                value={location}
+                onChange={e => setLocation(e.target.value)}
+              />
+            </Box>
+            <Box>
+              <FieldLabel hint="(optional)">Phone number</FieldLabel>
+              <OutlinedInput
+                fullWidth
+                placeholder="e.g. +1 416 555 0100"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                onBlur={e => setPhone(formatPhone(e.target.value))}
+              />
             </Box>
           </Box>
 

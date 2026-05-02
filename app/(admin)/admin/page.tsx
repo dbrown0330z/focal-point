@@ -23,14 +23,20 @@ export default async function AdminDashboardPage() {
     { data: recentSubmissions },
     { data: recentMembers },
     { data: recentCompetitions },
+    { data: clubSettings },
   ] = await Promise.all([
     supabase.from('profiles').select('id', { count: 'exact', head: true }).in('membership_status', ['pending', 'approved']),
     supabase.from('profiles').select('id', { count: 'exact', head: true }).in('membership_status', ['active', 'complimentary']),
-    supabase.from('competitions').select('id, title, status, closes_at').in('status', ['open', 'judging']).order('created_at', { ascending: false }),
+    supabase.from('competitions').select('id, title, status, closes_at').in('status', ['open', 'judging']).is('deleted_at', null).order('created_at', { ascending: false }),
     supabase.from('submissions').select('id, submitted_at, images(title), profiles!member_id(display_name)').order('submitted_at', { ascending: false }).limit(4),
     supabase.from('profiles').select('id, display_name, created_at').order('created_at', { ascending: false }).limit(3),
-    supabase.from('competitions').select('id, title, created_at').order('created_at', { ascending: false }).limit(3),
+    supabase.from('competitions').select('id, title, created_at').is('deleted_at', null).order('created_at', { ascending: false }).limit(3),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).from('club_settings').select('membership_terms_reviewed').single(),
   ])
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const termsReviewed = (clubSettings as any)?.membership_terms_reviewed ?? true
 
   // Build merged activity feed
   type ActivityItem = { time: string; label: string; detail: string; dot: string; href: string }
@@ -90,6 +96,27 @@ export default async function AdminDashboardPage() {
         <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Dashboard</h1>
         <p className="mt-1 text-[13px] text-content-secondary">Club overview</p>
       </div>
+
+      {/* Membership terms reminder */}
+      {!termsReviewed && (
+        <div className="flex items-start gap-3 rounded-[10px] border border-status-warning bg-status-warning-bg px-5 py-4">
+          <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-status-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-status-warning-text">Review your membership terms</p>
+            <p className="mt-0.5 text-[12px] text-status-warning-text leading-relaxed">
+              You&apos;re currently using the Focal Point default template. Review and update it before accepting member applications.
+            </p>
+          </div>
+          <Link
+            href="/admin/club-defaults#membership-terms"
+            className="flex-shrink-0 rounded-md px-3 py-1.5 text-[12px] font-medium text-status-warning-text border border-status-warning hover:bg-status-warning hover:text-white transition-colors"
+          >
+            Review now →
+          </Link>
+        </div>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-4">

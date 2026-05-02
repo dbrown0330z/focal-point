@@ -2,13 +2,12 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
 export async function submitScores(token: string): Promise<void> {
-  const supabase = await createClient()
+  const service = createServiceClient()
 
-  const { data: judgeToken } = await supabase
+  const { data: judgeToken } = await service
     .from('judge_tokens')
     .select('id, competition_id, competitions(status)')
     .eq('token', token)
@@ -18,8 +17,6 @@ export async function submitScores(token: string): Promise<void> {
   if (!judgeToken || competition?.status !== 'judging') {
     redirect(`/judge/${token}/expired`)
   }
-
-  const service = createServiceClient()
   await service
     .from('judge_tokens')
     .update({ submitted_at: new Date().toISOString() })

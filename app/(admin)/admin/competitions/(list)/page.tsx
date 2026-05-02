@@ -1,6 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import CompetitionsListClient from './CompetitionsListClient'
-import type { CompetitionConfig } from '@/types/competition'
+import { defaultConfig, type CompetitionConfig } from '@/types/competition'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,12 +46,44 @@ export default async function AdminCompetitionsPage() {
     config: t.config as unknown as CompetitionConfig,
   }))
 
-  const { data: categoryRows } = await supabase
-    .from('competition_default_categories')
-    .select('name')
-    .order('sort_order', { ascending: true })
+  const [{ data: categoryRows }, { data: competitionDefaults }] = await Promise.all([
+    supabase
+      .from('competition_default_categories')
+      .select('name')
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('competition_defaults')
+      .select('*')
+      .single(),
+  ])
 
   const clubCategories = categoryRows?.map(r => r.name) ?? ['Open', 'Nature', 'Monochrome']
+
+  // Build a partial CompetitionConfig from saved defaults to pre-populate the wizard
+  const d = competitionDefaults
+  const clubDefaults: Partial<CompetitionConfig> = d ? {
+    maxEntriesPerMember:         d.max_entries_per_member,
+    maxEntriesPerCategory:       d.max_entries_per_category ?? undefined,
+    imageLongEdgePreset:         d.image_long_edge_preset as CompetitionConfig['imageLongEdgePreset'],
+    imageLongEdgeCustom:         d.image_long_edge_custom ?? undefined,
+    requireCaptureDate:          d.require_capture_date,
+    captureDateAmount:           d.capture_date_amount,
+    captureDateUnit:             d.capture_date_unit as 'years' | 'months',
+    imageReusePolicy:            d.image_reuse_rule as CompetitionConfig['imageReusePolicy'],
+    allowWithdrawals:            d.withdrawal_frees_slot,
+    judgingPreset:               d.judging_method as CompetitionConfig['judgingPreset'],
+    scoreMin:                    d.score_min,
+    scoreMax:                    d.score_max,
+    allowDecimals:               d.allow_decimals,
+    scoreAggregation:            d.score_aggregation as CompetitionConfig['scoreAggregation'],
+    blindHideName:               d.hide_member_names,
+    blindHideMetadata:           d.hide_exif_data,
+    judgeComments:               d.require_judge_comments ? 'required' : 'none',
+    minCommentLength:            d.judge_comments_min_chars,
+    minimumScoreToPublish:       d.score_min_to_publish_enabled,
+    minimumScoreToPublishValue:  d.score_min_to_publish,
+    resultsVisibility:           d.results_visibility === 'public-same-time' ? 'public' : 'members',
+  } : {}
 
   const { data: profiles } = await supabase
     .from('profiles')
@@ -122,6 +154,7 @@ export default async function AdminCompetitionsPage() {
       members={members}
       meetingLocations={meetingLocations}
       clubCategories={clubCategories}
+      clubDefaults={clubDefaults}
     />
   )
 }

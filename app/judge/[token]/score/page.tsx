@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export default async function JudgeScoringGridPage({
   params,
@@ -8,7 +8,7 @@ export default async function JudgeScoringGridPage({
   params: Promise<{ token: string }>
 }) {
   const { token } = await params
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   const { data: judgeToken } = await supabase
     .from('judge_tokens')

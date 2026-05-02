@@ -11,6 +11,8 @@ export type ProfileUpdateData = {
   experience_level: string
   shooting_interests: string[]
   camera_brands: string[]
+  location: string
+  phone: string
 }
 
 export async function updateProfile(data: ProfileUpdateData): Promise<{ error: string | null }> {
@@ -28,7 +30,25 @@ export async function updateProfile(data: ProfileUpdateData): Promise<{ error: s
       experience_level:   data.experience_level || null,
       shooting_interests: data.shooting_interests,
       camera_brands:      data.camera_brands,
+      location:           data.location || null,
+      phone:              data.phone || null,
     })
+    .eq('id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/profile')
+  return { error: null }
+}
+
+export async function updateAvatarUrl(avatarUrl: string): Promise<{ error: string | null }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ avatar_url: avatarUrl })
     .eq('id', user.id)
 
   if (error) return { error: error.message }

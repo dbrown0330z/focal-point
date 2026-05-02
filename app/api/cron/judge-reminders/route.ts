@@ -48,6 +48,7 @@ export async function GET(req: Request) {
     .select('id, title, status, judging_opens_at, judging_closes_at, reminders_sent, judge_tokens(id, judge_name, judge_email, token, invitation_sent_at)')
     .in('status', ['open', 'judging', 'judging_on_hold'])
     .not('judging_opens_at', 'is', null)
+    .is('deleted_at', null)
 
   if (error || !competitions) {
     console.error('Cron: failed to fetch competitions', error)

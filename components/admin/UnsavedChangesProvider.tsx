@@ -53,7 +53,7 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
   }, [])
 
   const navigate = useCallback((href: string) => {
-    if (!isDirty) { router.push(href); return }
+    if (!isDirty) { router.push(href); router.refresh(); return }
     setPendingHref(href)
   }, [isDirty, router])
 
@@ -66,7 +66,7 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
       setIsDirty(false)
       const href = pendingHref
       setPendingHref(null)
-      if (href) router.push(href)
+      if (href) { router.push(href); router.refresh() }
     }
   }
 
@@ -74,7 +74,7 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
     setIsDirty(false)
     const href = pendingHref
     setPendingHref(null)
-    if (href) router.push(href)
+    if (href) { router.push(href); router.refresh() }
   }
 
   return (

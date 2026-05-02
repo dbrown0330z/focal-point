@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogTitle,
   Link,
+  Paper,
   Stack,
   Table,
   TableBody,
@@ -20,8 +21,8 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
+import GavelIcon from '@mui/icons-material/Gavel'
 import { TrashBtn } from '@/components/ui/TrashBtn'
-import EmptyState from '@/components/admin/EmptyState'
 
 type Judge = {
   id: string
@@ -260,15 +261,18 @@ export default function JudgesClient({ judges: initial }: { judges: Judge[] }) {
       </Box>
 
 {judges.length === 0 ? (
-        <EmptyState
-          headline="No judges added yet!"
-          body="Add judges here, you will be able to select them when creating competitions."
-          action={
-            <Button variant="contained" onClick={openNew}>
-              Add Judge
-            </Button>
-          }
-        />
+        <Paper variant="outlined" sx={{ py: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
+          <GavelIcon sx={{ fontSize: 40, color: 'text.disabled' }} />
+          <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary' }}>
+            No judges added yet
+          </Typography>
+          <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+            Add judges here to assign them to competitions.
+          </Typography>
+          <Button variant="contained" sx={{ mt: 0.5 }} onClick={openNew}>
+            Add judge
+          </Button>
+        </Paper>
       ) : (
         <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
           <Table size="small">

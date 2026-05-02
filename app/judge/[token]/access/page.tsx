@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import CodeEntry from './CodeEntry'
 
 export default async function JudgeAccessPage({
@@ -16,7 +16,7 @@ export default async function JudgeAccessPage({
     redirect(`/judge/${token}/landing`)
   }
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { data: judgeToken } = await supabase
     .from('judge_tokens')
     .select('id, judge_name, competitions(status)')

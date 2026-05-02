@@ -1,20 +1,23 @@
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 // Entry point. Validates token, then routes:
 //   - invalid / not in judging → /expired
 //   - already verified (cookie) → /landing
 //   - first visit → /access (code entry)
+//
+// Uses the service client because judge_tokens has no public-read RLS policy —
+// token validation is intentionally server-side only.
 export default async function JudgeEntryPage({
   params,
 }: {
   params: Promise<{ token: string }>
 }) {
   const { token } = await params
-  const supabase = await createClient()
+  const service = createServiceClient()
 
-  const { data: judgeToken } = await supabase
+  const { data: judgeToken } = await service
     .from('judge_tokens')
     .select('id, competitions(status)')
     .eq('token', token)

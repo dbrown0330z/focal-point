@@ -41,13 +41,13 @@ export const EVENT_TYPES: {
   lightBg: string      // subtle bg for hover / inactive button
   dotColor: string     // visible color dot in legend / list view
 }[] = [
-  { value: 'competition',      label: 'Competition',       color: 'var(--event-competition)',    textColor: '#fff',    lightBg: 'var(--event-competition-bg)',  dotColor: 'var(--event-competition)'    },
-  { value: 'regular_meeting',  label: 'Regular Meeting',   color: 'var(--event-meeting)',         textColor: '#fff',    lightBg: 'var(--event-meeting-bg)',      dotColor: 'var(--event-meeting)'         },
-  { value: 'board_meeting',    label: 'Board Meeting',     color: 'var(--event-board)',            textColor: '#fff',    lightBg: 'var(--event-board-bg)',         dotColor: 'var(--event-board)'           },
-  { value: 'field_trip',       label: 'Field Trip',        color: 'var(--event-fieldtrip)',        textColor: '#fff',    lightBg: 'var(--event-fieldtrip-bg)',     dotColor: 'var(--event-fieldtrip)'       },
-  { value: 'other',            label: 'Other',             color: 'var(--event-other)',            textColor: '#fff',    lightBg: 'var(--event-other-bg)',         dotColor: 'var(--event-other)'           },
+  { value: 'competition',      label: 'Competition',       color: '#1A6FC4',                      textColor: '#fff',    lightBg: 'rgba(26,111,196,0.12)',         dotColor: '#1A6FC4'                      },
+  { value: 'regular_meeting',  label: 'Regular Meeting',   color: '#0097A7',                      textColor: '#fff',    lightBg: 'rgba(0,151,167,0.12)',          dotColor: '#0097A7'                      },
+  { value: 'board_meeting',    label: 'Board Meeting',     color: '#6C47D4',                      textColor: '#fff',    lightBg: 'rgba(108,71,212,0.12)',         dotColor: '#6C47D4'                      },
+  { value: 'field_trip',       label: 'Field Trip',        color: '#E65100',                      textColor: '#fff',    lightBg: 'rgba(230,81,0,0.12)',           dotColor: '#E65100'                      },
+  { value: 'other',            label: 'Other',             color: '#5A7A96',                      textColor: '#fff',    lightBg: 'rgba(90,122,150,0.12)',         dotColor: '#5A7A96'                      },
   // Submission deadline types — light pastel bg with dark text
-  { value: 'submission_open',  label: 'Submissions Open',  color: 'var(--status-success-bg)',     textColor: 'var(--status-success-text)', lightBg: 'var(--phase-open-bg)',    dotColor: 'var(--status-success)' },
+  { value: 'submission_open',  label: 'Submissions Open',  color: 'var(--status-success-bg)',     textColor: 'var(--status-success-text)', lightBg: 'rgba(46,125,50,0.12)',    dotColor: 'var(--status-success)' },
   { value: 'submission_closed',label: 'Submissions Closed',color: 'var(--status-error-bg)',       textColor: 'var(--status-error-text)',   lightBg: 'rgba(211,47,47,0.08)',    dotColor: 'var(--status-error)'   },
 ]
 
@@ -759,8 +759,8 @@ export default function CalendarClient({
                     sx={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       px: 1.25, py: 0.75,
-                      background:   view === v ? 'var(--toggle-selected)' : 'transparent',
-                      border:       `1px solid ${view === v ? 'var(--toggle-selected)' : 'var(--border-default)'}`,
+                      background:   view === v ? 'var(--action-primary)' : 'transparent',
+                      border:       `1px solid ${view === v ? 'var(--action-primary)' : 'var(--border-default)'}`,
                       borderRadius: i === 0 ? '7px 0 0 7px' : '0 7px 7px 0',
                       ml:           i > 0 ? '-1px' : 0,
                       cursor:       'pointer',

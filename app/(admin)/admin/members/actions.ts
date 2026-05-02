@@ -83,11 +83,18 @@ export async function deleteMember(memberId: string) {
 
 export async function updateMemberName(memberId: string, firstName: string, lastName: string) {
   const supabase = createServiceClient()
+  const displayName = [firstName, lastName].filter(Boolean).join(' ').trim() || firstName
   await supabase
     .from('profiles')
-    .update({ first_name: firstName || null, last_name: lastName || null })
+    .update({
+      first_name:   firstName || null,
+      last_name:    lastName || null,
+      display_name: displayName,
+    })
     .eq('id', memberId)
   revalidatePath('/admin/members')
+  revalidatePath('/our-club/members')
+  revalidatePath('/', 'layout')   // nav bar + home page pick up the new display_name
 }
 
 export async function makeAdmin(memberId: string) {

@@ -1,13 +1,13 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
 // ── Shared: validate token and return judge_token row ─────────────────────────
+// Service client throughout — judges have no Supabase auth session.
 async function getValidJudgeToken(token: string) {
-  const supabase = await createClient()
-  const { data: judgeToken } = await supabase
+  const service = createServiceClient()
+  const { data: judgeToken } = await service
     .from('judge_tokens')
     .select('id, competitions(status, score_min, score_max)')
     .eq('token', token)

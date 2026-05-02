@@ -38,6 +38,7 @@ export async function finalizeSubmission(input: SubmitInput): Promise<SubmitResu
     .from('competitions')
     .select('status, submission_limit, max_entries_per_category')
     .eq('id', input.competitionId)
+    .is('deleted_at', null)
     .single()
 
   if (!comp) return { ok: false, error: 'Competition not found.' }
@@ -166,6 +167,24 @@ export async function withdrawSubmission(submissionId: string, competitionId: st
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: 'Not authenticated.' }
+
+  // Validate that the competition allows withdrawals and is in an eligible status
+  const { data: comp } = await supabase
+    .from('competitions')
+    .select('status, withdrawal_frees_slot')
+    .eq('id', competitionId)
+    .is('deleted_at', null)
+    .single()
+
+  if (!comp) return { ok: false, error: 'Competition not found.' }
+
+  const allowWithdrawals = (comp as Record<string, unknown>).withdrawal_frees_slot as boolean
+  if (!allowWithdrawals) return { ok: false, error: 'Withdrawals are not permitted for this competition.' }
+
+  const withdrawableStatuses = ['open', 'judging', 'judging_on_hold']
+  if (!withdrawableStatuses.includes(comp.status)) {
+    return { ok: false, error: 'Withdrawals are no longer accepted for this competition.' }
+  }
 
   const { error } = await supabase
     .from('submissions')

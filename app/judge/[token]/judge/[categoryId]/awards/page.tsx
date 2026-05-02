@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import AwardsClient from './AwardsClient'
 import type { AwardTier } from '@/types/competition'
 
@@ -28,7 +28,7 @@ export default async function AwardsPage({
     redirect(`/judge/${token}/access`)
   }
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   const { data: judgeToken } = await supabase
     .from('judge_tokens')

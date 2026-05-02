@@ -43,7 +43,7 @@ function createAdminTheme(mode: 'light' | 'dark') {
     },
 
     typography: {
-      fontFamily: "var(--font-roboto-mono, 'Roboto Mono', monospace)",
+      fontFamily: "var(--font-inter, 'Inter', system-ui, sans-serif)",
       htmlFontSize: 15,
       fontSize: 15,
       h1: { fontSize: '22px', fontWeight: 700, letterSpacing: '-0.015em', lineHeight: 1.3 },
@@ -68,7 +68,6 @@ function createAdminTheme(mode: 'light' | 'dark') {
             minHeight:     '34px',
             padding:       '7px 16px',
             borderRadius:  '6px',
-            fontFamily:    "var(--font-inter, 'Inter', system-ui, sans-serif)",
           },
           contained: {
             boxShadow: isDark
@@ -111,7 +110,6 @@ function createAdminTheme(mode: 'light' | 'dark') {
         styleOverrides: {
           root: {
             borderRadius: '4px',
-            fontFamily:   "var(--font-inter, 'Inter', system-ui, sans-serif)",
             fontWeight:   500,
           },
         },
@@ -122,7 +120,6 @@ function createAdminTheme(mode: 'light' | 'dark') {
           root: {
             borderRadius:    '6px',
             fontSize:        '13px',
-            fontFamily:      "var(--font-inter, 'Inter', system-ui, sans-serif)",
             backgroundColor: isDark ? '#121E2E' : '#FFFFFF',
             '&:hover .MuiOutlinedInput-notchedOutline': {
               borderColor: isDark ? '#4A7CC4' : '#B0BACA',
@@ -151,7 +148,6 @@ function createAdminTheme(mode: 'light' | 'dark') {
               letterSpacing:   '0.04em',
               textTransform:   'uppercase',
               borderBottom:    isDark ? '1px solid rgba(255,255,255,0.10)' : '1px solid #D8DDE7',
-              fontFamily:      "var(--font-inter, 'Inter', system-ui, sans-serif)",
             },
           },
         },
@@ -161,7 +157,6 @@ function createAdminTheme(mode: 'light' | 'dark') {
         styleOverrides: {
           root: {
             borderColor: isDark ? 'rgba(255,255,255,0.07)' : '#EDF0F5',
-            fontFamily:  "var(--font-inter, 'Inter', system-ui, sans-serif)",
             color:       isDark ? '#E2E8F0' : '#131F2E',
             fontSize:    '13px',
           },
@@ -181,7 +176,6 @@ function createAdminTheme(mode: 'light' | 'dark') {
       MuiDialog: {
         styleOverrides: {
           paper: {
-            fontFamily:      "var(--font-inter, 'Inter', system-ui, sans-serif)",
             backgroundColor: isDark ? '#192638' : '#FFFFFF',
           },
         },
@@ -190,17 +184,10 @@ function createAdminTheme(mode: 'light' | 'dark') {
       MuiDialogTitle: {
         styleOverrides: {
           root: {
-            fontFamily: "var(--font-roboto-mono, 'Roboto Mono', monospace)",
             color:      isDark ? '#E2E8F0' : '#131F2E',
             fontSize:   '15px',
             fontWeight: 600,
           },
-        },
-      },
-
-      MuiTypography: {
-        styleOverrides: {
-          root: { fontFamily: "var(--font-inter, 'Inter', system-ui, sans-serif)" },
         },
       },
 

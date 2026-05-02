@@ -1,6 +1,27 @@
 import Link from 'next/link'
 import { login } from '../actions'
 
+const labelSx: React.CSSProperties = {
+  display: 'block',
+  marginBottom: '6px',
+  fontSize: '13px',
+  fontWeight: 500,
+  color: '#E8E8E8',
+  fontFamily: 'var(--font-nunito, Nunito, system-ui, sans-serif)',
+}
+
+const inputCls = [
+  'w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors',
+  'font-[family-name:var(--font-nunito)]',
+].join(' ')
+
+const inputStyle: React.CSSProperties = {
+  background: '#292929',
+  border: '1px solid rgba(255,255,255,0.12)',
+  color: '#E8E8E8',
+  fontFamily: 'var(--font-nunito, Nunito, system-ui, sans-serif)',
+}
+
 export default async function LoginPage({
   searchParams,
 }: {
@@ -10,7 +31,17 @@ export default async function LoginPage({
 
   return (
     <>
-      <h2 className="mb-6 text-lg font-medium text-content-primary">Sign in</h2>
+      <h2
+        style={{
+          marginBottom: '24px',
+          fontSize: '20px',
+          fontWeight: 600,
+          color: '#E8E8E8',
+          fontFamily: 'var(--font-lora, Lora, Georgia, serif)',
+        }}
+      >
+        Sign in
+      </h2>
 
       {reset && (
         <div className="mb-4 rounded-lg border border-status-success bg-status-success-bg px-4 py-3 text-sm text-status-success-text">
@@ -19,56 +50,58 @@ export default async function LoginPage({
       )}
 
       {pending && (
-        <div className="mb-4 rounded-lg border border-status-warning bg-status-warning-bg px-4 py-3 text-sm text-status-warning-text">
-          Your account is pending approval. You'll be able to sign in once an admin activates it.
+        <div className="mb-4 rounded-lg px-4 py-3 text-sm" style={{ background: 'rgba(166,124,0,0.12)', border: '1px solid rgba(166,124,0,0.35)', color: '#FAD84A' }}>
+          Your account is pending approval. You&apos;ll be able to sign in once an admin activates it.
         </div>
       )}
 
       {error && (
-        <div className="mb-4 rounded-lg border border-status-error bg-status-error-bg px-4 py-3 text-sm text-status-error-text">
+        <div className="mb-4 rounded-lg px-4 py-3 text-sm" style={{ background: 'rgba(211,47,47,0.12)', border: '1px solid rgba(211,47,47,0.35)', color: '#F09595' }}>
           {error}
         </div>
       )}
 
       <form action={login} className="flex flex-col gap-4">
         <div>
-          <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-content-primary">
-            Email
-          </label>
+          <label htmlFor="email" style={labelSx}>Email</label>
           <input
             id="email" name="email" type="email" autoComplete="email" required
             placeholder="you@example.com"
-            className="w-full rounded-lg border border-border-default bg-surface-2 px-3 py-2 text-sm text-content-primary placeholder-content-muted focus:border-action-primary focus:outline-none focus:ring-2 focus:ring-action-primary/20"
+            className={inputCls}
+            style={inputStyle}
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-content-primary">
-            Password
-          </label>
+          <label htmlFor="password" style={labelSx}>Password</label>
           <input
             id="password" name="password" type="password" autoComplete="current-password" required
-            className="w-full rounded-lg border border-border-default bg-surface-2 px-3 py-2 text-sm text-content-primary focus:border-action-primary focus:outline-none focus:ring-2 focus:ring-action-primary/20"
+            className={inputCls}
+            style={inputStyle}
           />
         </div>
 
         <button
           type="submit"
-          className="mt-2 w-full rounded-lg bg-action-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-action-primary-hover focus:outline-none focus:ring-2 focus:ring-action-primary/30 transition-colors"
+          className="mt-2 w-full rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors"
+          style={{
+            background: 'var(--action-primary)',
+            fontFamily: 'var(--font-nunito, Nunito, system-ui, sans-serif)',
+          }}
         >
           Sign in
         </button>
       </form>
 
-      <p className="mt-3 text-center text-sm text-content-secondary">
-        <Link href="/forgot-password" className="text-action-primary hover:underline">
+      <p className="mt-3 text-center text-sm" style={{ color: '#9E9E9E', fontFamily: 'var(--font-nunito, Nunito, system-ui, sans-serif)' }}>
+        <Link href="/forgot-password" className="hover:underline" style={{ color: 'var(--action-primary)' }}>
           Forgot your password?
         </Link>
       </p>
 
-      <p className="mt-6 text-center text-sm text-content-secondary">
+      <p className="mt-6 text-center text-sm" style={{ color: '#9E9E9E', fontFamily: 'var(--font-nunito, Nunito, system-ui, sans-serif)' }}>
         Not a member?{' '}
-        <Link href="/apply" className="font-medium text-action-primary hover:underline">
+        <Link href="/apply" className="font-medium hover:underline" style={{ color: 'var(--action-primary)' }}>
           Request to join
         </Link>
       </p>

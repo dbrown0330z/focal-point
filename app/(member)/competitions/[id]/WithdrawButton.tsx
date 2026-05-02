@@ -8,15 +8,11 @@ export default function WithdrawButton({
   competitionId,
   imageTitle,
   competitionTitle,
-  categoryName,
-  withdrawalFreesSlot,
 }: {
-  submissionId:        string
-  competitionId:       string
-  imageTitle:          string
-  competitionTitle:    string
-  categoryName:        string
-  withdrawalFreesSlot: boolean
+  submissionId:     string
+  competitionId:    string
+  imageTitle:       string
+  competitionTitle: string
 }) {
   const [open, setOpen]       = useState(false)
   const [error, setError]     = useState('')
@@ -48,20 +44,11 @@ export default function WithdrawButton({
           <div className="w-full max-w-sm rounded-2xl border border-border-default bg-surface-2 p-6 shadow-xl space-y-4">
             <div>
               <h2 className="text-base font-semibold text-content-primary">Withdraw this entry?</h2>
-              <p className="mt-1 text-sm text-content-secondary">
-                &ldquo;{imageTitle}&rdquo;<br />
-                {competitionTitle} · {categoryName}
+              <p className="mt-2 text-sm text-content-secondary leading-relaxed">
+                Removing &ldquo;{imageTitle}&rdquo; from {competitionTitle} cannot be undone.
+                Your entry slot will not be returned but this image can be entered in a future competition.
               </p>
             </div>
-
-            <p className="text-sm text-content-tertiary">
-              Withdrawing this entry will remove it from the competition. This cannot be undone.
-            </p>
-            <p className="text-xs text-content-tertiary border border-border-subtle rounded-lg px-3 py-2 bg-surface-1">
-              {withdrawalFreesSlot
-                ? 'Note: Your entry slot will be returned and you can submit a different image.'
-                : 'Note: Your entry slot will not be returned.'}
-            </p>
 
             {error && (
               <p className="text-sm text-status-error-text">{error}</p>

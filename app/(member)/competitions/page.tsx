@@ -10,7 +10,7 @@ export default async function CompetitionsPage() {
   // Current competitions: open or judging
   const { data: currentRaw } = await supabase
     .from('competitions')
-    .select('id, title, short_title, status, closes_at, submission_limit, competition_categories(id, name), judge_tokens(judge_name)')
+    .select('id, title, short_title, status, closes_at, results_at, submission_limit, competition_categories(id, name), judge_tokens(judge_name)')
     .in('status', ['open', 'judging'])
     .is('archived_at', null)
     .is('deleted_at', null)
@@ -66,6 +66,7 @@ export default async function CompetitionsPage() {
         title: (comp as unknown as { short_title: string | null }).short_title ?? comp.title,
         status: comp.status,
         closes_at: comp.closes_at,
+        results_at: (comp as unknown as { results_at: string | null }).results_at ?? null,
         submission_limit: comp.submission_limit,
         categoryLimit: null as number | null, // TODO: add per-category limit to competition_categories table
         categories: (comp.competition_categories as unknown as { id: string; name: string }[]) ?? [],
@@ -104,6 +105,7 @@ export default async function CompetitionsPage() {
     .from('competitions')
     .select('id, title, status, closes_at, judge_tokens(judge_name)')
     .eq('status', 'closed')
+    .is('deleted_at', null)
     .order('closes_at', { ascending: false })
 
   const previousCompetitions = await Promise.all(

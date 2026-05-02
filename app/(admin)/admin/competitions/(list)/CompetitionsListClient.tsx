@@ -7,6 +7,7 @@ import {
   Button,
   Chip,
   MenuItem,
+  Paper,
   Select,
   Table,
   TableBody,
@@ -15,8 +16,8 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents'
 import CreateCompetitionWizard from './CreateCompetitionWizard'
-import EmptyState from '@/components/admin/EmptyState'
 import { unarchiveCompetition } from '../actions'
 import type { CompetitionConfig } from '@/types/competition'
 
@@ -90,12 +91,14 @@ export default function CompetitionsListClient({
   templates,
   members,
   clubCategories = [],
+  clubDefaults = {},
 }: {
   competitions:      Competition[]
   templates:         Template[]
   members:           { id: string; name: string; email?: string }[]
   meetingLocations?: string[]
   clubCategories?:   string[]
+  clubDefaults?:     Partial<CompetitionConfig>
 }) {
   const [filter,     setFilter]     = useState<Filter>('active')
   const [createOpen, setCreateOpen] = useState(false)
@@ -155,15 +158,18 @@ export default function CompetitionsListClient({
       {/* Table */}
       {filtered.length === 0 ? (
         competitions.length === 0 ? (
-          <EmptyState
-            headline="No competitions created yet"
-            body="Create your first competition to get started."
-            action={
-              <Button variant="contained" onClick={() => setCreateOpen(true)}>
-                New competition
-              </Button>
-            }
-          />
+          <Paper variant="outlined" sx={{ py: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
+            <EmojiEventsIcon sx={{ fontSize: 40, color: 'text.disabled' }} />
+            <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary' }}>
+              No competitions created yet
+            </Typography>
+            <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+              Create your first competition to get started.
+            </Typography>
+            <Button variant="contained" sx={{ mt: 0.5 }} onClick={() => setCreateOpen(true)}>
+              New competition
+            </Button>
+          </Paper>
         ) : (
           <Box sx={{ py: 8, textAlign: 'center' }}>
             <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
@@ -312,6 +318,7 @@ export default function CompetitionsListClient({
         members={members}
         meetingLocations={meetingLocations}
         clubCategories={clubCategories}
+        clubDefaults={clubDefaults}
       />
     </>
   )

@@ -792,7 +792,7 @@ export default function MembersClient({
       >
         {manageMember && (
           <>
-            <DialogTitle sx={{ pb: 0.5 }}>
+            <DialogTitle component="div" sx={{ pb: 0.5 }}>
               <Typography variant="h3">
                 {manageMember.first_name} {manageMember.last_name}
               </Typography>

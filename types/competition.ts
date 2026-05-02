@@ -73,9 +73,19 @@ export interface BenchmarkConfig {
 }
 
 export interface POYConfig {
-  configured:          boolean
-  season?:             string    // e.g. "2024–2025"
-  topImagesPerMember?: number    // how many top images count per member
+  configured:              boolean
+  season?:                 string    // e.g. "2024–2025"
+  categoriesFactor?:       boolean
+  separatePerCategory?:    boolean
+  branchACounting?:        'all' | 'top_n' | 'exclude_lowest'
+  branchATopN?:            number
+  branchAExcludeN?:        number
+  b1Counting?:             'all' | 'top_n' | 'exclude_lowest'
+  b1TopN?:                 number
+  b1ExcludeN?:             number
+  b2Counting?:             'top_n' | 'exclude_lowest'
+  b2TopN?:                 number
+  b2ExcludeN?:             number
 }
 
 export interface RecognitionDefaults {
@@ -162,8 +172,9 @@ export interface CompetitionConfig {
   customMappingType:              CustomMappingType
   scoreRangeBands:                ScoreRangeBand[]
   placementMappings:              PlacementMapping[]
-  dropLowest:                     boolean
-  dropLowestCount:                number
+  poyScoreCounting:               'all' | 'top_n' | 'exclude_lowest'
+  poyTopN:                        number
+  poyExcludeN:                    number
   countTowardPOY:                 boolean
   competitionWeight:              number
   acceptedImagePoints:            number
@@ -269,8 +280,8 @@ export const defaultConfig: CompetitionConfig = {
   competitionType:               'digital',
   name:                          '',
   categories:                    ['Open', 'Nature', 'Monochrome'],
-  maxEntriesPerMember:           4,
-  maxEntriesPerCategory:         2,
+  maxEntriesPerMember:           3,
+  maxEntriesPerCategory:         1,
   imageLongEdgePreset:           '1920',
   imageLongEdgeCustom:           undefined,
   imageFileSizeMaxMB:            undefined,
@@ -285,8 +296,8 @@ export const defaultConfig: CompetitionConfig = {
   numberOfJudges:                1,
   customised:                    false,
   scoreMin:                      1,
-  scoreMax:                      30,
-  allowDecimals:                 false,
+  scoreMax:                      10,
+  allowDecimals:                 true,
   scoreAggregation:              'sum',
   minimumScoreToPublish:         false,
   minimumScoreToPublishValue:    0,
@@ -323,9 +334,9 @@ export const defaultConfig: CompetitionConfig = {
   ],
   oneOffAwards:                  [],
   classificationBands: [
-    { id: '1', label: 'Gold',   minScore: 27, color: '#FFD700' },
-    { id: '2', label: 'Silver', minScore: 23, color: '#C0C0C0' },
-    { id: '3', label: 'Bronze', minScore: 18, color: '#CD7F32' },
+    { id: '1', label: 'Excellence',       minScore: 9.5, color: '#5B82A6' },
+    { id: '2', label: 'Highly Commended', minScore: 8.5, color: '#3D8A9A' },
+    { id: '3', label: 'Commended',        minScore: 7.0, color: '#4A7A52' },
   ],
   awardAllocation:               'fixed',
   awardMode:                     'auto',
@@ -333,11 +344,11 @@ export const defaultConfig: CompetitionConfig = {
   pointsBasis:                   'score',
   customMappingType:             'score-range',
   scoreRangeBands: [
-    { id: '1', minScore: 25, maxScore: 30, points: 10 },
-    { id: '2', minScore: 20, maxScore: 24, points: 7  },
-    { id: '3', minScore: 15, maxScore: 19, points: 5  },
-    { id: '4', minScore: 10, maxScore: 14, points: 3  },
-    { id: '5', minScore: 1,  maxScore: 9,  points: 1  },
+    { id: '1', minScore: 9,   maxScore: 10,  points: 10 },
+    { id: '2', minScore: 7.5, maxScore: 8.9, points: 7  },
+    { id: '3', minScore: 6,   maxScore: 7.4, points: 5  },
+    { id: '4', minScore: 4,   maxScore: 5.9, points: 3  },
+    { id: '5', minScore: 1,   maxScore: 3.9, points: 1  },
   ],
   placementMappings: [
     { id: '1', placement: 1, points: 10 },
@@ -347,8 +358,9 @@ export const defaultConfig: CompetitionConfig = {
     { id: '5', placement: 5, points: 2  },
   ],
   acceptedImagePoints:           1,
-  dropLowest:                    false,
-  dropLowestCount:               1,
+  poyScoreCounting:              'all',
+  poyTopN:                       3,
+  poyExcludeN:                   3,
   countTowardPOY:                true,
   competitionWeight:             1.0,
   peoplesChoiceEnabled:          false,
@@ -371,7 +383,7 @@ export const defaultConfig: CompetitionConfig = {
 
 export const PRESET_DEFAULTS: Record<JudgingPreset, Partial<CompetitionConfig>> = {
   'simple-scored': {
-    scoreMin: 1, scoreMax: 30, allowDecimals: false,
+    scoreMin: 1, scoreMax: 10, allowDecimals: true,
     scoreAggregation: 'sum', minimumScoreToPublish: false, minimumScoreToPublishValue: 0,
     scoreVisibilityToJudges: 'own-only',
   },
@@ -390,8 +402,8 @@ export const PRESET_DEFAULTS: Record<JudgingPreset, Partial<CompetitionConfig>> 
 
 export const CLUB_DEFAULTS = {
   defaultCategories:               ['Open', 'Nature', 'Monochrome'],
-  defaultMaxEntriesPerMember:      4,
-  defaultMaxEntriesPerCategory:    2,
+  defaultMaxEntriesPerMember:      3,
+  defaultMaxEntriesPerCategory:    1,
   defaultImageLongEdgePreset:      '1920' as ImageLongEdgePreset,
   defaultImageFileSizeMaxMB:       undefined as number | undefined,
   defaultImageAcceptedFormat:      'JPEG',
@@ -402,8 +414,8 @@ export const CLUB_DEFAULTS = {
   defaultImageReusePolicy:         'once-per-type' as ImageReusePolicy,
   defaultAllowWithdrawals:         true,
   defaultScoreMin:                 1,
-  defaultScoreMax:                 30,
-  defaultAllowDecimals:            false,
+  defaultScoreMax:                 10,
+  defaultAllowDecimals:            true,
   defaultScoreAggregation:         'sum' as ScoreAggregation,
   defaultMinimumScoreToPublish:    false,
   defaultMinimumScoreToPublishValue: 0,
@@ -424,8 +436,6 @@ export const CLUB_DEFAULTS = {
   defaultBenchmarkEnabled:         true,
   defaultAwardsEnabled:            false,
   defaultCountTowardPOY:           true,
-  defaultDropLowest:               false,
-  defaultDropLowestCount:          1,
   recognitionDefaults: {
     awards: [
       { id: 'lib-1', name: 'First place',  visualIndicator: 'Gold ribbon',   contributesToPOY: true,  pointsValue: 3 },
@@ -437,16 +447,26 @@ export const CLUB_DEFAULTS = {
       configured:        true,
       bands:             [
         'Accepted — below all thresholds',
-        'Commended — 15 pts or above',
-        'Highly commended — 20 pts or above',
-        'Excellence — 25 pts or above',
+        'Commended — 7.0 or above',
+        'Highly Commended — 8.5 or above',
+        'Excellence — 9.5 or above',
       ],
-      rankQualification: '3 × Highly commended = qualifies for next rank',
+      rankQualification: '3 × Highly Commended = qualifies for next band',
     } as BenchmarkConfig,
     poy: {
-      configured:         true,
-      season:             '2024–2025',
-      topImagesPerMember: 3,
+      configured:           true,
+      season:               '2024–2025',
+      categoriesFactor:     false,
+      separatePerCategory:  false,
+      branchACounting:      'all',
+      branchATopN:          5,
+      branchAExcludeN:      1,
+      b1Counting:           'top_n',
+      b1TopN:               3,
+      b1ExcludeN:           1,
+      b2Counting:           'top_n',
+      b2TopN:               4,
+      b2ExcludeN:           1,
     } as POYConfig,
   },
 }

@@ -21,6 +21,7 @@ import {
   addCompetitionDefaultCategory,
   deleteCompetitionDefaultCategory,
   renameCompetitionDefaultCategory,
+  saveCompetitionDefaults,
 } from '../actions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -34,7 +35,7 @@ type CompetitionDefaults = {
   require_capture_date:     boolean
   capture_date_amount:      number
   capture_date_unit:        'years' | 'months'
-  image_reuse_rule:         'unrestricted' | 'once_per_type' | 'once_per_season' | 'once_ever'
+  image_reuse_rule:         'unrestricted' | 'once-per-type' | 'once-per-season' | 'once-ever'
   withdrawal_frees_slot:    boolean
 
   // Scoring
@@ -42,7 +43,7 @@ type CompetitionDefaults = {
   score_min:         number
   score_max:         number
   allow_decimals:    boolean
-  score_aggregation: 'sum' | 'average' | 'drop_high_low'
+  score_aggregation: 'sum' | 'average' | 'drop-high-low'
 
   // Judge experience
   hide_member_names:        boolean
@@ -94,7 +95,7 @@ function CategoryRow({ cat, onRename, onDelete, disabled }: {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <Typography sx={{ fontSize: 17, fontWeight: 600, color: 'text.primary', mb: 1.5, mt: '15px' }}>
+    <Typography sx={{ fontSize: 17, fontWeight: 600, color: 'text.primary', mb: 1.5, mt: '20px' }}>
       {children}
     </Typography>
   )
@@ -153,20 +154,20 @@ function ToggleRow({ label, description, hint, checked, onChange, children }: {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const INITIAL: CompetitionDefaults = {
-  max_entries_per_member:   4,
-  max_entries_per_category: 2,
+  max_entries_per_member:   3,
+  max_entries_per_category: 1,
   image_long_edge_preset:   '1920',
   image_long_edge_custom:   '',
   require_capture_date:     false,
   capture_date_amount:      2,
   capture_date_unit:        'years',
-  image_reuse_rule:         'once_per_type',
+  image_reuse_rule:         'once-per-type',
   withdrawal_frees_slot:    true,
 
   judging_method:    'simple-scored',
   score_min:         1,
-  score_max:         30,
-  allow_decimals:    false,
+  score_max:         10,
+  allow_decimals:    true,
   score_aggregation: 'sum',
 
   hide_member_names:        true,
@@ -203,9 +204,36 @@ export default function CompetitionDefaultsClient({
 
   function handleSave() {
     startSave(async () => {
-      // wired up once competition_defaults table exists
-      setSaveStatus('saved')
-      markClean()
+      const result = await saveCompetitionDefaults({
+        max_entries_per_member:         s.max_entries_per_member,
+        max_entries_per_category:       s.max_entries_per_category,
+        image_long_edge_preset:         s.image_long_edge_preset,
+        image_long_edge_custom:         s.image_long_edge_custom === '' ? null : (s.image_long_edge_custom as number | null),
+        require_capture_date:           s.require_capture_date,
+        capture_date_amount:            s.capture_date_amount,
+        capture_date_unit:              s.capture_date_unit,
+        image_reuse_rule:               s.image_reuse_rule,
+        withdrawal_frees_slot:          s.withdrawal_frees_slot,
+        judging_method:                 s.judging_method,
+        score_min:                      s.score_min,
+        score_max:                      s.score_max,
+        allow_decimals:                 s.allow_decimals,
+        score_aggregation:              s.score_aggregation,
+        hide_member_names:              s.hide_member_names,
+        hide_exif_data:                 s.hide_exif_data,
+        require_judge_comments:         s.require_judge_comments,
+        judge_comments_min_chars:       s.judge_comments_min_chars,
+        score_min_to_publish_enabled:   s.score_min_to_publish_enabled,
+        score_min_to_publish:           s.score_min_to_publish,
+        results_visibility:             s.results_visibility,
+        results_visibility_delay_hours: s.results_visibility_delay_hours,
+      })
+      if (result?.error) {
+        setSaveStatus('error')
+      } else {
+        setSaveStatus('saved')
+        markClean()
+      }
     })
   }
 
@@ -260,8 +288,8 @@ export default function CompetitionDefaultsClient({
 
   const reuseHint =
     s.image_reuse_rule === 'unrestricted'    ? 'The same image can be entered into any competition multiple times.' :
-    s.image_reuse_rule === 'once_per_type'   ? 'An image can be re-entered in a different competition type, but not the same one.' :
-    s.image_reuse_rule === 'once_per_season' ? 'An image can only be entered once across all competitions this season.' :
+    s.image_reuse_rule === 'once-per-type'   ? 'An image can be re-entered in a different competition type, but not the same one.' :
+    s.image_reuse_rule === 'once-per-season' ? 'An image can only be entered once across all competitions this season.' :
                                                'An image can only be entered into a competition once, ever.'
 
   const catLimitHint = s.max_entries_per_category === null
@@ -269,8 +297,8 @@ export default function CompetitionDefaultsClient({
     : `Limits members to ${s.max_entries_per_category} ${s.max_entries_per_category === 1 ? 'entry' : 'entries'} per category.`
 
   const withdrawalsHint = s.withdrawal_frees_slot
-    ? undefined
-    : 'Entries are locked once submitted — members cannot withdraw after the deadline.'
+    ? 'Members can withdraw an entry after submissions close and up until judging is complete. The slot is not returned but the withdrawn image can be re-entered in future competitions.'
+    : 'Entries are locked once submitted — members cannot withdraw.'
 
   const hideNamesHint = s.hide_member_names
     ? 'Member names are hidden from judges. Images are identified by number only.'
@@ -436,7 +464,7 @@ export default function CompetitionDefaultsClient({
 
         {/* Capture date */}
         <ToggleRow
-          label="Restrict by when image was taken"
+          label="Capture date limit"
           hint={s.require_capture_date
             ? 'Capture date is read from image EXIF data. Images without EXIF data will be flagged for manual review.'
             : 'Images of any age accepted'}
@@ -475,9 +503,9 @@ export default function CompetitionDefaultsClient({
             sx={{ fontSize: 14, minWidth: 200 }}
           >
             <MenuItem value="unrestricted"    sx={{ fontSize: 14 }}>No restrictions</MenuItem>
-            <MenuItem value="once_per_type"   sx={{ fontSize: 14 }}>Once per competition type</MenuItem>
-            <MenuItem value="once_per_season" sx={{ fontSize: 14 }}>Once per season</MenuItem>
-            <MenuItem value="once_ever"       sx={{ fontSize: 14 }}>Once ever</MenuItem>
+            <MenuItem value="once-per-type"   sx={{ fontSize: 14 }}>Once per competition type</MenuItem>
+            <MenuItem value="once-per-season" sx={{ fontSize: 14 }}>Once per season</MenuItem>
+            <MenuItem value="once-ever"       sx={{ fontSize: 14 }}>Once ever</MenuItem>
           </Select>
         </Row>
         <Divider sx={{ my: '20px' }} />
@@ -488,7 +516,6 @@ export default function CompetitionDefaultsClient({
           hint={withdrawalsHint}
           checked={s.withdrawal_frees_slot}
           onChange={v => set('withdrawal_frees_slot', v)}
-          description={s.withdrawal_frees_slot ? 'Members can withdraw an entry after submissions have closed. The slot is not returned and cannot be reused.' : undefined}
         />
 
       </Paper>
@@ -496,67 +523,49 @@ export default function CompetitionDefaultsClient({
       {/* ── Section 3: Scoring defaults ───────────────────────────────────── */}
       <SectionTitle>Scoring defaults</SectionTitle>
       <Typography sx={{ fontSize: 13, color: 'text.disabled', lineHeight: 1.6, mb: 1.5, maxWidth: 700 }}>
-        Sets the default judging configuration inherited by every new competition. All values can be
-        overridden per competition in step 3 of the creation wizard.
+        Sets the default scoring range inherited by every new competition. Values can be
+        overridden in the competition creation wizard.
       </Typography>
       <Paper variant="outlined" sx={{ mb: 6, px: 3, py: '20px' }}>
 
-        {/* Judging method */}
-        <Row label="Judging method">
-          <Select
+        <Row label="Score range" hint={scoreRangeHint}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <TextField
+              size="small" type="number" slotProps={{ htmlInput: { min: 0 } }}
+              value={s.score_min}
+              onChange={e => set('score_min', Number(e.target.value))}
+              sx={{ width: 70 }}
+            />
+            <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>to</Typography>
+            <TextField
+              size="small" type="number" slotProps={{ htmlInput: { min: 1 } }}
+              value={s.score_max}
+              onChange={e => set('score_max', Number(e.target.value))}
+              sx={{ width: 70 }}
+            />
+          </Box>
+        </Row>
+        <Divider sx={{ my: '20px' }} />
+        <Row label="Allow half points">
+          <Switch
             size="small"
-            value={s.judging_method}
-            onChange={e => set('judging_method', e.target.value as CompetitionDefaults['judging_method'])}
-            sx={{ fontSize: 14, minWidth: 200 }}
-          >
-            <MenuItem value="simple-scored" sx={{ fontSize: 14 }}>Simple scored</MenuItem>
-            <MenuItem value="salon"         sx={{ fontSize: 14 }}>Salon style</MenuItem>
-            <MenuItem value="awards-only"   sx={{ fontSize: 14 }}>Awards only</MenuItem>
-            <MenuItem value="member-vote"   sx={{ fontSize: 14 }}>Member vote</MenuItem>
-            <MenuItem value="end-of-year"   sx={{ fontSize: 14 }}>End-of-year</MenuItem>
-          </Select>
+            checked={s.allow_decimals}
+            onChange={e => set('allow_decimals', e.target.checked)}
+          />
         </Row>
 
-        {/* Score range — only for simple-scored and salon */}
-        {(s.judging_method === 'simple-scored' || s.judging_method === 'salon') && (
-          <>
-            <Divider sx={{ my: '20px' }} />
-            <Row label="Score range" hint={scoreRangeHint}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <TextField
-                  size="small" type="number" slotProps={{ htmlInput: { min: 0 } }}
-                  value={s.score_min}
-                  onChange={e => set('score_min', Number(e.target.value))}
-                  sx={{ width: 70 }}
-                />
-                <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>to</Typography>
-                <TextField
-                  size="small" type="number" slotProps={{ htmlInput: { min: 1 } }}
-                  value={s.score_max}
-                  onChange={e => set('score_max', Number(e.target.value))}
-                  sx={{ width: 70 }}
-                />
-              </Box>
-            </Row>
-            <Divider sx={{ my: '20px' }} />
-            <Row label="Allow half points">
-              <Switch
-                size="small"
-                checked={s.allow_decimals}
-                onChange={e => set('allow_decimals', e.target.checked)}
-              />
-            </Row>
-          </>
-        )}
+      </Paper>
 
-        {/* Judge experience sub-section */}
-        <Divider sx={{ my: '20px' }} />
-        <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'text.primary', mb: '14px' }}>
-          Judge experience
-        </Typography>
+      {/* ── Section 4: Judging defaults ───────────────────────────────────── */}
+      <SectionTitle>Judging defaults</SectionTitle>
+      <Typography sx={{ fontSize: 13, color: 'text.disabled', lineHeight: 1.6, mb: 1.5, maxWidth: 700 }}>
+        Sets the default judge experience settings inherited by every new competition. All values can be
+        overridden in the competition creation wizard.
+      </Typography>
+      <Paper variant="outlined" sx={{ mb: 6, px: 3, py: '20px' }}>
 
         <ToggleRow
-          label="Anonymise member names during judging"
+          label="Hide member names during judging"
           hint={hideNamesHint}
           checked={s.hide_member_names}
           onChange={v => set('hide_member_names', v)}
@@ -564,7 +573,7 @@ export default function CompetitionDefaultsClient({
         <Divider sx={{ my: '20px' }} />
 
         <ToggleRow
-          label="Anonymise EXIF data during judging"
+          label="Hide EXIF data during judging"
           hint={hideExifHint}
           checked={s.hide_exif_data}
           onChange={v => set('hide_exif_data', v)}

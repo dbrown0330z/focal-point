@@ -5,6 +5,11 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   FormHelperText,
   FormLabel,
@@ -13,8 +18,19 @@ import {
   Select,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material'
+import WarningAmberIcon    from '@mui/icons-material/WarningAmber'
+import CheckCircleIcon     from '@mui/icons-material/CheckCircle'
+import FileUploadIcon      from '@mui/icons-material/FileUpload'
+import OpenInNewIcon       from '@mui/icons-material/OpenInNew'
+import EditIcon            from '@mui/icons-material/Edit'
+import DeleteOutlineIcon   from '@mui/icons-material/DeleteForever'
+import FormatBoldIcon         from '@mui/icons-material/FormatBold'
+import FormatItalicIcon       from '@mui/icons-material/FormatItalic'
+import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted'
+import HorizontalRuleIcon     from '@mui/icons-material/HorizontalRule'
 import { TrashBtn } from '@/components/ui/TrashBtn'
 import { useUnsavedChanges } from '@/components/admin/UnsavedChangesProvider'
 import { createClient } from '@/lib/supabase/client'
@@ -22,6 +38,10 @@ import {
   saveClubSettings,
   addMeetingLocation,
   deleteMeetingLocation,
+  acceptDefaultTerms,
+  saveTermsContent,
+  uploadTermsFile,
+  removeTermsFile,
 } from './actions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -30,10 +50,19 @@ type Settings = {
   club_name: string
   club_short_name: string
   club_location: string
+  contact_email: string
+  from_email: string
   timezone: string
   logo_path: string | null
   season_start_month: number
   season_end_month: number
+  member_directory_visibility: string
+  membership_terms_source: 'default' | 'custom'
+  membership_terms_reviewed: boolean
+  membership_terms_updated_at: string | null
+  membership_terms_content: string | null
+  membership_terms_file_path: string | null
+  membership_terms_file_name: string | null
 }
 
 type Location = { id: string; name: string; address: string | null }
@@ -62,7 +91,7 @@ const TIMEZONES = [
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <Typography sx={{ fontSize: 17, fontWeight: 600, color: 'text.primary', mb: 1.5, mt: '15px' }}>
+    <Typography sx={{ fontSize: 17, fontWeight: 600, color: 'text.primary', mb: 1.5, mt: '20px' }}>
       {children}
     </Typography>
   )
@@ -85,6 +114,387 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 
+
+// ─── Membership Terms section ─────────────────────────────────────────────────
+
+function MembershipTermsSection({ settings, onUpdate }: {
+  settings: Pick<Settings,
+    'membership_terms_source' | 'membership_terms_reviewed' |
+    'membership_terms_updated_at' | 'membership_terms_content' |
+    'membership_terms_file_path' | 'membership_terms_file_name'>
+  onUpdate: (patch: Partial<Settings>) => void
+}) {
+  const [pending, startTransition] = useTransition()
+  const [err, setErr]     = useState<string | null>(null)
+  const [msg, setMsg]     = useState<string | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const [removeConfirm, setRemoveConfirm] = useState(false)
+  const uploadRef = useRef<HTMLInputElement>(null)
+  const editorRef = useRef<HTMLDivElement>(null)
+
+  // ── Set editor content when dialog opens ──────────────────────────────────
+  useEffect(() => {
+    if (editOpen && editorRef.current) {
+      editorRef.current.innerHTML = settings.membership_terms_content ?? ''
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editOpen])
+
+  function flash(message: string) {
+    setMsg(message)
+    setTimeout(() => setMsg(null), 3000)
+  }
+
+  // ── Accept default template ───────────────────────────────────────────────
+  function handleAccept() {
+    setErr(null)
+    startTransition(async () => {
+      const r = await acceptDefaultTerms()
+      if (r.error) { setErr(r.error); return }
+      onUpdate({ membership_terms_reviewed: true, membership_terms_updated_at: new Date().toISOString() })
+      flash('Default template accepted.')
+    })
+  }
+
+  // ── Save edited template ──────────────────────────────────────────────────
+  function handleSaveEdit() {
+    const html = editorRef.current?.innerHTML ?? ''
+    setErr(null)
+    startTransition(async () => {
+      const r = await saveTermsContent(html)
+      if (r.error) { setErr(r.error); return }
+      onUpdate({
+        membership_terms_content:    html,
+        membership_terms_reviewed:   true,
+        membership_terms_updated_at: new Date().toISOString(),
+      })
+      setEditOpen(false)
+      flash('Template saved.')
+    })
+  }
+
+  // ── Upload custom file ────────────────────────────────────────────────────
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setErr(null)
+    const fd = new FormData()
+    fd.set('file', file)
+    startTransition(async () => {
+      const r = await uploadTermsFile(fd)
+      if (r.error) { setErr(r.error); return }
+      onUpdate({
+        membership_terms_source:     'custom',
+        membership_terms_file_path:  r.filePath ?? null,
+        membership_terms_file_name:  r.fileName ?? null,
+        membership_terms_reviewed:   true,
+        membership_terms_updated_at: new Date().toISOString(),
+      })
+      flash('Custom terms uploaded.')
+    })
+    e.target.value = ''
+  }
+
+  // ── Remove custom file ────────────────────────────────────────────────────
+  function handleRemove() {
+    setErr(null)
+    startTransition(async () => {
+      const r = await removeTermsFile()
+      if (r.error) { setErr(r.error); return }
+      onUpdate({
+        membership_terms_source:    'default',
+        membership_terms_file_path: null,
+        membership_terms_file_name: null,
+        membership_terms_reviewed:  false,
+        membership_terms_updated_at: new Date().toISOString(),
+      })
+      setRemoveConfirm(false)
+      flash('Custom document removed. Default template is now active.')
+    })
+  }
+
+  // ── Mini editor toolbar ──────────────────────────────────────────────────
+  function execEdit(cmd: string, value?: string) {
+    editorRef.current?.focus()
+    document.execCommand(cmd, false, value ?? undefined)
+  }
+
+  const { membership_terms_source: src, membership_terms_reviewed: reviewed,
+          membership_terms_updated_at: updatedAt,
+          membership_terms_file_name: fileName } = settings
+
+  const lastUpdated = updatedAt
+    ? new Date(updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    : null
+
+  const miniToolbarBtnSx = {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    width: 28, height: 28, borderRadius: '4px', border: 'none',
+    bgcolor: 'transparent', cursor: 'pointer', color: 'text.secondary', flexShrink: 0,
+    '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
+  } as const
+
+  return (
+    <>
+      <Paper variant="outlined" sx={{ mb: 6, px: 3, py: '20px' }}>
+
+        {/* State 1 — Default template, not yet reviewed */}
+        {src === 'default' && !reviewed && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            <Box sx={{
+              display: 'flex', gap: 1.5, p: 2,
+              bgcolor: 'warning.light', border: '1px solid',
+              borderColor: 'warning.main', borderRadius: 1,
+              alignItems: 'flex-start',
+            }}>
+              <WarningAmberIcon sx={{ fontSize: 18, color: 'warning.dark', mt: '1px', flexShrink: 0 }} />
+              <Box>
+                <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'warning.dark', lineHeight: 1.4 }}>
+                  You are using the Focal Point default template
+                </Typography>
+                <Typography sx={{ fontSize: 13, color: 'warning.dark', mt: 0.5, lineHeight: 1.5 }}>
+                  Review and update these terms before accepting member applications to ensure they reflect your club&apos;s specific rules.
+                </Typography>
+              </Box>
+            </Box>
+
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              <Button
+                variant="outlined" color="secondary" size="small"
+                startIcon={<OpenInNewIcon sx={{ fontSize: '14px !important' }} />}
+                href="/terms" target="_blank" rel="noopener"
+                component="a"
+              >
+                View default template
+              </Button>
+              <Button
+                variant="outlined" color="secondary" size="small"
+                startIcon={<EditIcon sx={{ fontSize: '14px !important' }} />}
+                onClick={() => setEditOpen(true)}
+              >
+                Edit template
+              </Button>
+              <Tooltip title="Upload PDF or DOCX to replace the default template">
+                <Button
+                  variant="outlined" color="secondary" size="small"
+                  startIcon={<FileUploadIcon sx={{ fontSize: '14px !important' }} />}
+                  onClick={() => uploadRef.current?.click()}
+                  disabled={pending}
+                >
+                  Replace with my own
+                </Button>
+              </Tooltip>
+              <Button
+                variant="text" color="secondary" size="small"
+                onClick={handleAccept}
+                disabled={pending}
+              >
+                Accept default as-is
+              </Button>
+            </Box>
+          </Box>
+        )}
+
+        {/* State 2 — Default template, reviewed/accepted */}
+        {src === 'default' && reviewed && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
+              <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary' }}>
+                Focal Point default template
+                {lastUpdated && (
+                  <Typography component="span" sx={{ fontSize: 12, color: 'text.secondary', ml: 1 }}>
+                    · Last updated {lastUpdated}
+                  </Typography>
+                )}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              <Button
+                variant="outlined" color="secondary" size="small"
+                startIcon={<OpenInNewIcon sx={{ fontSize: '14px !important' }} />}
+                href="/terms" target="_blank" rel="noopener"
+                component="a"
+              >
+                View
+              </Button>
+              <Button
+                variant="outlined" color="secondary" size="small"
+                startIcon={<EditIcon sx={{ fontSize: '14px !important' }} />}
+                onClick={() => setEditOpen(true)}
+              >
+                Edit
+              </Button>
+              <Tooltip title="Upload PDF or DOCX to replace the default template">
+                <Button
+                  variant="outlined" color="secondary" size="small"
+                  startIcon={<FileUploadIcon sx={{ fontSize: '14px !important' }} />}
+                  onClick={() => uploadRef.current?.click()}
+                  disabled={pending}
+                >
+                  Replace with my own
+                </Button>
+              </Tooltip>
+            </Box>
+          </Box>
+        )}
+
+        {/* State 3 — Custom document uploaded */}
+        {src === 'custom' && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Chip
+                label={fileName ?? 'Custom document'}
+                size="small"
+                sx={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}
+              />
+              {lastUpdated && (
+                <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
+                  Uploaded {lastUpdated}
+                </Typography>
+              )}
+            </Box>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {settings.membership_terms_file_path && (
+                <Button
+                  variant="outlined" color="secondary" size="small"
+                  startIcon={<OpenInNewIcon sx={{ fontSize: '14px !important' }} />}
+                  href={settings.membership_terms_file_path} target="_blank" rel="noopener"
+                  component="a"
+                >
+                  View
+                </Button>
+              )}
+              <Tooltip title="Upload a new PDF or DOCX to replace the current document">
+                <Button
+                  variant="outlined" color="secondary" size="small"
+                  startIcon={<FileUploadIcon sx={{ fontSize: '14px !important' }} />}
+                  onClick={() => uploadRef.current?.click()}
+                  disabled={pending}
+                >
+                  Replace
+                </Button>
+              </Tooltip>
+              <Button
+                variant="outlined" color="error" size="small"
+                startIcon={<DeleteOutlineIcon sx={{ fontSize: '14px !important' }} />}
+                onClick={() => setRemoveConfirm(true)}
+                disabled={pending}
+              >
+                Remove
+              </Button>
+            </Box>
+          </Box>
+        )}
+
+        {/* Feedback */}
+        {err && <Alert severity="error" sx={{ mt: 2, py: 0.5 }}>{err}</Alert>}
+        {msg && <Alert severity="success" sx={{ mt: 2, py: 0.5 }}>{msg}</Alert>}
+
+      </Paper>
+
+      {/* Hidden file input */}
+      <input
+        ref={uploadRef}
+        type="file"
+        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        style={{ display: 'none' }}
+        onChange={handleUpload}
+      />
+
+      {/* Edit template dialog */}
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>
+          Edit membership terms template
+        </DialogTitle>
+        <DialogContent sx={{ pt: '8px !important', pb: 1 }}>
+
+          {/* Mini toolbar */}
+          <Box sx={{
+            display: 'flex', alignItems: 'center', gap: 0.25, flexWrap: 'wrap',
+            mb: 1, pb: 1, borderBottom: '1px solid', borderColor: 'divider',
+          }}>
+            {[
+              { title: 'Bold',      cmd: 'bold',            icon: <FormatBoldIcon sx={{ fontSize: 16 }} /> },
+              { title: 'Italic',    cmd: 'italic',          icon: <FormatItalicIcon sx={{ fontSize: 16 }} /> },
+              { title: 'Heading 2', cmd: 'formatBlock', val: 'h2', icon: <Typography sx={{ fontSize: 12, fontWeight: 700, lineHeight: 1 }}>H2</Typography> },
+              { title: 'Heading 3', cmd: 'formatBlock', val: 'h3', icon: <Typography sx={{ fontSize: 12, fontWeight: 700, lineHeight: 1 }}>H3</Typography> },
+              { title: 'Paragraph', cmd: 'formatBlock', val: 'p',  icon: <Typography sx={{ fontSize: 12, lineHeight: 1 }}>¶</Typography> },
+              { title: 'Bullet list', cmd: 'insertUnorderedList', icon: <FormatListBulletedIcon sx={{ fontSize: 16 }} /> },
+              { title: 'Horizontal rule', cmd: 'insertHTML', val: '<hr/>', icon: <HorizontalRuleIcon sx={{ fontSize: 16 }} /> },
+            ].map(({ title, cmd, val, icon }) => (
+              <Tooltip key={title} title={title} placement="top">
+                <Box
+                  component="button"
+                  onMouseDown={e => { e.preventDefault(); execEdit(cmd, val) }}
+                  sx={miniToolbarBtnSx}
+                >
+                  {icon}
+                </Box>
+              </Tooltip>
+            ))}
+          </Box>
+
+          {/* Content editable area */}
+          <Box
+            ref={editorRef}
+            component="div"
+            contentEditable
+            suppressContentEditableWarning
+            sx={{
+              minHeight: 420,
+              maxHeight: 520,
+              overflow: 'auto',
+              outline: 'none',
+              p: 2,
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1,
+              fontSize: 14,
+              lineHeight: 1.7,
+              fontFamily: 'inherit',
+              '& h2': { fontSize: 18, fontWeight: 600, mt: '1em', mb: '0.4em' },
+              '& h3': { fontSize: 15, fontWeight: 600, mt: '1em', mb: '0.3em' },
+              '& p':  { mb: '0.75em' },
+              '& ul': { pl: '1.5em', mb: '0.75em', listStyleType: 'disc' },
+              '& li': { mb: '0.25em' },
+              '& hr': { border: 'none', borderTop: '1px solid', borderColor: 'divider', my: 2 },
+            }}
+          />
+
+          <Typography sx={{ mt: 1, fontSize: 12, color: 'text.secondary' }}>
+            Tokens replaced at render time: <code>{'[[Club Name]]'}</code>{', '}
+            <code>{'[[Club Location]]'}</code>{', '}
+            <code>{'[[Club Contact Email]]'}</code>{', '}
+            <code>{'[[Current Year]]'}'</code>
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button variant="outlined" color="secondary" onClick={() => setEditOpen(false)}>Cancel</Button>
+          <Button variant="contained" disabled={pending} onClick={handleSaveEdit}>
+            {pending ? 'Saving…' : 'Save template'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Remove confirmation dialog */}
+      <Dialog open={removeConfirm} onClose={() => setRemoveConfirm(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>Remove custom document?</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontSize: 14, color: 'text.secondary' }}>
+            Your uploaded document will be removed and the Focal Point default template will become active again. You will be prompted to review it.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button variant="outlined" color="secondary" onClick={() => setRemoveConfirm(false)}>Cancel</Button>
+          <Button variant="contained" color="error" disabled={pending} onClick={handleRemove}>
+            Remove
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  )
+}
 
 // ─── Logo upload ──────────────────────────────────────────────────────────────
 
@@ -151,12 +561,15 @@ export default function ClubDefaultsClient({
   function handleSave() {
     startSave(async () => {
       const result = await saveClubSettings({
-        club_name:          s.club_name,
-        club_short_name:    s.club_short_name,
-        club_location:      s.club_location,
-        timezone:           s.timezone,
-        season_start_month: s.season_start_month,
-        season_end_month:   s.season_end_month,
+        club_name:                   s.club_name,
+        club_short_name:             s.club_short_name,
+        club_location:               s.club_location,
+        contact_email:               s.contact_email,
+        from_email:                  s.from_email,
+        timezone:                    s.timezone,
+        season_start_month:          s.season_start_month,
+        season_end_month:            s.season_end_month,
+        member_directory_visibility: s.member_directory_visibility,
       })
       setSaveStatus(result.error ? 'error' : 'saved')
       if (!result.error) markClean()
@@ -166,6 +579,16 @@ export default function ClubDefaultsClient({
   // Update ref every render so modal always calls the latest handleSave
   handleSaveRef.current = handleSave
   useEffect(() => { registerSave(() => handleSaveRef.current()) }, [registerSave])
+
+  // ── Membership terms local state (updated by MembershipTermsSection) ────
+  const [termsState, setTermsState] = useState({
+    membership_terms_source:     initial.membership_terms_source,
+    membership_terms_reviewed:   initial.membership_terms_reviewed,
+    membership_terms_updated_at: initial.membership_terms_updated_at,
+    membership_terms_content:    initial.membership_terms_content,
+    membership_terms_file_path:  initial.membership_terms_file_path,
+    membership_terms_file_name:  initial.membership_terms_file_name,
+  })
 
   // ── Meeting locations ────────────────────────────────────────────────────
   const [locations, setLocations] = useState(initialLocations)
@@ -223,6 +646,16 @@ export default function ClubDefaultsClient({
 
         <Field label="Club location" hint="Optional. City or region your club is based in.">
           <TextField {...tf} value={s.club_location} onChange={e => set('club_location', e.target.value)} placeholder="City, State" />
+        </Field>
+        <Divider sx={{ my: '20px' }} />
+
+        <Field label="Contact email" hint="Public contact address used in membership terms and member communications.">
+          <TextField {...tf} type="email" value={s.contact_email} onChange={e => set('contact_email', e.target.value)} placeholder="info@yourclub.org" />
+        </Field>
+        <Divider sx={{ my: '20px' }} />
+
+        <Field label="Notifications from address" hint="The From: address used when sending bulk emails and judge invitations. Must be a verified sender in your email provider (Resend).">
+          <TextField {...tf} type="email" value={s.from_email} onChange={e => set('from_email', e.target.value)} placeholder="club@yourclub.org" />
         </Field>
         <Divider sx={{ my: '20px' }} />
 
@@ -318,6 +751,34 @@ export default function ClubDefaultsClient({
         )}
 
       </Paper>
+
+      {/* ── Our Club ─────────────────────────────────────────────────────── */}
+      <SectionTitle>Our Club</SectionTitle>
+      <Paper variant="outlined" sx={{ mb: 6, px: 3, py: '20px' }}>
+
+        <Field
+          label="Member directory visibility"
+          hint="Controls who can see the Members page under Our Club."
+        >
+          <Select
+            {...tf}
+            value={s.member_directory_visibility}
+            onChange={e => set('member_directory_visibility', e.target.value)}
+            sx={{ fontSize: 14 }}
+          >
+            <MenuItem value="members" sx={{ fontSize: 14 }}>Visible to all active members</MenuItem>
+            <MenuItem value="admin_only" sx={{ fontSize: 14 }}>Hidden (admin only)</MenuItem>
+          </Select>
+        </Field>
+
+      </Paper>
+
+      {/* ── Membership Terms ─────────────────────────────────────────────── */}
+      <SectionTitle>Membership terms &amp; conditions</SectionTitle>
+      <MembershipTermsSection
+        settings={termsState}
+        onUpdate={patch => setTermsState(prev => ({ ...prev, ...patch }))}
+      />
 
       {/* ── Save ─────────────────────────────────────────────────────────── */}
       <Box sx={{

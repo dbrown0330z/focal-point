@@ -562,6 +562,40 @@ function BenchmarkSummaryCard({ benchmark, justResolved, onConfigureClick }: {
 
 // ─── POY summary card ──────────────────────────────────────────────────────────
 
+function poySummaryLine(poy: POYConfig): string {
+  if (!poy.categoriesFactor) {
+    const counting = poy.branchACounting ?? 'all'
+    if (counting === 'top_n') {
+      const n = poy.branchATopN ?? 5
+      return `Only the best ${n} score${n === 1 ? '' : 's'} from the season count toward a member's standing.`
+    }
+    if (counting === 'exclude_lowest') {
+      const n = poy.branchAExcludeN ?? 1
+      return `All scores except the lowest ${n} from the season count toward a member's standing.`
+    }
+    return "All scores from the season count toward a member's standing."
+  }
+  if (poy.separatePerCategory) {
+    const counting = poy.b1Counting ?? 'top_n'
+    if (counting === 'top_n') {
+      const n = poy.b1TopN ?? 3
+      return `The best ${n} score${n === 1 ? '' : 's'} from each category count. Each category has its own POY winner.`
+    }
+    if (counting === 'exclude_lowest') {
+      const n = poy.b1ExcludeN ?? 1
+      return `All scores except the lowest ${n} from each category count. Each category has its own POY winner.`
+    }
+    return 'All scores within each category count. Each category has its own POY winner.'
+  }
+  const counting = poy.b2Counting ?? 'top_n'
+  if (counting === 'top_n') {
+    const n = poy.b2TopN ?? 4
+    return `The best ${n} score${n === 1 ? '' : 's'} from each category contribute to a combined standing.`
+  }
+  const n = poy.b2ExcludeN ?? 1
+  return `All scores except the lowest ${n} from each category contribute to a combined standing.`
+}
+
 function POYSummaryCard({ poy, justResolved, onConfigureClick }: {
   poy:              POYConfig
   justResolved:     boolean
@@ -582,7 +616,7 @@ function POYSummaryCard({ poy, justResolved, onConfigureClick }: {
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
           <Typography sx={{ fontSize: 13, color: 'text.primary' }}>
-            · A member&apos;s rank reflects the sum of their {poy.topImagesPerMember ?? 3} highest scores per category across all competitions this season.
+            · {poySummaryLine(poy)}
           </Typography>
           <Typography sx={{ fontSize: 13, color: 'text.primary' }}>
             · Rankings update across all members when results are published

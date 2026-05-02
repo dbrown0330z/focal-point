@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import SubmitModal from './SubmitModal'
 import { withdrawFromCompetition, changeCategoryAction, editImageTitleAction } from './actions'
 
@@ -31,6 +32,7 @@ type CurrentCompetition = {
   title: string
   status: string
   closes_at: string | null
+  results_at: string | null
   submission_limit: number
   // categoryLimit: per-category club cap — null until DB field is added
   categoryLimit: number | null
@@ -919,7 +921,12 @@ function OpenCompetitionCard({
             {competition.title}
           </h2>
           <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1">
-            {competition.closes_at && (
+            {phase === 'judging' ? (
+              <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <IconClock />
+                <strong style={{ color: 'var(--text-primary)' }}>Submissions Closed</strong>
+              </div>
+            ) : competition.closes_at ? (
               <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
                 <IconClock />
                 {phase === 'warning' && days !== null ? (
@@ -934,11 +941,16 @@ function OpenCompetitionCard({
                   </span>
                 )}
               </div>
-            )}
+            ) : null}
             {competition.judgeName && (
               <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
                 <IconUsers />
                 Judge <strong>{competition.judgeName}</strong>
+              </div>
+            )}
+            {phase === 'judging' && competition.results_at && (
+              <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                Results Revealed: <strong>{formatDate(competition.results_at, { month: 'long', day: 'numeric', year: 'numeric' })}</strong>
               </div>
             )}
           </div>
@@ -977,6 +989,13 @@ function OpenCompetitionCard({
           {submissions.length === 0 ? (
             phase === 'judging' ? (
               <div className="flex flex-col items-center py-10 text-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/submissions-closed.svg"
+                  alt=""
+                  width={420}
+                  className="mb-5 opacity-70 dark:invert"
+                />
                 <p className="text-[17px] font-semibold" style={{ color: 'var(--text-primary)' }}>
                   Sorry, the submission window for this competition has closed.
                 </p>
@@ -1177,16 +1196,19 @@ function JudgingCompetitionCard({
               {competition.title}
             </h2>
             <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-1">
+              <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <IconClock />
+                <strong style={{ color: 'var(--text-primary)' }}>Submissions Closed</strong>
+              </div>
               {competition.judgeName && (
                 <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
                   <IconUsers />
                   Judge <strong>{competition.judgeName}</strong>
                 </div>
               )}
-              {competition.closes_at && (
+              {competition.results_at && (
                 <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  <IconClock />
-                  <span>Judging complete <strong>{formatDate(competition.closes_at, { month: 'long', day: 'numeric', year: 'numeric' })}</strong></span>
+                  Results Revealed: <strong>{formatDate(competition.results_at, { month: 'long', day: 'numeric', year: 'numeric' })}</strong>
                 </div>
               )}
             </div>
@@ -1357,13 +1379,13 @@ function PreviousCompetitionsBlock({ competitions }: { competitions: PreviousCom
             </p>
             <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{comp.judgeName ?? '—'}</p>
             <div>
-              <button
-                type="button"
-                className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[13px] font-semibold"
+              <Link
+                href={`/competitions/results/${comp.id}`}
+                className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[13px] font-semibold"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--action-primary)', background: 'transparent' }}
               >
                 Results <IconChevronRight />
-              </button>
+              </Link>
             </div>
           </div>
         ))

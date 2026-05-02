@@ -46,21 +46,28 @@ type ClassificationBand = { id: string; name: string; color: string; minScore: n
 type BenchmarkLevel     = { imagesRequired: number; cumulative: boolean }
 
 type Settings = {
-  poy_standings:           'combined' | 'per_category'
-  poy_top_n:               number | ''
-  poy_drop_lowest_n:       number
-  poy_drop_lowest_on:      boolean
-  poy_tiebreaker:          'next_highest' | 'most_images' | 'admin_decision'
-  poy_eligibility:         'active_members' | 'all_members' | 'min_duration'
-  poy_eligibility_min_dur: '1_month' | '3_months' | '6_months' | '1_year'
-  bench_levels:            Record<string, BenchmarkLevel>
+  poy_categories_factor:     boolean
+  poy_separate_per_category: boolean
+  poy_branch_a_counting:     'all' | 'top_n' | 'exclude_lowest'
+  poy_branch_a_top_n:        number
+  poy_branch_a_exclude_n:    number
+  poy_b1_counting:           'all' | 'top_n' | 'exclude_lowest'
+  poy_b1_top_n:              number
+  poy_b1_exclude_n:          number
+  poy_b2_counting:           'top_n' | 'exclude_lowest'
+  poy_b2_top_n:              number
+  poy_b2_exclude_n:          number
+  poy_tiebreaker:            'next_highest' | 'most_images' | 'admin_decision'
+  poy_eligibility:           'active_members' | 'all_members' | 'min_duration'
+  poy_eligibility_min_dur:   '1_month' | '3_months' | '6_months' | '1_year'
+  bench_levels:              Record<string, BenchmarkLevel>
 }
 
 // ─── Section header ────────────────────────────────────────────────────────────
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <Typography sx={{ fontSize: 17, fontWeight: 600, color: 'text.primary', mb: 0.75, mt: '15px' }}>
+    <Typography sx={{ fontSize: 17, fontWeight: 600, color: 'text.primary', mb: 0.75, mt: '20px' }}>
       {title}
     </Typography>
   )
@@ -232,30 +239,37 @@ function LockedBandRow() {
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
 const DEFAULT_TIERS: AwardTier[] = [
-  { id: 'default-gold',   name: 'Gold',              color: '#C9A84C' },
-  { id: 'default-silver', name: 'Silver',            color: '#A8A8A8' },
-  { id: 'default-bronze', name: 'Bronze',            color: '#B87333' },
-  { id: 'default-hm',     name: 'Honorable Mention', color: '#6C47D4' },
+  { id: 'default-gold',   name: 'Gold',              color: '#F5C518' },
+  { id: 'default-silver', name: 'Silver',            color: '#94A3B8' },
+  { id: 'default-bronze', name: 'Bronze',            color: '#D97706' },
+  { id: 'default-hm',     name: 'Honorable Mention', color: '#0EA5E9' },
 ]
 
 const DEFAULT_BANDS: ClassificationBand[] = [
-  { id: 'default-band-l3', name: 'Level 3', color: '#6C47D4', minScore: 26 },
-  { id: 'default-band-l2', name: 'Level 2', color: '#0097A7', minScore: 23 },
-  { id: 'default-band-l1', name: 'Level 1', color: '#2E7D32', minScore: 20 },
+  { id: 'default-band-l3', name: 'Excellence',       color: '#5B82A6', minScore: 9.5 },
+  { id: 'default-band-l2', name: 'Highly Commended', color: '#3D8A9A', minScore: 8.5 },
+  { id: 'default-band-l1', name: 'Commended',        color: '#4A7A52', minScore: 7.0 },
 ]
 
 const INITIAL: Settings = {
-  poy_standings:           'combined',
-  poy_top_n:               '',
-  poy_drop_lowest_n:       4,
-  poy_drop_lowest_on:      false,
-  poy_tiebreaker:          'next_highest',
-  poy_eligibility:         'active_members',
-  poy_eligibility_min_dur: '6_months',
+  poy_categories_factor:     false,
+  poy_separate_per_category: false,
+  poy_branch_a_counting:     'all',
+  poy_branch_a_top_n:        5,
+  poy_branch_a_exclude_n:    1,
+  poy_b1_counting:           'top_n',
+  poy_b1_top_n:              3,
+  poy_b1_exclude_n:          1,
+  poy_b2_counting:           'top_n',
+  poy_b2_top_n:              4,
+  poy_b2_exclude_n:          1,
+  poy_tiebreaker:            'next_highest',
+  poy_eligibility:           'active_members',
+  poy_eligibility_min_dur:   '6_months',
   bench_levels: {
-    'default-band-l3': { imagesRequired: 10, cumulative: true },
-    'default-band-l2': { imagesRequired: 10, cumulative: true },
-    'default-band-l1': { imagesRequired: 10, cumulative: true },
+    'default-band-l3': { imagesRequired: 3, cumulative: true },
+    'default-band-l2': { imagesRequired: 5, cumulative: true },
+    'default-band-l1': { imagesRequired: 3, cumulative: true },
   },
 }
 
@@ -292,8 +306,13 @@ export default function RecognitionClient({
     )
   }
 
-  const POY_KEYS = ['poy_standings', 'poy_top_n', 'poy_drop_lowest_n', 'poy_drop_lowest_on',
-                    'poy_tiebreaker', 'poy_eligibility', 'poy_eligibility_min_dur'] as const
+  const POY_KEYS = [
+    'poy_categories_factor', 'poy_separate_per_category',
+    'poy_branch_a_counting', 'poy_branch_a_top_n', 'poy_branch_a_exclude_n',
+    'poy_b1_counting', 'poy_b1_top_n', 'poy_b1_exclude_n',
+    'poy_b2_counting', 'poy_b2_top_n', 'poy_b2_exclude_n',
+    'poy_tiebreaker', 'poy_eligibility', 'poy_eligibility_min_dur',
+  ] as const
 
   function poyChanged() {
     return POY_KEYS.some(k => JSON.stringify(s[k]) !== JSON.stringify(initialSettingsRef.current[k]))
@@ -437,13 +456,33 @@ export default function RecognitionClient({
   }
 
   // ── Derived hints ────────────────────────────────────────────────────────
-  const poyStandingsHint = s.poy_standings === 'combined'
-    ? 'One leaderboard ranks all members by their total score across all categories.'
-    : 'Separate standings for each category — members compete within their chosen category only.'
+  const q1Hint = s.poy_categories_factor
+    ? '· Categories factor into how scores are counted or which members compete for the season title.'
+    : '· All competition scores combine into a single standing.\n  One overall POY winner per season.'
 
-  const topNHint = s.poy_top_n === '' || s.poy_top_n === 0
-    ? 'All competition scores count toward the season total.'
-    : `Only each member's top ${s.poy_top_n} score${Number(s.poy_top_n) === 1 ? '' : 's'} per category count toward their season total.`
+  const q2Hint = s.poy_separate_per_category
+    ? '· Each category produces its own standings and POY winner.'
+    : '· A combined standing totals scores across all categories.\n  One overall POY winner per season.'
+
+  function buildExplanation(): string {
+    if (!s.poy_categories_factor) {
+      if (s.poy_branch_a_counting === 'all')
+        return "Each member's total is the sum of every score they earn across all competitions and categories in the season."
+      if (s.poy_branch_a_counting === 'top_n')
+        return `Each member's total is their ${s.poy_branch_a_top_n} highest score${s.poy_branch_a_top_n === 1 ? '' : 's'} from across the entire season, regardless of category.`
+      return `Each member's total is the sum of all their scores for the season, with their ${s.poy_branch_a_exclude_n === 1 ? 'single lowest score' : `${s.poy_branch_a_exclude_n} lowest scores`} removed.`
+    }
+    if (s.poy_separate_per_category) {
+      if (s.poy_b1_counting === 'all')
+        return "Each category produces its own standings. Every score a member earns in a category counts toward that category's ranking."
+      if (s.poy_b1_counting === 'top_n')
+        return `Each category produces its own standings, calculated from each member's top ${s.poy_b1_top_n} score${s.poy_b1_top_n === 1 ? '' : 's'} in that category.`
+      return `Each category produces its own standings, calculated from each member's scores in that category with their ${s.poy_b1_exclude_n === 1 ? 'single lowest score' : `${s.poy_b1_exclude_n} lowest scores`} removed.`
+    }
+    if (s.poy_b2_counting === 'top_n')
+      return `Each member's total is built from their top ${s.poy_b2_top_n} score${s.poy_b2_top_n === 1 ? '' : 's'} in each category, added together across the season.`
+    return `Each member's total is built from all their scores in each category except their ${s.poy_b2_exclude_n === 1 ? 'single lowest' : `${s.poy_b2_exclude_n} lowest`}, added together across the season.`
+  }
 
   const tiebreakerHint =
     s.poy_tiebreaker === 'next_highest' ? 'The member with the next higher individual score in any competition wins the tie.' :
@@ -458,53 +497,13 @@ export default function RecognitionClient({
     s.poy_eligibility === 'all_members'    ? 'All members who entered at least one competition during the season are eligible.' :
     `Members must have been registered for at least ${durLabel[s.poy_eligibility_min_dur]} to be eligible.`
 
-  const dropLowestHint = s.poy_drop_lowest_on
-    ? `Each member's ${s.poy_drop_lowest_n} lowest score${s.poy_drop_lowest_n === 1 ? '' : 's'} are excluded from their season total.`
-    : "All scores count — no scores are dropped from a member's season total."
-
   return (
     <Box sx={{ pb: '80px' }}>
-
-      {/* ── Intro info box ─────────────────────────────────────────────────── */}
-      <Box sx={{
-        display: 'flex', gap: 0, mb: 5,
-        bgcolor: '#F0FAF7', border: '1px solid #9DD9C5', borderRadius: 2, overflow: 'hidden',
-      }}>
-        <Box sx={{ flex: 1, px: 2.5, py: 2, borderRight: '1px solid #9DD9C5' }}>
-          <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#0A5742', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1 }}>
-            Manually assigned
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-            <Typography sx={{ fontSize: 12, lineHeight: 1.6, color: '#0A5742' }}>
-              <strong>Awards</strong> — judges assign these during each competition
-            </Typography>
-            <Typography sx={{ fontSize: 12, lineHeight: 1.6, color: '#0A5742' }}>
-              <strong>Skill levels</strong> — administrators assign these to member profiles{' '}
-              <Typography component="span" sx={{ fontSize: 12, color: '#0A5742', opacity: 0.7 }}>
-                (managed in the Members area)
-              </Typography>
-            </Typography>
-          </Box>
-        </Box>
-        <Box sx={{ flex: 1, px: 2.5, py: 2 }}>
-          <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#0A5742', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1 }}>
-            Calculated automatically
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-            <Typography sx={{ fontSize: 12, lineHeight: 1.6, color: '#0A5742' }}>
-              <strong>Benchmark</strong> — updated after each competition based on image scores
-            </Typography>
-            <Typography sx={{ fontSize: 12, lineHeight: 1.6, color: '#0A5742' }}>
-              <strong>Photographer of the Year</strong> — updated throughout the season as scores accumulate
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
 
       {/* ── 1. Awards ─────────────────────────────────────────────────────── */}
       <SectionHeader title="Awards" />
       <Typography sx={{ fontSize: 13, color: 'text.disabled', lineHeight: 1.6, mb: 1.5, maxWidth: 700 }}>
-        Manually assigned by judges during or after a competition. Define the award types available.
+        <strong>Manually assigned</strong> by judges during or after a competition. Define the award types available.
       </Typography>
       <Paper variant="outlined" sx={{ mb: 6, px: 3, py: '20px' }}>
 
@@ -551,15 +550,21 @@ export default function RecognitionClient({
       {/* ── 2. Benchmark ──────────────────────────────────────────────────── */}
 
       <Box sx={{ mt: 6 }}>
-        <SectionHeader title="Benchmark" />
+        <SectionHeader title="Scoring bands" />
       </Box>
-      <Typography sx={{ fontSize: 13, color: 'text.disabled', lineHeight: 1.6, mb: 1.5, maxWidth: 700 }}>
-        Automatically calculated. Define the score thresholds that determine image classification bands and rank qualification.
-      </Typography>
+      <Box sx={{
+        p: 2, mb: 1.5, borderRadius: 1.5,
+        border: t => `1px solid ${t.palette.mode === 'dark' ? 'rgba(0,151,167,0.35)' : '#9DD9C5'}`,
+        bgcolor: t => t.palette.mode === 'dark' ? 'rgba(0,151,167,0.10)' : '#F0FAF7',
+      }}>
+        <Typography sx={{ fontSize: 13, lineHeight: 1.6, color: t => t.palette.mode === 'dark' ? '#4ECDE6' : '#0A5742' }}>
+          Automatically calculated — but only <strong>images from competitions with Scoring Bands enabled</strong> count toward a member&apos;s band achievement.
+        </Typography>
+      </Box>
         <Paper variant="outlined" sx={{ mb: 6, px: 3, py: '20px' }}>
 
           <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary', mb: 0.75 }}>
-            Classification Bands
+            Band definitions
           </Typography>
           <Typography sx={{ fontSize: 13, color: 'text.disabled', lineHeight: 1.6, mb: 1.5, maxWidth: 560 }}>
             Define the score thresholds that determine how an image is classified. Any image that doesn&apos;t meet a higher band is automatically classified as Accepted.
@@ -628,10 +633,10 @@ export default function RecognitionClient({
           {/* Rank qualification */}
           <Divider sx={{ my: '20px' }} />
           <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary', mb: 0.75 }}>
-            Rank qualification
+            Advancement criteria
           </Typography>
           <Typography sx={{ fontSize: 13, color: 'text.disabled', lineHeight: 1.6, mb: 2, maxWidth: 560 }}>
-            Define the criteria that determine when a member qualifies for a higher rank. Qualification is assessed automatically at the end of each competition using the band classifications above.
+            Set the number of qualifying results a member needs to move up to the next skill level. For example, achieving Highly Commended three times moves a member from Intermediate to Advanced. Progress is tracked automatically across all competitions in the season.
           </Typography>
 
           {bands.map((band, i) => {
@@ -685,43 +690,174 @@ export default function RecognitionClient({
       <Box sx={{ mt: 6 }}>
         <SectionHeader title="Photographer of the Year" />
       </Box>
-      <Typography sx={{ fontSize: 13, color: 'text.disabled', lineHeight: 1.6, mb: 1.5, maxWidth: 700 }}>
-        Automatically calculated. Define how points are accumulated across the season and how the final standing is determined.
-      </Typography>
+      <Box sx={{
+        p: 2, mb: 1.5, borderRadius: 1.5,
+        border: t => `1px solid ${t.palette.mode === 'dark' ? 'rgba(0,151,167,0.35)' : '#9DD9C5'}`,
+        bgcolor: t => t.palette.mode === 'dark' ? 'rgba(0,151,167,0.10)' : '#F0FAF7',
+      }}>
+        <Typography sx={{ fontSize: 13, lineHeight: 1.6, color: t => t.palette.mode === 'dark' ? '#4ECDE6' : '#0A5742' }}>
+          Automatically calculated across the season — but only <strong>images from competitions with POY enabled</strong> count toward year-end standings.
+        </Typography>
+      </Box>
         <Paper variant="outlined" sx={{ mb: 6, px: 3, py: '20px' }}>
 
-          <RowField label="POY standings" hint={poyStandingsHint}>
-            <Select size="small" value={s.poy_standings} onChange={e => set('poy_standings', e.target.value as Settings['poy_standings'])} sx={{ fontSize: 14, minWidth: 220 }}>
-              <MenuItem value="combined"     sx={{ fontSize: 14 }}>Combined across all categories</MenuItem>
-              <MenuItem value="per_category" sx={{ fontSize: 14 }}>Separate per category</MenuItem>
-            </Select>
+          {/* Q1 */}
+          <RowField label="Factor categories into POY calculation" hint={q1Hint}>
+            <Switch size="small" checked={s.poy_categories_factor} onChange={e => set('poy_categories_factor', e.target.checked)} />
           </RowField>
           <Divider sx={{ my: '20px' }} />
 
-          <RowField label="Top N scores per category to count" hint={topNHint}>
-            <TextField
-              size="small" type="number" slotProps={{ htmlInput: { min: 1 } }} placeholder="All scores"
-              value={s.poy_top_n}
-              onChange={e => set('poy_top_n', e.target.value === '' ? '' : Number(e.target.value))}
-              sx={{ width: 140 }}
-            />
-          </RowField>
-          <Divider sx={{ my: '20px' }} />
-
-          <RowField label="Drop lowest N scores" hint={dropLowestHint}>
-            <Switch size="small" checked={s.poy_drop_lowest_on} onChange={e => set('poy_drop_lowest_on', e.target.checked)} />
-          </RowField>
-          {s.poy_drop_lowest_on && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1.5, maxWidth: 480 }}>
-              <TextField
-                size="small" type="number" slotProps={{ htmlInput: { min: 1 } }}
-                value={s.poy_drop_lowest_n}
-                onChange={e => set('poy_drop_lowest_n', Number(e.target.value) || 1)}
-                sx={{ width: 90 }}
-              />
-              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>scores</Typography>
-            </Box>
+          {/* Branch A — Q1 = No */}
+          {!s.poy_categories_factor && (
+            <>
+              <Box sx={{ width: 480 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <FormLabel sx={{ fontSize: 13, fontWeight: 700, color: 'text.primary' }}>
+                    Scores counted from each category
+                  </FormLabel>
+                  <Select size="small" value={s.poy_branch_a_counting}
+                    onChange={e => set('poy_branch_a_counting', e.target.value as Settings['poy_branch_a_counting'])}
+                    sx={{ fontSize: 14, minWidth: 220 }}
+                  >
+                    <MenuItem value="all"            sx={{ fontSize: 14 }}>Sum of all scores</MenuItem>
+                    <MenuItem value="top_n"          sx={{ fontSize: 14 }}>Top scores only</MenuItem>
+                    <MenuItem value="exclude_lowest" sx={{ fontSize: 14 }}>Exclude lowest</MenuItem>
+                  </Select>
+                </Box>
+                {s.poy_branch_a_counting === 'top_n' && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1.5, justifyContent: 'flex-end' }}>
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Best</Typography>
+                    <TextField size="small" type="number"
+                      slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                      value={s.poy_branch_a_top_n}
+                      onChange={e => set('poy_branch_a_top_n', Math.max(1, Math.floor(parseInt(e.target.value, 10) || 1)))}
+                      sx={{ width: 60 }}
+                    />
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>scores from the season</Typography>
+                  </Box>
+                )}
+                {s.poy_branch_a_counting === 'exclude_lowest' && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1.5, justifyContent: 'flex-end' }}>
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Exclude</Typography>
+                    <TextField size="small" type="number"
+                      slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                      value={s.poy_branch_a_exclude_n}
+                      onChange={e => set('poy_branch_a_exclude_n', Math.max(1, Math.floor(parseInt(e.target.value, 10) || 1)))}
+                      sx={{ width: 60 }}
+                    />
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>lowest scores from the season</Typography>
+                  </Box>
+                )}
+              </Box>
+              <Divider sx={{ my: '20px' }} />
+            </>
           )}
+
+          {/* Q2 + Branch B1/B2 — Q1 = Yes */}
+          {s.poy_categories_factor && (
+            <>
+              <RowField label="Separate POY winner per category" hint={q2Hint}>
+                <Switch size="small" checked={s.poy_separate_per_category} onChange={e => set('poy_separate_per_category', e.target.checked)} />
+              </RowField>
+              <Divider sx={{ my: '20px' }} />
+
+              {/* Branch B1 — Q2 = Yes */}
+              {s.poy_separate_per_category && (
+                <Box sx={{ width: 480 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <FormLabel sx={{ fontSize: 13, fontWeight: 700, color: 'text.primary' }}>
+                      Scores counted from each category
+                    </FormLabel>
+                    <Select size="small" value={s.poy_b1_counting}
+                      onChange={e => set('poy_b1_counting', e.target.value as Settings['poy_b1_counting'])}
+                      sx={{ fontSize: 14, minWidth: 220 }}
+                    >
+                      <MenuItem value="all"            sx={{ fontSize: 14 }}>All scores in the category</MenuItem>
+                      <MenuItem value="top_n"          sx={{ fontSize: 14 }}>Top scores only</MenuItem>
+                      <MenuItem value="exclude_lowest" sx={{ fontSize: 14 }}>Exclude lowest</MenuItem>
+                    </Select>
+                  </Box>
+                  {s.poy_b1_counting === 'top_n' && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1.5, justifyContent: 'flex-end' }}>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Best</Typography>
+                      <TextField size="small" type="number"
+                        slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                        value={s.poy_b1_top_n}
+                        onChange={e => set('poy_b1_top_n', Math.max(1, Math.floor(parseInt(e.target.value, 10) || 1)))}
+                        sx={{ width: 60 }}
+                      />
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>scores in each category</Typography>
+                    </Box>
+                  )}
+                  {s.poy_b1_counting === 'exclude_lowest' && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1.5, justifyContent: 'flex-end' }}>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Exclude</Typography>
+                      <TextField size="small" type="number"
+                        slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                        value={s.poy_b1_exclude_n}
+                        onChange={e => set('poy_b1_exclude_n', Math.max(1, Math.floor(parseInt(e.target.value, 10) || 1)))}
+                        sx={{ width: 60 }}
+                      />
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>lowest scores in each category</Typography>
+                    </Box>
+                  )}
+                </Box>
+              )}
+
+              {/* Branch B2 — Q2 = No */}
+              {!s.poy_separate_per_category && (
+                <Box sx={{ width: 480 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <FormLabel sx={{ fontSize: 13, fontWeight: 700, color: 'text.primary' }}>
+                      Scores counted from each category
+                    </FormLabel>
+                    <Select size="small" value={s.poy_b2_counting}
+                      onChange={e => set('poy_b2_counting', e.target.value as Settings['poy_b2_counting'])}
+                      sx={{ fontSize: 14, minWidth: 220 }}
+                    >
+                      <MenuItem value="top_n"          sx={{ fontSize: 14 }}>Top scores only</MenuItem>
+                      <MenuItem value="exclude_lowest" sx={{ fontSize: 14 }}>Exclude lowest</MenuItem>
+                    </Select>
+                  </Box>
+                  {s.poy_b2_counting === 'top_n' && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1.5, justifyContent: 'flex-end' }}>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Best</Typography>
+                      <TextField size="small" type="number"
+                        slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                        value={s.poy_b2_top_n}
+                        onChange={e => set('poy_b2_top_n', Math.max(1, Math.floor(parseInt(e.target.value, 10) || 1)))}
+                        sx={{ width: 60 }}
+                      />
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>scores from each category</Typography>
+                    </Box>
+                  )}
+                  {s.poy_b2_counting === 'exclude_lowest' && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1.5, justifyContent: 'flex-end' }}>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Exclude</Typography>
+                      <TextField size="small" type="number"
+                        slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                        value={s.poy_b2_exclude_n}
+                        onChange={e => set('poy_b2_exclude_n', Math.max(1, Math.floor(parseInt(e.target.value, 10) || 1)))}
+                        sx={{ width: 60 }}
+                      />
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>lowest scores from each category</Typography>
+                    </Box>
+                  )}
+                </Box>
+              )}
+              <Divider sx={{ my: '20px' }} />
+            </>
+          )}
+
+          {/* Config explanation */}
+          <Box sx={{ textAlign: 'center', pt: '30px', pb: '30px' }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'text.primary', mb: 0.75 }}>
+              Summary of POY calculation
+            </Typography>
+            <Typography sx={{ fontSize: 14, color: 'text.secondary', lineHeight: 1.7 }}>
+              {buildExplanation()}
+            </Typography>
+          </Box>
           <Divider sx={{ my: '20px' }} />
 
           <RowField label="Tiebreaker rule" hint={tiebreakerHint}>

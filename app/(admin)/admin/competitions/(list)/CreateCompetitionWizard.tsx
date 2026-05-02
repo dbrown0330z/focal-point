@@ -52,6 +52,7 @@ export default function CreateCompetitionWizard({
   members,
   meetingLocations,
   clubCategories = [],
+  clubDefaults = {},
   editCompetition = null,
 }: {
   open:              boolean
@@ -60,15 +61,17 @@ export default function CreateCompetitionWizard({
   members:           { id: string; name: string }[]
   meetingLocations:  string[]
   clubCategories?:   string[]
+  clubDefaults?:     Partial<CompetitionConfig>
   editCompetition?:  EditCompetition | null
 }) {
+  const baseConfig: CompetitionConfig = { ...defaultConfig, ...clubDefaults }
   const isEditMode = editCompetition !== null
   const [competitionType, setCompetitionType] = useState<CompetitionType>('digital')
-  const [activeCats, setActiveCats] = useState<string[]>(clubCategories?.length ? clubCategories : defaultConfig.categories)
+  const [activeCats, setActiveCats] = useState<string[]>(clubCategories?.length ? clubCategories : baseConfig.categories)
 
   // Wizard state
   const [step,           setStep]           = useState(1)
-  const [config,         setConfig]         = useState<CompetitionConfig>(defaultConfig)
+  const [config,         setConfig]         = useState<CompetitionConfig>(baseConfig)
   const [schedule,       setSchedule]       = useState<CompetitionSchedule>(defaultSchedule)
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
   const [errors,         setErrors]         = useState<Record<string, string>>({})
@@ -103,7 +106,7 @@ export default function CreateCompetitionWizard({
     if (tplConfig) {
       setConfig(() => ({ ...tplConfig, competitionType }))
     } else {
-      setConfig({ ...defaultConfig, competitionType })
+      setConfig({ ...baseConfig, competitionType })
     }
   }
 
@@ -122,7 +125,7 @@ export default function CreateCompetitionWizard({
     } else {
       setCompetitionType('digital')
       setStep(1)
-      setConfig({ ...defaultConfig, competitionType: 'digital', categories: activeCats.length ? activeCats : defaultConfig.categories })
+      setConfig({ ...baseConfig, competitionType: 'digital', categories: activeCats.length ? activeCats : baseConfig.categories })
       setSchedule({ ...defaultSchedule })
       setCompletedSteps([])
       setSelectedTemplateId(null)

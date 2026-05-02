@@ -9,6 +9,15 @@ const statusStyles: Record<string, string> = {
   closed:  'bg-surface-1 text-content-tertiary',
 }
 
+const SUBMISSIONS_CLOSED_STATUSES = new Set([
+  'judging', 'judging_on_hold', 'closed', 'results_pending', 'results_published',
+])
+
+function fmt(iso: string | null) {
+  if (!iso) return null
+  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
 export default async function CompetitionPage({
   params,
 }: {
@@ -18,34 +27,47 @@ export default async function CompetitionPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: competition } = await supabase
-    .from('competitions')
-    .select('*, competition_categories(id, name)')
-    .eq('id', id)
-    .neq('status', 'draft')
-    .single()
+  const [
+    { data: competition },
+    { data: compExtra },
+    { data: mySubmissions },
+    { data: judgeTokens },
+  ] = await Promise.all([
+    supabase
+      .from('competitions')
+      .select('*, competition_categories(id, name)')
+      .eq('id', id)
+      .neq('status', 'draft')
+      .is('deleted_at', null)
+      .single(),
+    supabase
+      .from('competitions')
+      .select('withdrawal_frees_slot')
+      .eq('id', id)
+      .single(),
+    supabase
+      .from('submissions')
+      .select('id, status, image_id, category_id, images(title, storage_path), competition_categories(name)')
+      .eq('competition_id', id)
+      .eq('member_id', user!.id)
+      .eq('status', 'submitted'),
+    supabase
+      .from('judge_tokens')
+      .select('judge_name')
+      .eq('competition_id', id),
+  ])
 
   if (!competition) notFound()
 
-  // Fetch new columns (not in generated types yet)
-  const { data: compExtra } = await supabase
-    .from('competitions')
-    .select('withdrawal_frees_slot')
-    .eq('id', id)
-    .single()
+  const allowWithdrawals = (compExtra as Record<string, unknown> | null)?.withdrawal_frees_slot as boolean ?? false
+  const withdrawableStatuses = ['open', 'judging', 'judging_on_hold']
+  const canWithdraw = allowWithdrawals && withdrawableStatuses.includes(competition.status)
 
-  const withdrawalFreesSlot = (compExtra as Record<string, unknown> | null)?.withdrawal_frees_slot as boolean ?? true
-
-  // Member's active submissions for this competition
-  const { data: mySubmissions } = await supabase
-    .from('submissions')
-    .select('id, status, image_id, category_id, images(title, storage_path), competition_categories(name)')
-    .eq('competition_id', id)
-    .eq('member_id', user!.id)
-    .eq('status', 'submitted')
-
-  const submissionCount = mySubmissions?.length ?? 0
-  const atLimit = submissionCount >= competition.submission_limit
+  const submissionCount   = mySubmissions?.length ?? 0
+  const atLimit           = submissionCount >= competition.submission_limit
+  const submissionsClosed = SUBMISSIONS_CLOSED_STATUSES.has(competition.status)
+  const judgeNames        = (judgeTokens ?? []).map(j => j.judge_name).filter(Boolean)
+  const resultsDate       = fmt(competition.judging_at)
 
   return (
     <div className="max-w-2xl space-y-8">
@@ -57,11 +79,27 @@ export default async function CompetitionPage({
             {competition.status}
           </span>
         </div>
-        <div className="mt-1.5 flex gap-4 text-sm text-content-secondary">
-          {competition.closes_at && (
-            <span>Closes {new Date(competition.closes_at).toLocaleDateString()}</span>
+
+        <div className="mt-1.5 space-y-0.5 text-sm text-content-secondary">
+          {/* Submission status line */}
+          <div className="flex gap-4">
+            {submissionsClosed ? (
+              <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>Submissions Closed</span>
+            ) : competition.closes_at ? (
+              <span>Closes {fmt(competition.closes_at)}</span>
+            ) : null}
+            <span>{submissionCount} / {competition.submission_limit} submissions used</span>
+          </div>
+
+          {/* Judge line — only when closed and judge assigned */}
+          {submissionsClosed && judgeNames.length > 0 && (
+            <div>Judge: {judgeNames.join(', ')}</div>
           )}
-          <span>{submissionCount} / {competition.submission_limit} submissions used</span>
+
+          {/* Results date — only when closed and date is set */}
+          {submissionsClosed && resultsDate && (
+            <div>Results Revealed: {resultsDate}</div>
+          )}
         </div>
       </div>
 
@@ -106,14 +144,14 @@ export default async function CompetitionPage({
                     <p className="truncate text-sm font-medium text-content-primary">{image.title}</p>
                     <p className="text-xs text-content-tertiary">{category.name}</p>
                   </div>
-                  <WithdrawButton
-                    submissionId={sub.id}
-                    competitionId={id}
-                    imageTitle={image.title}
-                    competitionTitle={competition.title}
-                    categoryName={category.name}
-                    withdrawalFreesSlot={withdrawalFreesSlot}
-                  />
+                  {canWithdraw && (
+                    <WithdrawButton
+                      submissionId={sub.id}
+                      competitionId={id}
+                      imageTitle={image.title}
+                      competitionTitle={competition.title}
+                    />
+                  )}
                 </div>
               )
             })}
@@ -136,8 +174,19 @@ export default async function CompetitionPage({
             You&apos;ve used all {competition.submission_limit} submission{competition.submission_limit !== 1 ? 's' : ''} for this competition.
           </p>
         )}
-        {competition.status === 'judging' && (
-          <p className="text-sm text-content-secondary">Submissions are closed — judging is in progress.</p>
+        {submissionsClosed && (
+          <div className="flex flex-col items-center py-6 text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/submissions-closed.svg"
+              alt=""
+              style={{ width: '100%', maxWidth: 320, height: 'auto', marginBottom: 16 }}
+              className="opacity-80 dark:invert dark:opacity-60"
+            />
+            <p className="text-sm text-content-secondary">
+              Sorry, the submission window for this competition has closed.
+            </p>
+          </div>
         )}
         {competition.status === 'closed' && (
           <p className="text-sm text-content-secondary">This competition has closed.</p>

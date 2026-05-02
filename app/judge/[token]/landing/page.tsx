@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import CategoryCard from './CategoryCard'
 import SubmitButton from './SubmitButton'
 import StatusBadge, { type JudgeStatus } from './StatusBadge'
@@ -19,7 +19,7 @@ export default async function JudgeLandingPage({
     redirect(`/judge/${token}/access`)
   }
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   const { data: judgeToken } = await supabase
     .from('judge_tokens')
