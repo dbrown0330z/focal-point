@@ -62,9 +62,8 @@ function ConfirmationScreen({ email, clubName }: { email: string; clubName: stri
           A club admin will review your application and you'll receive an email at <strong>{email}</strong> once you've been approved.
         </p>
         <p className="mt-8 text-content-secondary text-sm">
-          Already approved?{' '}
-          <Link href="/login" className="font-medium text-action-primary hover:underline">
-            Sign in
+          <Link href="/" className="font-medium text-action-primary hover:underline">
+            View your application status
           </Link>
         </p>
       </div>
