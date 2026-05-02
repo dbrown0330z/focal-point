@@ -199,7 +199,7 @@ function BandRow({ band, onUpdate, onDelete, disabled, scoreMaxError }: {
       />
 
       <TextField
-        size="small" type="number" slotProps={{ htmlInput: { min: 0 } }}
+        size="small" type="number" slotProps={{ input: { min: 0 } }}
         value={band.minScore}
         onChange={e => onUpdate(band.id, { minScore: e.target.value === '' ? '' : Number(e.target.value) })}
         disabled={disabled}
@@ -608,7 +608,7 @@ export default function RecognitionClient({
                   disabled={bandPending}
                 />
                 <TextField
-                  size="small" type="number" slotProps={{ htmlInput: { min: 0 } }} placeholder="Min score"
+                  size="small" type="number" slotProps={{ input: { min: 0 } }} placeholder="Min score"
                   value={newBandScore}
                   onChange={e => setNewBandScore(e.target.value === '' ? '' : Number(e.target.value))}
                   sx={{ width: 120 }}
@@ -652,7 +652,7 @@ export default function RecognitionClient({
                     </FormLabel>
                     <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
                       <TextField
-                        size="small" type="number" slotProps={{ htmlInput: { min: 1 } }}
+                        size="small" type="number" slotProps={{ input: { min: 1 } }}
                         value={level.imagesRequired}
                         onChange={e => setLevel(band.id, { imagesRequired: Number(e.target.value) || 1 })}
                         sx={{ width: 90 }}
@@ -728,7 +728,7 @@ export default function RecognitionClient({
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1.5, justifyContent: 'flex-end' }}>
                     <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Best</Typography>
                     <TextField size="small" type="number"
-                      slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                      slotProps={{ input: { min: 1, step: 1 } }}
                       value={s.poy_branch_a_top_n}
                       onChange={e => set('poy_branch_a_top_n', Math.max(1, Math.floor(parseInt(e.target.value, 10) || 1)))}
                       sx={{ width: 60 }}
@@ -740,7 +740,7 @@ export default function RecognitionClient({
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1.5, justifyContent: 'flex-end' }}>
                     <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Exclude</Typography>
                     <TextField size="small" type="number"
-                      slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                      slotProps={{ input: { min: 1, step: 1 } }}
                       value={s.poy_branch_a_exclude_n}
                       onChange={e => set('poy_branch_a_exclude_n', Math.max(1, Math.floor(parseInt(e.target.value, 10) || 1)))}
                       sx={{ width: 60 }}
@@ -781,7 +781,7 @@ export default function RecognitionClient({
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1.5, justifyContent: 'flex-end' }}>
                       <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Best</Typography>
                       <TextField size="small" type="number"
-                        slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                        slotProps={{ input: { min: 1, step: 1 } }}
                         value={s.poy_b1_top_n}
                         onChange={e => set('poy_b1_top_n', Math.max(1, Math.floor(parseInt(e.target.value, 10) || 1)))}
                         sx={{ width: 60 }}
@@ -793,7 +793,7 @@ export default function RecognitionClient({
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1.5, justifyContent: 'flex-end' }}>
                       <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Exclude</Typography>
                       <TextField size="small" type="number"
-                        slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                        slotProps={{ input: { min: 1, step: 1 } }}
                         value={s.poy_b1_exclude_n}
                         onChange={e => set('poy_b1_exclude_n', Math.max(1, Math.floor(parseInt(e.target.value, 10) || 1)))}
                         sx={{ width: 60 }}
@@ -823,7 +823,7 @@ export default function RecognitionClient({
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1.5, justifyContent: 'flex-end' }}>
                       <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Best</Typography>
                       <TextField size="small" type="number"
-                        slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                        slotProps={{ input: { min: 1, step: 1 } }}
                         value={s.poy_b2_top_n}
                         onChange={e => set('poy_b2_top_n', Math.max(1, Math.floor(parseInt(e.target.value, 10) || 1)))}
                         sx={{ width: 60 }}
@@ -835,7 +835,7 @@ export default function RecognitionClient({
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1.5, justifyContent: 'flex-end' }}>
                       <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Exclude</Typography>
                       <TextField size="small" type="number"
-                        slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                        slotProps={{ input: { min: 1, step: 1 } }}
                         value={s.poy_b2_exclude_n}
                         onChange={e => set('poy_b2_exclude_n', Math.max(1, Math.floor(parseInt(e.target.value, 10) || 1)))}
                         sx={{ width: 60 }}

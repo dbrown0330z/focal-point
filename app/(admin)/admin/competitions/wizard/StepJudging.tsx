@@ -244,7 +244,7 @@ export function StepJudging({ config, onChange }: Props) {
                     <OutlinedInput
                       size="small"
                       type="number"
-                      slotProps={{ htmlInput: { min: 1 } }}
+                      slotProps={{ input: { min: 1 } }}
                       value={config.numberOfJudges}
                       onChange={e => onChange({ numberOfJudges: Math.max(1, parseInt(e.target.value) || 1) })}
                       sx={{ width: 80 }}
@@ -370,7 +370,7 @@ export function StepJudging({ config, onChange }: Props) {
                 <OutlinedInput
                   size="small"
                   type="number"
-                  slotProps={{ htmlInput: { min: 1 } }}
+                  slotProps={{ input: { min: 1 } }}
                   sx={{ width: 80 }}
                   value={config.minCommentLength}
                   onChange={e => updateSetting({ minCommentLength: +e.target.value })}
@@ -509,7 +509,7 @@ function EoyPanel({ config, onChange }: {
           <OutlinedInput
             size="small"
             type="number"
-            slotProps={{ htmlInput: { min: 1 } }}
+            slotProps={{ input: { min: 1 } }}
             value={config.eoyImagesPerMember}
             onChange={e => onChange({ eoyImagesPerMember: Math.max(1, parseInt(e.target.value) || 1) })}
             sx={{ width: 80 }}
