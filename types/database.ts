@@ -6,16 +6,12 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface RemindersSent {
-  admin7Day:           boolean
-  admin1Day:           boolean
-  adminOnOpen:         boolean
-  adminFollowUpCount:  number   // 0–3
-  judge1Day:           boolean
-  judgeClosingDay:     boolean
-}
-
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -43,131 +39,102 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendar_events: {
+        Row: {
+          all_day: boolean
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_at: string | null
+          event_type: Database["public"]["Enums"]["calendar_event_type"]
+          id: string
+          location: string | null
+          starts_at: string
+          title: string
+        }
+        Insert: {
+          all_day?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          event_type?: Database["public"]["Enums"]["calendar_event_type"]
+          id?: string
+          location?: string | null
+          starts_at: string
+          title: string
+        }
+        Update: {
+          all_day?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          event_type?: Database["public"]["Enums"]["calendar_event_type"]
+          id?: string
+          location?: string | null
+          starts_at?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       club_settings: {
         Row: {
-          id: string
+          club_location: string | null
           club_name: string
           club_short_name: string | null
-          club_location: string | null
-          timezone: string
-          logo_path: string | null
-          season_start_month: number
-          season_end_month: number
-          member_classes_enabled: boolean
           default_meeting_location_id: string | null
+          id: string
+          logo_path: string | null
+          member_classes_enabled: boolean
+          season_end_month: number
+          season_start_month: number
+          timezone: string
           updated_at: string
         }
         Insert: {
-          id?: string
+          club_location?: string | null
           club_name?: string
           club_short_name?: string | null
-          club_location?: string | null
-          timezone?: string
-          logo_path?: string | null
-          season_start_month?: number
-          season_end_month?: number
-          member_classes_enabled?: boolean
           default_meeting_location_id?: string | null
+          id?: string
+          logo_path?: string | null
+          member_classes_enabled?: boolean
+          season_end_month?: number
+          season_start_month?: number
+          timezone?: string
           updated_at?: string
         }
         Update: {
+          club_location?: string | null
           club_name?: string
           club_short_name?: string | null
-          club_location?: string | null
-          timezone?: string
-          logo_path?: string | null
-          season_start_month?: number
-          season_end_month?: number
-          member_classes_enabled?: boolean
           default_meeting_location_id?: string | null
+          id?: string
+          logo_path?: string | null
+          member_classes_enabled?: boolean
+          season_end_month?: number
+          season_start_month?: number
+          timezone?: string
           updated_at?: string
         }
-        Relationships: []
-      }
-      meeting_locations: {
-        Row: {
-          id: string
-          name: string
-          address: string | null
-          sort_order: number
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          address?: string | null
-          sort_order?: number
-          created_at?: string
-        }
-        Update: {
-          name?: string
-          address?: string | null
-          sort_order?: number
-        }
-        Relationships: []
-      }
-      member_classes: {
-        Row: {
-          id: string
-          name: string
-          description: string | null
-          sort_order: number
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          description?: string | null
-          sort_order?: number
-          created_at?: string
-        }
-        Update: {
-          name?: string
-          description?: string | null
-          sort_order?: number
-        }
-        Relationships: []
-      }
-      competition_templates: {
-        Row: {
-          id: string
-          name: string
-          config: Json
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          config?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          name?: string
-          config?: Json
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      competition_default_categories: {
-        Row: {
-          id:         string
-          name:       string
-          sort_order: number
-          created_at: string
-        }
-        Insert: {
-          id?:         string
-          name:        string
-          sort_order?: number
-          created_at?: string
-        }
-        Update: {
-          name?:       string
-          sort_order?: number
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "club_settings_default_meeting_location_id_fkey"
+            columns: ["default_meeting_location_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       competition_categories: {
         Row: {
@@ -195,105 +162,255 @@ export type Database = {
           },
         ]
       }
-      competitions: {
+      competition_default_categories: {
         Row: {
-          closes_at:            string | null
-          created_at:           string
-          description:          string | null
-          id:                   string
-          judging_at:           string | null
-          judging_opens_at:     string | null
-          judging_closes_at:    string | null
-          reminders_sent:       RemindersSent
-          opens_at:             string | null
-          status:               Database["public"]["Enums"]["competition_status"]
-          submission_limit:     number
-          template_id:          string | null
-          title:                string
-          archived_at:          string | null
-          cancelled_at:         string | null
-          cancellation_reason:  string | null
-          deleted_at:           string | null
-          results_at:           string | null
-          results_event_type:   string | null
-          score_min:            number
-          score_max:            number
-          judge_instructions:   string | null
-          preset:               string
-          allow_half_points:    boolean
-          anonymise_members:    boolean
-          anonymise_exif:       boolean
-          require_feedback:     boolean
-          awards_enabled:       boolean
-          award_types:          Json
-          score_aggregation:    'sum' | 'average' | 'drop_extremes'
-          blind_judging:        boolean
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
         }
         Insert: {
-          closes_at?:            string | null
-          created_at?:           string
-          description?:          string | null
-          id?:                   string
-          judging_at?:           string | null
-          judging_opens_at?:     string | null
-          judging_closes_at?:    string | null
-          reminders_sent?:       RemindersSent
-          opens_at?:             string | null
-          status?:               Database["public"]["Enums"]["competition_status"]
-          submission_limit?:     number
-          template_id?:          string | null
-          title:                 string
-          archived_at?:          string | null
-          cancelled_at?:         string | null
-          cancellation_reason?:  string | null
-          deleted_at?:           string | null
-          results_at?:           string | null
-          results_event_type?:   string | null
-          score_min?:            number
-          score_max?:            number
-          judge_instructions?:   string | null
-          preset?:               string
-          allow_half_points?:    boolean
-          anonymise_members?:    boolean
-          anonymise_exif?:       boolean
-          require_feedback?:     boolean
-          awards_enabled?:       boolean
-          award_types?:          Json
-          score_aggregation?:    'sum' | 'average' | 'drop_extremes'
-          blind_judging?:        boolean
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
         }
         Update: {
-          closes_at?:            string | null
-          created_at?:           string
-          description?:          string | null
-          id?:                   string
-          judging_at?:           string | null
-          judging_opens_at?:     string | null
-          judging_closes_at?:    string | null
-          reminders_sent?:       RemindersSent
-          opens_at?:             string | null
-          status?:               Database["public"]["Enums"]["competition_status"]
-          submission_limit?:     number
-          template_id?:          string | null
-          title?:                string
-          archived_at?:          string | null
-          cancelled_at?:         string | null
-          cancellation_reason?:  string | null
-          deleted_at?:           string | null
-          results_at?:           string | null
-          results_event_type?:   string | null
-          score_min?:            number
-          score_max?:            number
-          judge_instructions?:   string | null
-          preset?:               string
-          allow_half_points?:    boolean
-          anonymise_members?:    boolean
-          anonymise_exif?:       boolean
-          require_feedback?:     boolean
-          awards_enabled?:       boolean
-          award_types?:          Json
-          score_aggregation?:    'sum' | 'average' | 'drop_extremes'
-          blind_judging?:        boolean
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      competition_defaults: {
+        Row: {
+          allow_decimals: boolean
+          capture_date_amount: number
+          capture_date_unit: string
+          hide_exif_data: boolean
+          hide_member_names: boolean
+          id: string
+          image_long_edge_custom: number | null
+          image_long_edge_preset: string
+          image_reuse_rule: string
+          judge_comments_min_chars: number
+          judging_method: string
+          max_entries_per_category: number | null
+          max_entries_per_member: number
+          require_capture_date: boolean
+          require_judge_comments: boolean
+          results_visibility: string
+          results_visibility_delay_hours: number
+          score_aggregation: string
+          score_max: number
+          score_min: number
+          score_min_to_publish: number
+          score_min_to_publish_enabled: boolean
+          updated_at: string
+          withdrawal_frees_slot: boolean
+        }
+        Insert: {
+          allow_decimals?: boolean
+          capture_date_amount?: number
+          capture_date_unit?: string
+          hide_exif_data?: boolean
+          hide_member_names?: boolean
+          id?: string
+          image_long_edge_custom?: number | null
+          image_long_edge_preset?: string
+          image_reuse_rule?: string
+          judge_comments_min_chars?: number
+          judging_method?: string
+          max_entries_per_category?: number | null
+          max_entries_per_member?: number
+          require_capture_date?: boolean
+          require_judge_comments?: boolean
+          results_visibility?: string
+          results_visibility_delay_hours?: number
+          score_aggregation?: string
+          score_max?: number
+          score_min?: number
+          score_min_to_publish?: number
+          score_min_to_publish_enabled?: boolean
+          updated_at?: string
+          withdrawal_frees_slot?: boolean
+        }
+        Update: {
+          allow_decimals?: boolean
+          capture_date_amount?: number
+          capture_date_unit?: string
+          hide_exif_data?: boolean
+          hide_member_names?: boolean
+          id?: string
+          image_long_edge_custom?: number | null
+          image_long_edge_preset?: string
+          image_reuse_rule?: string
+          judge_comments_min_chars?: number
+          judging_method?: string
+          max_entries_per_category?: number | null
+          max_entries_per_member?: number
+          require_capture_date?: boolean
+          require_judge_comments?: boolean
+          results_visibility?: string
+          results_visibility_delay_hours?: number
+          score_aggregation?: string
+          score_max?: number
+          score_min?: number
+          score_min_to_publish?: number
+          score_min_to_publish_enabled?: boolean
+          updated_at?: string
+          withdrawal_frees_slot?: boolean
+        }
+        Relationships: []
+      }
+      competition_templates: {
+        Row: {
+          config: Json
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      competitions: {
+        Row: {
+          allow_half_points: boolean
+          allow_notes_to_judge: boolean
+          anonymise_exif: boolean
+          anonymise_members: boolean
+          archived_at: string | null
+          award_types: Json
+          awards_enabled: boolean
+          blind_judging: boolean
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          capture_date_window_months: number | null
+          closes_at: string | null
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          id: string
+          image_reuse_rule: string
+          judge_instructions: string | null
+          judging_at: string | null
+          judging_closes_at: string | null
+          judging_opens_at: string | null
+          max_entries_per_category: number | null
+          max_long_edge: number
+          opens_at: string | null
+          preset: string
+          reminders_sent: Json
+          require_capture_date: boolean
+          require_feedback: boolean
+          results_at: string | null
+          results_event_type: string | null
+          score_aggregation: string
+          score_max: number
+          score_min: number
+          short_title: string | null
+          status: Database["public"]["Enums"]["competition_status"]
+          submission_limit: number
+          template_id: string | null
+          title: string
+          withdrawal_frees_slot: boolean
+        }
+        Insert: {
+          allow_half_points?: boolean
+          allow_notes_to_judge?: boolean
+          anonymise_exif?: boolean
+          anonymise_members?: boolean
+          archived_at?: string | null
+          award_types?: Json
+          awards_enabled?: boolean
+          blind_judging?: boolean
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          capture_date_window_months?: number | null
+          closes_at?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          image_reuse_rule?: string
+          judge_instructions?: string | null
+          judging_at?: string | null
+          judging_closes_at?: string | null
+          judging_opens_at?: string | null
+          max_entries_per_category?: number | null
+          max_long_edge?: number
+          opens_at?: string | null
+          preset?: string
+          reminders_sent?: Json
+          require_capture_date?: boolean
+          require_feedback?: boolean
+          results_at?: string | null
+          results_event_type?: string | null
+          score_aggregation?: string
+          score_max?: number
+          score_min?: number
+          short_title?: string | null
+          status?: Database["public"]["Enums"]["competition_status"]
+          submission_limit?: number
+          template_id?: string | null
+          title: string
+          withdrawal_frees_slot?: boolean
+        }
+        Update: {
+          allow_half_points?: boolean
+          allow_notes_to_judge?: boolean
+          anonymise_exif?: boolean
+          anonymise_members?: boolean
+          archived_at?: string | null
+          award_types?: Json
+          awards_enabled?: boolean
+          blind_judging?: boolean
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          capture_date_window_months?: number | null
+          closes_at?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          image_reuse_rule?: string
+          judge_instructions?: string | null
+          judging_at?: string | null
+          judging_closes_at?: string | null
+          judging_opens_at?: string | null
+          max_entries_per_category?: number | null
+          max_long_edge?: number
+          opens_at?: string | null
+          preset?: string
+          reminders_sent?: Json
+          require_capture_date?: boolean
+          require_feedback?: boolean
+          results_at?: string | null
+          results_event_type?: string | null
+          score_aggregation?: string
+          score_max?: number
+          score_min?: number
+          short_title?: string | null
+          status?: Database["public"]["Enums"]["competition_status"]
+          submission_limit?: number
+          template_id?: string | null
+          title?: string
+          withdrawal_frees_slot?: boolean
         }
         Relationships: [
           {
@@ -309,29 +426,47 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
-          exif_data: Record<string, unknown> | null
+          exif_data: Json | null
+          exif_unique_id: string | null
+          file_size: number | null
+          height_px: number | null
           id: string
           owner_id: string
+          p_hash: string | null
+          p_hash_status: string
           storage_path: string
           title: string
+          width_px: number | null
         }
         Insert: {
           created_at?: string
           description?: string | null
-          exif_data?: Record<string, unknown> | null
+          exif_data?: Json | null
+          exif_unique_id?: string | null
+          file_size?: number | null
+          height_px?: number | null
           id?: string
           owner_id: string
+          p_hash?: string | null
+          p_hash_status?: string
           storage_path: string
           title: string
+          width_px?: number | null
         }
         Update: {
           created_at?: string
           description?: string | null
-          exif_data?: Record<string, unknown> | null
+          exif_data?: Json | null
+          exif_unique_id?: string | null
+          file_size?: number | null
+          height_px?: number | null
           id?: string
           owner_id?: string
+          p_hash?: string | null
+          p_hash_status?: string
           storage_path?: string
           title?: string
+          width_px?: number | null
         }
         Relationships: [
           {
@@ -343,39 +478,93 @@ export type Database = {
           },
         ]
       }
-      judge_tokens: {
+      judge_category_awards: {
         Row: {
-          competition_id:     string
-          created_at:         string
-          id:                 string
-          judge_email:        string
-          judge_name:         string
-          token:              string
-          invitation_sent_at: string | null
-          access_code:        string
-          submitted_at:       string | null
+          category_id: string
+          completed_at: string
+          judge_token_id: string
         }
         Insert: {
-          competition_id:      string
-          created_at?:         string
-          id?:                 string
-          judge_email:         string
-          judge_name:          string
-          token?:              string
-          invitation_sent_at?: string | null
-          access_code?:        string
-          submitted_at?:       string | null
+          category_id: string
+          completed_at?: string
+          judge_token_id: string
         }
         Update: {
-          competition_id?:     string
-          created_at?:         string
-          id?:                 string
-          judge_email?:        string
-          judge_name?:         string
-          token?:              string
+          category_id?: string
+          completed_at?: string
+          judge_token_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "judge_category_awards_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "competition_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "judge_category_awards_judge_token_id_fkey"
+            columns: ["judge_token_id"]
+            isOneToOne: false
+            referencedRelation: "judge_tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      judge_directory: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      judge_tokens: {
+        Row: {
+          access_code: string
+          competition_id: string
+          created_at: string
+          id: string
+          invitation_sent_at: string | null
+          judge_email: string
+          judge_name: string
+          submitted_at: string | null
+          token: string
+        }
+        Insert: {
+          access_code?: string
+          competition_id: string
+          created_at?: string
+          id?: string
           invitation_sent_at?: string | null
-          access_code?:        string
-          submitted_at?:       string | null
+          judge_email: string
+          judge_name: string
+          submitted_at?: string | null
+          token?: string
+        }
+        Update: {
+          access_code?: string
+          competition_id?: string
+          created_at?: string
+          id?: string
+          invitation_sent_at?: string | null
+          judge_email?: string
+          judge_name?: string
+          submitted_at?: string | null
+          token?: string
         }
         Relationships: [
           {
@@ -386,6 +575,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      meeting_locations: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      member_classes: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
       posts: {
         Row: {
@@ -475,37 +712,37 @@ export type Database = {
       }
       scores: {
         Row: {
-          created_at:     string
-          id:             string
+          award_id: string | null
+          created_at: string
+          flagged: boolean
+          id: string
           judge_token_id: string
-          notes:          string | null
-          rank:           number | null
-          score:          number
-          flagged:        boolean
-          submission_id:  string
-          award_id:       string | null
+          notes: string | null
+          rank: number | null
+          score: number
+          submission_id: string
         }
         Insert: {
-          created_at?:     string
-          id?:             string
-          judge_token_id:  string
-          notes?:          string | null
-          rank?:           number | null
-          score:           number
-          flagged?:        boolean
-          submission_id:   string
-          award_id?:       string | null
+          award_id?: string | null
+          created_at?: string
+          flagged?: boolean
+          id?: string
+          judge_token_id: string
+          notes?: string | null
+          rank?: number | null
+          score: number
+          submission_id: string
         }
         Update: {
-          created_at?:     string
-          id?:             string
+          award_id?: string | null
+          created_at?: string
+          flagged?: boolean
+          id?: string
           judge_token_id?: string
-          notes?:          string | null
-          rank?:           number | null
-          score?:          number
-          flagged?:        boolean
-          submission_id?:  string
-          award_id?:       string | null
+          notes?: string | null
+          rank?: number | null
+          score?: number
+          submission_id?: string
         }
         Relationships: [
           {
@@ -524,64 +761,40 @@ export type Database = {
           },
         ]
       }
-      judge_category_awards: {
-        Row: {
-          judge_token_id: string
-          category_id:    string
-          completed_at:   string
-        }
-        Insert: {
-          judge_token_id: string
-          category_id:    string
-          completed_at?:  string
-        }
-        Update: {
-          judge_token_id?: string
-          category_id?:    string
-          completed_at?:   string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "judge_category_awards_judge_token_id_fkey"
-            columns: ["judge_token_id"]
-            isOneToOne: false
-            referencedRelation: "judge_tokens"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "judge_category_awards_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "competition_categories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       submissions: {
         Row: {
           category_id: string
           competition_id: string
+          duplicate_warning_override: boolean
+          duplicate_warning_shown: boolean
           id: string
           image_id: string
           member_id: string
+          notes: string | null
           status: Database["public"]["Enums"]["submission_status"]
           submitted_at: string
         }
         Insert: {
           category_id: string
           competition_id: string
+          duplicate_warning_override?: boolean
+          duplicate_warning_shown?: boolean
           id?: string
           image_id: string
           member_id: string
+          notes?: string | null
           status?: Database["public"]["Enums"]["submission_status"]
           submitted_at?: string
         }
         Update: {
           category_id?: string
           competition_id?: string
+          duplicate_warning_override?: boolean
+          duplicate_warning_shown?: boolean
           id?: string
           image_id?: string
           member_id?: string
+          notes?: string | null
           status?: Database["public"]["Enums"]["submission_status"]
           submitted_at?: string
         }
@@ -625,8 +838,32 @@ export type Database = {
       is_approved_member: { Args: never; Returns: boolean }
     }
     Enums: {
-      competition_status: "draft" | "open" | "judging" | "judging_on_hold" | "closed" | "cancelled" | "results_pending" | "results_published"
-      membership_status: "pending" | "approved" | "active" | "expired" | "paused" | "complimentary" | "banned" | "cancelled"
+      calendar_event_type:
+        | "competition"
+        | "regular_meeting"
+        | "board_meeting"
+        | "field_trip"
+        | "other"
+        | "submission_open"
+        | "submission_closed"
+      competition_status:
+        | "draft"
+        | "open"
+        | "judging"
+        | "closed"
+        | "judging_on_hold"
+        | "cancelled"
+        | "results_pending"
+        | "results_published"
+      membership_status:
+        | "pending"
+        | "approved"
+        | "active"
+        | "expired"
+        | "paused"
+        | "complimentary"
+        | "banned"
+        | "cancelled"
       submission_status: "submitted" | "withdrawn"
       user_role: "admin" | "member"
     }
@@ -759,11 +996,37 @@ export const Constants = {
   },
   public: {
     Enums: {
-      competition_status: ["draft", "open", "judging", "judging_on_hold", "closed"],
-      membership_status: ["pending", "approved", "active", "expired", "paused", "complimentary", "banned", "cancelled"],
+      calendar_event_type: [
+        "competition",
+        "regular_meeting",
+        "board_meeting",
+        "field_trip",
+        "other",
+        "submission_open",
+        "submission_closed",
+      ],
+      competition_status: [
+        "draft",
+        "open",
+        "judging",
+        "closed",
+        "judging_on_hold",
+        "cancelled",
+        "results_pending",
+        "results_published",
+      ],
+      membership_status: [
+        "pending",
+        "approved",
+        "active",
+        "expired",
+        "paused",
+        "complimentary",
+        "banned",
+        "cancelled",
+      ],
       submission_status: ["submitted", "withdrawn"],
       user_role: ["admin", "member"],
     },
   },
 } as const
-
