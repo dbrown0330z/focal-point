@@ -42,6 +42,7 @@ import InsertPhotoIcon          from '@mui/icons-material/InsertPhoto'
 import MoreHorizIcon            from '@mui/icons-material/MoreHoriz'
 import KeyboardArrowDownIcon    from '@mui/icons-material/KeyboardArrowDown'
 import SendIcon                 from '@mui/icons-material/Send'
+import { sendNotification }    from './actions'
 import SearchIcon               from '@mui/icons-material/Search'
 import CloseIcon                from '@mui/icons-material/Close'
 
@@ -163,6 +164,11 @@ export default function ComposeClient({
 
   // Image resize state
   const [imgAnchor, setImgAnchor]       = useState<HTMLImageElement | null>(null)
+
+  // Send state
+  const [sending, setSending]     = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
+  const [sentCount, setSentCount] = useState<number | null>(null)
 
   // Table insert dialog
   const [tableDialogOpen, setTableDialogOpen] = useState(false)
@@ -496,6 +502,30 @@ export default function ComposeClient({
                        : toOption === 'all_members'  ? members.length
                        : selectedIds.size
 
+  // ── Send ───────────────────────────────────────────────────────────────────
+
+  async function handleSend() {
+    const htmlBody = editorRef.current?.innerHTML ?? ''
+    if (!subject.trim() || !htmlBody.trim() || recipientCount === 0) return
+    setSending(true)
+    setSendError(null)
+    setSentCount(null)
+    const result = await sendNotification({
+      subject,
+      htmlBody,
+      toOption,
+      customIds: toOption === 'custom' ? [...selectedIds] : undefined,
+    })
+    setSending(false)
+    if (result.ok) {
+      setSentCount(result.recipientCount)
+      setSubject('')
+      if (editorRef.current) editorRef.current.innerHTML = ''
+    } else {
+      setSendError(result.error)
+    }
+  }
+
   return (
     <>
       <Paper variant="outlined">
@@ -526,12 +556,23 @@ export default function ComposeClient({
               variant="contained"
               size="small"
               startIcon={<SendIcon sx={{ fontSize: '14px !important' }} />}
-              disabled={!subject.trim() || recipientCount === 0}
+              disabled={!subject.trim() || recipientCount === 0 || sending}
+              onClick={handleSend}
               sx={{ minWidth: 90 }}
             >
-              Send
+              {sending ? 'Sending…' : 'Send'}
             </Button>
           </Box>
+          {sentCount !== null && (
+            <Typography sx={{ fontSize: 12, color: 'success.main', mt: 0.5, textAlign: 'right' }}>
+              ✓ Sent to {sentCount} recipient{sentCount !== 1 ? 's' : ''}
+            </Typography>
+          )}
+          {sendError && (
+            <Typography sx={{ fontSize: 12, color: 'error.main', mt: 0.5, textAlign: 'right' }}>
+              {sendError}
+            </Typography>
+          )}
         </Box>
 
         {/* From — read-only, styled disabled */}

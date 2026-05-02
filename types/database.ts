@@ -1201,6 +1201,54 @@ export type Database = {
           },
         ]
       }
+      sent_messages: {
+        Row: {
+          club_id: string | null
+          html_body: string
+          id: string
+          recipient_count: number
+          sent_at: string
+          sent_by: string | null
+          sent_to: string
+          subject: string
+        }
+        Insert: {
+          club_id?: string | null
+          html_body: string
+          id?: string
+          recipient_count?: number
+          sent_at?: string
+          sent_by?: string | null
+          sent_to: string
+          subject: string
+        }
+        Update: {
+          club_id?: string | null
+          html_body?: string
+          id?: string
+          recipient_count?: number
+          sent_at?: string
+          sent_by?: string | null
+          sent_to?: string
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sent_messages_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sent_messages_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submissions: {
         Row: {
           category_id: string
