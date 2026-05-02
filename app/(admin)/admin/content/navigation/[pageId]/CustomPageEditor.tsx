@@ -175,7 +175,7 @@ export default function CustomPageEditor({
   // Refs so auto-save callback always reads latest values without stale closure
   const titleRef      = useRef(title)
   const visibilityRef = useRef(visibility)
-  const debounceRef   = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef   = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   // ── Rich text editor refs ───────────────────────────────────────────────────
   const editorRef      = useRef<HTMLDivElement>(null)
