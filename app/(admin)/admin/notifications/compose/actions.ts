@@ -27,7 +27,7 @@ export async function sendNotification(args: {
   if (args.toOption === 'all_active') {
     query = query.eq('membership_status', 'active')
   } else if (args.toOption === 'all_members') {
-    query = query.in('membership_status', ['active', 'inactive', 'expired'])
+    query = query.in('membership_status', ['active', 'expired', 'paused', 'complimentary'])
   } else {
     if (!args.customIds?.length) return { ok: false, error: 'No recipients selected' }
     query = query.in('id', args.customIds)
