@@ -236,8 +236,8 @@ export default function ComposeClient({
       range.insertNode(p)
       range.insertNode(node)
     } else {
-      anchor.after(p)
-      anchor.after(node)
+      (anchor as Element).after(p)
+      (anchor as Element).after(node)
     }
 
     const newRange = document.createRange()
