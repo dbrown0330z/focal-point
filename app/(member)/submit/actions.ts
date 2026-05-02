@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import type { Json } from '@/types/database'
 
 export type SubmitInput = {
   competitionId: string
@@ -84,14 +85,14 @@ export async function finalizeSubmission(input: SubmitInput): Promise<SubmitResu
         owner_id:       user.id,
         title:          input.title,
         storage_path:   input.storagePath,
-        exif_data:      input.exifData ?? null,
+        exif_data:      (input.exifData ?? null) as Json,
         exif_unique_id: input.exifUniqueId ?? null,
         p_hash:         input.pHash ?? null,
         p_hash_status:  input.pHash ? 'complete' : 'failed',
         file_size:      input.fileSize ?? null,
         width_px:       input.widthPx ?? null,
         height_px:      input.heightPx ?? null,
-      } as Record<string, unknown>)
+      })
       .select('id')
       .single()
 
