@@ -17,6 +17,7 @@ import {
   Paper,
   Select,
   Stack,
+  InputAdornment,
   TextField,
   Tooltip,
   Typography,
@@ -654,8 +655,14 @@ export default function ClubDefaultsClient({
         </Field>
         <Divider sx={{ my: '20px' }} />
 
-        <Field label="Notifications from address" hint="The From: address used when sending bulk emails and judge invitations. Must be a verified sender in your email provider (Resend).">
-          <TextField {...tf} type="email" value={s.from_email} onChange={e => set('from_email', e.target.value)} placeholder="club@yourclub.org" />
+        <Field label="Notifications from address" hint="The From: address used when sending bulk emails and judge invitations.">
+          <TextField
+            {...tf}
+            value={s.from_email?.includes('@') ? s.from_email.split('@')[0] : (s.from_email ?? '')}
+            onChange={e => set('from_email', e.target.value ? `${e.target.value}@focalpointhq.com` : '')}
+            placeholder="hello"
+            slotProps={{ input: { endAdornment: <InputAdornment position="end"><Typography sx={{ fontSize: 13, color: 'text.disabled', userSelect: 'none' }}>@focalpointhq.com</Typography></InputAdornment> } }}
+          />
         </Field>
         <Divider sx={{ my: '20px' }} />
 
