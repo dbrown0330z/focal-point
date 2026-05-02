@@ -19,7 +19,7 @@ export type SentMessage = {
   subject: string
   sent_to: string
   sent_at: string
-  sent_by: string
+  sent_by: string | null
 }
 
 export default function SentMessagesClient({ messages }: { messages: SentMessage[] }) {
