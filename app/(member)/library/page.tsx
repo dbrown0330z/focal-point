@@ -13,7 +13,7 @@ export default async function LibraryPage() {
       id, title, description, storage_path, created_at, exif_data,
       submissions!submissions_image_id_fkey(
         id, status,
-        competitions!submissions_competition_id_fkey(title, opens_at, closes_at),
+        competitions!submissions_competition_id_fkey(title, opens_at, closes_at, archived_at),
         competition_categories!submissions_category_id_fkey(name),
         scores!scores_submission_id_fkey(score)
       )
@@ -25,7 +25,11 @@ export default async function LibraryPage() {
 
   const imagesWithUrls = (images ?? []).map(image => {
     const subs     = Array.isArray(image.submissions) ? image.submissions : []
-    const activeSub = subs.find((s: Record<string, unknown>) => s.status === 'submitted') ?? null
+    const activeSub = subs.find((s: Record<string, unknown>) => {
+      if (s.status !== 'submitted') return false
+      const comp = s.competitions as { archived_at?: string | null } | null
+      return !comp?.archived_at
+    }) ?? null
 
     const rawScores = activeSub
       ? ((activeSub as Record<string, unknown>).scores as { score: number }[] ?? [])

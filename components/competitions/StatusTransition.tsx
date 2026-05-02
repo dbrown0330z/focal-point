@@ -6,10 +6,14 @@ import type { Database } from '@/types/database'
 type Status = Database['public']['Enums']['competition_status']
 
 const transitions: Record<Status, { next: Status; label: string; style: string } | null> = {
-  draft:   { next: 'open',    label: 'Open for submissions',         style: 'bg-status-success text-white hover:opacity-90' },
-  open:    { next: 'judging', label: 'Close submissions → Judging',  style: 'bg-status-warning text-white hover:opacity-90' },
-  judging: { next: 'closed',  label: 'Finalise & close competition', style: 'bg-action-primary text-white hover:bg-action-primary-hover' },
-  closed:  null,
+  draft:             { next: 'open',    label: 'Open for submissions',         style: 'bg-status-success text-white hover:opacity-90' },
+  open:              { next: 'judging', label: 'Close submissions → Judging',  style: 'bg-status-warning text-white hover:opacity-90' },
+  judging:           { next: 'closed',  label: 'Finalise & close competition', style: 'bg-action-primary text-white hover:bg-action-primary-hover' },
+  judging_on_hold:   { next: 'judging', label: 'Resume judging',               style: 'bg-status-warning text-white hover:opacity-90' },
+  closed:            null,
+  cancelled:         null,
+  results_pending:   null,
+  results_published: null,
 }
 
 export default function StatusTransition({

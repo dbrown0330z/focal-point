@@ -7,7 +7,7 @@ const labelCls = "mb-1.5 block text-sm font-medium text-content-primary"
 export default function NewCompetitionPage() {
   return (
     <div className="max-w-lg">
-      <h1 className="mb-6 text-xl font-semibold text-content-primary">New competition</h1>
+      <h1 className="mb-6 text-[22px] font-bold tracking-[-0.015em] text-content-primary">New competition</h1>
 
       <form action={createCompetition} className="space-y-5">
         <div>

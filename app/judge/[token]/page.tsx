@@ -1,7 +1,11 @@
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 
-// Entry point for judges. Validates the token and redirects to the scoring view.
+// Entry point. Validates token, then routes:
+//   - invalid / not in judging → /expired
+//   - already verified (cookie) → /landing
+//   - first visit → /access (code entry)
 export default async function JudgeEntryPage({
   params,
 }: {
@@ -12,7 +16,7 @@ export default async function JudgeEntryPage({
 
   const { data: judgeToken } = await supabase
     .from('judge_tokens')
-    .select('id, judge_name, competitions(status)')
+    .select('id, competitions(status)')
     .eq('token', token)
     .single()
 
@@ -22,5 +26,8 @@ export default async function JudgeEntryPage({
     redirect(`/judge/${token}/expired`)
   }
 
-  redirect(`/judge/${token}/score`)
+  const cookieStore = await cookies()
+  const verified = cookieStore.get(`jv_${token}`)?.value === '1'
+
+  redirect(verified ? `/judge/${token}/landing` : `/judge/${token}/access`)
 }

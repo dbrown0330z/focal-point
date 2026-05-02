@@ -1,8 +1,9 @@
 'use client'
 
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/app/(auth)/actions'
+import { useUnsavedChanges } from '@/components/admin/UnsavedChangesProvider'
+import { useAdminTheme } from './AdminThemeContext'
 
 const navItems = [
   {
@@ -29,7 +30,16 @@ const navItems = [
     label: 'Competitions',
     icon: (
       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 21h8M12 17v4M12 17a5 5 0 005-5V5H7v7a5 5 0 005 5zM7 5H4.5A1.5 1.5 0 003 6.5v.5A3.5 3.5 0 006.5 10.5H7M17 5h2.5A1.5 1.5 0 0121 6.5v.5a3.5 3.5 0 01-3.5 3.5H17" />
+      </svg>
+    ),
+  },
+  {
+    href: '/admin/judges',
+    label: 'Judges',
+    icon: (
+      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
       </svg>
     ),
   },
@@ -60,10 +70,22 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    href: '/admin/club-defaults',
+    label: 'Club Defaults',
+    icon: (
+      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+  },
 ]
 
 export default function AdminSidebar() {
   const pathname = usePathname()
+  const { navigate } = useUnsavedChanges()
+  const { theme, toggle } = useAdminTheme()
 
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href
@@ -71,37 +93,37 @@ export default function AdminSidebar() {
   }
 
   return (
-    <aside className="flex h-screen w-56 flex-col bg-admin-nav">
+    <aside className="flex h-screen w-52 flex-col bg-admin-nav">
+      {/* Brand */}
+      <div className="px-4 pt-5 pb-3">
+        <span className="block text-[10px] font-medium uppercase tracking-[0.06em] text-admin-nav-muted">Focal Point</span>
+        <span className="block text-[17px] font-bold leading-tight tracking-[-0.01em] text-admin-nav-text">Admin</span>
+      </div>
+
       {/* Back to site */}
-      <div className="px-3 pt-3 pb-2">
-        <Link
-          href="/"
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-admin-nav-muted hover:bg-white/10 hover:text-admin-nav-text transition-colors"
+      <div className="px-2 pb-2">
+        <button
+          onClick={() => navigate('/')}
+          className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] text-admin-nav-muted hover:bg-white/10 hover:text-admin-nav-text transition-colors"
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           Back to site
-        </Link>
+        </button>
       </div>
 
-      {/* Brand */}
-      <div className="flex items-center gap-2 px-5 py-4 border-y border-white/10">
-        <div className="flex flex-col">
-          <span className="text-xs font-medium text-admin-nav-muted">Focal Point</span>
-          <span className="text-lg font-semibold text-admin-nav-text">Admin</span>
-        </div>
-      </div>
+      <div className="mx-2 h-px bg-white/10 mb-2" />
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
         {navItems.map(({ href, label, icon, exact }) => {
           const active = isActive(href, exact)
           return (
-            <Link
+            <button
               key={href}
-              href={href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+              onClick={() => navigate(href)}
+              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                 active
                   ? 'bg-admin-nav-active text-admin-nav-text'
                   : 'text-admin-nav-muted hover:bg-white/10 hover:text-admin-nav-text'
@@ -109,13 +131,30 @@ export default function AdminSidebar() {
             >
               <span className={active ? 'text-admin-nav-text' : 'text-admin-nav-muted'}>{icon}</span>
               {label}
-            </Link>
+            </button>
           )
         })}
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-white/10 px-3 py-3">
+      <div className="border-t border-white/10 px-3 py-3 space-y-0.5">
+        {/* Theme toggle */}
+        <button
+          onClick={toggle}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-admin-nav-muted hover:bg-white/10 hover:text-admin-nav-text transition-colors"
+        >
+          {theme === 'dark' ? (
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          ) : (
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          )}
+          {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+        </button>
+
         <form action={logout}>
           <button
             type="submit"

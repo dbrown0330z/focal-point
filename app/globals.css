@@ -26,6 +26,8 @@
   --action-primary-hover:   #155AA3;
   --action-secondary:       #5A7A96;
   --action-secondary-hover: #4A6880;
+  --toggle-selected:        #556070;
+  --toggle-selected-hover:  #455060;
 
   /* Borders — Light */
   --border-subtle:  rgba(0,0,0,0.08);
@@ -42,6 +44,51 @@
   --status-success:      #2E7D32;
   --status-success-bg:   #EDFAF0;
   --status-success-text: #174A1A;
+
+  /* Spot colors — for chips, badges, chart series */
+  --spot-purple: #6C47D4;
+  --spot-teal:   #0097A7;
+  --spot-orange: #E65100;
+  --spot-pink:   #AD1457;
+  --spot-green:  #00796B;
+  --spot-gold:   #7B6B38;
+
+  /* Badge — image submission status */
+  --badge-available-bg:     rgba(85,96,112,0.10);
+  --badge-available-border: rgba(85,96,112,0.28);
+  --badge-available-text:   #556070;
+
+  /* Calendar event types */
+  --event-competition:    #1A6FC4;
+  --event-competition-bg: rgba(26,111,196,0.10);
+  --event-meeting:        #0097A7;
+  --event-meeting-bg:     rgba(0,151,167,0.10);
+  --event-board:          #6C47D4;
+  --event-board-bg:       rgba(108,71,212,0.10);
+  --event-fieldtrip:      #E65100;
+  --event-fieldtrip-bg:   rgba(230,81,0,0.10);
+  --event-other:          #5A6C82;
+  --event-other-bg:       rgba(90,108,130,0.10);
+
+  /* Competition submission phase */
+  --phase-open-bg:      rgba(46,125,50,0.07);
+  --phase-open-border:  #2E7D32;
+  --phase-warning-bg:   rgba(166,124,0,0.07);
+  --phase-warning-border: #A67C00;
+
+  /* Judgment rating buckets — light */
+  --judgment-strong:        #0F6E56;
+  --judgment-strong-bg:     rgba(15,110,86,0.12);
+  --judgment-strong-border: rgba(15,110,86,0.55);
+  --judgment-maybe:         #854F0B;
+  --judgment-maybe-bg:      rgba(133,79,11,0.12);
+  --judgment-maybe-border:  rgba(133,79,11,0.55);
+  --judgment-weak:          #A32D2D;
+  --judgment-weak-bg:       rgba(163,45,45,0.12);
+  --judgment-weak-border:   rgba(163,45,45,0.55);
+  --judgment-flag:          #5B21B6;
+  --judgment-flag-bg:       rgba(91,33,182,0.18);
+  --judgment-flag-border:   #5B21B6;
 }
 
 /* Dark Mode — toggled by .dark class on <html> via ThemeProvider */
@@ -49,6 +96,7 @@
   --surface-0: #141414;
   --surface-1: #1E1E1E;
   --surface-2: #292929;
+  --surface-3: #333333;
 
   --text-primary:   #E8E8E8;
   --text-secondary: #9E9E9E;
@@ -72,9 +120,23 @@
   --status-error-text:   #F09595;
   --status-success-bg:   #122412;
   --status-success-text: #97C459;
+
+  /* Judgment rating buckets — dark */
+  --judgment-strong:        #4ADE80;
+  --judgment-strong-bg:     rgba(74,222,128,0.10);
+  --judgment-strong-border: rgba(74,222,128,0.45);
+  --judgment-maybe:         #FCD34D;
+  --judgment-maybe-bg:      rgba(252,211,77,0.10);
+  --judgment-maybe-border:  rgba(252,211,77,0.45);
+  --judgment-weak:          #F87171;
+  --judgment-weak-bg:       rgba(248,113,113,0.10);
+  --judgment-weak-border:   rgba(248,113,113,0.45);
+  --judgment-flag:          #A78BFA;
+  --judgment-flag-bg:       rgba(167,139,250,0.14);
+  --judgment-flag-border:   rgba(167,139,250,0.55);
 }
 
-/* Admin Context — light mode only; overrides dark vars within admin area */
+/* Admin Context — light mode; .admin-dark sibling class enables dark overrides */
 .admin-context {
   --font-heading: var(--font-literata, 'Literata', Georgia, serif);
   --font-body:    var(--font-literata, 'Literata', Georgia, serif);
@@ -103,6 +165,41 @@
   --admin-nav-text:        #F7F8FA;
   --admin-nav-text-muted:  #7E8EA3;
   --admin-nav-active-bg:   #1E4D8C;
+}
+
+/* Admin dark mode — toggled by .admin-dark class on the AdminShell wrapper */
+.admin-context.admin-dark {
+  --surface-0: #0D1520;
+  --surface-1: #121E2E;
+  --surface-2: #192638;
+
+  --text-primary:   #D8DDE7;
+  --text-secondary: #7E8EA3;
+  --text-tertiary:  #94A3B8;
+  --text-disabled:  #4A6880;
+  --text-hint:      #3A5268;
+
+  --action-primary:         #4A7FC4;
+  --action-primary-hover:   #5A8FD4;
+  --action-secondary:       #6A8FA8;
+  --action-secondary-hover: #7AA0B8;
+
+  --border-subtle:  rgba(255,255,255,0.07);
+  --border-default: rgba(255,255,255,0.12);
+  --border-strong:  rgba(255,255,255,0.20);
+
+  --status-error-bg:     #3D1212;
+  --status-error-text:   #F09595;
+  --status-warning:      #D4A800;
+  --status-warning-bg:   #3A2E00;
+  --status-warning-text: #FAD84A;
+  --status-success-bg:   #122412;
+  --status-success-text: #97C459;
+
+  --admin-nav-bg:         #080F1A;
+  --admin-nav-text:       #E2E8F0;
+  --admin-nav-text-muted: #4A6880;
+  --admin-nav-active-bg:  #1E3A6E;
 }
 
 /* ─── Tailwind Token Mapping ─────────────────────────────────────────────────── */
@@ -152,6 +249,26 @@
   --font-heading: var(--font-heading);
   --font-mono:    var(--font-code);
 }
+
+/* ─── Animations ─────────────────────────────────────────────────────────────── */
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes successPop {
+  0%   { transform: scale(0.7); opacity: 0; }
+  70%  { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.scale-in    { animation: scaleIn    0.18s ease both; }
+.fade-up     { animation: fadeUp     0.20s ease both; }
+.success-pop { animation: successPop 0.40s cubic-bezier(0.34,1.56,0.64,1) both; }
 
 /* ─── Base Styles ────────────────────────────────────────────────────────────── */
 

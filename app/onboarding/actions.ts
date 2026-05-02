@@ -29,7 +29,7 @@ export async function completeProfile(formData: FormData) {
   redirect('/onboarding/payment')
 }
 
-export async function completePayment(formData: FormData) {
+export async function completePayment(_formData?: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

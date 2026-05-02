@@ -29,10 +29,10 @@ export default function DeleteImageButton({
 
   if (confirming) {
     return (
-      <div className="mt-1 flex gap-2">
+      <div className="mt-1 flex gap-2 items-center">
         <button
           onClick={handleDelete}
-          className="text-xs font-medium text-status-error-text hover:underline"
+          className="text-xs font-medium px-2 py-0.5 rounded border border-red-200 bg-[#FDEEEE] text-[#7A1515] hover:bg-[#F9D0D0] hover:border-red-300 transition-colors"
         >
           Confirm delete
         </button>

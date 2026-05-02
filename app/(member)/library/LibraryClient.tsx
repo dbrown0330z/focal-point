@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { deleteImage } from '@/app/(member)/library/actions'
+import Button from '@mui/material/Button'
+import Select from '@mui/material/Select'
+import MenuItem from '@mui/material/MenuItem'
 
 type Image = {
   id: string
@@ -45,8 +48,8 @@ function IconList() {
 
 function IconTrash() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-4 w-4">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+      <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
     </svg>
   )
 }
@@ -80,8 +83,8 @@ function IconInfo() {
 
 function SubmissionBadge({ submitted }: { submitted: boolean }) {
   return submitted
-    ? <span className="text-xs font-medium text-status-error-text">Submitted</span>
-    : <span className="text-xs font-medium text-status-success-text">Available</span>
+    ? <span className="text-xs font-medium" style={{ background: 'var(--status-success-bg)', color: 'var(--status-success-text)', borderRadius: 4, padding: '2px 7px' }}>Submitted</span>
+    : <span className="text-xs font-medium" style={{ background: 'var(--badge-available-bg)', border: '1px solid var(--badge-available-border)', color: 'var(--badge-available-text)', borderRadius: 4, padding: '2px 7px' }}>Available</span>
 }
 
 // ─── Delete button ────────────────────────────────────────────────────────────
@@ -399,12 +402,17 @@ export default function LibraryClient({ images }: { images: Image[] }) {
     return true
   })
 
-  // List sort
+  // List sort + filter
   const listSorted = [...images].sort((a, b) => {
     const mul = sortDir === 'asc' ? 1 : -1
     if (sortKey === 'title')      return mul * a.title.localeCompare(b.title)
     if (sortKey === 'created_at') return mul * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
     return 0
+  })
+  const listFiltered = listSorted.filter(img => {
+    if (statusFilter === 'submitted') return img.isSubmitted
+    if (statusFilter === 'available') return !img.isSubmitted
+    return true
   })
 
   function handleListSort(key: SortKey) {
@@ -412,7 +420,7 @@ export default function LibraryClient({ images }: { images: Image[] }) {
     else { setSortKey(key); setSortDir('asc') }
   }
 
-  const lightboxImages = view === 'list' ? listSorted : galleryFiltered
+  const lightboxImages = view === 'list' ? listFiltered : galleryFiltered
   const openLightbox   = (i: number) => setLightboxIndex(i)
   const closeLightbox  = useCallback(() => setLightboxIndex(null), [])
   const goPrev = useCallback(() =>
@@ -426,13 +434,13 @@ export default function LibraryClient({ images }: { images: Image[] }) {
   useEffect(() => {
     if (!detailImage) return
     function handleKey(e: KeyboardEvent) {
-      const idx = listSorted.findIndex(img => img.id === detailImage!.id)
-      if (e.key === 'ArrowDown' && idx < listSorted.length - 1) {
+      const idx = listFiltered.findIndex(img => img.id === detailImage!.id)
+      if (e.key === 'ArrowDown' && idx < listFiltered.length - 1) {
         e.preventDefault()
-        setDetailImage(listSorted[idx + 1])
+        setDetailImage(listFiltered[idx + 1])
       } else if (e.key === 'ArrowUp' && idx > 0) {
         e.preventDefault()
-        setDetailImage(listSorted[idx - 1])
+        setDetailImage(listFiltered[idx - 1])
       } else if (e.key === 'Escape') {
         setDetailImage(null)
       }
@@ -446,42 +454,66 @@ export default function LibraryClient({ images }: { images: Image[] }) {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-content-primary">My Images</h1>
-          <p className="mt-0.5 text-sm text-content-secondary">
+          <h1 className="font-[family-name:var(--font-lora)] text-[28px] font-bold leading-tight tracking-[-0.02em] text-content-primary">My Images</h1>
+          <p className="mt-1 text-[15px] text-content-secondary">
             {images.length} {images.length === 1 ? 'photo' : 'photos'}
           </p>
         </div>
         <div className="flex items-center gap-4">
           {images.length > 0 && (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setView('gallery')}
-                className={`flex items-center gap-1.5 text-sm transition-colors ${view === 'gallery' ? 'text-action-primary font-medium' : 'text-content-tertiary hover:text-content-secondary'}`}
-              >
-                <IconGrid /> Gallery
-              </button>
-              <button
-                onClick={() => setView('list')}
-                className={`flex items-center gap-1.5 text-sm transition-colors ${view === 'list' ? 'text-action-primary font-medium' : 'text-content-tertiary hover:text-content-secondary'}`}
-              >
-                <IconList /> List
-              </button>
+            <div style={{ display: 'inline-flex' }}>
+              {([['gallery', <IconGrid key="g" />], ['list', <IconList key="l" />]] as const).map(([v, icon], i) => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  aria-label={v}
+                  style={{
+                    background:   view === v ? 'var(--toggle-selected)' : 'transparent',
+                    border:       `1px solid ${view === v ? 'var(--toggle-selected)' : 'var(--border-default)'}`,
+                    borderRadius: i === 0 ? '7px 0 0 7px' : '0 7px 7px 0',
+                    marginLeft:   i > 0 ? -1 : 0,
+                    padding:      '5px 9px',
+                    cursor:       'pointer',
+                    color:        view === v ? '#fff' : 'var(--text-tertiary)',
+                    display:      'flex',
+                    alignItems:   'center',
+                    position:     'relative',
+                    zIndex:       view === v ? 1 : 0,
+                    transition:   'background 0.12s, color 0.12s',
+                  }}
+                >
+                  {icon}
+                </button>
+              ))}
             </div>
           )}
-          <Link href="/library/upload" className="rounded-lg bg-action-primary px-4 py-2 text-sm font-medium text-white hover:bg-action-primary-hover transition-colors">
-            Add photo
-          </Link>
+          {images.length > 0 && (
+            <Button variant="contained" component={Link} href="/library/upload">
+              + Add image
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Empty state */}
       {images.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border-default py-20 text-center">
-          <p className="text-sm font-medium text-content-secondary">No photos yet</p>
-          <p className="mt-1 text-xs text-content-tertiary">Add your first photo to get started</p>
-          <Link href="/library/upload" className="mt-4 rounded-lg bg-action-primary px-4 py-2 text-sm font-medium text-white hover:bg-action-primary-hover transition-colors">
-            Add photo
-          </Link>
+        <div className="flex flex-col items-center justify-center pb-16 pt-4 text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/no-images-library.svg"
+            alt=""
+            width={510}
+            className="-mb-4 opacity-70 dark:invert"
+          />
+          <p className="text-[22px] font-bold tracking-[-0.01em]" style={{ fontFamily: 'var(--font-lora)', color: 'var(--text-secondary)' }}>
+            Every great library starts with one photo
+          </p>
+          <p className="mt-2 text-[15px]" style={{ color: 'var(--text-secondary)' }}>
+            You haven&apos;t added anything yet — upload your first image to get started.
+          </p>
+          <Button variant="contained" component={Link} href="/library/upload" sx={{ mt: 4 }}>
+            + Add image
+          </Button>
         </div>
       )}
 
@@ -490,25 +522,49 @@ export default function LibraryClient({ images }: { images: Image[] }) {
         <>
           {/* Gallery toolbar */}
           <div className="mb-4 flex flex-wrap items-center gap-3">
-            <select
-              value={gallerySort}
-              onChange={e => setGallerySort(e.target.value as GallerySort)}
-              className="rounded-lg border border-border-default bg-surface-2 px-3 py-1.5 text-sm text-content-primary focus:border-action-primary focus:outline-none focus:ring-1 focus:ring-action-primary"
-            >
-              <option value="date_desc">Date added</option>
-              <option value="title_asc">Name (A–Z)</option>
-              <option value="title_desc">Name (Z–A)</option>
-            </select>
-            <div className="flex overflow-hidden rounded-lg border border-border-default">
-              {STATUS_FILTERS.map((f, i) => (
-                <button
-                  key={f.key}
-                  onClick={() => setStatusFilter(f.key)}
-                  className={`px-3 py-1.5 text-sm transition-colors ${i > 0 ? 'border-l border-border-default' : ''} ${statusFilter === f.key ? 'bg-action-primary font-medium text-white' : 'text-content-secondary hover:bg-surface-1'}`}
-                >
-                  {f.label}
-                </button>
-              ))}
+            {/* Status filter — connected toggle (judge portal style) */}
+            <div style={{ display: 'inline-flex' }}>
+              {STATUS_FILTERS.map((f, i) => {
+                const active = statusFilter === f.key
+                return (
+                  <button
+                    key={f.key}
+                    onClick={() => setStatusFilter(f.key)}
+                    style={{
+                      padding:      '5px 18px',
+                      background:   active ? 'var(--toggle-selected)' : 'transparent',
+                      border:       `1px solid ${active ? 'var(--toggle-selected)' : 'var(--border-default)'}`,
+                      borderRadius: i === 0 ? '7px 0 0 7px' : i === STATUS_FILTERS.length - 1 ? '0 7px 7px 0' : 0,
+                      marginLeft:   i > 0 ? -1 : 0,
+                      cursor:       'pointer',
+                      color:        active ? '#fff' : 'var(--text-secondary)',
+                      fontSize:     13,
+                      fontWeight:   active ? 700 : 500,
+                      fontFamily:   'inherit',
+                      position:     'relative',
+                      zIndex:       active ? 1 : 0,
+                      transition:   'background 0.12s, color 0.12s',
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Sort by */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontFamily: 'inherit' }}>Sort by:</span>
+              <Select
+                value={gallerySort}
+                onChange={e => setGallerySort(e.target.value as GallerySort)}
+                size="small"
+                sx={{ fontSize: 14, fontFamily: 'inherit', minWidth: 140 }}
+              >
+                <MenuItem value="date_desc" sx={{ fontSize: 14, fontFamily: 'inherit' }}>Date added</MenuItem>
+                <MenuItem value="title_asc"  sx={{ fontSize: 14, fontFamily: 'inherit' }}>Name (A–Z)</MenuItem>
+                <MenuItem value="title_desc" sx={{ fontSize: 14, fontFamily: 'inherit' }}>Name (Z–A)</MenuItem>
+              </Select>
             </div>
           </div>
 
@@ -520,22 +576,23 @@ export default function LibraryClient({ images }: { images: Image[] }) {
             <div className="flex items-start gap-3">
               {/* Grid — shrinks when panel is open */}
               <div className="min-w-0 flex-1">
-                <div className={`grid gap-4 ${detailImage ? 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'} transition-all duration-200`}>
+                <div className="transition-all duration-200" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))', gap: 18 }}>
                   {galleryFiltered.map((image, i) => {
                     const isActive = detailImage?.id === image.id
                     return (
                       <div key={image.id} className="group">
                         <button
                           onClick={() => openLightbox(i)}
-                          className={`relative block w-full aspect-square overflow-hidden rounded-lg bg-surface-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-action-primary transition-all ${isActive ? 'ring-2 ring-action-primary' : ''}`}
+                          className={`relative block w-full overflow-hidden rounded-lg bg-surface-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-action-primary transition-all ${isActive ? 'ring-2 ring-action-primary' : ''}`}
+                          style={{ paddingTop: '72%' }}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={image.publicUrl} alt={image.title} className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" />
+                          <img src={image.publicUrl} alt={image.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                         </button>
-                        <div className="mt-1.5 flex items-start justify-between gap-1">
+                        <div className="mt-2 flex items-start justify-between gap-1">
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-content-primary">{image.title}</p>
+                            <p className="text-[13px] font-semibold text-content-primary" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: '2.85em', lineHeight: 1.4 }}>{image.title}</p>
                             <SubmissionBadge submitted={image.isSubmitted} />
                           </div>
                           <div className="flex flex-shrink-0 items-center gap-1">
@@ -568,6 +625,44 @@ export default function LibraryClient({ images }: { images: Image[] }) {
 
       {/* ── List ── */}
       {images.length > 0 && view === 'list' && (
+        <>
+          {/* List toolbar */}
+          <div className="mb-4 flex items-center">
+            <div style={{ display: 'inline-flex' }}>
+              {STATUS_FILTERS.map((f, i) => {
+                const active = statusFilter === f.key
+                return (
+                  <button
+                    key={f.key}
+                    onClick={() => setStatusFilter(f.key)}
+                    style={{
+                      padding:      '5px 18px',
+                      background:   active ? 'var(--toggle-selected)' : 'transparent',
+                      border:       `1px solid ${active ? 'var(--toggle-selected)' : 'var(--border-default)'}`,
+                      borderRadius: i === 0 ? '7px 0 0 7px' : i === STATUS_FILTERS.length - 1 ? '0 7px 7px 0' : 0,
+                      marginLeft:   i > 0 ? -1 : 0,
+                      cursor:       'pointer',
+                      color:        active ? '#fff' : 'var(--text-secondary)',
+                      fontSize:     13,
+                      fontWeight:   active ? 700 : 500,
+                      fontFamily:   'inherit',
+                      position:     'relative',
+                      zIndex:       active ? 1 : 0,
+                      transition:   'background 0.12s, color 0.12s',
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+        {listFiltered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border-default py-16 text-center">
+            <p className="text-sm font-medium text-content-secondary">No photos match this filter</p>
+          </div>
+        ) : (
         <div className="flex items-start gap-3">
           {/* Table — shrinks when panel is open */}
           <div className="min-w-0 flex-1 overflow-hidden rounded-xl border border-border-default transition-all duration-200">
@@ -586,7 +681,7 @@ export default function LibraryClient({ images }: { images: Image[] }) {
                 </tr>
               </thead>
               <tbody>
-                {listSorted.map((image, i) => {
+                {listFiltered.map((image, i) => {
                   const isActive = detailImage?.id === image.id
                   return (
                     <tr
@@ -601,7 +696,8 @@ export default function LibraryClient({ images }: { images: Image[] }) {
                       <td className="px-4 py-2.5">
                         <button
                           onClick={() => openLightbox(i)}
-                          className="block h-12 w-12 overflow-hidden rounded-md bg-surface-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-action-primary"
+                          className="block overflow-hidden rounded-md bg-surface-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-action-primary flex-shrink-0"
+                          style={{ width: 52, height: 38 }}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={image.publicUrl} alt={image.title} className="h-full w-full object-cover" />
@@ -658,6 +754,8 @@ export default function LibraryClient({ images }: { images: Image[] }) {
             )}
           </div>
         </div>
+        )}
+        </>
       )}
 
       {/* Lightbox */}

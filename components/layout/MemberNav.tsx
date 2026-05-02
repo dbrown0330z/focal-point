@@ -7,11 +7,36 @@ import { logout } from '@/app/(auth)/actions'
 import { useTheme } from './ThemeProvider'
 
 const links = [
-  { href: '/',             label: 'Home' },
-  { href: '/calendar',     label: 'Calendar' },
-  { href: '/library',      label: 'My Images' },
-  { href: '/competitions', label: 'Competitions' },
+  { href: '/',             label: 'Home',         icon: 'home' },
+  { href: '/calendar',     label: 'Calendar',     icon: 'calendar' },
+  { href: '/library',      label: 'My Images',    icon: 'image' },
+  { href: '/competitions', label: 'Competitions', icon: 'trophy' },
 ]
+
+function NavIcon({ name, active }: { name: string; active: boolean }) {
+  const cls = `h-4 w-4 flex-shrink-0 transition-colors ${active ? 'text-action-primary' : 'text-content-tertiary'}`
+  if (name === 'home') return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cls}>
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+  )
+  if (name === 'calendar') return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cls}>
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+  )
+  if (name === 'image') return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cls}>
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+    </svg>
+  )
+  // trophy
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cls}>
+      <polyline points="8 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H17V11a5 5 0 01-10 0V4z"/><path d="M5 9H3a2 2 0 01-2-2V5a1 1 0 011-1h3"/><path d="M19 9h2a2 2 0 002-2V5a1 1 0 00-1-1h-3"/>
+    </svg>
+  )
+}
 
 function getInitials(name: string) {
   const parts = name.trim().split(/\s+/)
@@ -20,10 +45,12 @@ function getInitials(name: string) {
 }
 
 export default function MemberNav({
+  clubName,
   displayName,
   email,
   role,
 }: {
+  clubName: string
   displayName: string
   email: string
   role: string | null
@@ -52,29 +79,41 @@ export default function MemberNav({
 
   return (
     <header className="border-b border-border-default bg-surface-2">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
+      <div className="mx-auto grid h-14 max-w-6xl grid-cols-3 items-center px-4">
 
-        {/* Left: brand + nav links */}
-        <nav className="flex items-center gap-6">
-          <span className="mr-2 text-sm font-semibold text-content-primary">
-            Focal Point
+        {/* Left: camera icon + club name */}
+        <div className="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--action-primary)' }}>
+            <path d="M12 9a3.75 3.75 0 100 7.5A3.75 3.75 0 0012 9z" />
+            <path fillRule="evenodd" d="M9.344 3.071a49.52 49.52 0 015.312 0c.967.052 1.83.585 2.332 1.39l.821 1.317c.24.383.645.643 1.11.71.386.054.77.113 1.152.177 1.432.239 2.429 1.493 2.429 2.909V18a3 3 0 01-3 3h-15a3 3 0 01-3-3V9.574c0-1.416.997-2.67 2.429-2.909.382-.064.766-.123 1.151-.178a1.56 1.56 0 001.11-.71l.822-1.315a2.942 2.942 0 012.332-1.39zM6.75 12.75a5.25 5.25 0 1110.5 0 5.25 5.25 0 01-10.5 0zm12-1.5a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+          </svg>
+          <span className="font-[family-name:var(--font-lora)] text-base font-bold" style={{ color: 'var(--action-primary)' }}>
+            {clubName}
           </span>
-          {links.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`text-sm transition-colors ${
-                pathname === href
-                  ? 'font-medium text-content-primary'
-                  : 'text-content-secondary hover:text-content-primary'
-              }`}
-            >
-              {label}
-            </Link>
-          ))}
+        </div>
+
+        {/* Center: nav links */}
+        <nav className="flex items-center justify-center gap-1">
+          {links.map(({ href, label }) => {
+            const active = pathname === href
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                  active
+                    ? 'font-semibold text-action-primary bg-[rgba(26,111,196,0.09)] dark:bg-[rgba(74,144,212,0.14)]'
+                    : 'font-medium text-content-secondary hover:text-content-primary hover:bg-surface-1'
+                }`}
+              >
+                {label}
+              </Link>
+            )
+          })}
         </nav>
 
         {/* Right: avatar + dropdown */}
+        <div className="flex justify-end">
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setOpen(o => !o)}
@@ -164,6 +203,7 @@ export default function MemberNav({
               </div>
             </div>
           )}
+        </div>
         </div>
 
       </div>

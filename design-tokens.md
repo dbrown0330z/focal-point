@@ -5,23 +5,16 @@
 Fonts are loaded via `next/font/google` in `app/layout.tsx`, which injects optimised CSS variables on `<html>`:
 
 ```tsx
-const lora       = Lora({ subsets: ['latin'], weight: ['400','500','700'], style: ['normal','italic'], variable: '--font-lora' })
-const robotoMono = Roboto_Mono({ subsets: ['latin'], weight: ['400','500','700'], variable: '--font-roboto-mono' })
+const lora  = Lora({ subsets: ['latin'], weight: ['400','500','700'], style: ['normal','italic'], variable: '--font-lora' })
+const inter = Inter({ subsets: ['latin'], weight: ['400','500','600','700'], variable: '--font-inter' })
 ```
 
-`--font-primary` defaults to Lora and is re-declared on `.admin-context` to switch to Roboto Mono:
-
-```css
-:root          { --font-primary: var(--font-lora,       'Lora', Georgia, serif); }
-.admin-context { --font-primary: var(--font-roboto-mono, 'Roboto Mono', monospace);
-                 font-family: var(--font-primary); /* re-declared so var re-resolves in this scope */ }
-body           { font-family: var(--font-primary); }
-```
+`--font-primary` defaults to Lora for the main app. The admin area uses the MUI `adminTheme` which sets `fontFamily` directly to `var(--font-inter, 'Inter', system-ui, sans-serif)`.
 
 | Token | Value | Notes |
 |---|---|---|
 | `--font-primary` | `var(--font-lora)` → Lora | Main app body and headings (serif) |
-| `--font-primary` (admin) | `var(--font-roboto-mono)` → Roboto Mono | Re-declared in `.admin-context` |
+| `--font-inter` | Inter | Admin area — set via MUI adminTheme |
 | `--font-code` | `'JetBrains Mono', 'Menlo', monospace` | Code, tokens, IDs (`--font-mono` in Tailwind) |
 
 ---
@@ -270,7 +263,7 @@ All meet AA 4.5:1 minimum on white surfaces.
 
 ---
 
-## Admin Stylesheet (`.admin-context`)
+## Admin Stylesheet
 
 Light mode only. Cool gray palette + Inter. Markedly distinct from the main app — users know they are not in the app here.
 
@@ -490,10 +483,8 @@ Light mode only. Cool gray palette + Inter. Markedly distinct from the main app 
   }
 }
 
-/* Admin Context */
+/* Admin Context — font set via MUI adminTheme, not CSS custom property */
 .admin-context {
-  --font-primary: var(--font-roboto-mono, 'Roboto Mono', monospace);
-  font-family: var(--font-primary); /* re-declared so var re-resolves in this scope */
 
   --admin-gray-50:  #F7F8FA;
   --admin-gray-100: #EDF0F5;
@@ -536,3 +527,78 @@ Light mode only. Cool gray palette + Inter. Markedly distinct from the main app 
 When writing components, use these CSS custom properties rather than hardcoded values.
 Respect light/dark mode by referencing surface and text tokens — never hardcode #fff or #000.
 Admin components must use the .admin-context class scope.
+
+---
+
+## Semantic Tokens
+
+These tokens represent UI decisions, not just palette values. Always use these rather than reaching for a raw color.
+
+### Interactive Controls
+
+| Token | Value | Usage |
+|---|---|---|
+| `--toggle-selected` | `#556070` | Selected item in segmented controls, icon toggles |
+| `--toggle-selected-hover` | `#455060` | Hover state on selected toggle item |
+
+**Rule:** Blue (`--action-primary`) is for buttons and links only. Toggles and filter controls use `--toggle-selected`.
+
+### Status Badges
+
+| Token | Value | Usage |
+|---|---|---|
+| `--badge-available-bg` | `rgba(85,96,112,0.10)` | Background of "Available" image badge |
+| `--badge-available-border` | `rgba(85,96,112,0.28)` | Border of "Available" image badge |
+| `--badge-available-text` | `#556070` | Text of "Available" image badge |
+
+"Submitted" badge uses the existing `--status-success-bg` / `--status-success-text` tokens.
+
+### Calendar Event Types
+
+| Token | Resolves to | Event type |
+|---|---|---|
+| `--event-competition` / `--event-competition-bg` | `--action-primary` | Competition events |
+| `--event-meeting` / `--event-meeting-bg` | `--spot-teal` | Regular meetings |
+| `--event-board` / `--event-board-bg` | `--spot-purple` | Board meetings |
+| `--event-fieldtrip` / `--event-fieldtrip-bg` | `--spot-orange` | Field trips |
+| `--event-other` / `--event-other-bg` | `#5A6C82` | Other events |
+
+Submission deadline events (`submission_open`, `submission_closed`) use the `--status-success-*` and `--status-error-*` tokens.
+
+### Competition Submission Phase
+
+Applied to the left border and background tint of the open-competition card header.
+
+| Token | Value | Usage |
+|---|---|---|
+| `--phase-open-bg` | `rgba(46,125,50,0.07)` | Card bg tint when submissions are open |
+| `--phase-open-border` | `#2E7D32` | Left accent border (open) |
+| `--phase-warning-bg` | `rgba(166,124,0,0.07)` | Card bg tint when deadline is close |
+| `--phase-warning-border` | `#A67C00` | Left accent border (warning) |
+
+### Judgment Rating Buckets
+
+Used in the judge portal triage view. Light and dark variants both defined; dark overrides apply under `.dark`.
+
+| Token group | Strong | Maybe | Weak |
+|---|---|---|---|
+| `--judgment-*` (color) | `#0F6E56` | `#854F0B` | `#A32D2D` |
+| `--judgment-*-bg` | `rgba(15,110,86,0.12)` | `rgba(133,79,11,0.12)` | `rgba(163,45,45,0.12)` |
+| `--judgment-*-border` | `rgba(15,110,86,0.55)` | `rgba(133,79,11,0.55)` | `rgba(163,45,45,0.55)` |
+
+Flag (purple): `--judgment-flag` / `--judgment-flag-bg` / `--judgment-flag-border`
+
+> **Note:** The judge portal currently uses MUI JS-based theme switching rather than the `.dark` CSS class, so dark token overrides in `globals.css` apply to the member/admin portals. If the judge portal is ever migrated to CSS-class-based theming, the `BUCKET_DARK` JS object in `JudgingClient.tsx` can be removed.
+
+### Spot Colors
+
+For chips, badges, chart series, and event type indicators. Use at 10% opacity for backgrounds.
+
+| Token | Hex |
+|---|---|
+| `--spot-purple` | `#6C47D4` |
+| `--spot-teal` | `#0097A7` |
+| `--spot-orange` | `#E65100` |
+| `--spot-pink` | `#AD1457` |
+| `--spot-green` | `#00796B` |
+| `--spot-gold` | `#7B6B38` |

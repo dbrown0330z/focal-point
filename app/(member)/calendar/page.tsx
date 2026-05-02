@@ -14,15 +14,28 @@ export default async function CalendarPage() {
     .eq('id', user.id)
     .single()
 
-  const { data: events } = await supabase
-    .from('calendar_events')
-    .select('id, title, description, location, starts_at, ends_at, all_day, event_type, created_by')
-    .order('starts_at', { ascending: true })
+  const [{ data: events }, { data: locationRows }, { data: clubSettings }] = await Promise.all([
+    supabase
+      .from('calendar_events')
+      .select('id, title, description, location, starts_at, ends_at, all_day, event_type, created_by')
+      .order('starts_at', { ascending: true }),
+    supabase
+      .from('meeting_locations')
+      .select('name, address')
+      .order('sort_order')
+      .order('created_at'),
+    supabase
+      .from('club_settings')
+      .select('timezone')
+      .single(),
+  ])
 
   return (
     <CalendarClient
       events={(events ?? []) as CalendarEvent[]}
       isAdmin={profile?.role === 'admin'}
+      locations={(locationRows ?? []) as { name: string; address: string | null }[]}
+      timezone={clubSettings?.timezone ?? 'America/New_York'}
     />
   )
 }
