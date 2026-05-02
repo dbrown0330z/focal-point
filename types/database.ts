@@ -39,9 +39,58 @@ export type Database = {
   }
   public: {
     Tables: {
+      about_page_content: {
+        Row: {
+          body: string | null
+          club_id: string | null
+          heading: string | null
+          id: string
+          section_key: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body?: string | null
+          club_id?: string | null
+          heading?: string | null
+          id?: string
+          section_key: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body?: string | null
+          club_id?: string | null
+          heading?: string | null
+          id?: string
+          section_key?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "about_page_content_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "about_page_content_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_events: {
         Row: {
           all_day: boolean
+          club_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -54,6 +103,7 @@ export type Database = {
         }
         Insert: {
           all_day?: boolean
+          club_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -66,6 +116,7 @@ export type Database = {
         }
         Update: {
           all_day?: boolean
+          club_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -77,6 +128,13 @@ export type Database = {
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "calendar_events_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "calendar_events_created_by_fkey"
             columns: ["created_by"]
@@ -91,10 +149,19 @@ export type Database = {
           club_location: string | null
           club_name: string
           club_short_name: string | null
+          contact_email: string | null
           default_meeting_location_id: string | null
+          from_email: string | null
           id: string
           logo_path: string | null
           member_classes_enabled: boolean
+          member_directory_visibility: string
+          membership_terms_content: string | null
+          membership_terms_file_name: string | null
+          membership_terms_file_path: string | null
+          membership_terms_reviewed: boolean
+          membership_terms_source: string
+          membership_terms_updated_at: string | null
           season_end_month: number
           season_start_month: number
           timezone: string
@@ -104,10 +171,19 @@ export type Database = {
           club_location?: string | null
           club_name?: string
           club_short_name?: string | null
+          contact_email?: string | null
           default_meeting_location_id?: string | null
+          from_email?: string | null
           id?: string
           logo_path?: string | null
           member_classes_enabled?: boolean
+          member_directory_visibility?: string
+          membership_terms_content?: string | null
+          membership_terms_file_name?: string | null
+          membership_terms_file_path?: string | null
+          membership_terms_reviewed?: boolean
+          membership_terms_source?: string
+          membership_terms_updated_at?: string | null
           season_end_month?: number
           season_start_month?: number
           timezone?: string
@@ -117,10 +193,19 @@ export type Database = {
           club_location?: string | null
           club_name?: string
           club_short_name?: string | null
+          contact_email?: string | null
           default_meeting_location_id?: string | null
+          from_email?: string | null
           id?: string
           logo_path?: string | null
           member_classes_enabled?: boolean
+          member_directory_visibility?: string
+          membership_terms_content?: string | null
+          membership_terms_file_name?: string | null
+          membership_terms_file_path?: string | null
+          membership_terms_reviewed?: boolean
+          membership_terms_source?: string
+          membership_terms_updated_at?: string | null
           season_end_month?: number
           season_start_month?: number
           timezone?: string
@@ -136,23 +221,54 @@ export type Database = {
           },
         ]
       }
+      clubs: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       competition_categories: {
         Row: {
+          club_id: string | null
           competition_id: string
           id: string
           name: string
         }
         Insert: {
+          club_id?: string | null
           competition_id: string
           id?: string
           name: string
         }
         Update: {
+          club_id?: string | null
           competition_id?: string
           id?: string
           name?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "competition_categories_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "competition_categories_competition_id_fkey"
             columns: ["competition_id"]
@@ -302,6 +418,7 @@ export type Database = {
           cancelled_at: string | null
           capture_date_window_months: number | null
           closes_at: string | null
+          club_id: string | null
           created_at: string
           deleted_at: string | null
           description: string | null
@@ -343,6 +460,7 @@ export type Database = {
           cancelled_at?: string | null
           capture_date_window_months?: number | null
           closes_at?: string | null
+          club_id?: string | null
           created_at?: string
           deleted_at?: string | null
           description?: string | null
@@ -384,6 +502,7 @@ export type Database = {
           cancelled_at?: string | null
           capture_date_window_months?: number | null
           closes_at?: string | null
+          club_id?: string | null
           created_at?: string
           deleted_at?: string | null
           description?: string | null
@@ -414,6 +533,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "competitions_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "competitions_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -422,8 +548,111 @@ export type Database = {
           },
         ]
       }
+      document_categories: {
+        Row: {
+          club_id: string | null
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          club_id?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          club_id?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_categories_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          category_id: string | null
+          club_id: string | null
+          deleted_at: string | null
+          description: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          sort_order: number
+          title: string
+          uploaded_at: string
+          uploaded_by: string | null
+          visibility: string
+        }
+        Insert: {
+          category_id?: string | null
+          club_id?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          sort_order?: number
+          title: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          category_id?: string | null
+          club_id?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          sort_order?: number
+          title?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "document_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       images: {
         Row: {
+          club_id: string | null
           created_at: string
           description: string | null
           exif_data: Json | null
@@ -439,6 +668,7 @@ export type Database = {
           width_px: number | null
         }
         Insert: {
+          club_id?: string | null
           created_at?: string
           description?: string | null
           exif_data?: Json | null
@@ -454,6 +684,7 @@ export type Database = {
           width_px?: number | null
         }
         Update: {
+          club_id?: string | null
           created_at?: string
           description?: string | null
           exif_data?: Json | null
@@ -469,6 +700,13 @@ export type Database = {
           width_px?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "images_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "images_owner_id_fkey"
             columns: ["owner_id"]
@@ -535,6 +773,7 @@ export type Database = {
       judge_tokens: {
         Row: {
           access_code: string
+          club_id: string | null
           competition_id: string
           created_at: string
           id: string
@@ -546,6 +785,7 @@ export type Database = {
         }
         Insert: {
           access_code?: string
+          club_id?: string | null
           competition_id: string
           created_at?: string
           id?: string
@@ -557,6 +797,7 @@ export type Database = {
         }
         Update: {
           access_code?: string
+          club_id?: string | null
           competition_id?: string
           created_at?: string
           id?: string
@@ -567,6 +808,13 @@ export type Database = {
           token?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "judge_tokens_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "judge_tokens_competition_id_fkey"
             columns: ["competition_id"]
@@ -624,10 +872,160 @@ export type Database = {
         }
         Relationships: []
       }
+      nav_custom_pages: {
+        Row: {
+          club_id: string | null
+          content: string | null
+          created_at: string
+          document_id: string | null
+          external_url: string | null
+          id: string
+          page_type: string
+          parent_system: string | null
+          slug: string
+          sort_order: number
+          status: string
+          tab_id: string | null
+          title: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          club_id?: string | null
+          content?: string | null
+          created_at?: string
+          document_id?: string | null
+          external_url?: string | null
+          id?: string
+          page_type?: string
+          parent_system?: string | null
+          slug: string
+          sort_order?: number
+          status?: string
+          tab_id?: string | null
+          title: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          club_id?: string | null
+          content?: string | null
+          created_at?: string
+          document_id?: string | null
+          external_url?: string | null
+          id?: string
+          page_type?: string
+          parent_system?: string | null
+          slug?: string
+          sort_order?: number
+          status?: string
+          tab_id?: string | null
+          title?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nav_custom_pages_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nav_custom_pages_tab_id_fkey"
+            columns: ["tab_id"]
+            isOneToOne: false
+            referencedRelation: "nav_custom_tabs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nav_custom_tabs: {
+        Row: {
+          club_id: string | null
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          club_id?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          club_id?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nav_custom_tabs_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pages: {
+        Row: {
+          club_id: string | null
+          content: string | null
+          id: string
+          slug: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          club_id?: string | null
+          content?: string | null
+          id?: string
+          slug: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          club_id?: string | null
+          content?: string | null
+          id?: string
+          slug?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pages_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pages_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           author_id: string
           body: string
+          club_id: string | null
           created_at: string
           id: string
           published_at: string | null
@@ -636,6 +1034,7 @@ export type Database = {
         Insert: {
           author_id: string
           body: string
+          club_id?: string | null
           created_at?: string
           id?: string
           published_at?: string | null
@@ -644,6 +1043,7 @@ export type Database = {
         Update: {
           author_id?: string
           body?: string
+          club_id?: string | null
           created_at?: string
           id?: string
           published_at?: string | null
@@ -657,6 +1057,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "posts_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -664,15 +1071,20 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           camera_brands: string[]
+          club_id: string | null
           created_at: string
           display_name: string
+          email: string | null
           experience_level: string | null
           first_name: string | null
           id: string
+          joined_at: string | null
           last_name: string | null
+          location: string | null
           member_number: number
           membership_class: string | null
           membership_status: Database["public"]["Enums"]["membership_status"]
+          phone: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           shooting_interests: string[]
         }
@@ -680,15 +1092,20 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           camera_brands?: string[]
+          club_id?: string | null
           created_at?: string
           display_name: string
+          email?: string | null
           experience_level?: string | null
           first_name?: string | null
           id: string
+          joined_at?: string | null
           last_name?: string | null
+          location?: string | null
           member_number?: number
           membership_class?: string | null
           membership_status?: Database["public"]["Enums"]["membership_status"]
+          phone?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           shooting_interests?: string[]
         }
@@ -696,23 +1113,37 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           camera_brands?: string[]
+          club_id?: string | null
           created_at?: string
           display_name?: string
+          email?: string | null
           experience_level?: string | null
           first_name?: string | null
           id?: string
+          joined_at?: string | null
           last_name?: string | null
+          location?: string | null
           member_number?: number
           membership_class?: string | null
           membership_status?: Database["public"]["Enums"]["membership_status"]
+          phone?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           shooting_interests?: string[]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scores: {
         Row: {
           award_id: string | null
+          club_id: string | null
           created_at: string
           flagged: boolean
           id: string
@@ -724,6 +1155,7 @@ export type Database = {
         }
         Insert: {
           award_id?: string | null
+          club_id?: string | null
           created_at?: string
           flagged?: boolean
           id?: string
@@ -735,6 +1167,7 @@ export type Database = {
         }
         Update: {
           award_id?: string | null
+          club_id?: string | null
           created_at?: string
           flagged?: boolean
           id?: string
@@ -745,6 +1178,13 @@ export type Database = {
           submission_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "scores_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "scores_judge_token_id_fkey"
             columns: ["judge_token_id"]
@@ -764,6 +1204,7 @@ export type Database = {
       submissions: {
         Row: {
           category_id: string
+          club_id: string | null
           competition_id: string
           duplicate_warning_override: boolean
           duplicate_warning_shown: boolean
@@ -773,9 +1214,11 @@ export type Database = {
           notes: string | null
           status: Database["public"]["Enums"]["submission_status"]
           submitted_at: string
+          title: string | null
         }
         Insert: {
           category_id: string
+          club_id?: string | null
           competition_id: string
           duplicate_warning_override?: boolean
           duplicate_warning_shown?: boolean
@@ -785,9 +1228,11 @@ export type Database = {
           notes?: string | null
           status?: Database["public"]["Enums"]["submission_status"]
           submitted_at?: string
+          title?: string | null
         }
         Update: {
           category_id?: string
+          club_id?: string | null
           competition_id?: string
           duplicate_warning_override?: boolean
           duplicate_warning_shown?: boolean
@@ -797,6 +1242,7 @@ export type Database = {
           notes?: string | null
           status?: Database["public"]["Enums"]["submission_status"]
           submitted_at?: string
+          title?: string | null
         }
         Relationships: [
           {
@@ -804,6 +1250,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "competition_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
             referencedColumns: ["id"]
           },
           {
@@ -834,6 +1287,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_user_club_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_approved_member: { Args: never; Returns: boolean }
     }
@@ -1030,3 +1484,5 @@ export const Constants = {
     },
   },
 } as const
+A new version of Supabase CLI is available: v2.95.4 (currently installed v2.84.2)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
