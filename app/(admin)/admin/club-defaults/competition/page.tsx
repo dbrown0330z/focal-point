@@ -18,7 +18,8 @@ export default async function CompetitionDefaultsPage() {
   return (
     <CompetitionDefaultsClient
       initialCategories={categories ?? []}
-      initial={defaults ?? undefined}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      initial={(defaults as any) ?? undefined}
     />
   )
 }
