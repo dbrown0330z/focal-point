@@ -235,8 +235,7 @@ export default function CreateCompetitionDialog({
                 type="date"
                 value={judgingAt}
                 onChange={e => setJudgingAt(e.target.value)}
-                sx={{ '& input': { fontSize: 13 } }}
-                sx={{ width: 200 }}
+                sx={{ '& input': { fontSize: 13 }, width: 200 }}
               />
             </Box>
 

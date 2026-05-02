@@ -437,8 +437,7 @@ function PublishVisibilityFields({
                   size="small" type="date"
                   value={schedule.publishSpecificDate}
                   onChange={e => onChange({ publishSpecificDate: e.target.value })}
-                  sx={{ '& input': { fontSize: 14 } }}
-                  sx={{ width: 160 }}
+                  sx={{ '& input': { fontSize: 14 }, width: 160 }}
                 />
               </Box>
               <Box>
@@ -447,8 +446,7 @@ function PublishVisibilityFields({
                   size="small" type="time"
                   value={schedule.publishSpecificTime}
                   onChange={e => onChange({ publishSpecificTime: e.target.value })}
-                  sx={{ '& input': { fontSize: 14 } }}
-                  sx={{ width: 120 }}
+                  sx={{ '& input': { fontSize: 14 }, width: 120 }}
                 />
               </Box>
             </Box>
@@ -616,8 +614,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                   size="small" type="date"
                   value={schedule.eventDate}
                   onChange={e => onChange({ eventDate: e.target.value })}
-                  sx={{ '& input': { fontSize: 14 } }}
-                  sx={{ width: 160 }}
+                  sx={{ '& input': { fontSize: 14 }, width: 160 }}
                 />
               </Box>
               <Box>
@@ -626,8 +623,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                   size="small" type="time"
                   value={schedule.eventTime}
                   onChange={e => onChange({ eventTime: e.target.value })}
-                  sx={{ '& input': { fontSize: 14 } }}
-                  sx={{ width: 120 }}
+                  sx={{ '& input': { fontSize: 14 }, width: 120 }}
                 />
               </Box>
             </Box>
@@ -723,8 +719,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                   size="small" type="date"
                   value={schedule.publishAutoDate}
                   onChange={e => onChange({ publishAutoDate: e.target.value })}
-                  sx={{ '& input': { fontSize: 14 } }}
-                  sx={{ width: 160 }}
+                  sx={{ '& input': { fontSize: 14 }, width: 160 }}
                 />
               </Box>
               <Box>
@@ -733,8 +728,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                   size="small" type="time"
                   value={schedule.publishAutoTime}
                   onChange={e => onChange({ publishAutoTime: e.target.value })}
-                  sx={{ '& input': { fontSize: 14 } }}
-                  sx={{ width: 120 }}
+                  sx={{ '& input': { fontSize: 14 }, width: 120 }}
                 />
               </Box>
             </Box>
@@ -755,8 +749,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                 value={schedule.submissionsOpenDate}
                 onChange={e => onChange({ submissionsOpenDate: e.target.value })}
                 error={!!errors.submissionsOpenDate}
-                sx={{ '& input': { fontSize: 14 } }}
-                sx={{ width: 150 }}
+                sx={{ '& input': { fontSize: 14 }, width: 150 }}
               />
               {errors.submissionsOpenDate && (
                 <Typography sx={{ fontSize: 12, color: 'error.main', mt: 0.5 }}>{errors.submissionsOpenDate}</Typography>
@@ -770,8 +763,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                 value={schedule.submissionsCloseDate}
                 onChange={e => onChange({ submissionsCloseDate: e.target.value })}
                 error={!!errors.submissionsCloseDate}
-                sx={{ '& input': { fontSize: 14 } }}
-                sx={{ width: 150 }}
+                sx={{ '& input': { fontSize: 14 }, width: 150 }}
               />
               {errors.submissionsCloseDate && (
                 <Typography sx={{ fontSize: 12, color: 'error.main', mt: 0.5 }}>{errors.submissionsCloseDate}</Typography>
@@ -830,8 +822,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                 type="date"
                 value={schedule.judgingOpenDate}
                 onChange={e => onChange({ judgingOpenDate: e.target.value })}
-                sx={{ '& input': { fontSize: 14 } }}
-                sx={{ width: 150 }}
+                sx={{ '& input': { fontSize: 14 }, width: 150 }}
               />
             </Box>
             <Box>
@@ -841,8 +832,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                 type="date"
                 value={schedule.judgingCloseDate}
                 onChange={e => onChange({ judgingCloseDate: e.target.value })}
-                sx={{ '& input': { fontSize: 14 } }}
-                sx={{ width: 150 }}
+                sx={{ '& input': { fontSize: 14 }, width: 150 }}
               />
             </Box>
           </Box>
