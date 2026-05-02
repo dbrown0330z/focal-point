@@ -11,7 +11,7 @@ export default async function RootPage() {
   if (!user) return <MarketingPage />
 
   const [{ data: profile }, { data: clubSettings }] = await Promise.all([
-    supabase.from('profiles').select('display_name, role, membership_status').eq('id', user.id).single(),
+    supabase.from('profiles').select('display_name, role, membership_status, avatar_url').eq('id', user.id).single(),
     supabase.from('club_settings').select('club_name').single(),
   ])
   const clubName = clubSettings?.club_name ?? 'Focal Point'
@@ -23,7 +23,7 @@ export default async function RootPage() {
   if (profile.membership_status === 'active' && profile.role) {
     return (
       <div className="flex min-h-screen flex-col">
-        <MemberNav clubName={clubName} displayName={profile.display_name} email={user.email ?? ''} role={profile.role} />
+        <MemberNav clubName={clubName} displayName={profile.display_name} email={user.email ?? ''} role={profile.role} avatarUrl={(profile as unknown as { avatar_url: string | null }).avatar_url ?? null} />
         <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
           <NewsFeed displayName={profile.display_name} />
         </main>
