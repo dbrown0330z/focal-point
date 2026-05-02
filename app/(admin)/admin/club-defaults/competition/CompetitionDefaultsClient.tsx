@@ -389,7 +389,7 @@ export default function CompetitionDefaultsClient({
         {/* Entry limits */}
         <Row label="Max entries per member">
           <TextField
-            size="small" type="number" slotProps={{ input: { min: 1 } }}
+            size="small" type="number" slotProps={{ input: { min: 1 } as any }}
             value={s.max_entries_per_member}
             onChange={e => set('max_entries_per_member', Math.max(1, Number(e.target.value) || 1))}
             sx={{ width: 90 }}
@@ -404,7 +404,7 @@ export default function CompetitionDefaultsClient({
                 Max entries per category
               </FormLabel>
               <TextField
-                size="small" type="number" slotProps={{ input: { min: 1 } }}
+                size="small" type="number" slotProps={{ input: { min: 1 } as any }}
                 placeholder="No limit"
                 value={s.max_entries_per_category ?? ''}
                 onChange={e => set('max_entries_per_category', e.target.value === '' ? null : Math.max(1, Number(e.target.value) || 1))}
@@ -446,7 +446,7 @@ export default function CompetitionDefaultsClient({
             {s.image_long_edge_preset === 'custom' && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1.5 }}>
                 <TextField
-                  size="small" type="number" slotProps={{ input: { min: 1 } }}
+                  size="small" type="number" slotProps={{ input: { min: 1 } as any }}
                   placeholder="e.g. 2400"
                   value={s.image_long_edge_custom}
                   onChange={e => set('image_long_edge_custom', e.target.value === '' ? '' : Number(e.target.value))}
@@ -476,7 +476,7 @@ export default function CompetitionDefaultsClient({
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <TextField
-              size="small" type="number" slotProps={{ input: { min: 1 } }}
+              size="small" type="number" slotProps={{ input: { min: 1 } as any }}
               value={s.capture_date_amount ?? 2}
               onChange={e => set('capture_date_amount', Math.max(1, Number(e.target.value) || 2))}
               sx={{ width: 90 }}
@@ -531,14 +531,14 @@ export default function CompetitionDefaultsClient({
         <Row label="Score range" hint={scoreRangeHint}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <TextField
-              size="small" type="number" slotProps={{ input: { min: 0 } }}
+              size="small" type="number" slotProps={{ input: { min: 0 } as any }}
               value={s.score_min}
               onChange={e => set('score_min', Number(e.target.value))}
               sx={{ width: 70 }}
             />
             <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>to</Typography>
             <TextField
-              size="small" type="number" slotProps={{ input: { min: 1 } }}
+              size="small" type="number" slotProps={{ input: { min: 1 } as any }}
               value={s.score_max}
               onChange={e => set('score_max', Number(e.target.value))}
               sx={{ width: 70 }}
@@ -588,7 +588,7 @@ export default function CompetitionDefaultsClient({
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <TextField
-              size="small" type="number" slotProps={{ input: { min: 1 } }}
+              size="small" type="number" slotProps={{ input: { min: 1 } as any }}
               value={s.judge_comments_min_chars}
               onChange={e => set('judge_comments_min_chars', Math.max(1, Number(e.target.value) || 1))}
               sx={{ width: 90 }}

@@ -325,7 +325,7 @@ function LargeImageModalBody({ block, onChange }: { block: ContentBlock; onChang
       <FieldRow label="Slide interval (seconds)">
         <TextField size="small" type="number" value={s.intervalSeconds}
           onChange={e => onChange({ largeImageSettings: { ...s, intervalSeconds: Number(e.target.value) } })}
-          sx={{ ...inputSx, width: 110 }} slotProps={{ input: { min: 2, max: 30 } }} />
+          sx={{ ...inputSx, width: 110 }} slotProps={{ input: { min: 2, max: 30 } as any }} />
       </FieldRow>
     </Box>
   )
@@ -390,7 +390,7 @@ function EventsModalBody({ block, onChange }: { block: ContentBlock; onChange: (
     <FieldRow label="Number of events to show">
       <TextField size="small" type="number" value={s.count}
         onChange={e => onChange({ eventsSettings: { count: Number(e.target.value) } })}
-        sx={{ ...inputSx, width: 100 }} slotProps={{ input: { min: 1, max: 20 } }} />
+        sx={{ ...inputSx, width: 100 }} slotProps={{ input: { min: 1, max: 20 } as any }} />
     </FieldRow>
   )
 }
@@ -439,7 +439,7 @@ function CustomContentModalBody({ block, onChange }: { block: ContentBlock; onCh
         <FieldRow label="Preview lines before 'Read more'">
           <TextField size="small" type="number" value={s.previewLines}
             onChange={e => onChange({ customContentSettings: { ...s, previewLines: Number(e.target.value) } })}
-            sx={{ ...inputSx, width: 80 }} slotProps={{ input: { min: 1, max: 20 } }} />
+            sx={{ ...inputSx, width: 80 }} slotProps={{ input: { min: 1, max: 20 } as any }} />
         </FieldRow>
       </Box>
 

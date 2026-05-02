@@ -615,8 +615,8 @@ export default function RichTextEditor({
         <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>Insert table</DialogTitle>
         <DialogContent sx={{ pt: '20px !important' }}>
           <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-            <TextField label="Rows"    type="number" size="small" value={tableRows} onChange={e => setTableRows(e.target.value)} slotProps={{ input: { min: 1, max: 20 } }} sx={{ flex: 1 }} />
-            <TextField label="Columns" type="number" size="small" value={tableCols} onChange={e => setTableCols(e.target.value)} slotProps={{ input: { min: 1, max: 10 } }} sx={{ flex: 1 }} />
+            <TextField label="Rows"    type="number" size="small" value={tableRows} onChange={e => setTableRows(e.target.value)} slotProps={{ input: { min: 1, max: 20 } as any }} sx={{ flex: 1 }} />
+            <TextField label="Columns" type="number" size="small" value={tableCols} onChange={e => setTableCols(e.target.value)} slotProps={{ input: { min: 1, max: 10 } as any }} sx={{ flex: 1 }} />
           </Box>
           <FormControlLabel control={<Checkbox checked={tableBorders} onChange={e => setTableBorders(e.target.checked)} size="small" />}
             label={<Typography sx={{ fontSize: 13 }}>Show cell borders</Typography>} />

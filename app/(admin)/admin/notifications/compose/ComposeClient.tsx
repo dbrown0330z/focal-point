@@ -926,7 +926,7 @@ export default function ComposeClient({
               size="small"
               value={tableRows}
               onChange={e => setTableRows(e.target.value)}
-              slotProps={{ input: { min: 1, max: 20 } }}
+              slotProps={{ input: { min: 1, max: 20 } as any }}
               sx={{ flex: 1 }}
             />
             <TextField
@@ -935,7 +935,7 @@ export default function ComposeClient({
               size="small"
               value={tableCols}
               onChange={e => setTableCols(e.target.value)}
-              slotProps={{ input: { min: 1, max: 10 } }}
+              slotProps={{ input: { min: 1, max: 10 } as any }}
               sx={{ flex: 1 }}
             />
           </Box>
