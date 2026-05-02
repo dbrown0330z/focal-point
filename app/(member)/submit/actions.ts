@@ -122,7 +122,7 @@ export async function finalizeSubmission(input: SubmitInput): Promise<SubmitResu
       notes:                     input.notes || null,
       duplicate_warning_shown:   input.duplicateWarningShown,
       duplicate_warning_override: input.duplicateWarningOverride,
-    } as Record<string, unknown>)
+    })
     .select('id')
     .single()
 
