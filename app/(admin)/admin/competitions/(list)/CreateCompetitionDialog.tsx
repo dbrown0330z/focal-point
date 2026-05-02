@@ -205,7 +205,7 @@ export default function CreateCompetitionDialog({
                   value={opensAt}
                   onChange={e => setOpensAt(e.target.value)}
                   error={!!errors.opensAt}
-                  inputProps={{ style: { fontSize: 13 } }}
+                  slotProps={{ htmlInput: { style: { fontSize: 13 } } }}
                 />
                 {errors.opensAt && <Typography sx={{ fontSize: 12, color: 'error.main', mt: 0.5 }}>{errors.opensAt}</Typography>}
               </Box>
@@ -220,7 +220,7 @@ export default function CreateCompetitionDialog({
                   value={closesAt}
                   onChange={e => setClosesAt(e.target.value)}
                   error={!!errors.closesAt}
-                  inputProps={{ style: { fontSize: 13 } }}
+                  slotProps={{ htmlInput: { style: { fontSize: 13 } } }}
                 />
                 {errors.closesAt && <Typography sx={{ fontSize: 12, color: 'error.main', mt: 0.5 }}>{errors.closesAt}</Typography>}
               </Box>
@@ -235,7 +235,7 @@ export default function CreateCompetitionDialog({
                 type="date"
                 value={judgingAt}
                 onChange={e => setJudgingAt(e.target.value)}
-                inputProps={{ style: { fontSize: 13 } }}
+                slotProps={{ htmlInput: { style: { fontSize: 13 } } }}
                 sx={{ width: 200 }}
               />
             </Box>

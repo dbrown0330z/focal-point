@@ -263,7 +263,7 @@ export function StepCategories({ config, onChange, clubCategories, onAddClubCate
           <OutlinedInput
             size="small"
             type="number"
-            inputProps={{ min: 1 }}
+            slotProps={{ htmlInput: { min: 1 } }}
             value={config.maxEntriesPerMember}
             onChange={e => onChange({ maxEntriesPerMember: parseInt(e.target.value) || 1 })}
             sx={{ width: 80 }}
@@ -282,7 +282,7 @@ export function StepCategories({ config, onChange, clubCategories, onAddClubCate
             <OutlinedInput
               size="small"
               type="number"
-              inputProps={{ min: 1 }}
+              slotProps={{ htmlInput: { min: 1 } }}
               value={config.maxEntriesPerCategory ?? ''}
               onChange={e => onChange({ maxEntriesPerCategory: parseInt(e.target.value) || undefined })}
               placeholder="No limit"
@@ -322,7 +322,7 @@ export function StepCategories({ config, onChange, clubCategories, onAddClubCate
                 <OutlinedInput
                   size="small"
                   type="number"
-                  inputProps={{ min: 400, max: 10000 }}
+                  slotProps={{ htmlInput: { min: 400, max: 10000 } }}
                   value={config.imageLongEdgeCustom ?? ''}
                   onChange={e => onChange({ imageLongEdgeCustom: parseInt(e.target.value) || undefined })}
                   placeholder="px"
@@ -356,7 +356,7 @@ export function StepCategories({ config, onChange, clubCategories, onAddClubCate
                 <OutlinedInput
                   size="small"
                   type="number"
-                  inputProps={{ min: 1 }}
+                  slotProps={{ htmlInput: { min: 1 } }}
                   value={config.captureDateAmount}
                   onChange={e => onChange({ captureDateAmount: parseInt(e.target.value) || 1 })}
                   sx={{ width: 60 }}

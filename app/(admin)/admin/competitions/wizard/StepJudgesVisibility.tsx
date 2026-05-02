@@ -123,7 +123,7 @@ export function StepJudgesVisibility({ config, onChange }: Props) {
               <OutlinedInput
                 size="small"
                 type="number"
-                inputProps={{ min: 1 }}
+                slotProps={{ htmlInput: { min: 1 } }}
                 sx={{ width: 80 }}
                 value={config.minCommentLength}
                 onChange={e => onChange({ minCommentLength: +e.target.value })}

@@ -345,7 +345,7 @@ function JudgeSlot({
                     fullWidth size="small"
                     value={firstName}
                     onChange={e => setFirstName(e.target.value)}
-                    inputProps={{ style: { fontSize: 14 } }}
+                    slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
                   />
                 </Box>
                 <Box sx={{ flex: 1 }}>
@@ -354,7 +354,7 @@ function JudgeSlot({
                     fullWidth size="small"
                     value={lastName}
                     onChange={e => setLastName(e.target.value)}
-                    inputProps={{ style: { fontSize: 14 } }}
+                    slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
                   />
                 </Box>
               </Box>
@@ -367,7 +367,7 @@ function JudgeSlot({
                   value={email}
                   onChange={e => checkEmail(e.target.value)}
                   error={!!emailErr}
-                  inputProps={{ style: { fontSize: 14 } }}
+                  slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
                 />
                 {emailErr && (
                   <Typography sx={{ fontSize: 12, color: 'error.main', mt: 0.5 }}>{emailErr}</Typography>
@@ -437,7 +437,7 @@ function PublishVisibilityFields({
                   size="small" type="date"
                   value={schedule.publishSpecificDate}
                   onChange={e => onChange({ publishSpecificDate: e.target.value })}
-                  inputProps={{ style: { fontSize: 14 } }}
+                  slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
                   sx={{ width: 160 }}
                 />
               </Box>
@@ -447,7 +447,7 @@ function PublishVisibilityFields({
                   size="small" type="time"
                   value={schedule.publishSpecificTime}
                   onChange={e => onChange({ publishSpecificTime: e.target.value })}
-                  inputProps={{ style: { fontSize: 14 } }}
+                  slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
                   sx={{ width: 120 }}
                 />
               </Box>
@@ -536,7 +536,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
             onChange={e => onChange({ instanceName: e.target.value })}
             placeholder="e.g. Monthly Salon — May 2026"
             error={!!errors.instanceName}
-            inputProps={{ style: { fontSize: 14 } }}
+            slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
           />
           {errors.instanceName && (
             <Typography sx={{ fontSize: 12, color: 'error.main', mt: 0.5 }}>{errors.instanceName}</Typography>
@@ -569,7 +569,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                 value={schedule.calendarTitle}
                 onChange={e => onChange({ calendarTitle: e.target.value })}
                 placeholder={schedule.instanceName || 'e.g. May Salon — Results Evening'}
-                inputProps={{ style: { fontSize: 14 } }}
+                slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
               />
               <HintText>This will be used to reference this competition everywhere in the member and judging portals.</HintText>
             </Box>
@@ -616,7 +616,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                   size="small" type="date"
                   value={schedule.eventDate}
                   onChange={e => onChange({ eventDate: e.target.value })}
-                  inputProps={{ style: { fontSize: 14 } }}
+                  slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
                   sx={{ width: 160 }}
                 />
               </Box>
@@ -626,7 +626,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                   size="small" type="time"
                   value={schedule.eventTime}
                   onChange={e => onChange({ eventTime: e.target.value })}
-                  inputProps={{ style: { fontSize: 14 } }}
+                  slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
                   sx={{ width: 120 }}
                 />
               </Box>
@@ -658,7 +658,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                       value={schedule.eventLocationVenue}
                       onChange={e => onChange({ eventLocationVenue: e.target.value })}
                       placeholder="Venue name or address…"
-                      inputProps={{ style: { fontSize: 14 } }}
+                      slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
                       autoFocus
                     />
                     <Box
@@ -702,7 +702,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                   value={schedule.eventLocationVenue}
                   onChange={e => onChange({ eventLocationVenue: e.target.value })}
                   placeholder="Meeting link or platform…"
-                  inputProps={{ style: { fontSize: 14 } }}
+                  slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
                 />
               </AnimatedReveal>
             </Box>
@@ -723,7 +723,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                   size="small" type="date"
                   value={schedule.publishAutoDate}
                   onChange={e => onChange({ publishAutoDate: e.target.value })}
-                  inputProps={{ style: { fontSize: 14 } }}
+                  slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
                   sx={{ width: 160 }}
                 />
               </Box>
@@ -733,7 +733,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                   size="small" type="time"
                   value={schedule.publishAutoTime}
                   onChange={e => onChange({ publishAutoTime: e.target.value })}
-                  inputProps={{ style: { fontSize: 14 } }}
+                  slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
                   sx={{ width: 120 }}
                 />
               </Box>
@@ -755,7 +755,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                 value={schedule.submissionsOpenDate}
                 onChange={e => onChange({ submissionsOpenDate: e.target.value })}
                 error={!!errors.submissionsOpenDate}
-                inputProps={{ style: { fontSize: 14 } }}
+                slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
                 sx={{ width: 150 }}
               />
               {errors.submissionsOpenDate && (
@@ -770,7 +770,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                 value={schedule.submissionsCloseDate}
                 onChange={e => onChange({ submissionsCloseDate: e.target.value })}
                 error={!!errors.submissionsCloseDate}
-                inputProps={{ style: { fontSize: 14 } }}
+                slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
                 sx={{ width: 150 }}
               />
               {errors.submissionsCloseDate && (
@@ -830,7 +830,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                 type="date"
                 value={schedule.judgingOpenDate}
                 onChange={e => onChange({ judgingOpenDate: e.target.value })}
-                inputProps={{ style: { fontSize: 14 } }}
+                slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
                 sx={{ width: 150 }}
               />
             </Box>
@@ -841,7 +841,7 @@ export function StepSchedule({ schedule, onChange, errors, members, meetingLocat
                 type="date"
                 value={schedule.judgingCloseDate}
                 onChange={e => onChange({ judgingCloseDate: e.target.value })}
-                inputProps={{ style: { fontSize: 14 } }}
+                slotProps={{ htmlInput: { style: { fontSize: 14 } } }}
                 sx={{ width: 150 }}
               />
             </Box>
