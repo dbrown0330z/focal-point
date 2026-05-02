@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import type { Json } from '@/types/database'
 
 export async function createImageRecord(data: {
   title: string
@@ -19,7 +20,7 @@ export async function createImageRecord(data: {
     title:        data.title,
     description:  data.description || null,
     storage_path: data.storage_path,
-    exif_data:    data.exif_data,
+    exif_data:    data.exif_data as Json,
   })
 
   if (error) redirect('/library/upload?error=' + encodeURIComponent(error.message))

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import type { Json } from '@/types/database'
 
 async function guardOpenCompetition(supabase: Awaited<ReturnType<typeof createClient>>, competitionId: string, userId: string) {
   const { data: comp } = await supabase
@@ -75,7 +76,7 @@ export async function submitUploadedImage(data: {
     owner_id: user.id,
     title: data.title,
     storage_path: data.storagePath,
-    exif_data: data.exifData,
+    exif_data: data.exifData as Json,
   }).select('id').single()
 
   if (imgErr || !img) return { error: imgErr?.message ?? 'Failed to save image' }
