@@ -65,7 +65,7 @@ export async function sendNotification(args: {
   const fromEmail = (settings as any)?.from_email?.trim()
   const fromAddress = fromEmail
     ? `${clubName} <${fromEmail}>`
-    : `${clubName} <notifications@focalpointhq.com>`
+    : `${clubName} <notifications@${process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'focalpointhq.com'}>`
 
   // ── Send via Resend ───────────────────────────────────────────────────────────
   // Send in batches of 50 (Resend batch limit)

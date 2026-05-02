@@ -659,9 +659,9 @@ export default function ClubDefaultsClient({
           <TextField
             {...tf}
             value={s.from_email?.includes('@') ? s.from_email.split('@')[0] : (s.from_email ?? '')}
-            onChange={e => set('from_email', e.target.value ? `${e.target.value}@focalpointhq.com` : '')}
+            onChange={e => set('from_email', e.target.value ? `${e.target.value}@${process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'focalpointhq.com'}` : '')}
             placeholder="hello"
-            slotProps={{ input: { endAdornment: <InputAdornment position="end"><Typography sx={{ fontSize: 13, color: 'text.disabled', userSelect: 'none' }}>@focalpointhq.com</Typography></InputAdornment> } }}
+            slotProps={{ input: { endAdornment: <InputAdornment position="end"><Typography sx={{ fontSize: 13, color: 'text.disabled', userSelect: 'none' }}>@{process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'focalpointhq.com'}</Typography></InputAdornment> } }}
           />
         </Field>
         <Divider sx={{ my: '20px' }} />
