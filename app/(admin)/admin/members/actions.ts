@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/service'
+import { sendMemberApproved } from '@/lib/email/send'
 import type { Database } from '@/types/database'
 
 type MembershipStatus = Database['public']['Enums']['membership_status']
@@ -32,7 +33,29 @@ export async function setMemberStatus(memberId: string, status: MembershipStatus
 }
 
 export async function approveMember(memberId: string) {
-  return setMemberStatus(memberId, 'approved')
+  await setMemberStatus(memberId, 'approved')
+
+  // Send approval email — fetch member profile + auth email via service client
+  try {
+    const service = createServiceClient()
+    const [{ data: profile }, { data: clubSettings }, { data: { user } }] = await Promise.all([
+      service.from('profiles').select('first_name, display_name').eq('id', memberId).single(),
+      service.from('club_settings').select('club_name').single(),
+      service.auth.admin.getUserById(memberId),
+    ])
+
+    const email     = user?.email
+    const firstName = profile?.first_name || profile?.display_name || 'there'
+    const clubName  = clubSettings?.club_name ?? 'the club'
+    const loginUrl  = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'}/login`
+
+    if (email) {
+      await sendMemberApproved({ memberEmail: email, firstName, clubName, loginUrl })
+    }
+  } catch (err) {
+    // Non-fatal — approval is complete even if the email fails
+    console.error('[approveMember] failed to send approval email:', err)
+  }
 }
 
 export async function deleteMember(memberId: string) {

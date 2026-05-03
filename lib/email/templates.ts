@@ -2,6 +2,25 @@
 // All templates return { subject, html } for use with Resend.
 // Plain-text HTML — no external dependencies required.
 
+// ─── Member: application approved ────────────────────────────────────────────
+
+export function memberApproved(args: {
+  firstName:   string
+  clubName:    string
+  loginUrl:    string
+}): { subject: string; html: string } {
+  return {
+    subject: `You're in — welcome to ${args.clubName}`,
+    html: base(`
+      <p>Hi ${args.firstName},</p>
+      <p>Great news — your application to <strong>${args.clubName}</strong> has been approved.</p>
+      <p>You can now sign in and complete your profile to get started.</p>
+      <a href="${args.loginUrl}" class="btn">Get started →</a>
+      <p style="font-size:13px;color:#737373">If you didn't apply to ${args.clubName} you can safely ignore this email.</p>
+    `),
+  }
+}
+
 function base(body: string): string {
   return `<!DOCTYPE html>
 <html lang="en">

@@ -1,5 +1,6 @@
 import { getResend, FROM_ADDRESS } from './client'
 import {
+  memberApproved,
   adminReminder7Day,
   adminReminder1Day,
   adminReminderOnOpen,
@@ -10,6 +11,18 @@ import {
   memberCancellationNotification,
   judgeCancellationNotification,
 } from './templates'
+
+// ─── Member: approval notification ───────────────────────────────────────────
+
+export async function sendMemberApproved(args: {
+  memberEmail: string
+  firstName:   string
+  clubName:    string
+  loginUrl:    string
+}) {
+  const { subject, html } = memberApproved(args)
+  await getResend().emails.send({ from: FROM_ADDRESS, to: args.memberEmail, subject, html })
+}
 
 // ─── Admin reminders ──────────────────────────────────────────────────────────
 
