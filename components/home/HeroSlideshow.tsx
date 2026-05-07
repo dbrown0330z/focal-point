@@ -28,8 +28,7 @@ export default function HeroSlideshow({ clubName }: { clubName: string }) {
   }, [])
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4">
-      <div className="relative w-full overflow-hidden rounded-lg" style={{ aspectRatio: '21/8', minHeight: 220, maxHeight: 480 }}>
+    <div className="relative w-full overflow-hidden rounded-lg" style={{ aspectRatio: '21/8', minHeight: 220, maxHeight: 480 }}>
 
         {slide ? (
           <>
@@ -80,7 +79,6 @@ export default function HeroSlideshow({ clubName }: { clubName: string }) {
           // Placeholder while client hydrates
           <div className="absolute inset-0" style={{ background: 'var(--surface-1)' }} />
         )}
-      </div>
     </div>
   )
 }
