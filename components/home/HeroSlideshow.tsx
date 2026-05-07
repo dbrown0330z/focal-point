@@ -10,11 +10,13 @@ type Slide = {
 }
 
 const SLIDES: Slide[] = [
-  { src: '/hero/image-1.jpg', title: 'Ritual Motion',       maker: 'Marcus Okafor'   },
-  { src: '/hero/image-2.jpg', title: 'Platform No. 7',      maker: 'Elena Vasquez'   },
-  { src: '/hero/image-3.jpg', title: 'San Polo Morning',    maker: 'James Whitfield' },
-  { src: '/hero/image-4.jpg', title: 'First Light, December', maker: 'Sarah Chen'    },
-  { src: '/hero/image-5.jpg', title: 'Baltic Dusk',         maker: 'Tomás Reinholt'  },
+  { src: '/hero/image-1.jpg', title: 'Ritual Motion',         maker: 'Marcus Okafor'   },
+  { src: '/hero/image-2.jpg', title: 'Platform No. 7',        maker: 'Elena Vasquez'   },
+  { src: '/hero/image-3.jpg', title: 'San Polo Morning',      maker: 'James Whitfield' },
+  { src: '/hero/image-4.jpg', title: 'First Light, December', maker: 'Sarah Chen'      },
+  { src: '/hero/image-5.jpg', title: 'Baltic Dusk',           maker: 'Tomás Reinholt'  },
+  { src: '/hero/image-6.jpg', title: 'Quiet Shore',           maker: 'Priya Nambiar'   },
+  { src: '/hero/image-7.jpg', title: 'After the Rain',        maker: 'Daniel Ferreira' },
 ]
 
 const INTERVAL_MS = 6000
