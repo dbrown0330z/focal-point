@@ -3,6 +3,7 @@ import { logout } from './(auth)/actions'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import MemberNav from '@/components/layout/MemberNav'
+import HeroSlideshow from '@/components/home/HeroSlideshow'
 
 export default async function RootPage() {
   const supabase = await createClient()
@@ -24,6 +25,8 @@ export default async function RootPage() {
     return (
       <div className="flex min-h-screen flex-col">
         <MemberNav clubName={clubName} displayName={profile.display_name} email={user.email ?? ''} role={profile.role} avatarUrl={(profile as unknown as { avatar_url: string | null }).avatar_url ?? null} />
+        {/* Hero — full-width, outside the content container */}
+        <HeroSlideshow clubName={clubName} />
         <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
           <NewsFeed displayName={profile.display_name} />
         </main>
