@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import HeroSlideshow from './HeroSlideshow'
 import CustomContentNote from './CustomContentNote'
+import { Grid6Gallery, Strip8Gallery } from './ImageGallery'
 import type {
   ContentBlock,
   ContentNote,
@@ -166,7 +167,7 @@ function UpcomingEventsBlock({ events }: { events: CalendarEvent[] }) {
 
 // ─── Image grid / strip blocks ────────────────────────────────────────────────
 
-type GalleryImage = { id: string; publicUrl: string; title: string; ownerName?: string }
+type GalleryImage = { id: string; publicUrl: string; title: string }
 
 function Grid6Block({ images }: { images: GalleryImage[] }) {
   if (images.length === 0) return (
@@ -175,23 +176,11 @@ function Grid6Block({ images }: { images: GalleryImage[] }) {
       <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No images in the library yet.</p>
     </Section>
   )
-  const shown = images.slice(0, 6)
 
   return (
     <Section>
       <SectionHeading>Recent images</SectionHeading>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {shown.map(img => (
-          <div key={img.id} className="aspect-square rounded-lg overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-            <Image
-              src={img.publicUrl}
-              alt={img.title}
-              width={400} height={400}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        ))}
-      </div>
+      <Grid6Gallery images={images} />
     </Section>
   )
 }
@@ -203,31 +192,11 @@ function Strip8Block({ images }: { images: GalleryImage[] }) {
       <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No images in the library yet.</p>
     </Section>
   )
-  const shown = images.slice(0, 8)
 
   return (
     <Section>
       <SectionHeading>Member photos</SectionHeading>
-      {/* Horizontal scroll strip — scrollbar hidden via CSS */}
-      <div
-        className="flex gap-3 overflow-x-auto pb-1"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        {shown.map(img => (
-          <div
-            key={img.id}
-            className="flex-shrink-0 rounded-lg overflow-hidden"
-            style={{ width: 140, height: 140, background: 'var(--surface-1)' }}
-          >
-            <Image
-              src={img.publicUrl}
-              alt={img.title}
-              width={280} height={280}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        ))}
-      </div>
+      <Strip8Gallery images={images} />
     </Section>
   )
 }
@@ -235,6 +204,7 @@ function Strip8Block({ images }: { images: GalleryImage[] }) {
 // ─── Member spotlight block ───────────────────────────────────────────────────
 
 type SpotlightMember = {
+  id: string
   display_name: string
   avatar_url: string | null
   bio: string | null
@@ -245,45 +215,62 @@ type SpotlightMember = {
 function MemberSpotlightBlock({
   member,
   settings,
+  memberPhotoUrl,
 }: {
-  member: SpotlightMember
-  settings: SpotlightSettings
+  member:         SpotlightMember
+  settings:       SpotlightSettings
+  memberPhotoUrl: string | null
 }) {
-  const avatarUrl = member.avatar_url
+  // Show a library photo if available, fall back to avatar, then initials
+  const photoUrl = memberPhotoUrl ?? member.avatar_url
 
   return (
     <Section>
       <SectionHeading>Member spotlight</SectionHeading>
       <div className="flex gap-5 items-start">
-        {/* Avatar */}
+        {/* Square photo */}
         <div
           className="flex-shrink-0 rounded-xl overflow-hidden flex items-center justify-center"
-          style={{ width: 80, height: 80, background: 'var(--surface-1)', fontSize: 24, fontWeight: 700, color: 'var(--text-tertiary)', fontFamily: 'var(--font-lora, Georgia, serif)' }}
+          style={{
+            width:      140,
+            height:     140,
+            background: 'var(--surface-1)',
+            fontSize:   32,
+            fontWeight: 700,
+            color:      'var(--text-tertiary)',
+            fontFamily: 'var(--font-lora, Georgia, serif)',
+          }}
         >
-          {avatarUrl ? (
-            <Image src={avatarUrl} alt={member.display_name} width={80} height={80} className="w-full h-full object-cover" />
+          {photoUrl ? (
+            <Image
+              src={photoUrl}
+              alt={member.display_name}
+              width={140}
+              height={140}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <span>{initials(member.display_name)}</span>
           )}
         </div>
 
         {/* Info */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pt-1">
           <p style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>
             {member.display_name}
           </p>
-          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
+          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
             {member.membership_class
               ? `${member.membership_class} · Member #${member.member_number}`
               : `Member #${member.member_number}`}
           </p>
           {member.bio && (
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.6, display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3, overflow: 'hidden' }}>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 10, lineHeight: 1.6, display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 4, overflow: 'hidden' }}>
               {member.bio}
             </p>
           )}
           {settings.mode === 'automatic' && (
-            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, fontStyle: 'italic' }}>
+            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8, fontStyle: 'italic' }}>
               Auto-selected · changes each visit
             </p>
           )}
@@ -388,12 +375,13 @@ export default async function HomepageRenderer({
   // ── Fetch spotlight member ────────────────────────────────────────────────
   const spotlightBlock = enabled.find(b => b.type === 'member-spotlight')
   let spotlightMember: SpotlightMember | null = null
+  let spotlightPhotoUrl: string | null = null
   if (spotlightBlock?.spotlightSettings) {
     const { mode, memberName } = spotlightBlock.spotlightSettings
     if (mode === 'manual' && memberName?.trim()) {
       const { data } = await supabase
         .from('profiles')
-        .select('display_name, avatar_url, bio, membership_class, member_number')
+        .select('id, display_name, avatar_url, bio, membership_class, member_number')
         .ilike('display_name', `%${memberName.trim()}%`)
         .eq('membership_status', 'active')
         .limit(1)
@@ -403,12 +391,28 @@ export default async function HomepageRenderer({
       // Automatic: pull up to 20 active members and pick one randomly server-side
       const { data } = await supabase
         .from('profiles')
-        .select('display_name, avatar_url, bio, membership_class, member_number')
+        .select('id, display_name, avatar_url, bio, membership_class, member_number')
         .eq('membership_status', 'active')
         .limit(20)
       const pool = (data ?? []) as SpotlightMember[]
       if (pool.length > 0) {
         spotlightMember = pool[Math.floor(Math.random() * pool.length)]
+      }
+    }
+
+    // Fetch one library image for the spotlight member
+    if (spotlightMember) {
+      const { data: imgData } = await supabase
+        .from('images')
+        .select('storage_path')
+        .eq('owner_id', spotlightMember.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (imgData?.storage_path) {
+        spotlightPhotoUrl = supabaseRaw.storage
+          .from('images')
+          .getPublicUrl(imgData.storage_path).data.publicUrl
       }
     }
   }
@@ -454,6 +458,7 @@ export default async function HomepageRenderer({
                 key={block.id}
                 member={spotlightMember}
                 settings={block.spotlightSettings}
+                memberPhotoUrl={spotlightPhotoUrl}
               />
             ) : null
 
