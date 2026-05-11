@@ -105,15 +105,22 @@ function CustomContentBlock({
   label: string
 }) {
   const { notes, columns, previewLines } = settings
-  if (notes.length === 0) return null
-
   const gridCols = columns === 3 ? 'grid-cols-1 sm:grid-cols-3' : columns === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'
+
+  // When notes are empty show placeholder columns so the block is visible
+  const displayNotes: ContentNote[] = notes.length > 0
+    ? notes
+    : Array.from({ length: columns }, (_, i) => ({
+        id:      `placeholder-${i}`,
+        heading: '',
+        body:    '',
+      }))
 
   return (
     <Section>
       {label && label !== 'Custom content' && <SectionHeading>{label}</SectionHeading>}
       <div className={`grid gap-4 ${gridCols}`}>
-        {notes.map(note => (
+        {displayNotes.map(note => (
           <CustomContentNote key={note.id} note={note} previewLines={previewLines} />
         ))}
       </div>
@@ -134,8 +141,6 @@ type CalendarEvent = {
 }
 
 function UpcomingEventsBlock({ events }: { events: CalendarEvent[] }) {
-  if (events.length === 0) return null
-
   return (
     <Section>
       <div className="flex items-center justify-between mb-4">
@@ -144,6 +149,12 @@ function UpcomingEventsBlock({ events }: { events: CalendarEvent[] }) {
           View all →
         </Link>
       </div>
+
+      {events.length === 0 ? (
+        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
+          No upcoming events scheduled.
+        </p>
+      ) : (
       <div className="flex flex-col divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
         {events.map(ev => {
           const { month, day, weekday } = formatEventDate(ev.starts_at)
@@ -173,6 +184,7 @@ function UpcomingEventsBlock({ events }: { events: CalendarEvent[] }) {
           )
         })}
       </div>
+      )}
     </Section>
   )
 }
@@ -182,7 +194,12 @@ function UpcomingEventsBlock({ events }: { events: CalendarEvent[] }) {
 type GalleryImage = { id: string; publicUrl: string; title: string; ownerName?: string }
 
 function Grid6Block({ images }: { images: GalleryImage[] }) {
-  if (images.length === 0) return null
+  if (images.length === 0) return (
+    <Section>
+      <SectionHeading>Recent images</SectionHeading>
+      <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No images in the library yet.</p>
+    </Section>
+  )
   const shown = images.slice(0, 6)
 
   return (
@@ -205,7 +222,12 @@ function Grid6Block({ images }: { images: GalleryImage[] }) {
 }
 
 function Strip8Block({ images }: { images: GalleryImage[] }) {
-  if (images.length === 0) return null
+  if (images.length === 0) return (
+    <Section>
+      <SectionHeading>Member photos</SectionHeading>
+      <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No images in the library yet.</p>
+    </Section>
+  )
   const shown = images.slice(0, 8)
 
   return (
@@ -300,7 +322,16 @@ function MemberSpotlightBlock({
 
 function AffiliationsBlock({ settings }: { settings: AffiliationsSettings }) {
   const { affiliations } = settings
-  if (affiliations.length === 0) return null
+
+  if (affiliations.length === 0) {
+    return (
+      <Section>
+        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center' }}>
+          No affiliations configured yet.
+        </p>
+      </Section>
+    )
+  }
 
   return (
     <Section>
@@ -309,22 +340,26 @@ function AffiliationsBlock({ settings }: { settings: AffiliationsSettings }) {
           const inner = (
             <span
               key={a.id}
-              className="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
               style={{
+                display: 'inline-block',
                 fontSize: 13, fontWeight: 600,
                 color: 'var(--text-secondary)',
                 background: 'var(--surface-1)',
                 border: '1px solid var(--border-default)',
+                borderRadius: 8,
+                padding: '6px 16px',
               }}
             >
               {a.name}
             </span>
           )
           return a.url ? (
-            <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
+            <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer" style={{ opacity: 1, transition: 'opacity 0.15s' }}
+               onMouseOver={e => (e.currentTarget.style.opacity = '0.7')}
+               onMouseOut={e  => (e.currentTarget.style.opacity = '1')}>
               {inner}
             </a>
-          ) : inner
+          ) : <span key={a.id}>{inner}</span>
         })}
       </div>
     </Section>
