@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useRef, useState } from 'react'
+import { Fragment, useRef, useState, useTransition } from 'react'
 import {
   Box,
   Button,
@@ -21,102 +21,26 @@ import EditOutlinedIcon     from '@mui/icons-material/EditOutlined'
 import LockOutlinedIcon     from '@mui/icons-material/LockOutlined'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
 import RichTextEditor       from '@/components/admin/RichTextEditor'
+import { saveHomepageBlocks } from './homepageActions'
+import {
+  DEFAULT_BLOCKS,
+  type ContentBlock,
+  type GallerySource,
+  type WelcomeContent,
+  type LargeImageSettings,
+  type Grid6Settings,
+  type Strip8Settings,
+  type SpotlightSettings,
+  type EventsSettings,
+  type ContentNote,
+  type CustomContentSettings,
+  type Affiliation,
+  type AffiliationsSettings,
+} from '@/lib/homepage/types'
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-type GallerySource = 'competition-winners' | 'recent-uploads' | 'member-picks' | 'portrait' | 'landscape'
-
-interface WelcomeContent {
-  heading: string; body: string; ctaLabel: string; ctaLink: string
-}
-interface LargeImageSettings {
-  gallerySource: GallerySource; intervalSeconds: number
-}
-interface Grid6Settings {
-  gallerySource: GallerySource; criteria: 'latest' | 'top-rated' | 'competition-winners'
-}
-interface Strip8Settings {
-  gallerySource: GallerySource; criteria: 'latest' | 'top-rated' | 'competition-winners'
-}
-interface SpotlightSettings {
-  mode: 'automatic' | 'manual'; memberName: string
-}
-interface EventsSettings {
-  count: number
-}
-interface ContentNote {
-  id: string; heading: string; body: string // body is HTML from RTF editor
-}
-interface CustomContentSettings {
-  columns: 1 | 2 | 3; previewLines: number; notes: ContentNote[]
-}
-interface Affiliation {
-  id: string; name: string; url: string
-}
-interface AffiliationsSettings {
-  maxColumns: number; affiliations: Affiliation[]
-}
-
-interface ContentBlock {
-  id:                      string
-  name:                    string
-  label?:                  string   // user-editable display name
-  type:                    string
-  enabled:                 boolean
-  fixed?:                  boolean
-  welcomeContent?:         WelcomeContent
-  largeImageSettings?:     LargeImageSettings
-  grid6Settings?:          Grid6Settings
-  strip8Settings?:         Strip8Settings
-  spotlightSettings?:      SpotlightSettings
-  eventsSettings?:         EventsSettings
-  customContentSettings?:  CustomContentSettings
-  affiliationsSettings?:   AffiliationsSettings
-}
-
-// ── Default blocks ─────────────────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────────────
 
 const MAX_CUSTOM_CONTENT = 4
-
-const DEFAULT_BLOCKS: ContentBlock[] = [
-  {
-    id: 'welcome', name: 'Welcome', type: 'welcome', enabled: true, fixed: true,
-    welcomeContent: {
-      heading:  'Welcome to our camera club',
-      body:     'A community of passionate photographers since 1978. We meet twice monthly for critique nights, competitions, and workshops. All skill levels welcome.',
-      ctaLabel: 'Apply for membership',
-      ctaLink:  '/apply',
-    },
-  },
-  {
-    id: 'large-image', name: 'Large image', type: 'large-image', enabled: true,
-    largeImageSettings: { gallerySource: 'competition-winners', intervalSeconds: 5 },
-  },
-  {
-    id: 'custom-content-1', name: 'Custom content', type: 'custom-content', enabled: true,
-    customContentSettings: { columns: 3, previewLines: 4, notes: [] },
-  },
-  {
-    id: 'grid-6', name: '6-image grid', type: 'grid-6', enabled: true,
-    grid6Settings: { gallerySource: 'competition-winners', criteria: 'top-rated' },
-  },
-  {
-    id: 'strip-8', name: '8-image strip', type: 'strip-8', enabled: true,
-    strip8Settings: { gallerySource: 'recent-uploads', criteria: 'latest' },
-  },
-  {
-    id: 'upcoming-events', name: 'Upcoming events', type: 'upcoming-events', enabled: true,
-    eventsSettings: { count: 5 },
-  },
-  {
-    id: 'member-spotlight', name: 'Member spotlight', type: 'member-spotlight', enabled: true,
-    spotlightSettings: { mode: 'automatic', memberName: '' },
-  },
-  {
-    id: 'affiliations', name: 'Affiliations & links', type: 'affiliations', enabled: true,
-    affiliationsSettings: { maxColumns: 6, affiliations: [] },
-  },
-]
 
 // ── Modal metadata ─────────────────────────────────────────────────────────────
 
@@ -157,10 +81,12 @@ const MODAL_META: Record<string, { title: string; description: string }> = {
 
 // ── Hook ───────────────────────────────────────────────────────────────────────
 
-function useHomepageEditor() {
-  const [blocks,      setBlocks]      = useState<ContentBlock[]>(DEFAULT_BLOCKS)
+function useHomepageEditor(initialBlocks: ContentBlock[]) {
+  const [blocks,      setBlocks]      = useState<ContentBlock[]>(initialBlocks)
   const [hasChanges,  setHasChanges]  = useState(false)
   const [showPublish, setShowPublish] = useState(false)
+  const [saveStatus,  setSaveStatus]  = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [isPending,   startTransition] = useTransition()
 
   const toggleBlock = (id: string) => {
     setBlocks(bs => bs.map(b => b.id === id ? { ...b, enabled: !b.enabled } : b))
@@ -202,13 +128,33 @@ function useHomepageEditor() {
     setHasChanges(true)
   }
 
-  const saveDraft = () => setHasChanges(false)
-  const publish   = () => { setShowPublish(false); setHasChanges(false) }
+  const saveDraft = (currentBlocks: ContentBlock[]) => {
+    setSaveStatus('saving')
+    startTransition(async () => {
+      const { error } = await saveHomepageBlocks(currentBlocks, false)
+      setSaveStatus(error ? 'error' : 'saved')
+      if (!error) setHasChanges(false)
+      // Auto-clear status after 3 s
+      setTimeout(() => setSaveStatus('idle'), 3000)
+    })
+  }
+
+  const publish = (currentBlocks: ContentBlock[]) => {
+    setShowPublish(false)
+    setSaveStatus('saving')
+    startTransition(async () => {
+      const { error } = await saveHomepageBlocks(currentBlocks, true)
+      setSaveStatus(error ? 'error' : 'saved')
+      if (!error) setHasChanges(false)
+      setTimeout(() => setSaveStatus('idle'), 3000)
+    })
+  }
 
   const customContentCount = blocks.filter(b => b.type === 'custom-content').length
 
   return {
     blocks, hasChanges, showPublish, setShowPublish,
+    saveStatus, isPending,
     toggleBlock, updateBlock, reorderBlocks,
     addCustomContent, removeBlock, customContentCount,
     saveDraft, publish,
@@ -1372,13 +1318,14 @@ function LivePreview({ blocks, fullscreen = false }: { blocks: ContentBlock[]; f
 
 // ── Main HomepageEditor ────────────────────────────────────────────────────────
 
-export default function HomepageEditor() {
+export default function HomepageEditor({ initialBlocks }: { initialBlocks?: ContentBlock[] }) {
   const {
     blocks, hasChanges, showPublish, setShowPublish,
+    saveStatus, isPending,
     toggleBlock, updateBlock, reorderBlocks,
     addCustomContent, removeBlock, customContentCount,
     saveDraft, publish,
-  } = useHomepageEditor()
+  } = useHomepageEditor(initialBlocks ?? DEFAULT_BLOCKS)
 
   const [fullscreen,     setFullscreen]     = useState(false)
   const [editingBlock,   setEditingBlock]   = useState<ContentBlock | null>(null)
@@ -1420,11 +1367,21 @@ export default function HomepageEditor() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column' }}>
       {/* Top bar */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <Box sx={{ flex: 1 }} />
-        <Button variant="outlined" size="small" onClick={() => setFullscreen(true)} sx={{ textTransform: 'none', fontSize: 13, borderColor: 'var(--border-default)', color: 'text.secondary', '&:hover': { borderColor: 'var(--border-strong)' }, mr: '10px' }}>Preview</Button>
-        <Button variant="outlined" color="secondary" size="small" onClick={saveDraft} sx={{ textTransform: 'none', fontSize: 13 }}>Save draft</Button>
-        <Button variant="contained" size="small" disabled={!hasChanges} onClick={() => setShowPublish(true)} sx={{ textTransform: 'none', fontSize: 13, ml: 1.5 }}>Publish changes</Button>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1.5 }}>
+        <Box sx={{ flex: 1 }}>
+          {saveStatus === 'saving' && (
+            <Typography sx={{ fontSize: 12, color: 'text.secondary', fontStyle: 'italic' }}>Saving…</Typography>
+          )}
+          {saveStatus === 'saved' && (
+            <Typography sx={{ fontSize: 12, color: 'var(--status-success-text)' }}>✓ Saved</Typography>
+          )}
+          {saveStatus === 'error' && (
+            <Typography sx={{ fontSize: 12, color: 'var(--status-error)' }}>Save failed — please try again.</Typography>
+          )}
+        </Box>
+        <Button variant="outlined" size="small" onClick={() => setFullscreen(true)} sx={{ textTransform: 'none', fontSize: 13, borderColor: 'var(--border-default)', color: 'text.secondary', '&:hover': { borderColor: 'var(--border-strong)' } }}>Preview</Button>
+        <Button variant="outlined" color="secondary" size="small" disabled={isPending} onClick={() => saveDraft(blocks)} sx={{ textTransform: 'none', fontSize: 13 }}>Save draft</Button>
+        <Button variant="contained" size="small" disabled={!hasChanges || isPending} onClick={() => setShowPublish(true)} sx={{ textTransform: 'none', fontSize: 13 }}>Publish changes</Button>
       </Box>
 
       {/* Two-column layout */}
@@ -1539,7 +1496,7 @@ export default function HomepageEditor() {
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
               <Button variant="outlined" color="secondary" onClick={() => setShowPublish(false)} sx={{ textTransform: 'none', fontSize: 13 }}>Cancel</Button>
-              <Button variant="contained" onClick={publish} sx={{ textTransform: 'none', fontSize: 13 }}>Publish now</Button>
+              <Button variant="contained" onClick={() => publish(blocks)} sx={{ textTransform: 'none', fontSize: 13 }}>Publish now</Button>
             </DialogActions>
           </Dialog>
         )

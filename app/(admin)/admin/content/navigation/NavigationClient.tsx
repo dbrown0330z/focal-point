@@ -13,6 +13,7 @@ import {
 import AddIcon from '@mui/icons-material/Add'
 import { createClient } from '@/lib/supabase/client'
 import HomepageEditor from './HomepageEditor'
+import type { ContentBlock } from '@/lib/homepage/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -853,9 +854,11 @@ function AddTabDialog({
 export default function NavigationClient({
   customPages: initialPages,
   customTabs:  initialTabs,
+  initialHomepageBlocks,
 }: {
-  customPages: CustomPage[]
-  customTabs:  CustomTab[]
+  customPages:            CustomPage[]
+  customTabs:             CustomTab[]
+  initialHomepageBlocks?: ContentBlock[]
 }) {
   const [activeTab, setActiveTab] = useState<MainTab>('navigation')
   const [pages,     setPages]     = useState<CustomPage[]>(initialPages)
@@ -1028,7 +1031,7 @@ export default function NavigationClient({
 
       {/* ── Homepage tab ─────────────────────────────────────────────────── */}
       {activeTab === 'homepage' && (
-        <HomepageEditor />
+        <HomepageEditor initialBlocks={initialHomepageBlocks} />
       )}
 
       {/* ── Custom Pages tab ─────────────────────────────────────────────── */}

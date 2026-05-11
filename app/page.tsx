@@ -3,7 +3,8 @@ import { logout } from './(auth)/actions'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import MemberNav from '@/components/layout/MemberNav'
-import HeroSlideshow from '@/components/home/HeroSlideshow'
+import HomepageRenderer from '@/components/home/HomepageRenderer'
+import { DEFAULT_BLOCKS, type ContentBlock } from '@/lib/homepage/types'
 
 export default async function RootPage() {
   const supabase = await createClient()
@@ -11,9 +12,11 @@ export default async function RootPage() {
 
   if (!user) return <MarketingPage />
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
   const [{ data: profile }, { data: clubSettings }] = await Promise.all([
     supabase.from('profiles').select('display_name, role, membership_status, avatar_url').eq('id', user.id).single(),
-    supabase.from('club_settings').select('club_name').single(),
+    db.from('club_settings').select('club_name, homepage_blocks').single(),
   ])
   const clubName = clubSettings?.club_name ?? 'Focal Point'
 
@@ -22,16 +25,22 @@ export default async function RootPage() {
   if (profile.membership_status === 'approved') redirect('/onboarding/profile')
 
   if (profile.membership_status === 'active' && profile.role) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const blocks: ContentBlock[] = (clubSettings as any)?.homepage_blocks ?? DEFAULT_BLOCKS
+
     return (
       <div className="flex min-h-screen flex-col">
         <MemberNav clubName={clubName} displayName={profile.display_name} email={user.email ?? ''} role={profile.role} avatarUrl={(profile as unknown as { avatar_url: string | null }).avatar_url ?? null} />
-        {/* Hero — constrained to content width */}
-        <div className="mx-auto w-full max-w-6xl px-4 pt-4">
-          <HeroSlideshow clubName={clubName} />
+        {/* Greeting */}
+        <div className="mx-auto w-full max-w-6xl px-4 pt-6 pb-2">
+          <h1 style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 22, fontWeight: 700, letterSpacing: '-0.015em', color: 'var(--text-primary)' }}>
+            Welcome back, {profile.display_name}
+          </h1>
         </div>
-        <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
-          <NewsFeed displayName={profile.display_name} />
-        </main>
+        {/* Homepage blocks (hero image, content, events, etc.) */}
+        <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-10">
+          <HomepageRenderer blocks={blocks} clubName={clubName} />
+        </div>
       </div>
     )
   }
@@ -103,13 +112,14 @@ function ExpiredPage({ displayName }: { displayName?: string }) {
   )
 }
 
-function NewsFeed({ displayName }: { displayName: string }) {
+// NewsFeed replaced by HomepageRenderer — kept as stub to avoid breaking
+// any future reference, but not currently rendered.
+function _NewsFeed({ displayName }: { displayName: string }) {
   return (
     <>
       <h1 className="text-2xl font-semibold text-content-primary">
         Welcome back, {displayName}
       </h1>
-      <p className="mt-2 text-content-secondary">Your club activity will appear here.</p>
     </>
   )
 }
