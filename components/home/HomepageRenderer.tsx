@@ -2,12 +2,13 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import HeroSlideshow from './HeroSlideshow'
+import CustomContentNote from './CustomContentNote'
 import type {
   ContentBlock,
+  ContentNote,
   CustomContentSettings,
   AffiliationsSettings,
   SpotlightSettings,
-  ContentNote,
 } from '@/lib/homepage/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -66,37 +67,6 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 
 // ─── Custom content block ─────────────────────────────────────────────────────
 
-function CustomContentNote({ note, previewLines }: { note: ContentNote; previewLines: number }) {
-  const hasBody = !!note.body && note.body.trim() !== '' && note.body !== '<p><br></p>'
-  return (
-    <div className="rounded-lg p-4" style={{ background: 'var(--surface-1)' }}>
-      {note.heading && (
-        <h3 style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, lineHeight: 1.35 }}>
-          {note.heading}
-        </h3>
-      )}
-      {hasBody ? (
-        <div
-          className="prose-sm text-content-secondary"
-          style={{
-            fontSize: 14,
-            lineHeight: 1.65,
-            color: 'var(--text-secondary)',
-            display: '-webkit-box',
-            WebkitBoxOrient: 'vertical',
-            WebkitLineClamp: previewLines,
-            overflow: 'hidden',
-          }}
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: note.body }}
-        />
-      ) : (
-        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No content yet.</p>
-      )}
-    </div>
-  )
-}
-
 function CustomContentBlock({
   settings,
   label,
@@ -121,7 +91,12 @@ function CustomContentBlock({
       {label && label !== 'Custom content' && <SectionHeading>{label}</SectionHeading>}
       <div className={`grid gap-4 ${gridCols}`}>
         {displayNotes.map(note => (
-          <CustomContentNote key={note.id} note={note} previewLines={previewLines} />
+          <CustomContentNote
+            key={note.id}
+            heading={note.heading}
+            body={note.body}
+            previewLines={previewLines}
+          />
         ))}
       </div>
     </Section>

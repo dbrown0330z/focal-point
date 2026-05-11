@@ -15,7 +15,7 @@ export default async function RootPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any
   const [{ data: profile }, { data: clubSettings }] = await Promise.all([
-    supabase.from('profiles').select('display_name, role, membership_status, avatar_url').eq('id', user.id).single(),
+    supabase.from('profiles').select('first_name, display_name, role, membership_status, avatar_url').eq('id', user.id).single(),
     db.from('club_settings').select('club_name, homepage_blocks').single(),
   ])
   const clubName = clubSettings?.club_name ?? 'Focal Point'
@@ -34,7 +34,7 @@ export default async function RootPage() {
         {/* Greeting */}
         <div className="mx-auto w-full max-w-6xl px-4 pt-6 pb-2">
           <h1 style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 22, fontWeight: 700, letterSpacing: '-0.015em', color: 'var(--text-primary)' }}>
-            Welcome back, {profile.display_name}
+            Welcome back, {(profile as unknown as { first_name: string | null }).first_name || profile.display_name.split(' ')[0]}
           </h1>
         </div>
         {/* Homepage blocks (hero image, content, events, etc.) */}
