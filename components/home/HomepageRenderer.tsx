@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import HeroSlideshow from './HeroSlideshow'
 import CustomContentNote from './CustomContentNote'
 import { Grid6Gallery, Strip8Gallery } from './ImageGallery'
+import CompetitionsBlock from './CompetitionsBlock'
 import type {
   ContentBlock,
   ContentNote,
@@ -460,6 +461,11 @@ export default async function HomepageRenderer({
                 settings={block.spotlightSettings}
                 memberPhotoUrl={spotlightPhotoUrl}
               />
+            ) : null
+
+          case 'competitions':
+            return block.competitionsSettings ? (
+              <CompetitionsBlock key={block.id} settings={block.competitionsSettings} />
             ) : null
 
           case 'affiliations':

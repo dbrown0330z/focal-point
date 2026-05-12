@@ -36,6 +36,7 @@ import {
   type CustomContentSettings,
   type Affiliation,
   type AffiliationsSettings,
+  type CompetitionsSettings,
 } from '@/lib/homepage/types'
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -76,6 +77,10 @@ const MODAL_META: Record<string, { title: string; description: string }> = {
   'affiliations': {
     title:       'Affiliations & links',
     description: 'A row of logo badges linking to affiliated organisations, member societies, and social media accounts. Add up to 6 entries.',
+  },
+  'competitions': {
+    title:       'Competitions',
+    description: 'Auto-fed from your competition data. Shows open competitions with entry status, the most recently published results with score chart and top images, and upcoming competitions.',
   },
 }
 
@@ -498,6 +503,82 @@ function AffiliationsModalBody({ block, onChange }: { block: ContentBlock; onCha
   )
 }
 
+function CompetitionsModalBody({ block, onChange }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void }) {
+  const s = block.competitionsSettings!
+  const set = <K extends keyof CompetitionsSettings>(k: K, v: CompetitionsSettings[K]) =>
+    onChange({ competitionsSettings: { ...s, [k]: v } })
+
+  const ToggleRow = ({ label, hint, field }: { label: string; hint?: string; field: keyof CompetitionsSettings }) => (
+    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
+      <Box>
+        <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary' }}>{label}</Typography>
+        {hint && <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.25 }}>{hint}</Typography>}
+      </Box>
+      <Switch
+        size="small"
+        checked={!!s[field]}
+        onChange={e => set(field, e.target.checked as CompetitionsSettings[typeof field])}
+        sx={{ flexShrink: 0 }}
+      />
+    </Box>
+  )
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      <FieldRow label="Heading">
+        <TextField size="small" fullWidth value={s.heading}
+          onChange={e => set('heading', e.target.value)}
+          placeholder="Competitions" sx={inputSx} />
+      </FieldRow>
+
+      <Divider />
+
+      <ToggleRow label="Show score distribution chart" field="showScoreChart" />
+      <ToggleRow label="Show top images per category" field="showTopImages" />
+
+      {s.showTopImages && (
+        <FieldRow label="Categories shown (top images)">
+          <Box sx={{ display: 'flex', gap: 0.75 }}>
+            {([2, 3, 4] as (2 | 3 | 4)[]).map(n => (
+              <button key={n} onClick={() => set('topImageCount', n)} style={{
+                width: 36, height: 30, cursor: 'pointer', borderRadius: 4,
+                border: `1px solid ${s.topImageCount === n ? 'var(--action-primary)' : 'var(--border-default)'}`,
+                background: s.topImageCount === n ? 'rgba(30,77,140,0.07)' : 'var(--surface-2)',
+                color: s.topImageCount === n ? 'var(--action-primary)' : 'var(--text-secondary)',
+                fontSize: 13, fontWeight: 600, transition: 'all 0.1s',
+              }}>{n}</button>
+            ))}
+          </Box>
+        </FieldRow>
+      )}
+
+      <ToggleRow
+        label="Show member's own result"
+        hint="Shows the logged-in member their personal result from the most recent competition"
+        field="showMemberResult"
+      />
+
+      <Divider />
+
+      <ToggleRow label='Show "Coming soon" competitions' field="showComingSoon" />
+
+      <FieldRow label="Maximum open competitions shown">
+        <Box sx={{ display: 'flex', gap: 0.75 }}>
+          {([1, 2, 3] as (1 | 2 | 3)[]).map(n => (
+            <button key={n} onClick={() => set('maxOpenShown', n)} style={{
+              width: 36, height: 30, cursor: 'pointer', borderRadius: 4,
+              border: `1px solid ${s.maxOpenShown === n ? 'var(--action-primary)' : 'var(--border-default)'}`,
+              background: s.maxOpenShown === n ? 'rgba(30,77,140,0.07)' : 'var(--surface-2)',
+              color: s.maxOpenShown === n ? 'var(--action-primary)' : 'var(--text-secondary)',
+              fontSize: 13, fontWeight: 600, transition: 'all 0.1s',
+            }}>{n}</button>
+          ))}
+        </Box>
+      </FieldRow>
+    </Box>
+  )
+}
+
 // ── Block edit modal ───────────────────────────────────────────────────────────
 
 function BlockEditModal({
@@ -552,6 +633,7 @@ function BlockEditModal({
         {block.type === 'upcoming-events'  && <EventsModalBody           block={block} onChange={onUpdate} />}
         {block.type === 'custom-content'   && <CustomContentModalBody    block={block} onChange={onUpdate} />}
         {block.type === 'affiliations'     && <AffiliationsModalBody     block={block} onChange={onUpdate} />}
+        {block.type === 'competitions'     && <CompetitionsModalBody     block={block} onChange={onUpdate} />}
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
@@ -606,6 +688,10 @@ function getBlockSubtitle(block: ContentBlock): string | null {
         ? `${s.affiliations.length} entr${s.affiliations.length === 1 ? 'y' : 'ies'}`
         : 'no entries yet'
     }
+    case 'competitions': {
+      const s = block.competitionsSettings; if (!s) return null
+      return `Auto-fed · max ${s.maxOpenShown} open${s.showTopImages ? ` · ${s.topImageCount} cat` : ''}`
+    }
     default: return null
   }
 }
@@ -622,7 +708,7 @@ function BlockCard({
   onDragStart: () => void
   onDragOver:  (e: React.DragEvent) => void
 }) {
-  const configOnly = ['large-image','grid-6','strip-8','upcoming-events','member-spotlight'].includes(block.type)
+  const configOnly = ['large-image','grid-6','strip-8','upcoming-events','member-spotlight','competitions'].includes(block.type)
   const displayName = block.label ?? block.name
   const subtitle    = getBlockSubtitle(block)
 

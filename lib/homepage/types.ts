@@ -34,6 +34,16 @@ export interface AffiliationsSettings {
   maxColumns: number; affiliations: Affiliation[]
 }
 
+export interface CompetitionsSettings {
+  heading:          string
+  showScoreChart:   boolean
+  showTopImages:    boolean
+  topImageCount:    2 | 3 | 4
+  showMemberResult: boolean
+  showComingSoon:   boolean
+  maxOpenShown:     1 | 2 | 3
+}
+
 export interface ContentBlock {
   id:                      string
   name:                    string
@@ -49,6 +59,7 @@ export interface ContentBlock {
   eventsSettings?:         EventsSettings
   customContentSettings?:  CustomContentSettings
   affiliationsSettings?:   AffiliationsSettings
+  competitionsSettings?:   CompetitionsSettings
 }
 
 export const DEFAULT_BLOCKS: ContentBlock[] = [
@@ -84,6 +95,18 @@ export const DEFAULT_BLOCKS: ContentBlock[] = [
   {
     id: 'member-spotlight', name: 'Member spotlight', type: 'member-spotlight', enabled: true,
     spotlightSettings: { mode: 'automatic', memberName: '' },
+  },
+  {
+    id: 'competitions', name: 'Competitions', type: 'competitions', enabled: true,
+    competitionsSettings: {
+      heading:          'Competitions',
+      showScoreChart:   true,
+      showTopImages:    true,
+      topImageCount:    4,
+      showMemberResult: true,
+      showComingSoon:   true,
+      maxOpenShown:     2,
+    },
   },
   {
     id: 'affiliations', name: 'Affiliations & links', type: 'affiliations', enabled: true,
