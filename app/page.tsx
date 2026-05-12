@@ -26,7 +26,12 @@ export default async function RootPage() {
 
   if (profile.membership_status === 'active' && profile.role) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const blocks: ContentBlock[] = (clubSettings as any)?.homepage_blocks ?? DEFAULT_BLOCKS
+    const saved: ContentBlock[] = (clubSettings as any)?.homepage_blocks ?? DEFAULT_BLOCKS
+    const savedIds = new Set(saved.map(b => b.id))
+    const blocks: ContentBlock[] = [
+      ...saved,
+      ...DEFAULT_BLOCKS.filter(d => !savedIds.has(d.id)),
+    ]
 
     return (
       <div className="flex min-h-screen flex-col">

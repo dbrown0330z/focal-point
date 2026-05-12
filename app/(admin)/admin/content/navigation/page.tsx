@@ -15,7 +15,13 @@ export default async function NavigationPage() {
     (supabase as any).from('club_settings').select('homepage_blocks').single(),
   ])
 
-  const homepageBlocks: ContentBlock[] = clubSettings?.homepage_blocks ?? DEFAULT_BLOCKS
+  const saved: ContentBlock[] = clubSettings?.homepage_blocks ?? DEFAULT_BLOCKS
+  // Append any block types added to DEFAULT_BLOCKS since the last save
+  const savedIds = new Set(saved.map((b: ContentBlock) => b.id))
+  const homepageBlocks: ContentBlock[] = [
+    ...saved,
+    ...DEFAULT_BLOCKS.filter(d => !savedIds.has(d.id)),
+  ]
 
   return (
     <NavigationClient
