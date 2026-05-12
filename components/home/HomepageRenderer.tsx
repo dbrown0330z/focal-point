@@ -347,14 +347,41 @@ export default async function HomepageRenderer({
   const eventsBlock = enabled.find(b => b.type === 'upcoming-events')
   let events: CalendarEvent[] = []
   if (eventsBlock) {
-    const limit = eventsBlock.eventsSettings?.count ?? 5
-    const { data } = await supabase
-      .from('calendar_events')
-      .select('id, title, starts_at, ends_at, all_day, event_type, location')
-      .gte('starts_at', new Date().toISOString())
-      .order('starts_at')
-      .limit(limit)
-    events = (data ?? []) as CalendarEvent[]
+    const limit  = eventsBlock.eventsSettings?.count ?? 5
+    const nowIso = new Date().toISOString()
+
+    // Manual calendar events + upcoming competition milestones in parallel
+    const [{ data: calData }, { data: compData }] = await Promise.all([
+      supabase
+        .from('calendar_events')
+        .select('id, title, starts_at, ends_at, all_day, event_type, location')
+        .gte('starts_at', nowIso)
+        .order('starts_at'),
+      supabase
+        .from('competitions')
+        .select('id, title, short_title, opens_at, closes_at, status')
+        .in('status', ['draft', 'open'])
+        .or(`opens_at.gte.${nowIso},closes_at.gte.${nowIso}`)
+        .order('opens_at', { ascending: true, nullsFirst: false }),
+    ])
+
+    // Synthesise competition milestones as CalendarEvent-shaped objects
+    type CompRow = { id: string; title: string; short_title: string | null; opens_at: string | null; closes_at: string | null; status: string }
+    const compEvents: CalendarEvent[] = []
+    for (const c of (compData ?? []) as CompRow[]) {
+      const name = c.short_title?.trim() || c.title
+      if (c.status === 'draft' && c.opens_at && c.opens_at >= nowIso) {
+        compEvents.push({ id: `${c.id}-opens`, title: name, starts_at: c.opens_at, ends_at: null, all_day: true, event_type: 'submission_open', location: null })
+      }
+      if (c.status === 'open' && c.closes_at && c.closes_at >= nowIso) {
+        compEvents.push({ id: `${c.id}-closes`, title: name, starts_at: c.closes_at, ends_at: null, all_day: true, event_type: 'submission_closed', location: null })
+      }
+    }
+
+    // Merge, sort chronologically, apply limit
+    const all = [...(calData ?? []) as CalendarEvent[], ...compEvents]
+    all.sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+    events = all.slice(0, limit)
   }
 
   // ── Fetch images for grid-6 / strip-8 ────────────────────────────────────
