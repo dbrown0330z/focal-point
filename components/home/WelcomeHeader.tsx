@@ -87,10 +87,10 @@ export default async function WelcomeHeader({
     { count: memberCount },
     { count: imageCount },
   ] = await Promise.all([
-    // Open competitions sorted by earliest close date
+    // Open competitions sorted by earliest close date — include submission_limit
     supabase
       .from('competitions')
-      .select('id, title, short_title, closes_at')
+      .select('id, title, short_title, closes_at, submission_limit')
       .eq('status', 'open')
       .order('closes_at', { ascending: true, nullsFirst: false })
       .limit(2),
@@ -114,20 +114,46 @@ export default async function WelcomeHeader({
       .eq('owner_id', userId),
   ])
 
-  // ── Build summary sentence ─────────────────────────────────────────────────
-  type CompRow = { id: string; title: string; short_title: string | null; closes_at?: string | null; opens_at?: string | null }
+  // ── Fetch member's submission count for the first open competition ─────────
+  type CompRow = { id: string; title: string; short_title: string | null; closes_at?: string | null; opens_at?: string | null; submission_limit?: number | null }
   const firstOpen = (openComps as CompRow[] | null)?.[0] ?? null
+
+  let memberSubmissionCount = 0
+  if (firstOpen) {
+    const { count } = await supabase
+      .from('submissions')
+      .select('id', { count: 'exact', head: true })
+      .eq('competition_id', firstOpen.id)
+      .eq('member_id', userId)
+      .eq('status', 'submitted')
+    memberSubmissionCount = count ?? 0
+  }
+
+  // ── Build summary sentences ────────────────────────────────────────────────
   const firstUpcoming = (upcomingComps as CompRow[] | null)?.[0] ?? null
-  const openCount = (openComps as CompRow[] | null)?.length ?? 0
+  const openCount     = (openComps as CompRow[] | null)?.length ?? 0
 
   let summaryNode: React.ReactNode = null
   if (firstOpen) {
     const name  = firstOpen.short_title?.trim() || firstOpen.title
     const until = firstOpen.closes_at ? ` — closes ${formatRelative(firstOpen.closes_at)}` : ''
     const extra = openCount > 1 ? ` ${openCount - 1} other competition${openCount > 2 ? 's are' : ' is'} also open.` : ''
+
+    // Second sentence: member's entry status
+    const limit = firstOpen.submission_limit ?? 3
+    let entrySentence: React.ReactNode = null
+    if (memberSubmissionCount === 0) {
+      entrySentence = <>You haven't entered yet — you can submit up to <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{limit} {limit === 1 ? 'image' : 'images'}</strong>.</>
+    } else if (memberSubmissionCount < limit) {
+      entrySentence = <>You've entered <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{memberSubmissionCount} of {limit}</strong> {limit === 1 ? 'image' : 'images'} so far.</>
+    } else {
+      entrySentence = <>You've submitted all <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{limit} {limit === 1 ? 'image' : 'images'}</strong> — you're all set!</>
+    }
+
     summaryNode = (
       <>
         Submissions for the <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{name}</strong> competition are open{until}.{extra && <> {extra}</>}
+        {' '}{entrySentence}
       </>
     )
   } else if (firstUpcoming) {
