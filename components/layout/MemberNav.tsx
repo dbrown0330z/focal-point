@@ -236,7 +236,7 @@ export default function MemberNav({
     exact ? pathname === href : pathname === href || pathname.startsWith(href + '/')
 
   return (
-    <header className="border-b border-border-default bg-surface-2">
+    <header className="sticky top-0 z-40 border-b border-border-default backdrop-blur-md bg-[rgba(245,245,245,0.82)] dark:bg-[rgba(30,30,30,0.85)]">
       <div className="mx-auto grid h-14 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4">
 
         {/* Left: camera icon + club name */}
