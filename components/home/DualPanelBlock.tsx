@@ -372,18 +372,20 @@ export default async function DualPanelBlock() {
         {/* ── RIGHT: Competitions ─────────────────────────────────────────── */}
         <div className="md:pl-8">
 
-          <h2 style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 16 }}>
-            Competitions
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h2 style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', lineHeight: 1.3 }}>
+              Competitions
+            </h2>
+            <Link href="/competitions" style={{ fontSize: 13, fontWeight: 500, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0 }}>
+              View all →
+            </Link>
+          </div>
 
           {!openComp && !recentComp ? (
-            <div style={{ textAlign: 'center', padding: '24px 0' }}>
-              <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic', marginBottom: 12 }}>
+            <div style={{ padding: '24px 0' }}>
+              <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
                 No active competitions right now.
               </p>
-              <Link href="/competitions" style={{ fontSize: 13, fontWeight: 600, color: 'var(--action-primary)', textDecoration: 'none' }}>
-                View all competitions →
-              </Link>
             </div>
           ) : (
             <>
@@ -544,12 +546,6 @@ export default async function DualPanelBlock() {
                 </div>
               )}
 
-              {/* Footer link */}
-              <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
-                <Link href="/competitions" style={{ fontSize: 13, fontWeight: 600, color: 'var(--action-primary)', textDecoration: 'none' }}>
-                  View all competitions →
-                </Link>
-              </div>
             </>
           )}
         </div>
