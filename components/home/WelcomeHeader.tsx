@@ -160,7 +160,7 @@ export default async function WelcomeHeader({
           <h1 style={{
             fontFamily:    'var(--font-lora, Georgia, serif)',
             fontSize:      'clamp(30px, 3.5vw, 50px)',
-            fontWeight:    700,
+            fontWeight:    400,
             color:         'var(--text-primary)',
             lineHeight:    1.1,
             letterSpacing: '-0.02em',
@@ -171,7 +171,7 @@ export default async function WelcomeHeader({
 
           {summaryNode && (
             <p style={{
-              fontSize:  14,
+              fontSize:  16,
               color:     'var(--text-secondary)',
               lineHeight: 1.65,
               maxWidth:  480,
