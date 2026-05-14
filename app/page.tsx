@@ -19,7 +19,7 @@ export default async function RootPage() {
     supabase.from('profiles').select('first_name, display_name, role, membership_status, avatar_url').eq('id', user.id).single(),
     db.from('club_settings').select('club_name, homepage_blocks').single(),
   ])
-  const clubName = clubSettings?.club_name ?? 'Focal Point'
+  const clubName = clubSettings?.club_name?.trim() || 'Focal Point'
 
   if (!profile) return <MarketingPage />
 

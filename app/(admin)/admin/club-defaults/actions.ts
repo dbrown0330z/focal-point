@@ -1,12 +1,12 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 const PATH = '/admin/club-defaults'
 
 export async function saveMemberClassesEnabled(enabled: boolean): Promise<{ error?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error } = await supabase
     .from('club_settings')
     .update({ member_classes_enabled: enabled, updated_at: new Date().toISOString() })
@@ -27,18 +27,20 @@ export async function saveClubSettings(data: {
   season_end_month: number
   member_directory_visibility: string
 }): Promise<{ error?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error } = await supabase
     .from('club_settings')
     .update({ ...data, updated_at: new Date().toISOString() })
     .neq('id', '00000000-0000-0000-0000-000000000000') // matches the single row
   if (error) return { error: error.message }
   revalidatePath(PATH)
+  revalidatePath('/')        // refresh member homepage so nav shows updated club name
+  revalidatePath('/', 'layout') // also refresh the shared layout
   return {}
 }
 
 export async function updateDefaultLocation(id: string | null): Promise<{ error?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error } = await supabase
     .from('club_settings')
     .update({ default_meeting_location_id: id })
@@ -49,7 +51,7 @@ export async function updateDefaultLocation(id: string | null): Promise<{ error?
 }
 
 export async function uploadClubLogo(formData: FormData): Promise<{ error?: string; url?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const file = formData.get('logo') as File | null
   if (!file) return { error: 'No file provided' }
 
@@ -73,7 +75,7 @@ export async function uploadClubLogo(formData: FormData): Promise<{ error?: stri
 }
 
 export async function addMeetingLocation(name: string, address: string | null): Promise<{ error?: string; id?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('meeting_locations')
     .insert({ name: name.trim(), address: address?.trim() || null })
@@ -85,7 +87,7 @@ export async function addMeetingLocation(name: string, address: string | null): 
 }
 
 export async function deleteMeetingLocation(id: string): Promise<{ error?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error } = await supabase.from('meeting_locations').delete().eq('id', id)
   if (error) return { error: error.message }
   revalidatePath(PATH)
@@ -93,7 +95,7 @@ export async function deleteMeetingLocation(id: string): Promise<{ error?: strin
 }
 
 export async function addMemberClass(name: string, description: string): Promise<{ error?: string; id?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('member_classes')
     .insert({ name: name.trim(), description: description.trim() || null })
@@ -105,7 +107,7 @@ export async function addMemberClass(name: string, description: string): Promise
 }
 
 export async function deleteMemberClass(id: string): Promise<{ error?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error } = await supabase.from('member_classes').delete().eq('id', id)
   if (error) return { error: error.message }
   revalidatePath(PATH)
@@ -113,7 +115,7 @@ export async function deleteMemberClass(id: string): Promise<{ error?: string }>
 }
 
 export async function updateMemberClass(id: string, name: string, description: string): Promise<{ error?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error } = await supabase
     .from('member_classes')
     .update({ name: name.trim(), description: description.trim() || null })
@@ -124,7 +126,7 @@ export async function updateMemberClass(id: string, name: string, description: s
 }
 
 export async function addCompetitionDefaultCategory(name: string): Promise<{ error?: string; id?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { data: existing } = await supabase
     .from('competition_default_categories')
     .select('sort_order')
@@ -143,7 +145,7 @@ export async function addCompetitionDefaultCategory(name: string): Promise<{ err
 }
 
 export async function deleteCompetitionDefaultCategory(id: string): Promise<{ error?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error } = await supabase.from('competition_default_categories').delete().eq('id', id)
   if (error) return { error: error.message }
   revalidatePath(PATH)
@@ -151,7 +153,7 @@ export async function deleteCompetitionDefaultCategory(id: string): Promise<{ er
 }
 
 export async function renameCompetitionDefaultCategory(id: string, name: string): Promise<{ error?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error } = await supabase
     .from('competition_default_categories')
     .update({ name: name.trim() })
@@ -185,7 +187,7 @@ export async function saveCompetitionDefaults(data: {
   results_visibility:             string
   results_visibility_delay_hours: number
 }): Promise<{ error?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error } = await supabase
     .from('competition_defaults')
     .update({ ...data, updated_at: new Date().toISOString() })
@@ -196,7 +198,7 @@ export async function saveCompetitionDefaults(data: {
 }
 
 export async function createDefaultMemberClasses(): Promise<{ error?: string; classes?: { id: string; name: string }[] }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const defaults = [
     { name: 'Class A', sort_order: 0 },
     { name: 'Class B', sort_order: 1 },
@@ -215,7 +217,7 @@ export async function createDefaultMemberClasses(): Promise<{ error?: string; cl
 
 /** Mark the default template as reviewed/accepted without editing. */
 export async function acceptDefaultTerms(): Promise<{ error?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error } = await supabase
     .from('club_settings')
     .update({
@@ -230,7 +232,7 @@ export async function acceptDefaultTerms(): Promise<{ error?: string }> {
 
 /** Save edited default template content (also marks as reviewed). */
 export async function saveTermsContent(content: string): Promise<{ error?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error } = await supabase
     .from('club_settings')
     .update({
@@ -249,7 +251,7 @@ export async function saveTermsContent(content: string): Promise<{ error?: strin
 export async function uploadTermsFile(
   formData: FormData
 ): Promise<{ error?: string; filePath?: string; fileName?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const file = formData.get('file') as File | null
   if (!file) return { error: 'No file provided' }
 
@@ -291,7 +293,7 @@ export async function uploadTermsFile(
 
 /** Remove the custom document and revert to the default template. */
 export async function removeTermsFile(): Promise<{ error?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error } = await supabase
     .from('club_settings')
     .update({
