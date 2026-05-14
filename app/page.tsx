@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import MemberNav from '@/components/layout/MemberNav'
 import HomepageRenderer from '@/components/home/HomepageRenderer'
+import WelcomeHeader from '@/components/home/WelcomeHeader'
 import { DEFAULT_BLOCKS, type ContentBlock } from '@/lib/homepage/types'
 
 export default async function RootPage() {
@@ -37,11 +38,10 @@ export default async function RootPage() {
       <div className="flex min-h-screen flex-col">
         <MemberNav clubName={clubName} displayName={profile.display_name} email={user.email ?? ''} role={profile.role} avatarUrl={(profile as unknown as { avatar_url: string | null }).avatar_url ?? null} />
         {/* Greeting */}
-        <div className="mx-auto w-full max-w-6xl px-4 pt-6 pb-2">
-          <h1 style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 22, fontWeight: 700, letterSpacing: '-0.015em', color: 'var(--text-primary)' }}>
-            Welcome back, {(profile as unknown as { first_name: string | null }).first_name || profile.display_name.split(' ')[0]}
-          </h1>
-        </div>
+        <WelcomeHeader
+          firstName={(profile as unknown as { first_name: string | null }).first_name || profile.display_name.split(' ')[0]}
+          userId={user.id}
+        />
         {/* Homepage blocks (hero image, content, events, etc.) */}
         <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-10">
           <HomepageRenderer blocks={blocks} clubName={clubName} />
