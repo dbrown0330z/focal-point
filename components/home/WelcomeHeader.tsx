@@ -24,21 +24,38 @@ function formatRelative(iso: string): string {
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 
+function TrophyIcon() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      style={{ width: 18, height: 18, flexShrink: 0, color: '#C9A84C' }}
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        d="M10 1a1 1 0 01.894.553l1.618 3.278 3.618.526a1 1 0 01.554 1.706l-2.618 2.551.618 3.602a1 1 0 01-1.451 1.054L10 12.347l-3.233 1.699a1 1 0 01-1.451-1.054l.618-3.602L3.316 7.063a1 1 0 01.554-1.706l3.618-.526L9.106 1.553A1 1 0 0110 1z"
+        clipRule="evenodd"
+      />
+    </svg>
+  )
+}
+
 function StatCard({
   label,
   value,
-  sub,
-  highlight = false,
+  valueSuffix,
+  icon,
 }: {
-  label:     string
-  value:     string
-  sub?:      string
-  highlight?: boolean
+  label:        string
+  value:        string
+  valueSuffix?: string   // rendered smaller, inline after the value
+  icon?:        React.ReactNode
 }) {
   return (
     <div
       className="rounded-xl flex-shrink-0"
-      style={{ background: 'var(--surface-1)', padding: '14px 18px', minWidth: 112 }}
+      style={{ background: 'var(--surface-1)', padding: '14px 18px', minWidth: 120 }}
     >
       <p style={{
         fontSize:      10,
@@ -46,24 +63,38 @@ function StatCard({
         letterSpacing: '0.07em',
         textTransform: 'uppercase',
         color:         'var(--text-tertiary)',
-        marginBottom:  6,
+        marginBottom:  8,
         whiteSpace:    'nowrap',
       }}>
         {label}
       </p>
-      <p style={{
-        fontSize:   24,
-        fontWeight: 700,
-        lineHeight: 1.15,
-        color:      highlight ? 'var(--action-primary)' : 'var(--text-primary)',
-      }}>
-        {value}
-      </p>
-      {sub && (
-        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
-          {sub}
-        </p>
-      )}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+        {icon && (
+          <span style={{ display: 'flex', alignItems: 'center', marginBottom: 2 }}>
+            {icon}
+          </span>
+        )}
+        <span style={{
+          fontFamily: 'var(--font-lora, Georgia, serif)',
+          fontSize:   26,
+          fontWeight: 700,
+          lineHeight: 1.1,
+          color:      'var(--text-primary)',
+        }}>
+          {value}
+        </span>
+        {valueSuffix && (
+          <span style={{
+            fontFamily: 'var(--font-lora, Georgia, serif)',
+            fontSize:   14,
+            fontWeight: 400,
+            color:      'var(--text-tertiary)',
+            lineHeight: 1,
+          }}>
+            {valueSuffix}
+          </span>
+        )}
+      </div>
     </div>
   )
 }
@@ -210,17 +241,18 @@ export default async function WelcomeHeader({
         {/* ── Right: stat cards ──────────────────────────────────────────── */}
         <div className="flex gap-3 self-center flex-shrink-0">
           <StatCard
-            label="Active members"
-            value={String(memberCount ?? '—')}
+            label="Submissions"
+            value="23"
           />
           <StatCard
-            label="Open now"
-            value={String(openCount)}
-            highlight={openCount > 0}
+            label="Benchmark Status"
+            value="BM3"
+            icon={<TrophyIcon />}
           />
           <StatCard
-            label="Your images"
-            value={String(imageCount ?? 0)}
+            label="POY Rank"
+            value="12"
+            valueSuffix="of 38"
           />
         </div>
 
