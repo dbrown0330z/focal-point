@@ -33,7 +33,7 @@ function fmtTime(iso: string, allDay: boolean) {
 function dn(c: { title: string; short_title?: string | null }) {
   return c.short_title?.trim() || c.title
 }
-function f(n: number) { return n.toFixed(1) }
+function fp(n: number) { return n.toFixed(1) }
 function ordinal(n: number) {
   const s = ['th', 'st', 'nd', 'rd'], v = n % 100
   return n + (s[(v - 20) % 10] ?? s[v] ?? s[0])
@@ -41,7 +41,7 @@ function ordinal(n: number) {
 
 // ─── Donut chart ──────────────────────────────────────────────────────────────
 
-type DonutSlice = { value: number; color: string; label: string }
+type DonutSlice = { value: number; color: string }
 
 function DonutChart({ slices, total }: { slices: DonutSlice[]; total: number }) {
   const SIZE = 64, CX = 32, CY = 32, R = 28, INNER = 14
@@ -75,7 +75,7 @@ function DonutChart({ slices, total }: { slices: DonutSlice[]; total: number }) 
 
     return (
       <path key={i}
-        d={`M ${f(ox1)} ${f(oy1)} A ${R} ${R} 0 ${lg} 1 ${f(ox2)} ${f(oy2)} L ${f(ix2)} ${f(iy2)} A ${INNER} ${INNER} 0 ${lg} 0 ${f(ix1)} ${f(iy1)} Z`}
+        d={`M ${ox1.toFixed(1)} ${oy1.toFixed(1)} A ${R} ${R} 0 ${lg} 1 ${ox2.toFixed(1)} ${oy2.toFixed(1)} L ${ix2.toFixed(1)} ${iy2.toFixed(1)} A ${INNER} ${INNER} 0 ${lg} 0 ${ix1.toFixed(1)} ${iy1.toFixed(1)} Z`}
         fill={slice.color}
       />
     )
@@ -83,12 +83,9 @@ function DonutChart({ slices, total }: { slices: DonutSlice[]; total: number }) 
 
   return (
     <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ flexShrink: 0 }} aria-hidden="true">
-      {/* Background disc */}
       <circle cx={CX} cy={CY} r={R} fill="var(--surface-1)" />
       {paths}
-      {/* Donut hole */}
       <circle cx={CX} cy={CY} r={INNER} fill="var(--surface-0)" />
-      {/* Total in centre */}
       <text x={CX} y={CY - 2}  textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--text-primary)">{total}</text>
       <text x={CX} y={CY + 9}  textAnchor="middle" fontSize="7"                   fill="var(--text-tertiary)">IMGS</text>
     </svg>
@@ -133,7 +130,7 @@ export default async function DualPanelBlock() {
   const userId = user?.id ?? null
   const nowIso = new Date().toISOString()
 
-  // ── Parallel round 1: events, open comp, recent results heading ───────────
+  // ── Round 1: events feeds + competition headings (all parallel) ───────────
   const [
     { data: calData },
     { data: compMilestoneData },
@@ -185,130 +182,125 @@ export default async function DualPanelBlock() {
   allEvents.sort((a, b) => a.starts_at.localeCompare(b.starts_at))
   const events = allEvents.slice(0, 5)
 
-  // ── Parallel round 2: open-comp details + recent-results details ──────────
-  let openComp:   OpenCompData     | null = null
-  let recentComp: RecentResultData | null = null
+  // ── Round 2: competition details (typed async IIFEs → const) ─────────────
+  //  Using typed return values avoids TypeScript narrowing mutable vars to `never`.
+  const [openComp, recentComp]: [OpenCompData | null, RecentResultData | null] = await Promise.all([
 
-  const detailPromises: Promise<void>[] = []
+    // Open competition details
+    (async (): Promise<OpenCompData | null> => {
+      if (!openCompRaw) return null
+      const compId = openCompRaw.id
 
-  if (openCompRaw) {
-    const compId = openCompRaw.id
-    detailPromises.push(
-      (async () => {
-        const [{ data: catsRaw }, { data: subsRaw }, memberRes] = await Promise.all([
-          supabase
-            .from('competition_categories')
-            .select('id, name')
-            .eq('competition_id', compId)
-            .order('created_at'),
-          supabase
-            .from('submissions')
-            .select('category_id')
-            .eq('competition_id', compId)
-            .eq('status', 'submitted'),
-          userId
-            ? supabase
-                .from('submissions')
-                .select('id', { count: 'exact', head: true })
-                .eq('competition_id', compId)
-                .eq('member_id', userId)
-                .eq('status', 'submitted')
-            : Promise.resolve({ count: 0 }),
-        ])
-
-        const catCounts: Record<string, number> = {}
-        for (const s of (subsRaw ?? [])) catCounts[s.category_id] = (catCounts[s.category_id] ?? 0) + 1
-
-        openComp = {
-          id:               compId,
-          title:            openCompRaw.title,
-          short_title:      openCompRaw.short_title,
-          closes_at:        openCompRaw.closes_at,
-          submission_limit: openCompRaw.submission_limit ?? 3,
-          totalEntries:     (subsRaw ?? []).length,
-          memberUsed:       memberRes?.count ?? 0,
-          categories:       (catsRaw ?? []).map((c: { id: string; name: string }) => ({
-            id:    c.id,
-            name:  c.name,
-            count: catCounts[c.id] ?? 0,
-          })),
-        }
-      })()
-    )
-  }
-
-  if (recentCompRaw) {
-    const compId = recentCompRaw.id
-    detailPromises.push(
-      (async () => {
-        const { data: subsRaw } = await supabase
-          .from('submissions')
-          .select('id, category_id, member_id, images(id, storage_path, title), profiles!member_id(id, display_name)')
+      const [{ data: catsRaw }, { data: subsRaw }, memberRes] = await Promise.all([
+        supabase
+          .from('competition_categories')
+          .select('id, name')
           .eq('competition_id', compId)
-          .eq('status', 'submitted')
+          .order('created_at'),
+        supabase
+          .from('submissions')
+          .select('category_id')
+          .eq('competition_id', compId)
+          .eq('status', 'submitted'),
+        userId
+          ? supabase
+              .from('submissions')
+              .select('id', { count: 'exact', head: true })
+              .eq('competition_id', compId)
+              .eq('member_id', userId)
+              .eq('status', 'submitted')
+          : Promise.resolve({ count: 0 }),
+      ])
 
-        const submissionIds: string[] = (subsRaw ?? []).map((s: { id: string }) => s.id)
+      const catCounts: Record<string, number> = {}
+      for (const s of (subsRaw ?? [])) catCounts[s.category_id] = (catCounts[s.category_id] ?? 0) + 1
 
-        const { data: scoresRaw } = await supabase
-          .from('scores')
-          .select('submission_id, score')
-          .in('submission_id', submissionIds.length > 0 ? submissionIds : ['00000000-0000-0000-0000-000000000000'])
+      return {
+        id:               compId,
+        title:            openCompRaw.title,
+        short_title:      openCompRaw.short_title,
+        closes_at:        openCompRaw.closes_at,
+        submission_limit: openCompRaw.submission_limit ?? 3,
+        totalEntries:     (subsRaw ?? []).length,
+        memberUsed:       memberRes?.count ?? 0,
+        categories:       (catsRaw ?? []).map((c: { id: string; name: string }) => ({
+          id:    c.id,
+          name:  c.name,
+          count: catCounts[c.id] ?? 0,
+        })),
+      }
+    })(),
 
-        type ScoreRow = { submission_id: string; score: number }
-        const scoreMap: Record<string, number[]> = {}
-        for (const r of (scoresRaw ?? []) as ScoreRow[]) {
-          if (!scoreMap[r.submission_id]) scoreMap[r.submission_id] = []
-          scoreMap[r.submission_id].push(r.score)
+    // Recent results details
+    (async (): Promise<RecentResultData | null> => {
+      if (!recentCompRaw) return null
+      const compId = recentCompRaw.id
+
+      const { data: subsRaw } = await supabase
+        .from('submissions')
+        .select('id, category_id, member_id, images(id, storage_path, title), profiles!member_id(id, display_name)')
+        .eq('competition_id', compId)
+        .eq('status', 'submitted')
+
+      const submissionIds: string[] = (subsRaw ?? []).map((s: { id: string }) => s.id)
+
+      const { data: scoresRaw } = await supabase
+        .from('scores')
+        .select('submission_id, score')
+        .in('submission_id', submissionIds.length > 0 ? submissionIds : ['00000000-0000-0000-0000-000000000000'])
+
+      type ScoreRow = { submission_id: string; score: number }
+      const scoreMap: Record<string, number[]> = {}
+      for (const r of (scoresRaw ?? []) as ScoreRow[]) {
+        if (!scoreMap[r.submission_id]) scoreMap[r.submission_id] = []
+        scoreMap[r.submission_id].push(r.score)
+      }
+
+      type SubRow = {
+        id: string; category_id: string; member_id: string
+        images:   { storage_path: string; title: string } | null
+        profiles: { id: string; display_name: string } | null
+      }
+
+      const scored: { id: string; catId: string; memberId: string; path: string; title: string; memberName: string; avg: number }[] = []
+      for (const sub of (subsRaw ?? []) as SubRow[]) {
+        if (!sub.images || !sub.profiles) continue
+        const scores = scoreMap[sub.id]
+        if (!scores || scores.length === 0) continue
+        const avg = scores.reduce((a: number, b: number) => a + b, 0) / scores.length
+        scored.push({ id: sub.id, catId: sub.category_id, memberId: sub.member_id, path: sub.images.storage_path, title: sub.images.title, memberName: sub.profiles.display_name, avg })
+      }
+
+      const top3 = [...scored].sort((a, b) => b.avg - a.avg).slice(0, 3)
+
+      let memberResult: RecentResultData['memberResult'] = null
+      if (userId) {
+        const memberSubs = scored.filter(s => s.memberId === userId).sort((a, b) => b.avg - a.avg)
+        if (memberSubs.length > 0) {
+          const best      = memberSubs[0]
+          const catSubs   = scored.filter(s => s.catId === best.catId).sort((a, b) => b.avg - a.avg)
+          const placement = catSubs.findIndex(s => s.id === best.id) + 1
+          const { data: catRow } = await supabase
+            .from('competition_categories').select('name').eq('id', best.catId).maybeSingle()
+          memberResult = { imageTitle: best.title, score: best.avg, placement, categoryName: catRow?.name ?? 'Unknown' }
         }
+      }
 
-        type SubRow = {
-          id: string; category_id: string; member_id: string
-          images:   { storage_path: string; title: string } | null
-          profiles: { id: string; display_name: string } | null
-        }
-
-        const scored: { id: string; catId: string; memberId: string; path: string; title: string; memberName: string; avg: number }[] = []
-        for (const sub of (subsRaw ?? []) as SubRow[]) {
-          if (!sub.images || !sub.profiles) continue
-          const scores = scoreMap[sub.id]
-          if (!scores || scores.length === 0) continue
-          const avg = scores.reduce((a: number, b: number) => a + b, 0) / scores.length
-          scored.push({ id: sub.id, catId: sub.category_id, memberId: sub.member_id, path: sub.images.storage_path, title: sub.images.title, memberName: sub.profiles.display_name, avg })
-        }
-
-        const top3 = [...scored].sort((a, b) => b.avg - a.avg).slice(0, 3)
-
-        let memberResult: RecentResultData['memberResult'] = null
-        if (userId) {
-          const memberSubs = scored.filter(s => s.memberId === userId).sort((a, b) => b.avg - a.avg)
-          if (memberSubs.length > 0) {
-            const best       = memberSubs[0]
-            const catSubs    = scored.filter(s => s.catId === best.catId).sort((a, b) => b.avg - a.avg)
-            const placement  = catSubs.findIndex(s => s.id === best.id) + 1
-            const { data: catRow } = await supabase
-              .from('competition_categories').select('name').eq('id', best.catId).maybeSingle()
-            memberResult = { imageTitle: best.title, score: best.avg, placement, categoryName: catRow?.name ?? 'Unknown' }
-          }
-        }
-
-        recentComp = {
-          id:          compId,
-          title:       recentCompRaw.title,
-          short_title: recentCompRaw.short_title,
-          totalImages: scored.length,
-          topImages:   top3.map(s => ({
-            publicUrl:  supabaseRaw.storage.from('images').getPublicUrl(s.path).data.publicUrl,
-            title:      s.title,
-            memberName: s.memberName,
-            score:      s.avg,
-          })),
-          memberResult,
-        }
-      })()
-    )
-  }
-
-  await Promise.all(detailPromises)
+      return {
+        id:          compId,
+        title:       recentCompRaw.title,
+        short_title: recentCompRaw.short_title,
+        totalImages: scored.length,
+        topImages:   top3.map(s => ({
+          publicUrl:  supabaseRaw.storage.from('images').getPublicUrl(s.path).data.publicUrl,
+          title:      s.title,
+          memberName: s.memberName,
+          score:      s.avg,
+        })),
+        memberResult,
+      }
+    })(),
+  ])
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
@@ -330,7 +322,7 @@ export default async function DualPanelBlock() {
           {events.length === 0 ? (
             <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No upcoming events scheduled.</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
               {events.map((ev, i) => {
                 const cfg  = EVT[ev.event_type] ?? EVT_DEFAULT
                 const time = fmtTime(ev.starts_at, ev.all_day)
@@ -338,14 +330,12 @@ export default async function DualPanelBlock() {
 
                 return (
                   <div key={ev.id} style={{
-                    display:       'flex',
-                    alignItems:    'center',
-                    gap:           12,
-                    padding:       '11px 0',
-                    borderTop:     i === 0 ? 'none' : '1px solid var(--border-subtle)',
-                    borderLeft:    `3px solid ${cfg.accent}`,
-                    paddingLeft:   12,
-                    marginLeft:    0,
+                    display:     'flex',
+                    alignItems:  'center',
+                    gap:         12,
+                    padding:     '11px 0 11px 12px',
+                    borderTop:   i === 0 ? 'none' : '1px solid var(--border-subtle)',
+                    borderLeft:  `3px solid ${cfg.accent}`,
                   }}>
                     {/* Event info */}
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -359,16 +349,16 @@ export default async function DualPanelBlock() {
                       </p>
                     </div>
 
-                    {/* Type chip — solid colour matching calendar */}
+                    {/* Type chip */}
                     <span style={{
-                      flexShrink:      0,
-                      fontSize:        11,
-                      fontWeight:      600,
-                      background:      cfg.bg,
-                      color:           cfg.text,
-                      borderRadius:    4,
-                      padding:         '3px 8px',
-                      letterSpacing:   '0.02em',
+                      flexShrink:    0,
+                      fontSize:      11,
+                      fontWeight:    600,
+                      background:    cfg.bg,
+                      color:         cfg.text,
+                      borderRadius:  4,
+                      padding:       '3px 8px',
+                      letterSpacing: '0.02em',
                     }}>
                       {cfg.label}
                     </span>
@@ -400,12 +390,10 @@ export default async function DualPanelBlock() {
               {/* ── Top zone: open competition ─────────────────────────── */}
               {openComp ? (
                 <div style={{ marginBottom: recentComp ? 20 : 0 }}>
-                  {/* Zone label */}
                   <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--status-success-text)', marginBottom: 10 }}>
                     Open now
                   </p>
 
-                  {/* Competition card */}
                   <div style={{
                     background:   'var(--surface-1)',
                     borderRadius: 10,
@@ -413,37 +401,37 @@ export default async function DualPanelBlock() {
                     border:       '1px solid var(--border-default)',
                     borderLeft:   '3px solid var(--phase-open-border)',
                   }}>
-                    {/* Name */}
-                    <p style={{ fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-lora, Georgia, serif)', color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 4 }}>
+                    <p style={{ fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-lora, Georgia, serif)', color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: openComp.closes_at ? 4 : 12 }}>
                       {dn(openComp)}
                     </p>
 
-                    {/* Close date */}
-                    {openComp.closes_at && (() => {
-                      const days = daysRemaining(openComp.closes_at!)
-                      return (
-                        <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12 }}>
-                          Closes {fmtDate(openComp.closes_at!)}
-                          {' · '}
-                          <strong style={{ color: days <= 3 ? 'var(--status-warning)' : 'inherit' }}>
-                            {days} day{days !== 1 ? 's' : ''} remaining
-                          </strong>
-                        </p>
-                      )
-                    })()}
+                    {openComp.closes_at && (
+                      <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12 }}>
+                        {(() => {
+                          const days = daysRemaining(openComp.closes_at!)
+                          return (
+                            <>
+                              Closes {fmtDate(openComp.closes_at!)}
+                              {' · '}
+                              <strong style={{ color: days <= 3 ? 'var(--status-warning)' : 'inherit' }}>
+                                {days} day{days !== 1 ? 's' : ''} remaining
+                              </strong>
+                            </>
+                          )
+                        })()}
+                      </p>
+                    )}
 
-                    {/* Category donut chart + legend */}
+                    {/* Category donut + legend */}
                     {openComp.categories.length > 0 && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
                         <DonutChart
                           slices={openComp.categories.map((c, i) => ({
                             value: c.count,
                             color: PIE_COLORS[i % PIE_COLORS.length],
-                            label: c.name,
                           }))}
                           total={openComp.totalEntries}
                         />
-                        {/* Legend */}
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
                           {openComp.categories.map((cat, i) => (
                             <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -485,16 +473,14 @@ export default async function DualPanelBlock() {
                   </div>
                 </div>
               ) : (
-                /* No open competition placeholder */
                 <div style={{ marginBottom: 20, padding: '14px 16px', background: 'var(--surface-1)', borderRadius: 10, border: '1px solid var(--border-subtle)' }}>
                   <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No competition is open for submissions right now.</p>
                 </div>
               )}
 
-              {/* ── Bottom zone: recent results ────────────────────────── */}
+              {/* ── Bottom zone: recent results ─────────────────────────── */}
               {recentComp && (
                 <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 16 }}>
-                  {/* Header row */}
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
                     <div>
                       <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 3 }}>
@@ -518,10 +504,10 @@ export default async function DualPanelBlock() {
                   {/* Top 3 thumbnails */}
                   {recentComp.topImages.length > 0 && (
                     <div style={{
-                      display:               'grid',
-                      gridTemplateColumns:   `repeat(${recentComp.topImages.length}, 1fr)`,
-                      gap:                   8,
-                      marginBottom:          12,
+                      display:             'grid',
+                      gridTemplateColumns: `repeat(${recentComp.topImages.length}, 1fr)`,
+                      gap:                 8,
+                      marginBottom:        12,
                     }}>
                       {recentComp.topImages.map((img, i) => (
                         <Link key={i} href={`/competitions/${recentComp!.id}`} style={{ display: 'block', borderRadius: 7, overflow: 'hidden', position: 'relative', aspectRatio: '1', background: 'var(--surface-1)' }}>
@@ -532,18 +518,12 @@ export default async function DualPanelBlock() {
                             style={{ objectFit: 'cover' }}
                             sizes="120px"
                           />
-                          {/* Score badge */}
                           <span style={{
-                            position:   'absolute', bottom: 4, right: 4,
-                            background: 'rgba(0,0,0,0.62)',
-                            color:      '#fff',
-                            fontSize:   10,
-                            fontWeight: 700,
-                            borderRadius: 3,
-                            padding:    '2px 5px',
-                            lineHeight: 1,
+                            position: 'absolute', bottom: 4, right: 4,
+                            background: 'rgba(0,0,0,0.62)', color: '#fff',
+                            fontSize: 10, fontWeight: 700, borderRadius: 3, padding: '2px 5px', lineHeight: 1,
                           }}>
-                            {img.score.toFixed(1)}
+                            {fp(img.score)}
                           </span>
                         </Link>
                       ))}
@@ -552,19 +532,12 @@ export default async function DualPanelBlock() {
 
                   {/* Member's own result */}
                   {recentComp.memberResult && (
-                    <div style={{
-                      padding:      '10px 14px',
-                      background:   'var(--surface-1)',
-                      borderRadius: 8,
-                      border:       '1px solid var(--border-subtle)',
-                    }}>
+                    <div style={{ padding: '10px 14px', background: 'var(--surface-1)', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
                       <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
                         <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Your result: </span>
                         {recentComp.memberResult.imageTitle}
-                        {' · '}
-                        Score: <strong style={{ color: 'var(--text-primary)' }}>{recentComp.memberResult.score.toFixed(1)}</strong>
-                        {' · '}
-                        {ordinal(recentComp.memberResult.placement)} place in {recentComp.memberResult.categoryName}
+                        {' · '}Score: <strong style={{ color: 'var(--text-primary)' }}>{fp(recentComp.memberResult.score)}</strong>
+                        {' · '}{ordinal(recentComp.memberResult.placement)} place in {recentComp.memberResult.categoryName}
                       </p>
                     </div>
                   )}

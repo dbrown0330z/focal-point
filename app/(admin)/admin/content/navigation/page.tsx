@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import NavigationClient from './NavigationClient'
-import { DEFAULT_BLOCKS, type ContentBlock } from '@/lib/homepage/types'
+import { DEFAULT_BLOCKS, mergeBlocks, type ContentBlock } from '@/lib/homepage/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,12 +16,7 @@ export default async function NavigationPage() {
   ])
 
   const saved: ContentBlock[] = clubSettings?.homepage_blocks ?? DEFAULT_BLOCKS
-  // Append any block types added to DEFAULT_BLOCKS since the last save
-  const savedIds = new Set(saved.map((b: ContentBlock) => b.id))
-  const homepageBlocks: ContentBlock[] = [
-    ...saved,
-    ...DEFAULT_BLOCKS.filter(d => !savedIds.has(d.id)),
-  ]
+  const homepageBlocks: ContentBlock[] = mergeBlocks(saved, DEFAULT_BLOCKS)
 
   return (
     <NavigationClient

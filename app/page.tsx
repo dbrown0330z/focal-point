@@ -5,7 +5,7 @@ import Link from 'next/link'
 import MemberNav from '@/components/layout/MemberNav'
 import HomepageRenderer from '@/components/home/HomepageRenderer'
 import WelcomeHeader from '@/components/home/WelcomeHeader'
-import { DEFAULT_BLOCKS, type ContentBlock } from '@/lib/homepage/types'
+import { DEFAULT_BLOCKS, mergeBlocks, type ContentBlock } from '@/lib/homepage/types'
 
 export default async function RootPage() {
   const supabase = await createClient()
@@ -28,11 +28,7 @@ export default async function RootPage() {
   if (profile.membership_status === 'active' && profile.role) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const saved: ContentBlock[] = (clubSettings as any)?.homepage_blocks ?? DEFAULT_BLOCKS
-    const savedIds = new Set(saved.map(b => b.id))
-    const blocks: ContentBlock[] = [
-      ...saved,
-      ...DEFAULT_BLOCKS.filter(d => !savedIds.has(d.id)),
-    ]
+    const blocks: ContentBlock[] = mergeBlocks(saved, DEFAULT_BLOCKS)
 
     return (
       <div className="flex min-h-screen flex-col">

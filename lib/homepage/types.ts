@@ -62,6 +62,33 @@ export interface ContentBlock {
   competitionsSettings?:   CompetitionsSettings
 }
 
+/**
+ * Merge saved blocks with the current DEFAULT_BLOCKS.
+ * Any block id present in defaults but missing from saved is inserted at its
+ * default position (immediately after the nearest preceding sibling that IS in
+ * saved), rather than being appended to the end.
+ */
+export function mergeBlocks(saved: ContentBlock[], defaults: ContentBlock[]): ContentBlock[] {
+  const savedIds = new Set(saved.map(b => b.id))
+  const newDefaults = defaults.filter(d => !savedIds.has(d.id))
+  if (newDefaults.length === 0) return saved
+
+  const result = [...saved]
+
+  for (const newBlock of newDefaults) {
+    const defaultIdx = defaults.findIndex(d => d.id === newBlock.id)
+    // Walk backwards through defaults to find the nearest sibling already in result
+    let insertAfterIdx = -1  // -1 means prepend
+    for (let i = defaultIdx - 1; i >= 0; i--) {
+      const siblingIdx = result.findIndex(b => b.id === defaults[i].id)
+      if (siblingIdx !== -1) { insertAfterIdx = siblingIdx; break }
+    }
+    result.splice(insertAfterIdx + 1, 0, newBlock)
+  }
+
+  return result
+}
+
 export const DEFAULT_BLOCKS: ContentBlock[] = [
   {
     id: 'welcome', name: 'Welcome', type: 'welcome', enabled: true, fixed: true,
@@ -75,6 +102,9 @@ export const DEFAULT_BLOCKS: ContentBlock[] = [
   {
     id: 'large-image', name: 'Large image', type: 'large-image', enabled: true,
     largeImageSettings: { gallerySource: 'competition-winners', intervalSeconds: 5 },
+  },
+  {
+    id: 'dual-panel', name: 'Events & competitions', type: 'dual-panel', enabled: true,
   },
   {
     id: 'custom-content-1', name: 'Custom content', type: 'custom-content', enabled: true,
@@ -111,8 +141,5 @@ export const DEFAULT_BLOCKS: ContentBlock[] = [
   {
     id: 'affiliations', name: 'Affiliations & links', type: 'affiliations', enabled: true,
     affiliationsSettings: { maxColumns: 6, affiliations: [] },
-  },
-  {
-    id: 'dual-panel', name: 'Events & competitions', type: 'dual-panel', enabled: true,
   },
 ]
