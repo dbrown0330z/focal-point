@@ -112,4 +112,7 @@ export const DEFAULT_BLOCKS: ContentBlock[] = [
     id: 'affiliations', name: 'Affiliations & links', type: 'affiliations', enabled: true,
     affiliationsSettings: { maxColumns: 6, affiliations: [] },
   },
+  {
+    id: 'dual-panel', name: 'Events & competitions', type: 'dual-panel', enabled: true,
+  },
 ]

@@ -5,6 +5,7 @@ import HeroSlideshow from './HeroSlideshow'
 import CustomContentNote from './CustomContentNote'
 import { Grid6Gallery, Strip8Gallery } from './ImageGallery'
 import CompetitionsBlock from './CompetitionsBlock'
+import DualPanelBlock from './DualPanelBlock'
 import type {
   ContentBlock,
   ContentNote,
@@ -499,6 +500,9 @@ export default async function HomepageRenderer({
             return block.affiliationsSettings ? (
               <AffiliationsBlock key={block.id} settings={block.affiliationsSettings} />
             ) : null
+
+          case 'dual-panel':
+            return <DualPanelBlock key={block.id} />
 
           default:
             return null
