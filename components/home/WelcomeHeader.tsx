@@ -46,12 +46,23 @@ function StatCard({
   value,
   valueSuffix,
   icon,
+  href,
 }: {
   label:        string
   value:        string
-  valueSuffix?: string   // rendered smaller, inline after the value
+  valueSuffix?: string
   icon?:        React.ReactNode
+  href?:        string
 }) {
+  const valueStyle: React.CSSProperties = {
+    fontFamily: 'var(--font-lora, Georgia, serif)',
+    fontSize:   26,
+    fontWeight: 400,
+    lineHeight: 1.1,
+    color:      href ? 'var(--action-primary)' : 'var(--text-primary)',
+    textDecoration: 'none',
+  }
+
   return (
     <div
       className="rounded-xl flex-shrink-0"
@@ -74,15 +85,13 @@ function StatCard({
             {icon}
           </span>
         )}
-        <span style={{
-          fontFamily: 'var(--font-lora, Georgia, serif)',
-          fontSize:   26,
-          fontWeight: 700,
-          lineHeight: 1.1,
-          color:      'var(--text-primary)',
-        }}>
-          {value}
-        </span>
+        {href ? (
+          <a href={href} style={valueStyle}>
+            {value}
+          </a>
+        ) : (
+          <span style={valueStyle}>{value}</span>
+        )}
         {valueSuffix && (
           <span style={{
             fontFamily: 'var(--font-lora, Georgia, serif)',
@@ -243,6 +252,7 @@ export default async function WelcomeHeader({
           <StatCard
             label="Submissions"
             value="23"
+            href="/library?tab=submitted"
           />
           <StatCard
             label="Benchmark Status"
