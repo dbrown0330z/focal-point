@@ -52,7 +52,7 @@ export default function HeroSlideshow({ clubName }: { clubName: string }) {
 
           {/* Bottom-right: image credit */}
           <div className="absolute bottom-0 right-0 p-4 sm:p-5 text-right">
-            <p style={{ color: 'rgba(255,255,255,0.92)', textShadow: '0 1px 3px rgba(0,0,0,0.6)', lineHeight: 1.4 }}>
+            <p style={{ color: 'rgba(255,255,255,0.97)', textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.75), 0 4px 24px rgba(0,0,0,0.55)', lineHeight: 1.4 }}>
               <span style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 18, fontWeight: 400 }}>{slide.title}</span>
               <br />
               <span style={{ fontSize: 13, fontWeight: 400 }}>{slide.maker}</span>

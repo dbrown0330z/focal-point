@@ -27,16 +27,12 @@ function formatRelative(iso: string): string {
 function TrophyIcon() {
   return (
     <svg
-      viewBox="0 0 20 20"
+      viewBox="0 0 24 24"
       fill="currentColor"
-      style={{ width: 18, height: 18, flexShrink: 0, color: '#C9A84C' }}
+      style={{ width: 20, height: 20, flexShrink: 0, color: '#C9A84C' }}
       aria-hidden="true"
     >
-      <path
-        fillRule="evenodd"
-        d="M10 1a1 1 0 01.894.553l1.618 3.278 3.618.526a1 1 0 01.554 1.706l-2.618 2.551.618 3.602a1 1 0 01-1.451 1.054L10 12.347l-3.233 1.699a1 1 0 01-1.451-1.054l.618-3.602L3.316 7.063a1 1 0 01.554-1.706l3.618-.526L9.106 1.553A1 1 0 0110 1z"
-        clipRule="evenodd"
-      />
+      <path d="M19 5h-2V3H7v2H5C3.9 5 3 5.9 3 7v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0011 15.9V18H9v2h6v-2h-2v-2.1a5.01 5.01 0 003.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zm-2 3.82V7h2v1c0 1.49-.96 2.74-2.28 3.2L17 10.82zM5 8V7h2v1.82l-.28.18A3.01 3.01 0 015 8z" />
     </svg>
   )
 }
@@ -255,7 +251,7 @@ export default async function WelcomeHeader({
             href="/library?tab=submitted"
           />
           <StatCard
-            label="Benchmark Status"
+            label="Benchmark"
             value="BM3"
             icon={<TrophyIcon />}
           />
