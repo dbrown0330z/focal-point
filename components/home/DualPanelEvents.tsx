@@ -12,15 +12,15 @@ export type CEvent = {
 // ─── Event type config — semi-transparent chips, full labels ─────────────────
 
 const EVT: Record<string, { chipBg: string; chipText: string; label: string }> = {
-  competition:       { chipBg: 'rgba(26,111,196,0.13)',  chipText: '#1A6FC4',                       label: 'Competition'       },
-  regular_meeting:   { chipBg: 'rgba(0,151,167,0.13)',   chipText: '#0097A7',                       label: 'Meeting'           },
-  board_meeting:     { chipBg: 'rgba(108,71,212,0.13)',  chipText: '#6C47D4',                       label: 'Board meeting'     },
-  field_trip:        { chipBg: 'rgba(230,81,0,0.13)',    chipText: '#E65100',                       label: 'Field trip'        },
-  other:             { chipBg: 'rgba(90,122,150,0.13)',  chipText: '#5A7A96',                       label: 'Event'             },
-  submission_open:   { chipBg: 'var(--status-success-bg)', chipText: 'var(--status-success-text)', label: 'Submission Open'   },
-  submission_closed: { chipBg: 'var(--status-error-bg)',   chipText: 'var(--status-error-text)',   label: 'Submissions Close' },
+  competition:       { chipBg: 'rgba(0,0,0,0.07)', chipText: 'var(--text-secondary)', label: 'Competition'       },
+  regular_meeting:   { chipBg: 'rgba(0,0,0,0.07)', chipText: 'var(--text-secondary)', label: 'Meeting'           },
+  board_meeting:     { chipBg: 'rgba(0,0,0,0.07)', chipText: 'var(--text-secondary)', label: 'Board meeting'     },
+  field_trip:        { chipBg: 'rgba(0,0,0,0.07)', chipText: 'var(--text-secondary)', label: 'Field trip'        },
+  other:             { chipBg: 'rgba(0,0,0,0.07)', chipText: 'var(--text-secondary)', label: 'Event'             },
+  submission_open:   { chipBg: 'rgba(0,0,0,0.07)', chipText: 'var(--text-secondary)', label: 'Submission Open'   },
+  submission_closed: { chipBg: 'rgba(0,0,0,0.07)', chipText: 'var(--text-secondary)', label: 'Submissions Close' },
 }
-const EVT_DEFAULT = { chipBg: 'rgba(90,122,150,0.13)', chipText: '#5A7A96', label: 'Event' }
+const EVT_DEFAULT = { chipBg: 'rgba(0,0,0,0.07)', chipText: 'var(--text-secondary)', label: 'Event' }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
