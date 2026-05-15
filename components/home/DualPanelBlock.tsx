@@ -1,19 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-
-// ─── Event type styling — matches CalendarClient.tsx exactly ─────────────────
-
-const EVT: Record<string, { accent: string; bg: string; text: string; label: string }> = {
-  competition:       { accent: '#1A6FC4', bg: '#1A6FC4',                       text: '#fff',                           label: 'Competition'  },
-  regular_meeting:   { accent: '#0097A7', bg: '#0097A7',                       text: '#fff',                           label: 'Meeting'      },
-  board_meeting:     { accent: '#6C47D4', bg: '#6C47D4',                       text: '#fff',                           label: 'Board'        },
-  field_trip:        { accent: '#E65100', bg: '#E65100',                       text: '#fff',                           label: 'Field trip'   },
-  other:             { accent: '#5A7A96', bg: '#5A7A96',                       text: '#fff',                           label: 'Event'        },
-  submission_open:   { accent: 'var(--status-success)', bg: 'var(--status-success-bg)', text: 'var(--status-success-text)', label: 'Opens'    },
-  submission_closed: { accent: 'var(--status-error)',   bg: 'var(--status-error-bg)',   text: 'var(--status-error-text)',   label: 'Closes'   },
-}
-const EVT_DEFAULT = { accent: '#5A7A96', bg: '#5A7A96', text: '#fff', label: 'Event' }
+import DualPanelEvents, { type CEvent } from './DualPanelEvents'
 
 // Category colours for donut pie slices
 const PIE_COLORS = ['#1A6FC4', '#0097A7', '#E65100', '#6C47D4', '#00796B', '#AD1457']
@@ -25,10 +13,6 @@ function daysRemaining(iso: string) {
 }
 function fmtDate(iso: string, opts?: Intl.DateTimeFormatOptions) {
   return new Date(iso).toLocaleDateString('en-US', opts ?? { month: 'short', day: 'numeric' })
-}
-function fmtTime(iso: string, allDay: boolean) {
-  if (allDay) return 'All day'
-  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 }
 function dn(c: { title: string; short_title?: string | null }) {
   return c.short_title?.trim() || c.title
@@ -93,11 +77,6 @@ function DonutChart({ slices, total }: { slices: DonutSlice[]; total: number }) 
 }
 
 // ─── Data types ───────────────────────────────────────────────────────────────
-
-type CEvent = {
-  id: string; title: string; starts_at: string; ends_at: string | null
-  all_day: boolean; event_type: string; location: string | null
-}
 
 type OpenCompData = {
   id:               string
@@ -319,54 +298,7 @@ export default async function DualPanelBlock() {
             </Link>
           </div>
 
-          {events.length === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No upcoming events scheduled.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {events.map((ev, i) => {
-                const cfg  = EVT[ev.event_type] ?? EVT_DEFAULT
-                const time = fmtTime(ev.starts_at, ev.all_day)
-                const date = fmtDate(ev.starts_at, { weekday: 'short', month: 'short', day: 'numeric' })
-
-                return (
-                  <div key={ev.id} style={{
-                    display:     'flex',
-                    alignItems:  'center',
-                    gap:         12,
-                    padding:     '11px 0 11px 12px',
-                    borderTop:   i === 0 ? 'none' : '1px solid var(--border-subtle)',
-                    borderLeft:  `3px solid ${cfg.accent}`,
-                  }}>
-                    {/* Event info */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {ev.title}
-                      </p>
-                      <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-                        {date}
-                        {!ev.all_day && <> · {time}</>}
-                        {ev.location && <> · {ev.location}</>}
-                      </p>
-                    </div>
-
-                    {/* Type chip */}
-                    <span style={{
-                      flexShrink:    0,
-                      fontSize:      11,
-                      fontWeight:    600,
-                      background:    cfg.bg,
-                      color:         cfg.text,
-                      borderRadius:  4,
-                      padding:       '3px 8px',
-                      letterSpacing: '0.02em',
-                    }}>
-                      {cfg.label}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          <DualPanelEvents events={events} />
         </div>
 
         {/* ── RIGHT: Competitions ─────────────────────────────────────────── */}
