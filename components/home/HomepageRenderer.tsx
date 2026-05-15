@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import HeroSlideshow from './HeroSlideshow'
 import CustomContentNote from './CustomContentNote'
-import { Grid6Gallery, Strip8Gallery } from './ImageGallery'
+import { Grid8Gallery, Strip8Gallery } from './ImageGallery'
 import CompetitionsBlock from './CompetitionsBlock'
 import DualPanelBlock from './DualPanelBlock'
 import type {
@@ -171,7 +171,18 @@ function UpcomingEventsBlock({ events }: { events: CalendarEvent[] }) {
 
 type GalleryImage = { id: string; publicUrl: string; title: string }
 
-function Grid6Block({ images }: { images: GalleryImage[] }) {
+const GALLERY_LABELS: Record<string, string> = {
+  'competition-winners': 'Competition winners',
+  'recent-uploads':      'Recent uploads',
+  'member-picks':        'Member picks',
+  'portrait':            'Portrait collection',
+  'landscape':           'Landscape collection',
+}
+
+function Grid8Block({ images, block }: { images: GalleryImage[]; block: ContentBlock }) {
+  const gallerySource = block.grid6Settings?.gallerySource ?? 'recent-uploads'
+  const galleryName   = GALLERY_LABELS[gallerySource] ?? 'Recent uploads'
+
   if (images.length === 0) return (
     <Section>
       <SectionHeading>Recent images</SectionHeading>
@@ -182,7 +193,7 @@ function Grid6Block({ images }: { images: GalleryImage[] }) {
   return (
     <Section>
       <SectionHeading>Recent images</SectionHeading>
-      <Grid6Gallery images={images} />
+      <Grid8Gallery images={images} galleryName={galleryName} galleryHref="/library" />
     </Section>
   )
 }
@@ -476,7 +487,7 @@ export default async function HomepageRenderer({
             return <UpcomingEventsBlock key={block.id} events={events} />
 
           case 'grid-6':
-            return <Grid6Block key={block.id} images={galleryImages.slice(0, 6)} />
+            return <Grid8Block key={block.id} images={galleryImages.slice(0, 8)} block={block} />
 
           case 'strip-8':
             return <Strip8Block key={block.id} images={galleryImages} />

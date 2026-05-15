@@ -111,7 +111,7 @@ export const DEFAULT_BLOCKS: ContentBlock[] = [
     customContentSettings: { columns: 3, previewLines: 4, notes: [] },
   },
   {
-    id: 'grid-6', name: '6-image grid', type: 'grid-6', enabled: true,
+    id: 'grid-6', name: '8-image grid', type: 'grid-6', enabled: true,
     grid6Settings: { gallerySource: 'competition-winners', criteria: 'top-rated' },
   },
   {

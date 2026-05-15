@@ -154,15 +154,23 @@ function Lightbox({
   )
 }
 
-// ─── Grid 6 ───────────────────────────────────────────────────────────────────
+// ─── Grid 8 ───────────────────────────────────────────────────────────────────
 
-export function Grid6Gallery({ images }: { images: GalleryImage[] }) {
+export function Grid8Gallery({
+  images,
+  galleryName,
+  galleryHref,
+}: {
+  images:       GalleryImage[]
+  galleryName?: string
+  galleryHref?: string
+}) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
-  const shown = images.slice(0, 6)
+  const shown = images.slice(0, 8)
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {shown.map((img, i) => (
           <button
             key={img.id}
@@ -181,6 +189,24 @@ export function Grid6Gallery({ images }: { images: GalleryImage[] }) {
           </button>
         ))}
       </div>
+
+      {/* Gallery attribution */}
+      {galleryName && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+          <p style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+            From <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{galleryName}</span>
+            {' · '}{shown.length} image{shown.length !== 1 ? 's' : ''}
+          </p>
+          {galleryHref && (
+            <a
+              href={galleryHref}
+              style={{ fontSize: 12, fontWeight: 500, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0 }}
+            >
+              View full gallery →
+            </a>
+          )}
+        </div>
+      )}
 
       {lightboxIndex !== null && (
         <Lightbox

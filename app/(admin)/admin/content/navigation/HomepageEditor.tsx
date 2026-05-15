@@ -55,8 +55,8 @@ const MODAL_META: Record<string, { title: string; description: string }> = {
     description: 'A full-width rotating slideshow pulled from one of your image galleries. Configure which gallery to draw from and how quickly images cycle.',
   },
   'grid-6': {
-    title:       '6-image grid',
-    description: 'A 3×2 grid of square images. Choose the gallery and the order in which images are selected.',
+    title:       '8-image grid',
+    description: 'A 4×2 grid of square images. Choose the gallery and the order in which images are selected.',
   },
   'strip-8': {
     title:       '8-image strip',
@@ -870,7 +870,7 @@ const PHOTO_GRADIENTS = [
 
 const picsum      = (seed: string, w: number, h: number) => `https://picsum.photos/seed/${seed}/${w}/${h}`
 const LARGE_IMG   = picsum('fp-large', 1200, 600)
-const GRID_IMGS   = [1,2,3,4,5,6].map(i => picsum(`fp-g${i}`,  400, 400))
+const GRID_IMGS   = [1,2,3,4,5,6,7,8].map(i => picsum(`fp-g${i}`,  400, 400))
 const STRIP_IMGS  = [11,22,33,44,55,66,77,88].map(n => picsum(String(n), 300, 300))
 const SPOT_IMG    = picsum('fp-portrait', 600, 600)
 const AFFILIATION_COLORS = ['#6C47D4','#0097A7','#E65100','#AD1457','#00796B','#7B6B38']
@@ -1077,10 +1077,10 @@ function PreviewBlock({ block, audience, t, compact }: { block: ContentBlock; au
       const crtLabel = CRITERIA_LABEL[gs.criteria]
       return (
         <PbSection t={t}>
-          <PbHeading t={t}>6-image grid</PbHeading>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+          <PbHeading t={t}>8-image grid</PbHeading>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
             {compact
-              ? [0,1,2,3,4,5].map(i => (
+              ? [0,1,2,3,4,5,6,7].map(i => (
                   <div key={i} style={{ aspectRatio: '1', borderRadius: 6, overflow: 'hidden' }}>
                     <PlaceholderImg idx={i} />
                   </div>
