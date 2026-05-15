@@ -33,24 +33,38 @@ export default function HeroSlideshow({ clubName }: { clubName: string }) {
     <div className="relative w-full overflow-hidden rounded-lg" style={{ aspectRatio: '21/8', minHeight: 220, maxHeight: 480 }}>
       {slide ? (
         <>
+          {/* Layer 1 — blurred fill: same image scaled to cover, blurred + darkened.
+              Fills the gutters for non-landscape proportions (squares, portraits, banners). */}
           <Image
             src={slide.src}
-            alt={slide.title}
+            alt=""
+            aria-hidden="true"
             fill
             className="object-cover"
             priority
             sizes="(max-width: 1152px) 100vw, 1152px"
+            style={{ filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.08)' }}
           />
 
-          {/* Gradient overlay — bottom only for credit legibility */}
+          {/* Layer 2 — sharp image: object-contain so no cropping ever occurs */}
+          <Image
+            src={slide.src}
+            alt={slide.title}
+            fill
+            className="object-contain"
+            priority
+            sizes="(max-width: 1152px) 100vw, 1152px"
+          />
+
+          {/* Layer 3 — gradient overlay for credit legibility */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: 'linear-gradient(to top, rgba(0,0,0,0.50) 0%, transparent 40%)',
+              background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 45%)',
             }}
           />
 
-          {/* Bottom-right: image credit */}
+          {/* Layer 4 — image credit */}
           <div className="absolute bottom-0 right-0 p-4 sm:p-5 text-right">
             <p style={{ color: 'rgba(255,255,255,0.97)', textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.75), 0 4px 24px rgba(0,0,0,0.55)', lineHeight: 1.4 }}>
               <span style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 18, fontWeight: 400 }}>{slide.title}</span>
