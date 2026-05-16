@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { deleteImage } from '@/app/(member)/library/actions'
+import { deleteImage } from '@/app/[clubSlug]/(member)/library/actions'
 import Button from '@mui/material/Button'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'

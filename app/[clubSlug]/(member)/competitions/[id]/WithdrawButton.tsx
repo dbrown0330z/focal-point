@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { withdrawSubmission } from '@/app/(member)/submit/actions'
+import { withdrawSubmission } from '@/app/[clubSlug]/(member)/submit/actions'
 
 export default function WithdrawButton({
   submissionId,

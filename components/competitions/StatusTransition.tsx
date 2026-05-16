@@ -1,6 +1,6 @@
 'use client'
 
-import { transitionStatus } from '@/app/(admin)/admin/competitions/actions'
+import { transitionStatus } from '@/app/[clubSlug]/(admin)/admin/competitions/actions'
 import type { Database } from '@/types/database'
 
 type Status = Database['public']['Enums']['competition_status']

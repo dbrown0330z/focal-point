@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { deleteImage } from '@/app/(member)/library/actions'
+import { deleteImage } from '@/app/[clubSlug]/(member)/library/actions'
 
 export default function DeleteImageButton({
   imageId,

@@ -1,21 +1,43 @@
 import { createClient } from '@/lib/supabase/server'
+import { getClubContext } from '@/lib/club-context'
 import Link from 'next/link'
 import MemberNav from '@/components/layout/MemberNav'
 import MemberThemeProvider from '@/components/layout/MemberThemeProvider'
 
-export default async function OurClubLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
+export default async function OurClubLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode
+  params: Promise<{ clubSlug: string }>
+}) {
+  const { clubSlug } = await params
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = (await createClient()) as any
+  const ctx    = await getClubContext()
+  const clubId = ctx?.clubId
+
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [{ data: profile }, { data: clubSettings }] = await Promise.all([
-    user
-      ? supabase.from('profiles').select('display_name, role, membership_status, avatar_url').eq('id', user.id).single()
+  const [{ data: membership }, { data: profile }, { data: clubSettings }] = await Promise.all([
+    user && clubId
+      ? supabase
+          .from('club_memberships')
+          .select('role, membership_status')
+          .eq('user_id', user.id)
+          .eq('club_id', clubId)
+          .maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase.from('club_settings').select('club_name').single(),
+    user
+      ? supabase.from('profiles').select('display_name, avatar_url').eq('id', user.id).single()
+      : Promise.resolve({ data: null }),
+    clubId
+      ? supabase.from('club_settings').select('club_name').eq('club_id', clubId).single()
+      : Promise.resolve({ data: null }),
   ])
 
-  const clubName = clubSettings?.club_name ?? 'Our Camera Club'
-  const isActiveMember = profile?.membership_status === 'active'
+  const clubName       = (clubSettings as { club_name?: string } | null)?.club_name ?? 'Our Camera Club'
+  const isActiveMember = (membership as { membership_status?: string } | null)?.membership_status === 'active'
 
   // Logged-in active member — full MemberNav
   if (user && isActiveMember) {
@@ -23,11 +45,12 @@ export default async function OurClubLayout({ children }: { children: React.Reac
       <MemberThemeProvider>
         <div className="flex min-h-screen flex-col">
           <MemberNav
+            clubSlug={clubSlug}
             clubName={clubName}
-            displayName={profile!.display_name}
+            displayName={(profile as { display_name?: string } | null)?.display_name ?? ''}
             email={user.email ?? ''}
-            role={profile!.role}
-            avatarUrl={(profile as unknown as { avatar_url: string | null }).avatar_url ?? null}
+            role={(membership as { role?: string | null } | null)?.role ?? null}
+            avatarUrl={(profile as { avatar_url?: string | null } | null)?.avatar_url ?? null}
           />
           <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
             {children}
@@ -43,7 +66,7 @@ export default async function OurClubLayout({ children }: { children: React.Reac
       <header className="border-b border-border-default bg-surface-2">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <Link
-            href="/"
+            href={`/${clubSlug}`}
             className="font-[family-name:var(--font-lora)] text-base font-bold whitespace-nowrap"
             style={{ color: 'var(--action-primary)' }}
           >

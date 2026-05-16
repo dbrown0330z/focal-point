@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { createImageRecord } from '@/app/(member)/library/actions'
+import { createImageRecord } from '@/app/[clubSlug]/(member)/library/actions'
 import * as exifr from 'exifr'
 
 const inputCls = "w-full rounded-lg border border-border-default bg-surface-2 px-3 py-2 text-sm text-content-primary placeholder-content-muted focus:border-action-primary focus:outline-none focus:ring-2 focus:ring-action-primary/20"

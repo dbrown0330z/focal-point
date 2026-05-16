@@ -90,7 +90,7 @@ export async function updateSession(request: NextRequest) {
       }
 
       // ── Inject club context into request headers ──────────────────────────
-      // All server components and server actions read these to scope their queries.
+      // Server components and server actions read these via getClubContext().
       const requestWithClub = new Request(request, {
         headers: new Headers({
           ...Object.fromEntries(request.headers),
@@ -100,43 +100,41 @@ export async function updateSession(request: NextRequest) {
         }),
       })
 
-      // Rewrite the internal path: strip the slug prefix so existing page
-      // files at /library, /competitions etc. continue to match.
-      // External URL keeps the slug; internal routing doesn't see it.
-      const internalPath = '/' + segments.slice(1).join('/')
+      // Pass the club-enriched request through — no URL rewrite needed.
+      // Routes are now at app/[clubSlug]/... so Next.js matches them directly.
+      supabaseResponse = NextResponse.next({ request: requestWithClub })
 
-      supabaseResponse = NextResponse.rewrite(
-        new URL(internalPath || '/', request.url),
-        { request: requestWithClub }
-      )
-
-      // Copy auth cookies to the rewritten response
+      // Copy auth cookies to the response
       request.cookies.getAll().forEach(({ name, value }) => {
         supabaseResponse.cookies.set(name, value)
       })
 
       // ── Route protection (club-scoped routes) ─────────────────────────────
-      const innerPath = internalPath || '/'
+      // Derive the path segment after the club slug for route classification.
+      const innerPath = '/' + segments.slice(1).join('/')
 
       const isMemberRoute =
         innerPath === '/' ||
-        innerPath.startsWith('/library')      ||
-        innerPath.startsWith('/competitions') ||
-        innerPath.startsWith('/profile')      ||
-        innerPath.startsWith('/calendar')     ||
-        innerPath.startsWith('/our-club')     ||
-        innerPath.startsWith('/submit')       ||
+        innerPath === ''  ||
+        innerPath.startsWith('/library')               ||
+        innerPath.startsWith('/competitions')          ||
+        innerPath.startsWith('/profile')               ||
+        innerPath.startsWith('/calendar')              ||
+        innerPath.startsWith('/our-club/members')      ||
+        innerPath.startsWith('/our-club/documents')    ||
+        innerPath.startsWith('/submit')                ||
         innerPath.startsWith('/p/')
 
       const isAdminRoute = innerPath.startsWith('/admin')
 
       if (isMemberRoute || isAdminRoute) {
         if (!user) {
-          // Not signed in → redirect to club login (preserving slug in URL)
-          return NextResponse.redirect(new URL(`/${firstSeg}/login`, request.url))
+          // Not signed in → redirect to global login
+          return NextResponse.redirect(new URL('/login', request.url))
         }
 
-        const { data: membership } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: membership } = await (supabase as any)
           .from('club_memberships')
           .select('role, membership_status')
           .eq('user_id', user.id)
@@ -148,8 +146,7 @@ export async function updateSession(request: NextRequest) {
         }
 
         if (isMemberRoute && membership?.membership_status !== 'active') {
-          // Not an active member of this specific club → club homepage
-          // (which shows the appropriate pending/expired state)
+          // Not an active member of this club → club homepage
           return NextResponse.redirect(new URL(`/${firstSeg}`, request.url))
         }
       }
@@ -163,53 +160,22 @@ export async function updateSession(request: NextRequest) {
     // Fall through to standard Next.js 404 handling.
   }
 
-  // ── Non-club routes (global auth, marketing, super-admin) ─────────────────
-  // Preserve the existing single-tenant route protection for routes that
-  // don't have a club slug prefix (during the transition period).
+  // ── Non-club routes (marketing page, super-admin, global auth) ──────────
 
-  const isMemberRoute =
-    pathname.startsWith('/library')      ||
-    pathname.startsWith('/competitions') ||
-    pathname.startsWith('/profile')      ||
-    pathname.startsWith('/calendar')     ||
-    pathname.startsWith('/our-club')     ||
-    pathname.startsWith('/submit')       ||
-    pathname.startsWith('/p/')
-
-  const isAdminRoute    = pathname.startsWith('/admin')
-  const isSuperAdmin    = pathname.startsWith('/super-admin')
-
-  if (isMemberRoute || isAdminRoute) {
-    if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, membership_status')
-      .eq('id', user.id)
-      .single()
-
-    if (isAdminRoute && profile?.role !== 'admin') {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
-
-    if (isMemberRoute && profile?.membership_status !== 'active') {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
-  }
+  const isSuperAdmin = pathname.startsWith('/super-admin')
 
   if (isSuperAdmin) {
     if (!user) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
-    const { data: profile } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: profile } = await (supabase as any)
       .from('profiles')
       .select('is_fp_admin')
       .eq('id', user.id)
       .single()
 
-    if (!profile?.is_fp_admin) {
+    if (!(profile as { is_fp_admin?: boolean } | null)?.is_fp_admin) {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }

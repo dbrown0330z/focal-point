@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getClubContext } from '@/lib/club-context'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -6,15 +7,17 @@ export const dynamic = 'force-dynamic'
 export default async function AboutPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any
+  const ctx    = await getClubContext()
+  const clubId = ctx?.clubId
 
   const [{ data: { user } }, { data: settingsRaw }, { data: pageRaw }] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from('club_settings').select('club_name').single() as Promise<{ data: { club_name: string } | null }>,
-    supabase
-      .from('pages')
-      .select('id, content')
-      .eq('slug', 'about')
-      .single() as Promise<{ data: { id: string; content: string | null } | null }>,
+    clubId
+      ? supabase.from('club_settings').select('club_name').eq('club_id', clubId).single() as Promise<{ data: { club_name: string } | null }>
+      : Promise.resolve({ data: null }),
+    clubId
+      ? supabase.from('pages').select('id, content').eq('slug', 'about').eq('club_id', clubId).maybeSingle() as Promise<{ data: { id: string; content: string | null } | null }>
+      : Promise.resolve({ data: null }),
   ])
 
   const clubName   = settingsRaw?.club_name ?? 'Our Camera Club'

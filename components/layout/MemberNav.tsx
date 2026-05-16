@@ -188,12 +188,13 @@ type NavCustomPage = {
 }
 type NavCustomTab = { id: string; name: string; slug: string; sort_order: number }
 
-function customPageHref(page: NavCustomPage): string {
+function customPageHref(page: NavCustomPage, base: string): string {
   if (page.page_type === 'external_link') return page.external_url ?? '#'
-  return `/p/${page.slug}`
+  return `${base}/p/${page.slug}`
 }
 
 export default function MemberNav({
+  clubSlug,
   clubName,
   displayName,
   email,
@@ -202,6 +203,7 @@ export default function MemberNav({
   customPages = [],
   customTabs  = [],
 }: {
+  clubSlug:     string
   clubName:     string
   displayName:  string
   email:        string
@@ -210,6 +212,7 @@ export default function MemberNav({
   customPages?: NavCustomPage[]
   customTabs?:  NavCustomTab[]
 }) {
+  const base     = `/${clubSlug}`
   const pathname = usePathname()
   const { theme, toggle } = useTheme()
   const [profileOpen, setProfileOpen] = useState(false)
@@ -232,8 +235,10 @@ export default function MemberNav({
 
   const initials = getInitials(displayName)
 
-  const isActive = (href: string, exact = false) =>
-    exact ? pathname === href : pathname === href || pathname.startsWith(href + '/')
+  const isActive = (path: string, exact = false) => {
+    const href = path.startsWith('http') ? path : `${base}${path === '/' ? '' : path}`
+    return exact ? pathname === href : pathname === href || pathname.startsWith(href + '/')
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-border-default backdrop-blur-md bg-[rgba(245,245,245,0.82)] dark:bg-[rgba(30,30,30,0.85)]">
@@ -254,14 +259,14 @@ export default function MemberNav({
         <nav className="flex items-center gap-1 whitespace-nowrap">
 
           {/* Home */}
-          <Link href="/"
+          <Link href={base}
             className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${isActive('/', true) ? 'font-semibold text-action-primary bg-[rgba(26,111,196,0.09)] dark:bg-[rgba(74,144,212,0.14)]' : 'font-medium text-content-secondary hover:text-content-primary hover:bg-surface-1'}`}>
             Home
           </Link>
 
           {/* Calendar — plain link when no custom sub-pages, otherwise replaced by the dropdown below */}
           {!customPages.some(p => p.parent_system === 'calendar') && (
-            <Link href="/calendar"
+            <Link href={`${base}/calendar`}
               className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${isActive('/calendar') ? 'font-semibold text-action-primary bg-[rgba(26,111,196,0.09)] dark:bg-[rgba(74,144,212,0.14)]' : 'font-medium text-content-secondary hover:text-content-primary hover:bg-surface-1'}`}>
               Calendar
             </Link>
@@ -269,10 +274,10 @@ export default function MemberNav({
 
           {/* Images ▾ */}
           <NavDropdown label="Images" isActive={isActive('/library')}>
-            <DropdownLink href="/library"           label="My images" icon={<ImagesIcon />}   active={isActive('/library', true)} />
-            <DropdownLink href="/library/galleries" label="Galleries" icon={<GalleriesIcon />} active={isActive('/library/galleries')} />
+            <DropdownLink href={`${base}/library`}           label="My images" icon={<ImagesIcon />}   active={isActive('/library', true)} />
+            <DropdownLink href={`${base}/library/galleries`} label="Galleries" icon={<GalleriesIcon />} active={isActive('/library/galleries')} />
             {customPages.filter(p => p.parent_system === 'images').map(p => (
-              <DropdownLink key={p.id} href={customPageHref(p)} label={p.title}
+              <DropdownLink key={p.id} href={customPageHref(p, base)} label={p.title}
                 icon={p.page_type === 'external_link' ? <ExternalLinkIcon /> : <CustomPageIcon />}
                 active={isActive(`/p/${p.slug}`)} />
             ))}
@@ -280,10 +285,10 @@ export default function MemberNav({
 
           {/* Competitions ▾ */}
           <NavDropdown label="Competitions" isActive={isActive('/competitions')}>
-            <DropdownLink href="/competitions"         label="Current" icon={<TrophyIcon />}  active={isActive('/competitions', true)} />
-            <DropdownLink href="/competitions/results" label="Results" icon={<ResultsIcon />} active={isActive('/competitions/results')} />
+            <DropdownLink href={`${base}/competitions`}         label="Current" icon={<TrophyIcon />}  active={isActive('/competitions', true)} />
+            <DropdownLink href={`${base}/competitions/results`} label="Results" icon={<ResultsIcon />} active={isActive('/competitions/results')} />
             {customPages.filter(p => p.parent_system === 'competitions').map(p => (
-              <DropdownLink key={p.id} href={customPageHref(p)} label={p.title}
+              <DropdownLink key={p.id} href={customPageHref(p, base)} label={p.title}
                 icon={p.page_type === 'external_link' ? <ExternalLinkIcon /> : <CustomPageIcon />}
                 active={isActive(`/p/${p.slug}`)} />
             ))}
@@ -291,12 +296,12 @@ export default function MemberNav({
 
           {/* Our Club ▾ */}
           <NavDropdown label="Our Club" isActive={isActive('/our-club')}>
-            <DropdownLink href="/our-club/about"             label="About our club"   icon={<AboutIcon />}     active={isActive('/our-club/about')} />
-            <DropdownLink href="/our-club/members"           label="Member directory" icon={<MembersIcon />}   active={isActive('/our-club/members', true)} />
-            <DropdownLink href="/our-club/members/standings" label="Standings"        icon={<StandingsIcon />} active={isActive('/our-club/members/standings')} />
-            <DropdownLink href="/our-club/documents"         label="Documents"        icon={<DocumentsIcon />} active={isActive('/our-club/documents')} />
+            <DropdownLink href={`${base}/our-club/about`}             label="About our club"   icon={<AboutIcon />}     active={isActive('/our-club/about')} />
+            <DropdownLink href={`${base}/our-club/members`}           label="Member directory" icon={<MembersIcon />}   active={isActive('/our-club/members', true)} />
+            <DropdownLink href={`${base}/our-club/members/standings`} label="Standings"        icon={<StandingsIcon />} active={isActive('/our-club/members/standings')} />
+            <DropdownLink href={`${base}/our-club/documents`}         label="Documents"        icon={<DocumentsIcon />} active={isActive('/our-club/documents')} />
             {customPages.filter(p => p.parent_system === 'our-club').map(p => (
-              <DropdownLink key={p.id} href={customPageHref(p)} label={p.title}
+              <DropdownLink key={p.id} href={customPageHref(p, base)} label={p.title}
                 icon={p.page_type === 'external_link' ? <ExternalLinkIcon /> : <CustomPageIcon />}
                 active={isActive(`/p/${p.slug}`)} />
             ))}
@@ -305,9 +310,9 @@ export default function MemberNav({
           {/* Calendar custom sub-pages (only show if any) */}
           {customPages.some(p => p.parent_system === 'calendar') && (
             <NavDropdown label="Calendar" isActive={isActive('/calendar')}>
-              <DropdownLink href="/calendar" label="Calendar" icon={<svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>} active={isActive('/calendar', true)} />
+              <DropdownLink href={`${base}/calendar`} label="Calendar" icon={<svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>} active={isActive('/calendar', true)} />
               {customPages.filter(p => p.parent_system === 'calendar').map(p => (
-                <DropdownLink key={p.id} href={customPageHref(p)} label={p.title}
+                <DropdownLink key={p.id} href={customPageHref(p, base)} label={p.title}
                   icon={p.page_type === 'external_link' ? <ExternalLinkIcon /> : <CustomPageIcon />}
                   active={isActive(`/p/${p.slug}`)} />
               ))}
@@ -321,7 +326,7 @@ export default function MemberNav({
             return (
               <NavDropdown key={tab.id} label={tab.name} isActive={tabPages.some(p => isActive(`/p/${p.slug}`))}>
                 {tabPages.map(p => (
-                  <DropdownLink key={p.id} href={customPageHref(p)} label={p.title}
+                  <DropdownLink key={p.id} href={customPageHref(p, base)} label={p.title}
                     icon={p.page_type === 'external_link' ? <ExternalLinkIcon /> : <CustomPageIcon />}
                     active={isActive(`/p/${p.slug}`)} />
                 ))}
@@ -360,12 +365,12 @@ export default function MemberNav({
                   <p className="mt-0.5 text-sm text-content-secondary">{email}</p>
                 </div>
                 <div className="py-1">
-                  <Link href="/profile" onClick={() => setProfileOpen(false)}
+                  <Link href={`${base}/profile`} onClick={() => setProfileOpen(false)}
                     className="flex items-center px-4 py-2 text-sm text-content-primary hover:bg-surface-1 transition-colors">
                     My Profile
                   </Link>
                   {role === 'admin' && (
-                    <Link href="/admin" onClick={() => setProfileOpen(false)}
+                    <Link href={`${base}/admin`} onClick={() => setProfileOpen(false)}
                       className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-action-primary hover:bg-surface-1 transition-colors">
                       <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />

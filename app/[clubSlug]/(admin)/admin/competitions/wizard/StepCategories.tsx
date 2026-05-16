@@ -23,7 +23,7 @@ import {
   ImageReusePolicy,
   CLUB_DEFAULTS,
 } from '@/types/competition'
-import { addCompetitionDefaultCategory } from '@/app/(admin)/admin/club-defaults/actions'
+import { addCompetitionDefaultCategory } from '@/app/[clubSlug]/(admin)/admin/club-defaults/actions'
 
 interface Props {
   config:              CompetitionConfig
