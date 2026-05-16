@@ -17,21 +17,25 @@ export default async function FocalPointHomePage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: membership } = await (supabase as any)
       .from('club_memberships')
-      .select('club_id, clubs(slug)')
+      .select('club_id')
       .eq('user_id', user.id)
       .eq('membership_status', 'active')
-      .order('joined_at', { ascending: true })
       .limit(1)
       .maybeSingle()
 
-    const slug = membership?.clubs?.slug
-    if (slug) {
-      redirect(`/${slug}`)
+    if (membership?.club_id) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: club } = await (supabase as any)
+        .from('clubs')
+        .select('slug')
+        .eq('id', membership.club_id)
+        .maybeSingle()
+
+      if (club?.slug) redirect(`/${club.slug}`)
     }
 
-    // Authenticated but no active membership — send to login so they can see
-    // their pending state or re-authenticate.
-    redirect('/login')
+    // Authenticated but no active membership — show marketing page with sign-out option
+    // (don't redirect to /login — that creates an infinite loop)
   }
 
   return (
