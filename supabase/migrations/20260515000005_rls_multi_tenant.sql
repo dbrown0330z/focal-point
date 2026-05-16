@@ -183,8 +183,11 @@ create policy "nav_custom_tabs: admin manage"
 
 -- ── pages ────────────────────────────────────────────────────────────────────
 
-drop policy if exists "about_page: public read"  on public.pages;
-drop policy if exists "about_page: admin write"  on public.pages;
+drop policy if exists "about_page: public read" on public.pages;
+drop policy if exists "about_page: admin write" on public.pages;
+drop policy if exists "pages: public read"      on public.pages;
+drop policy if exists "pages: admin write"      on public.pages;
+drop policy if exists "pages: admin manage"     on public.pages;
 
 create policy "pages: public read"
   on public.pages for select
