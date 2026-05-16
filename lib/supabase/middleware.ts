@@ -133,7 +133,8 @@ export async function updateSession(request: NextRequest) {
           return NextResponse.redirect(new URL('/login', request.url))
         }
 
-        const { data: membership } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: membership } = await (supabase as any)
           .from('club_memberships')
           .select('role, membership_status')
           .eq('user_id', user.id)
