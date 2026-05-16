@@ -9,8 +9,7 @@ export default async function CustomPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const supabase = await createClient()
 
   const { data: page } = await supabase
     .from('nav_custom_pages')

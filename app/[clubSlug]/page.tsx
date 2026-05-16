@@ -14,8 +14,7 @@ export default async function ClubHomePage({
   params: Promise<{ clubSlug: string }>
 }) {
   const { clubSlug } = await params
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/login')
@@ -50,7 +49,7 @@ export default async function ClubHomePage({
 
   // ── Active member: render the club homepage ───────────────────────────────
   if (membership.membership_status === 'active' && membership.role) {
-    const saved: ContentBlock[] = (clubSettings as { homepage_blocks?: ContentBlock[] })?.homepage_blocks ?? DEFAULT_BLOCKS
+    const saved: ContentBlock[] = (clubSettings?.homepage_blocks as ContentBlock[] | null) ?? DEFAULT_BLOCKS
     const blocks: ContentBlock[] = mergeBlocks(saved, DEFAULT_BLOCKS)
 
     const [{ data: customPages }, { data: customTabs }] = await Promise.all([

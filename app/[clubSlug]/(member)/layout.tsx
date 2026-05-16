@@ -12,8 +12,7 @@ export default async function MemberLayout({
   params: Promise<{ clubSlug: string }>
 }) {
   const { clubSlug } = await params
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/login')

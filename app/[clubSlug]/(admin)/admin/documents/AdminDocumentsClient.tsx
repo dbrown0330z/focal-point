@@ -78,8 +78,7 @@ export default function AdminDocumentsClient({
     if (!file || !title.trim()) return
     setUploading(true)
     setError(null)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = createClient() as any
+    const supabase = createClient()
 
     // Upload to storage
     const ext  = file.name.split('.').pop() ?? 'bin'
@@ -146,8 +145,7 @@ export default function AdminDocumentsClient({
     const doc = documents.find(d => d.id === id)
     if (!doc) return
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = createClient() as any
+    const supabase = createClient()
 
     // Soft-delete in DB
     const { error: dbErr } = await supabase

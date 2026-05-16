@@ -351,8 +351,7 @@ export default async function HomepageRenderer({
   clubName: string
 }) {
   const supabaseRaw = await createClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase    = supabaseRaw as any
+  const supabase    = supabaseRaw
   const enabled     = blocks.filter(b => b.enabled)
 
   // ── Fetch events if the block is on ──────────────────────────────────────

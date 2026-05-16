@@ -12,8 +12,7 @@ export default async function OurClubLayout({
   params: Promise<{ clubSlug: string }>
 }) {
   const { clubSlug } = await params
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const supabase = await createClient()
   const ctx    = await getClubContext()
   const clubId = ctx?.clubId
 

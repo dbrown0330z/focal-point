@@ -61,8 +61,7 @@ export async function sendNotification(args: {
     .single()
 
   const clubName  = settings?.club_name  ?? 'Your Camera Club'
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fromEmail = (settings as any)?.from_email?.trim()
+  const fromEmail = settings?.from_email?.trim()
   const fromAddress = fromEmail
     ? `${clubName} <${fromEmail}>`
     : `${clubName} <notifications@${process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'focalpointhq.com'}>`

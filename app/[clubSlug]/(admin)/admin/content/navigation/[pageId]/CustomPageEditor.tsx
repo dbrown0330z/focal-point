@@ -237,8 +237,7 @@ export default function CustomPageEditor({
   const performSave = useCallback(async () => {
     const content = editorRef.current?.innerHTML ?? ''
     setSaveState('saving')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = createClient() as any
+    const supabase = createClient()
     const { error } = await supabase
       .from('nav_custom_pages')
       .update({
@@ -275,8 +274,7 @@ export default function CustomPageEditor({
   const handleTogglePublish = async () => {
     const next: Status = status === 'draft' ? 'published' : 'draft'
     setPublishing(true)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = createClient() as any
+    const supabase = createClient()
     const { error } = await supabase
       .from('nav_custom_pages')
       .update({ status: next, updated_at: new Date().toISOString() })
@@ -390,8 +388,7 @@ export default function CustomPageEditor({
     if (mode === 'doc' && docs.length === 0) {
       setDocsLoading(true)
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const supabase = createClient() as any
+        const supabase = createClient()
         const { data } = await supabase
           .from('documents').select('id, title, document_categories(name)')
           .is('deleted_at', null).eq('visibility', 'members').order('title')

@@ -101,9 +101,8 @@ type RecentResultData = {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default async function DualPanelBlock() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabaseRaw = await createClient()
-  const supabase    = supabaseRaw as any
+  const supabase    = supabaseRaw
 
   const { data: { user } } = await supabaseRaw.auth.getUser()
   const userId = user?.id ?? null

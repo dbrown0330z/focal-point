@@ -19,8 +19,7 @@ function substituteTokens(html: string, values: {
 }
 
 export default async function TermsPage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const supabase = await createClient()
 
   const { data } = await supabase
     .from('club_settings')

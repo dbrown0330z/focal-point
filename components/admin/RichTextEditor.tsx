@@ -301,8 +301,7 @@ export default function RichTextEditor({
     if (mode === 'doc' && docs.length === 0) {
       setDocsLoading(true)
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const supabase = createClient() as any
+        const supabase = createClient()
         const { data } = await supabase.from('documents')
           .select('id, title, document_categories(name)')
           .is('deleted_at', null).eq('visibility', 'members').order('title')

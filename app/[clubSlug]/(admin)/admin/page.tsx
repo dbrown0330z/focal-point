@@ -31,12 +31,10 @@ export default async function AdminDashboardPage() {
     supabase.from('submissions').select('id, submitted_at, images(title), profiles!member_id(display_name)').order('submitted_at', { ascending: false }).limit(4),
     supabase.from('profiles').select('id, display_name, created_at').order('created_at', { ascending: false }).limit(3),
     supabase.from('competitions').select('id, title, created_at').is('deleted_at', null).order('created_at', { ascending: false }).limit(3),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any).from('club_settings').select('membership_terms_reviewed').single(),
+    supabase.from('club_settings').select('membership_terms_reviewed').single(),
   ])
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const termsReviewed = (clubSettings as any)?.membership_terms_reviewed ?? true
+  const termsReviewed = clubSettings?.membership_terms_reviewed ?? true
 
   // Build merged activity feed
   type ActivityItem = { time: string; label: string; detail: string; dot: string; href: string }

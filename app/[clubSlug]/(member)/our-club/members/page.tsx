@@ -23,18 +23,18 @@ type RawMember = {
 }
 
 export default async function MembersPage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const supabase = await createClient()
 
   const { data: settingsRaw } = await supabase
     .from('club_settings')
     .select('member_directory_visibility')
-    .single() as { data: { member_directory_visibility: string } | null }
+    .single()
 
   const visible = settingsRaw?.member_directory_visibility !== 'admin_only'
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const membersRaw: RawMember[] = visible
-    ? ((await supabase
+    ? ((await (supabase as any)
         .from('profiles')
         .select('id, display_name, avatar_url, bio, skill_level, shooting_interests, camera_brands, location, created_at')
         .eq('membership_status', 'active')

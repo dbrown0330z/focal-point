@@ -282,9 +282,8 @@ export default async function CompetitionsBlock({
 }: {
   settings: CompetitionsSettings
 }) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabaseRaw = await createClient()
-  const supabase = supabaseRaw as any
+  const supabase = supabaseRaw
 
   const { data: { user } } = await supabaseRaw.auth.getUser()
   const userId = user?.id ?? null
@@ -299,7 +298,7 @@ export default async function CompetitionsBlock({
 
   const openComps: OpenComp[] = []
   if ((openCompsRaw ?? []).length > 0) {
-    const openIds: string[] = openCompsRaw.map((c: { id: string }) => c.id)
+    const openIds: string[] = (openCompsRaw ?? []).map((c: { id: string }) => c.id)
 
     // Total entries per open competition
     const { data: allEntriesRaw } = await supabase
@@ -328,7 +327,7 @@ export default async function CompetitionsBlock({
       }
     }
 
-    for (const c of openCompsRaw) {
+    for (const c of (openCompsRaw ?? [])) {
       openComps.push({
         id:               c.id,
         title:            c.title,
@@ -357,7 +356,7 @@ export default async function CompetitionsBlock({
     const compId = recentCompRaw.id
     const scoreMin: number = recentCompRaw.score_min ?? 1
     const scoreMax: number = recentCompRaw.score_max ?? 10
-    const awardTypes: { id: string; name: string; icon?: string }[] = recentCompRaw.award_types ?? []
+    const awardTypes: { id: string; name: string; icon?: string }[] = (recentCompRaw.award_types ?? []) as { id: string; name: string; icon?: string }[]
     const awardsEnabled: boolean = recentCompRaw.awards_enabled ?? false
 
     // Categories

@@ -2,8 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import ApplyClient from './ApplyClient'
 
 export default async function ApplyPage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const supabase = await createClient()
   const { data } = await supabase
     .from('club_settings')
     .select('club_name, membership_terms_source, membership_terms_content, membership_terms_file_path')

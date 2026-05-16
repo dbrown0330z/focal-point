@@ -100,8 +100,7 @@ export default async function WelcomeHeader({
   firstName: string
   userId:    string
 }) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const supabase = await createClient()
 
   // Fetch club timezone so the date header shows the correct local day
   const { data: clubSettings } = await supabase

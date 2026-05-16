@@ -442,8 +442,7 @@ function SysNavRow({
     const [moved] = reordered.splice(fromIdx, 1)
     reordered.splice(toIdx, 0, moved)
     setLocalCustom(reordered)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = createClient() as any
+    const supabase = createClient()
     await Promise.all(reordered.map((p, i) =>
       supabase.from('nav_custom_pages').update({ sort_order: i }).eq('id', p.id)
     ))
@@ -539,8 +538,7 @@ function CustomTabRow({
     const [moved] = reordered.splice(fromIdx, 1)
     reordered.splice(toIdx, 0, moved)
     setLocalPages(reordered)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = createClient() as any
+    const supabase = createClient()
     await Promise.all(reordered.map((p, i) =>
       supabase.from('nav_custom_pages').update({ sort_order: i }).eq('id', p.id)
     ))
@@ -882,8 +880,7 @@ export default function NavigationClient({
     setAddPageOpen(false)
     setErr(null)
     startTrans(async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const supabase = createClient() as any
+      const supabase = createClient()
       const isSystem = (['images','competitions','our-club'] as string[]).includes(addPageParent)
       const { data, error } = await supabase.from('nav_custom_pages').insert({
         title: title.trim(), slug,
@@ -905,8 +902,7 @@ export default function NavigationClient({
 
   function deletePage(id: string) {
     startTrans(async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const supabase = createClient() as any
+      const supabase = createClient()
       await supabase.from('nav_custom_pages').delete().eq('id', id)
       setPages(prev => prev.filter(p => p.id !== id))
     })
@@ -918,8 +914,7 @@ export default function NavigationClient({
   function saveAddTab(name: string) {
     setAddTabOpen(false)
     startTrans(async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const supabase = createClient() as any
+      const supabase = createClient()
       const { data, error } = await supabase.from('nav_custom_tabs')
         .insert({ name: name.trim(), slug: slugify(name), sort_order: tabs.length })
         .select().single()
@@ -930,8 +925,7 @@ export default function NavigationClient({
 
   function deleteTab(id: string) {
     startTrans(async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const supabase = createClient() as any
+      const supabase = createClient()
       await supabase.from('nav_custom_tabs').delete().eq('id', id)
       setTabs(prev => prev.filter(t => t.id !== id))
       setPages(prev => prev.filter(p => p.tab_id !== id))

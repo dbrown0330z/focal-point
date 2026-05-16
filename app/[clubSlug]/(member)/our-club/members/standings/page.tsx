@@ -80,8 +80,7 @@ export default async function StandingsPage({
   const params = await searchParams
 
   // Club settings
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: settingsRaw } = await (supabase as any)
+  const { data: settingsRaw } = await supabase
     .from('club_settings')
     .select('season_start_month')
     .single()
@@ -116,8 +115,7 @@ export default async function StandingsPage({
   } : null
 
   // Competitions closed in this season window
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: compsRaw } = await (supabase as any)
+  const { data: compsRaw } = await supabase
     .from('competitions')
     .select('id, title, awards_enabled, award_types, closes_at')
     .eq('status', 'closed')
@@ -132,7 +130,7 @@ export default async function StandingsPage({
     award_types: AwardTier[] | null
     closes_at: string
   }
-  const competitions: CompRow[] = compsRaw ?? []
+  const competitions: CompRow[] = (compsRaw as CompRow[] | null) ?? []
   const compIds = competitions.map(c => c.id)
   const awardsConfigured = competitions.some(c => c.awards_enabled)
 
@@ -143,8 +141,7 @@ export default async function StandingsPage({
 
   if (compIds.length > 0) {
     // Submissions + scores for this season's competitions
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: subsRaw } = await (supabase as any)
+    const { data: subsRaw } = await supabase
       .from('submissions')
       .select('id, member_id, competition_id, scores(score, award_id)')
       .in('competition_id', compIds)

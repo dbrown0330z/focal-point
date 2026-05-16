@@ -133,8 +133,7 @@ export async function updateSession(request: NextRequest) {
           return NextResponse.redirect(new URL('/login', request.url))
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: membership } = await (supabase as any)
+        const { data: membership } = await supabase
           .from('club_memberships')
           .select('role, membership_status')
           .eq('user_id', user.id)
@@ -168,14 +167,13 @@ export async function updateSession(request: NextRequest) {
     if (!user) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: profile } = await (supabase as any)
+    const { data: profile } = await supabase
       .from('profiles')
       .select('is_fp_admin')
       .eq('id', user.id)
       .single()
 
-    if (!(profile as { is_fp_admin?: boolean } | null)?.is_fp_admin) {
+    if (!profile?.is_fp_admin) {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }

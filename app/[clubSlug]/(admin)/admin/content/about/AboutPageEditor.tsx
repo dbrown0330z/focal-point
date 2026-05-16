@@ -387,8 +387,7 @@ export default function AboutPageEditor({
     if (mode === 'doc' && docs.length === 0) {
       setDocsLoading(true)
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const supabase = createClient() as any
+        const supabase = createClient()
         const { data } = await supabase
           .from('documents')
           .select('id, title, document_categories(name)')
@@ -542,8 +541,7 @@ export default function AboutPageEditor({
     const html = editorRef.current?.innerHTML ?? ''
     setSaveStatus('saving')
     startSave(async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const supabase = createClient() as any
+      const supabase = createClient()
       const res = pageId
         ? await supabase.from('pages').update({ content: html, updated_at: new Date().toISOString() }).eq('id', pageId)
         : await supabase.from('pages').insert({ slug: 'about', title: 'About our club', content: html })

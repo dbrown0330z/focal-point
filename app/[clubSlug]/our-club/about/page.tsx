@@ -5,18 +5,17 @@ import Link from 'next/link'
 export const dynamic = 'force-dynamic'
 
 export default async function AboutPage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const supabase = await createClient()
   const ctx    = await getClubContext()
   const clubId = ctx?.clubId
 
   const [{ data: { user } }, { data: settingsRaw }, { data: pageRaw }] = await Promise.all([
     supabase.auth.getUser(),
     clubId
-      ? supabase.from('club_settings').select('club_name').eq('club_id', clubId).single() as Promise<{ data: { club_name: string } | null }>
+      ? supabase.from('club_settings').select('club_name').eq('club_id', clubId).single() as unknown as Promise<{ data: { club_name: string } | null }>
       : Promise.resolve({ data: null }),
     clubId
-      ? supabase.from('pages').select('id, content').eq('slug', 'about').eq('club_id', clubId).maybeSingle() as Promise<{ data: { id: string; content: string | null } | null }>
+      ? supabase.from('pages').select('id, content').eq('slug', 'about').eq('club_id', clubId).maybeSingle() as unknown as Promise<{ data: { id: string; content: string | null } | null }>
       : Promise.resolve({ data: null }),
   ])
 

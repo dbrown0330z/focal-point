@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { ContentBlock } from '@/lib/homepage/types'
+import type { Json } from '@/types/database'
 
 /**
  * Persist the homepage block layout to club_settings.
@@ -15,10 +16,9 @@ export async function saveHomepageBlocks(
 ): Promise<{ error?: string }> {
   const supabase = createServiceClient()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('club_settings')
-    .update({ homepage_blocks: blocks })
+    .update({ homepage_blocks: blocks as unknown as Json })
     .neq('id', '00000000-0000-0000-0000-000000000000')
 
   if (error) return { error: error.message }

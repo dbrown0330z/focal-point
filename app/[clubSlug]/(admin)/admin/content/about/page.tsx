@@ -6,8 +6,7 @@ export const dynamic = 'force-dynamic'
 type RawPage = { id: string; content: string | null }
 
 export default async function AdminAboutPage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const supabase = await createClient()
 
   const { data } = await supabase
     .from('pages')
