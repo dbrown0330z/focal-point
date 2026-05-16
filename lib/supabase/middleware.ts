@@ -91,20 +91,18 @@ export async function updateSession(request: NextRequest) {
 
       // ── Inject club context into request headers ──────────────────────────
       // Server components and server actions read these via getClubContext().
-      const requestWithClub = new Request(request, {
-        headers: new Headers({
-          ...Object.fromEntries(request.headers),
-          'x-club-id':   club.id,
-          'x-club-slug': club.slug,
-          'x-club-name': club.name,
-        }),
-      })
+      // NextResponse.next() requires { headers } shape — not a plain Request.
+      const requestHeaders = new Headers(request.headers)
+      requestHeaders.set('x-club-id',   club.id)
+      requestHeaders.set('x-club-slug', club.slug)
+      requestHeaders.set('x-club-name', club.name)
 
       // Pass the club-enriched request through — no URL rewrite needed.
       // Routes are now at app/[clubSlug]/... so Next.js matches them directly.
-      supabaseResponse = NextResponse.next({ request: requestWithClub })
+      supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } })
 
-      // Copy auth cookies to the response
+      // Copy auth cookies from the original request into the response so the
+      // browser keeps its session across navigations.
       request.cookies.getAll().forEach(({ name, value }) => {
         supabaseResponse.cookies.set(name, value)
       })
