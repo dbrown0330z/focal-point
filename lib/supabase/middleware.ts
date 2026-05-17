@@ -144,8 +144,9 @@ export async function updateSession(request: NextRequest) {
         }
 
         if (isMemberRoute && membership?.membership_status !== 'active') {
-          // Not an active member of this club → club homepage
-          return NextResponse.redirect(new URL(`/${firstSeg}`, request.url))
+          // Not an active member of this club → login
+          // (redirecting to /${firstSeg} would loop since the homepage is itself a member route)
+          return NextResponse.redirect(new URL('/login', request.url))
         }
       }
 
