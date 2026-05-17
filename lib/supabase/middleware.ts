@@ -130,24 +130,9 @@ export async function updateSession(request: NextRequest) {
           // Not signed in → redirect to global login
           return NextResponse.redirect(new URL('/login', request.url))
         }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: membership } = await (supabase as any)
-          .from('club_memberships')
-          .select('role, membership_status')
-          .eq('user_id', user.id)
-          .eq('club_id', club.id)
-          .maybeSingle()
-
-        if (isAdminRoute && membership?.role !== 'admin') {
-          return NextResponse.redirect(new URL(`/${firstSeg}`, request.url))
-        }
-
-        if (isMemberRoute && membership?.membership_status !== 'active') {
-          // Not an active member of this club → login
-          // (redirecting to /${firstSeg} would loop since the homepage is itself a member route)
-          return NextResponse.redirect(new URL('/login', request.url))
-        }
+        // Membership and role checks are handled at the page/layout level.
+        // Doing them here requires an extra DB round-trip and RLS on club_memberships
+        // from the middleware context, which has caused redirect loops.
       }
 
       return supabaseResponse
