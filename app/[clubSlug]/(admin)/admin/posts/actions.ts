@@ -47,7 +47,7 @@ export async function updatePost(
 }
 
 export async function deletePost(id: string): Promise<{ error: string | null }> {
-  const supabase = await createClient()
+  const admin = createServiceClient()
   const { error } = await admin.from('posts').delete().eq('id', id)
   if (error) return { error: error.message }
   revalidatePath('/admin/posts')
