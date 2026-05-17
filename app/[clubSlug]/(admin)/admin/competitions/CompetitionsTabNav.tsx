@@ -3,26 +3,26 @@
 import { usePathname, useRouter } from 'next/navigation'
 import { Tabs, Tab } from '@mui/material'
 
-const TABS = [
-  { label: 'All Competitions',       href: '/admin/competitions',           exact: true },
-  { label: 'Competition Templates', href: '/admin/competitions/templates' },
-]
-
-export default function CompetitionsTabNav() {
+export default function CompetitionsTabNav({ clubSlug }: { clubSlug: string }) {
   const pathname = usePathname()
   const router   = useRouter()
 
-  const value = TABS.findIndex(t =>
+  const tabs = [
+    { label: 'All Competitions',      href: `/${clubSlug}/admin/competitions`,           exact: true },
+    { label: 'Competition Templates', href: `/${clubSlug}/admin/competitions/templates` },
+  ]
+
+  const value = tabs.findIndex(t =>
     t.exact ? pathname === t.href : pathname.startsWith(t.href)
   )
 
   return (
     <Tabs
       value={value === -1 ? 0 : value}
-      onChange={(_, i) => router.push(TABS[i].href)}
+      onChange={(_, i) => router.push(tabs[i].href)}
       sx={{ mb: 4, borderBottom: '1px solid', borderColor: 'divider' }}
     >
-      {TABS.map(t => <Tab key={t.href} label={t.label} sx={{ textTransform: 'none' }} />)}
+      {tabs.map(t => <Tab key={t.href} label={t.label} sx={{ textTransform: 'none' }} />)}
     </Tabs>
   )
 }

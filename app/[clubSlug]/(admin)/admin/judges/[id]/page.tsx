@@ -1,11 +1,13 @@
 import { Box, Typography } from '@mui/material'
 import Link from 'next/link'
+import { requireClubSlug } from '@/lib/club-context'
 
-export default function JudgeStatsPage({ params }: { params: { id: string } }) {
+export default async function JudgeStatsPage({ params }: { params: { id: string } }) {
+  const clubSlug = await requireClubSlug()
   return (
     <Box>
       <Box sx={{ mb: 4 }}>
-        <Link href="/admin/judges" style={{ fontSize: 13, color: 'inherit', opacity: 0.6 }}>
+        <Link href={`/${clubSlug}/admin/judges`} style={{ fontSize: 13, color: 'inherit', opacity: 0.6 }}>
           ← Back to judges
         </Link>
       </Box>

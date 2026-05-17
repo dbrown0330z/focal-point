@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubSlug } from '@/lib/club-context'
 import Link from 'next/link'
 
 function timeAgo(dateStr: string): string {
@@ -15,6 +16,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default async function AdminDashboardPage() {
+  const clubSlug = await requireClubSlug()
   const supabase = await createClient()
   const admin = createServiceClient()
 
@@ -50,7 +52,7 @@ export default async function AdminDashboardPage() {
       label:  'Image submitted',
       detail: [img?.title, prof?.display_name].filter(Boolean).join(' · '),
       dot:    'var(--action-primary)',
-      href:   '/admin/competitions',
+      href:   `/${clubSlug}/admin/competitions`,
     })
   }
   for (const m of recentMembers ?? []) {
@@ -59,7 +61,7 @@ export default async function AdminDashboardPage() {
       label:  'Member registered',
       detail: `${m.display_name} joined`,
       dot:    'var(--status-success)',
-      href:   '/admin/members',
+      href:   `/${clubSlug}/admin/members`,
     })
   }
   for (const c of recentCompetitions ?? []) {
@@ -68,7 +70,7 @@ export default async function AdminDashboardPage() {
       label:  'Competition created',
       detail: c.title,
       dot:    'var(--text-tertiary)',
-      href:   `/admin/competitions/${c.id}`,
+      href:   `/${clubSlug}/admin/competitions/${c.id}`,
     })
   }
   activity.sort((a, b) => {
@@ -78,16 +80,16 @@ export default async function AdminDashboardPage() {
   const activityFeed = activity.slice(0, 8)
 
   const stats = [
-    { label: 'Pending approvals', value: pendingCount ?? 0, href: '/admin/members', urgent: (pendingCount ?? 0) > 0 },
-    { label: 'Active members', value: memberCount ?? 0, href: '/admin/members', urgent: false },
-    { label: 'Active competitions', value: activeCompetitions?.length ?? 0, href: '/admin/competitions', urgent: false },
+    { label: 'Pending approvals', value: pendingCount ?? 0, href: `/${clubSlug}/admin/members`, urgent: (pendingCount ?? 0) > 0 },
+    { label: 'Active members', value: memberCount ?? 0, href: `/${clubSlug}/admin/members`, urgent: false },
+    { label: 'Active competitions', value: activeCompetitions?.length ?? 0, href: `/${clubSlug}/admin/competitions`, urgent: false },
   ]
 
   const quickActions = [
-    { label: 'Add member',      icon: 'users',    href: '/admin/members' },
-    { label: 'New competition', icon: 'trophy',   href: '/admin/competitions/new' },
-    { label: 'New post',        icon: 'pages',    href: '/admin/posts/new' },
-    { label: 'Club Defaults',   icon: 'settings', href: '/admin/club-defaults' },
+    { label: 'Add member',      icon: 'users',    href: `/${clubSlug}/admin/members` },
+    { label: 'New competition', icon: 'trophy',   href: `/${clubSlug}/admin/competitions/new` },
+    { label: 'New post',        icon: 'pages',    href: `/${clubSlug}/admin/posts/new` },
+    { label: 'Club Defaults',   icon: 'settings', href: `/${clubSlug}/admin/club-defaults` },
   ]
 
   return (
@@ -110,7 +112,7 @@ export default async function AdminDashboardPage() {
             </p>
           </div>
           <Link
-            href="/admin/club-defaults#membership-terms"
+            href={`/${clubSlug}/admin/club-defaults#membership-terms`}
             className="flex-shrink-0 rounded-md px-3 py-1.5 text-[12px] font-medium text-status-warning-text border border-status-warning hover:bg-status-warning hover:text-white transition-colors"
           >
             Review now →
@@ -150,7 +152,7 @@ export default async function AdminDashboardPage() {
           <section>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-[11px] font-bold uppercase tracking-[0.07em] text-content-tertiary">Active competitions</h2>
-              <Link href="/admin/competitions" className="text-[13px] text-action-primary hover:underline transition-colors">
+              <Link href={`/${clubSlug}/admin/competitions`} className="text-[13px] text-action-primary hover:underline transition-colors">
                 View all →
               </Link>
             </div>
@@ -158,7 +160,7 @@ export default async function AdminDashboardPage() {
             {!activeCompetitions?.length ? (
               <div className="rounded-[10px] border border-border-default bg-surface-2 px-5 py-8 text-center">
                 <p className="text-[13px] text-content-tertiary">No competitions currently open or in judging.</p>
-                <Link href="/admin/competitions/new" className="mt-3 inline-block text-[13px] font-medium text-action-primary hover:underline">
+                <Link href={`/${clubSlug}/admin/competitions/new`} className="mt-3 inline-block text-[13px] font-medium text-action-primary hover:underline">
                   Create one →
                 </Link>
               </div>
@@ -167,7 +169,7 @@ export default async function AdminDashboardPage() {
                 {activeCompetitions.map(c => (
                   <Link
                     key={c.id}
-                    href={`/admin/competitions/${c.id}`}
+                    href={`/${clubSlug}/admin/competitions/${c.id}`}
                     className="flex items-center justify-between px-5 py-3.5 hover:bg-surface-1 transition-colors"
                   >
                     <p className="text-[14px] font-semibold text-content-primary">{c.title}</p>

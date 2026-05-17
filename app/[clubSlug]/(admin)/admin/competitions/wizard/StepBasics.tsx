@@ -23,6 +23,7 @@ interface Props {
   onScheduleDirect:   () => void
   onReviewSettings:   () => void
   onScratchMode:      (isScratch: boolean) => void
+  clubSlug:           string
 }
 
 const PRESET_LABEL: Record<string, string> = {
@@ -92,6 +93,7 @@ export function StepBasics({
   onScheduleDirect,
   onReviewSettings,
   onScratchMode,
+  clubSlug,
 }: Props) {
   const [mode, setMode] = useState<'template' | 'scratch'>('template')
 
@@ -181,7 +183,7 @@ export function StepBasics({
                     </Typography>
                     <Typography
                       component="a"
-                      href="/admin/competitions/templates"
+                      href={`/${clubSlug}/admin/competitions/templates`}
                       sx={{ fontSize: 12, color: 'primary.main', mt: 0.5, display: 'block', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
                     >
                       Create a template ↗
@@ -230,7 +232,7 @@ export function StepBasics({
                     </Select>
                     <Typography
                       component="a"
-                      href="/admin/competitions/templates"
+                      href={`/${clubSlug}/admin/competitions/templates`}
                       sx={{ fontSize: 12, color: 'primary.main', mt: 0.75, display: 'block', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
                     >
                       Manage templates ↗

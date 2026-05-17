@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubSlug } from '@/lib/club-context'
 
 export const dynamic = 'force-dynamic'
 import { LifecycleActions }  from './LifecycleActions'
@@ -29,6 +30,7 @@ export default async function CompetitionDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  const clubSlug        = await requireClubSlug()
   const supabase        = await createClient()
   const serviceSupabase = createServiceClient()
 
@@ -100,7 +102,7 @@ export default async function CompetitionDetailPage({
     <div className="space-y-8">
 
       {/* Breadcrumb */}
-      <Link href="/admin/competitions" className="inline-flex items-center gap-1.5 text-sm text-content-secondary hover:text-content-primary transition-colors">
+      <Link href={`/${clubSlug}/admin/competitions`} className="inline-flex items-center gap-1.5 text-sm text-content-secondary hover:text-content-primary transition-colors">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
         </svg>

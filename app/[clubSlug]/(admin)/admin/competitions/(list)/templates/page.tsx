@@ -1,10 +1,12 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubSlug } from '@/lib/club-context'
 import TemplatesClient from './TemplatesClient'
 import type { CompetitionConfig } from '@/types/competition'
 
 export const dynamic = 'force-dynamic'
 
 export default async function CompetitionTemplatesPage() {
+  const clubSlug = await requireClubSlug()
   const supabase = createServiceClient()
 
   const { data: templates } = await supabase
@@ -28,6 +30,6 @@ export default async function CompetitionTemplatesPage() {
   const clubCategories = categoryRows?.map(r => r.name) ?? ['Open', 'Nature', 'Monochrome']
 
   return (
-    <TemplatesClient templates={rows} clubCategories={clubCategories} />
+    <TemplatesClient templates={rows} clubCategories={clubCategories} clubSlug={clubSlug} />
   )
 }

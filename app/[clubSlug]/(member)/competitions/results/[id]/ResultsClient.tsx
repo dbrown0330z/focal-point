@@ -689,7 +689,7 @@ function EmptyResults() {
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-export default function ResultsClient({ data }: { data: ResultsData }) {
+export default function ResultsClient({ data, clubSlug }: { data: ResultsData; clubSlug: string }) {
   // Flatten all entries across all categories for lightbox navigation
   type LightboxState = { categoryId: string; submissionId: string } | null
   const [lightbox, setLightbox] = useState<LightboxState>(null)
@@ -725,7 +725,7 @@ export default function ResultsClient({ data }: { data: ResultsData }) {
       {/* Back link */}
       <div className="mb-6">
         <Link
-          href="/competitions"
+          href={`/${clubSlug}/competitions`}
           className="inline-flex items-center gap-1.5 text-[13px] font-semibold transition-colors"
           style={{ color: 'var(--text-secondary)' }}
           onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-primary)')}

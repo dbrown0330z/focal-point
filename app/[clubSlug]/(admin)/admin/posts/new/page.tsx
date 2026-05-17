@@ -1,4 +1,5 @@
 import { createPost } from '../actions'
+import { requireClubSlug } from '@/lib/club-context'
 
 const inputCls  = "w-full rounded-lg border border-border-default bg-surface-2 px-3 py-2 text-sm text-content-primary focus:border-action-primary focus:outline-none focus:ring-2 focus:ring-action-primary/20"
 const labelCls  = "mb-1.5 block text-sm font-medium text-content-primary"
@@ -8,7 +9,7 @@ export default async function NewPostPage({
 }: {
   searchParams: Promise<{ error?: string }>
 }) {
-  const { error } = await searchParams
+  const [{ error }, clubSlug] = await Promise.all([searchParams, requireClubSlug()])
 
   return (
     <div>
@@ -67,7 +68,7 @@ export default async function NewPostPage({
             Save as draft
           </button>
           <a
-            href="/admin/posts"
+            href={`/${clubSlug}/admin/posts`}
             className="ml-auto rounded-lg border border-border-default px-5 py-2.5 text-sm font-medium text-content-secondary hover:bg-surface-1 transition-colors"
           >
             Cancel

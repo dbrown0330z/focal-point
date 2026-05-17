@@ -186,12 +186,14 @@ export default function SubmitClient({
   userId,
   initialCompetitionId,
   initialCategoryId,
+  clubSlug,
 }: {
   competitions:         CompetitionForSubmit[]
   libraryImages:        LibraryImageForSubmit[]
   userId:               string
   initialCompetitionId: string | null
   initialCategoryId:    string | null
+  clubSlug:             string
 }) {
   const router = useRouter()
 
@@ -482,7 +484,7 @@ export default function SubmitClient({
           {competitions.length === 0 ? (
             <div className="rounded-xl border border-border-default bg-surface-2 px-6 py-10 text-center">
               <p className="text-sm text-content-tertiary">No competitions are open for submissions right now.</p>
-              <Link href="/competitions" className="mt-3 inline-block text-sm text-action-primary hover:underline">
+              <Link href={`/${clubSlug}/competitions`} className="mt-3 inline-block text-sm text-action-primary hover:underline">
                 View all competitions →
               </Link>
             </div>
@@ -558,7 +560,7 @@ export default function SubmitClient({
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <Link href="/competitions" className={btn.secondary}>Cancel</Link>
+            <Link href={`/${clubSlug}/competitions`} className={btn.secondary}>Cancel</Link>
             <button
               disabled={!compId || (!catId && (competition?.categories.length ?? 0) > 1)}
               onClick={() => {
@@ -951,7 +953,7 @@ export default function SubmitClient({
                 Submit another entry
               </Link>
             )}
-            <Link href="/competitions" className={`${btn.secondary} text-center`}>
+            <Link href={`/${clubSlug}/competitions`} className={`${btn.secondary} text-center`}>
               Back to competitions
             </Link>
           </div>

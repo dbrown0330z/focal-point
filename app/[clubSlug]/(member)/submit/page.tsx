@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubSlug } from '@/lib/club-context'
 import SubmitClient, { type CompetitionForSubmit, type LibraryImageForSubmit } from './SubmitClient'
 
 export default async function SubmitPage({
@@ -9,6 +10,7 @@ export default async function SubmitPage({
   searchParams: Promise<{ competition?: string; category?: string }>
 }) {
   const { competition: initialCompId, category: initialCatId } = await searchParams
+  const clubSlug = await requireClubSlug()
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -140,6 +142,7 @@ export default async function SubmitPage({
       userId={user.id}
       initialCompetitionId={initialCompId ?? null}
       initialCategoryId={initialCatId ?? null}
+      clubSlug={clubSlug}
     />
   )
 }

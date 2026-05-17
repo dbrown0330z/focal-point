@@ -54,6 +54,7 @@ export default function CreateCompetitionWizard({
   clubCategories = [],
   clubDefaults = {},
   editCompetition = null,
+  clubSlug,
 }: {
   open:              boolean
   onClose:           () => void
@@ -63,6 +64,7 @@ export default function CreateCompetitionWizard({
   clubCategories?:   string[]
   clubDefaults?:     Partial<CompetitionConfig>
   editCompetition?:  EditCompetition | null
+  clubSlug:          string
 }) {
   const baseConfig: CompetitionConfig = { ...defaultConfig, ...clubDefaults }
   const isEditMode = editCompetition !== null
@@ -289,6 +291,7 @@ export default function CreateCompetitionWizard({
               onScheduleDirect={goDirectToSchedule}
               onReviewSettings={goReviewSettings}
               onScratchMode={setStep1Scratch}
+              clubSlug={clubSlug}
             />
           )}
           {step === 2 && <StepCategories config={config} onChange={updateConfig} clubCategories={activeCats} onAddClubCategory={name => setActiveCats(prev => [...prev, name])} />}

@@ -1,10 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubSlug } from '@/lib/club-context'
 import SentMessagesClient from './SentMessagesClient'
 
 export const dynamic = 'force-dynamic'
 
 export default async function SentMessagesPage() {
+  const [clubSlug] = await Promise.all([requireClubSlug()])
   const supabase = await createClient()
   const admin = createServiceClient()
   const { data: messages } = await admin
@@ -13,5 +15,5 @@ export default async function SentMessagesPage() {
     .order('sent_at', { ascending: false })
     .limit(100)
 
-  return <SentMessagesClient messages={messages ?? []} />
+  return <SentMessagesClient messages={messages ?? []} clubSlug={clubSlug} />
 }

@@ -379,7 +379,7 @@ const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
   { key: 'available', label: 'Available' },
 ]
 
-export default function LibraryClient({ images }: { images: Image[] }) {
+export default function LibraryClient({ images, clubSlug }: { images: Image[]; clubSlug: string }) {
   const [view, setView]                   = useState<View>('gallery')
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [detailImage, setDetailImage]     = useState<Image | null>(null)
@@ -488,7 +488,7 @@ export default function LibraryClient({ images }: { images: Image[] }) {
             </div>
           )}
           {images.length > 0 && (
-            <Button variant="contained" component={Link} href="/library/upload">
+            <Button variant="contained" component={Link} href={`/${clubSlug}/library/upload`}>
               + Add image
             </Button>
           )}
@@ -511,7 +511,7 @@ export default function LibraryClient({ images }: { images: Image[] }) {
           <p className="mt-2 text-[15px]" style={{ color: 'var(--text-secondary)' }}>
             You haven&apos;t added anything yet — upload your first image to get started.
           </p>
-          <Button variant="contained" component={Link} href="/library/upload" sx={{ mt: 4 }}>
+          <Button variant="contained" component={Link} href={`/${clubSlug}/library/upload`} sx={{ mt: 4 }}>
             + Add image
           </Button>
         </div>

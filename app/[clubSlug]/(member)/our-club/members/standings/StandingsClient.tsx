@@ -207,7 +207,7 @@ function MyPoyCard({
       ) : (
         <p className="text-[13px] text-content-secondary">
           You haven&apos;t entered a scored competition this season yet.{' '}
-          <Link href="/competitions" className="text-action-primary hover:underline">
+          <Link href={`/${clubSlug}/competitions`} className="text-action-primary hover:underline">
             Enter a competition
           </Link>{' '}
           to appear in the standings.
@@ -515,6 +515,7 @@ export default function StandingsClient({
   awardLeaderboard,
   recentAwards,
   initialTab,
+  clubSlug,
 }: {
   currentProfile:            CurrentProfile | null
   seasonYear:                number
@@ -527,6 +528,7 @@ export default function StandingsClient({
   awardLeaderboard:          AwardLeaderboardEntry[]
   recentAwards:              RecentAward[]
   initialTab:                Tab
+  clubSlug:                  string
 }) {
   const [tab, setTab] = useState<Tab>(initialTab)
 

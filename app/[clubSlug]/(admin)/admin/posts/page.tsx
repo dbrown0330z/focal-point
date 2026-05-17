@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubSlug } from '@/lib/club-context'
 
 export default async function AdminPostsPage() {
+  const clubSlug = await requireClubSlug()
   const supabase = await createClient()
   const admin = createServiceClient()
 
@@ -16,7 +18,7 @@ export default async function AdminPostsPage() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">News &amp; Posts</h1>
         <Link
-          href="/admin/posts/new"
+          href={`/${clubSlug}/admin/posts/new`}
           className="rounded-lg bg-action-primary px-4 py-2 text-sm font-medium text-white hover:bg-action-primary-hover transition-colors"
         >
           New post
@@ -30,7 +32,7 @@ export default async function AdminPostsPage() {
           {posts.map(post => (
             <Link
               key={post.id}
-              href={`/admin/posts/${post.id}`}
+              href={`/${clubSlug}/admin/posts/${post.id}`}
               className="flex items-center justify-between px-4 py-3 hover:bg-surface-1 transition-colors"
             >
               <div>

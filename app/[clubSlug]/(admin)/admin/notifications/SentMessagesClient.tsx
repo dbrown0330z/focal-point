@@ -22,7 +22,7 @@ export type SentMessage = {
   sent_by: string | null
 }
 
-export default function SentMessagesClient({ messages }: { messages: SentMessage[] }) {
+export default function SentMessagesClient({ messages, clubSlug }: { messages: SentMessage[]; clubSlug: string }) {
   return (
     <Box>
       {messages.length === 0 ? (
@@ -37,7 +37,7 @@ export default function SentMessagesClient({ messages }: { messages: SentMessage
           <Button
             variant="contained"
             component={NextLink}
-            href="/admin/notifications/compose"
+            href={`/${clubSlug}/admin/notifications/compose`}
             sx={{ mt: 0.5 }}
           >
             Create message

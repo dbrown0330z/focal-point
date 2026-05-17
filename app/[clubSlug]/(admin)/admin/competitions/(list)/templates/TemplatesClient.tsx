@@ -51,9 +51,11 @@ const PRESET_LABEL: Record<string, string> = {
 export default function TemplatesClient({
   templates,
   clubCategories = [],
+  clubSlug,
 }: {
   templates:       Template[]
   clubCategories?: string[]
+  clubSlug:        string
 }) {
   const router = useRouter()
 
@@ -160,7 +162,7 @@ export default function TemplatesClient({
           headline="No templates yet"
           body="Templates are saved automatically the first time you create a competition. Once saved, you can reuse and edit them here."
           action={
-            <Button variant="contained" onClick={() => router.push('/admin/competitions/new')}>
+            <Button variant="contained" onClick={() => router.push(`/${clubSlug}/admin/competitions/new`)}>
               Create a competition
             </Button>
           }
@@ -272,6 +274,7 @@ export default function TemplatesClient({
               onScheduleDirect={() => {}}
               onReviewSettings={() => {}}
               onScratchMode={() => {}}
+              clubSlug={clubSlug}
             />
           )}
           {step === 2 && <StepCategories config={config} onChange={updateConfig} clubCategories={activeCats} onAddClubCategory={name => setActiveCats(prev => [...prev, name])} />}

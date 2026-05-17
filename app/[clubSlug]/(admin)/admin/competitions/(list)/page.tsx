@@ -1,10 +1,12 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubSlug } from '@/lib/club-context'
 import CompetitionsListClient from './CompetitionsListClient'
 import { defaultConfig, type CompetitionConfig } from '@/types/competition'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminCompetitionsPage() {
+  const clubSlug = await requireClubSlug()
   const supabase = createServiceClient()
 
   const [
@@ -155,6 +157,7 @@ export default async function AdminCompetitionsPage() {
       meetingLocations={meetingLocations}
       clubCategories={clubCategories}
       clubDefaults={clubDefaults}
+      clubSlug={clubSlug}
     />
   )
 }

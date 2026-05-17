@@ -92,6 +92,7 @@ export default function CompetitionsListClient({
   members,
   clubCategories = [],
   clubDefaults = {},
+  clubSlug,
 }: {
   competitions:      Competition[]
   templates:         Template[]
@@ -99,6 +100,7 @@ export default function CompetitionsListClient({
   meetingLocations?: string[]
   clubCategories?:   string[]
   clubDefaults?:     Partial<CompetitionConfig>
+  clubSlug:          string
 }) {
   const [filter,     setFilter]     = useState<Filter>('active')
   const [createOpen, setCreateOpen] = useState(false)
@@ -319,6 +321,7 @@ export default function CompetitionsListClient({
         meetingLocations={meetingLocations}
         clubCategories={clubCategories}
         clubDefaults={clubDefaults}
+        clubSlug={clubSlug}
       />
     </>
   )

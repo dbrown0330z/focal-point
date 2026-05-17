@@ -1,9 +1,11 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubSlug } from '@/lib/club-context'
 import LibraryClient from './LibraryClient'
 
 export default async function LibraryPage() {
+  const clubSlug = await requireClubSlug()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
@@ -63,5 +65,5 @@ export default async function LibraryPage() {
     }
   })
 
-  return <LibraryClient images={imagesWithUrls} />
+  return <LibraryClient images={imagesWithUrls} clubSlug={clubSlug} />
 }

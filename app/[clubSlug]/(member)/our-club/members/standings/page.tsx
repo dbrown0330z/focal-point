@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubSlug } from '@/lib/club-context'
 import { redirect } from 'next/navigation'
 import StandingsClient from './StandingsClient'
 import type { AwardTier } from '@/types/competition'
@@ -74,6 +75,7 @@ export default async function StandingsPage({
 }: {
   searchParams: Promise<{ season?: string; tab?: string }>
 }) {
+  const clubSlug = await requireClubSlug()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
@@ -273,6 +275,7 @@ export default async function StandingsPage({
 
   return (
     <StandingsClient
+      clubSlug={clubSlug}
       currentProfile={currentProfile}
       seasonYear={seasonYear}
       seasonLabel={season.label}

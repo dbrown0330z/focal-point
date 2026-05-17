@@ -154,6 +154,7 @@ export default function CustomPageEditor({
   initialVisibility,
   initialStatus,
   slug,
+  clubSlug,
 }: {
   pageId:            string
   menuLabel:         string
@@ -162,6 +163,7 @@ export default function CustomPageEditor({
   initialVisibility: Visibility
   initialStatus:     Status
   slug:              string
+  clubSlug:          string
 }) {
   const { theme: adminTheme } = useAdminTheme()
 
@@ -572,7 +574,7 @@ export default function CustomPageEditor({
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Link
-              href="/admin/content/navigation"
+              href={`/${clubSlug}/admin/content/navigation`}
               style={{ display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', color: 'inherit' }}
             >
               <ArrowBackIcon sx={{ fontSize: 16, color: 'text.secondary' }} />

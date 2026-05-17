@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubSlug } from '@/lib/club-context'
 import ResultsClient from './ResultsClient'
 import type { AwardTier } from '@/types/competition'
 
@@ -70,6 +71,7 @@ export default async function CompetitionResultsPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  const clubSlug = await requireClubSlug()
   const supabase = await createClient()
   const admin = createServiceClient()
 
@@ -197,5 +199,5 @@ export default async function CompetitionResultsPage({
     categories,
   }
 
-  return <ResultsClient data={data} />
+  return <ResultsClient data={data} clubSlug={clubSlug} />
 }

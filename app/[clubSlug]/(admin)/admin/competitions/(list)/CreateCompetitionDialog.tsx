@@ -40,11 +40,13 @@ export default function CreateCompetitionDialog({
   onClose,
   templates,
   members,
+  clubSlug,
 }: {
   open:      boolean
   onClose:   () => void
   templates: Template[]
   members:   { id: string; name: string }[]
+  clubSlug:  string
 }) {
   const router = useRouter()
 
@@ -106,7 +108,7 @@ export default function CreateCompetitionDialog({
       })
       setToast(`"${name}" created.`)
       onClose()
-      router.push('/admin/competitions')
+      router.push(`/${clubSlug}/admin/competitions`)
     } catch {
       setToast('Failed to create competition.')
     } finally {

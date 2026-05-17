@@ -15,7 +15,7 @@ type Post = {
 const inputCls = "w-full rounded-lg border border-border-default bg-surface-2 px-3 py-2 text-sm text-content-primary focus:border-action-primary focus:outline-none focus:ring-2 focus:ring-action-primary/20"
 const labelCls = "mb-1.5 block text-sm font-medium text-content-primary"
 
-export default function PostEditClient({ post }: { post: Post }) {
+export default function PostEditClient({ post, clubSlug }: { post: Post; clubSlug: string }) {
   const router = useRouter()
 
   const [title,   setTitle]   = useState(post.title)
@@ -53,7 +53,7 @@ export default function PostEditClient({ post }: { post: Post }) {
     if (!confirmDelete) { setConfirmDelete(true); return }
     setDeleting(true)
     await deletePost(post.id)
-    router.push('/admin/posts')
+    router.push(`/${clubSlug}/admin/posts`)
   }
 
   return (
