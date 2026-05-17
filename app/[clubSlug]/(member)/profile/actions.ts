@@ -46,6 +46,7 @@ export async function updateProfile(data: ProfileUpdateData): Promise<{ error: s
 export async function updateAvatarUrl(avatarUrl: string): Promise<{ error: string | null }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
   if (!user) return { error: 'Not authenticated' }
 
   const { error } = await admin
