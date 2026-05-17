@@ -165,9 +165,11 @@ function SeasonSelector({
 function MyPoyCard({
   profile,
   entry,
+  clubSlug,
 }: {
-  profile: CurrentProfile
-  entry:   PoyEntry | null
+  profile:  CurrentProfile
+  entry:    PoyEntry | null
+  clubSlug: string
 }) {
   return (
     <div
@@ -578,7 +580,7 @@ export default function StandingsClient({
           </div>
 
           {currentProfile && (
-            <MyPoyCard profile={currentProfile} entry={currentUserPoy} />
+            <MyPoyCard profile={currentProfile} entry={currentUserPoy} clubSlug={clubSlug} />
           )}
 
           <PoyLeaderboard entries={poyStandings} hasCompetitions={hasCompetitionsThisSeason} />
