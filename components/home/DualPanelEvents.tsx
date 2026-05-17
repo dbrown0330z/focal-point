@@ -187,7 +187,8 @@ function EventModal({ event, onClose }: { event: CEvent; onClose: () => void }) 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export default function DualPanelEvents({ events }: { events: CEvent[] }) {
-  const [selected, setSelected] = useState<CEvent | null>(null)
+  const [selected,  setSelected]  = useState<CEvent | null>(null)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   if (events.length === 0) {
     return <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No upcoming events scheduled.</p>
@@ -197,24 +198,31 @@ export default function DualPanelEvents({ events }: { events: CEvent[] }) {
     <>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {events.map((ev, i) => {
-          const cfg          = EVT[ev.event_type] ?? EVT_DEFAULT
+          const cfg            = EVT[ev.event_type] ?? EVT_DEFAULT
           const { month, day } = fmtBadge(ev.starts_at)
-          const time         = ev.all_day ? null : fmtTime(ev.starts_at)
+          const time           = ev.all_day ? null : fmtTime(ev.starts_at)
+          const isHovered      = hoveredId === ev.id
 
           return (
             <div key={ev.id} style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
               <button
                 onClick={() => setSelected(ev)}
+                onMouseEnter={() => setHoveredId(ev.id)}
+                onMouseLeave={() => setHoveredId(null)}
                 style={{
-                  display:    'flex',
-                  alignItems: 'center',
-                  gap:        10,
-                  width:      '100%',
-                  padding:    '9px 0',
-                  background: 'none',
-                  border:     'none',
-                  cursor:     'pointer',
-                  textAlign:  'left',
+                  display:      'flex',
+                  alignItems:   'center',
+                  gap:          10,
+                  width:        '100%',
+                  padding:      '9px 6px',
+                  margin:       '0 -6px',
+                  width:        'calc(100% + 12px)',
+                  background:   isHovered ? 'var(--surface-1)' : 'none',
+                  border:       'none',
+                  borderRadius: 6,
+                  cursor:       'pointer',
+                  textAlign:    'left',
+                  transition:   'background 0.12s ease',
                 }}
               >
                 {/* Date badge */}

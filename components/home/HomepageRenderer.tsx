@@ -6,6 +6,7 @@ import CustomContentNote from './CustomContentNote'
 import { Grid8Gallery, Strip8Gallery } from './ImageGallery'
 import CompetitionsBlock from './CompetitionsBlock'
 import DualPanelBlock from './DualPanelBlock'
+import DualPanelEvents from './DualPanelEvents'
 import type {
   ContentBlock,
   ContentNote,
@@ -15,30 +16,6 @@ import type {
 } from '@/lib/homepage/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const EVENT_TYPE_LABEL: Record<string, string> = {
-  competition:      'Competition',
-  regular_meeting:  'Meeting',
-  board_meeting:    'Board meeting',
-  field_trip:       'Field trip',
-  other:            'Event',
-  submission_open:  'Submissions open',
-  submission_closed:'Submissions close',
-}
-
-function formatEventDate(iso: string): { month: string; day: string; weekday: string } {
-  const d = new Date(iso)
-  return {
-    month:   d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
-    day:     String(d.getDate()),
-    weekday: d.toLocaleDateString('en-US', { weekday: 'short' }),
-  }
-}
-
-function formatEventTime(iso: string, allDay: boolean): string {
-  if (allDay) return 'All day'
-  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-}
 
 function initials(name: string): string {
   return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase()
@@ -127,42 +104,7 @@ function UpcomingEventsBlock({ events }: { events: CalendarEvent[] }) {
           View all →
         </Link>
       </div>
-
-      {events.length === 0 ? (
-        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
-          No upcoming events scheduled.
-        </p>
-      ) : (
-      <div className="flex flex-col divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
-        {events.map(ev => {
-          const { month, day, weekday } = formatEventDate(ev.starts_at)
-          const time = formatEventTime(ev.starts_at, ev.all_day)
-          const typeLabel = EVENT_TYPE_LABEL[ev.event_type] ?? 'Event'
-          return (
-            <div key={ev.id} className="flex items-start gap-4 py-3 first:pt-0 last:pb-0">
-              {/* Date badge */}
-              <div className="flex-shrink-0 w-11 text-center rounded-md py-1.5" style={{ background: 'var(--surface-1)' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', color: 'var(--action-primary)' }}>{month}</div>
-                <div style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1 }}>{day}</div>
-                <div style={{ fontSize: 9, color: 'var(--text-tertiary)' }}>{weekday}</div>
-              </div>
-              {/* Event info */}
-              <div className="flex-1 min-w-0 pt-0.5">
-                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>{ev.title}</p>
-                <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-                  {time}
-                  {ev.location && <> · {ev.location}</>}
-                </p>
-              </div>
-              {/* Type badge */}
-              <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', background: 'var(--surface-1)', borderRadius: 4, padding: '2px 7px', border: '1px solid var(--border-subtle)' }}>
-                {typeLabel}
-              </span>
-            </div>
-          )
-        })}
-      </div>
-      )}
+      <DualPanelEvents events={events} />
     </Section>
   )
 }

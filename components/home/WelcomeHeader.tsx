@@ -8,6 +8,33 @@ function formatHeaderDate(date: Date, tz: string): string {
     .toUpperCase()
 }
 
+// ─── Greeting pool ────────────────────────────────────────────────────────────
+
+const GREETINGS_ANY       = ['Welcome back', 'Howdy', 'Good to see you', 'Greetings']
+const GREETINGS_MORNING   = ['Good morning', "Mornin'", 'Camera or coffee']
+const GREETINGS_AFTERNOON = ['Good afternoon', 'Good day']
+const GREETINGS_EVENING   = ['Good evening', "Evenin'"]
+
+function pickGreeting(date: Date, tz: string): string {
+  const hour = parseInt(
+    date.toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: tz }),
+    10,
+  )
+
+  // 30 % chance of an any-time greeting regardless of hour
+  if (Math.random() < 0.3) {
+    return GREETINGS_ANY[Math.floor(Math.random() * GREETINGS_ANY.length)]
+  }
+
+  if (hour >= 5 && hour < 12) {
+    return GREETINGS_MORNING[Math.floor(Math.random() * GREETINGS_MORNING.length)]
+  }
+  if (hour >= 12 && hour < 18) {
+    return GREETINGS_AFTERNOON[Math.floor(Math.random() * GREETINGS_AFTERNOON.length)]
+  }
+  return GREETINGS_EVENING[Math.floor(Math.random() * GREETINGS_EVENING.length)]
+}
+
 // ─── Stat card ────────────────────────────────────────────────────────────────
 
 function TrophyIcon() {
@@ -108,6 +135,8 @@ export default async function WelcomeHeader({
     .select('timezone')
     .single()
   const tz: string = clubSettings?.timezone || 'UTC'
+  const now         = new Date()
+  const greeting    = pickGreeting(now, tz)
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pt-8 pb-4">
@@ -134,7 +163,7 @@ export default async function WelcomeHeader({
             lineHeight:    1.1,
             letterSpacing: '-0.02em',
           }}>
-            Welcome back, <em style={{ fontStyle: 'italic' }}>{firstName}</em>.
+            {greeting}, <em style={{ fontStyle: 'italic' }}>{firstName}</em>.
           </h1>
         </div>
 
