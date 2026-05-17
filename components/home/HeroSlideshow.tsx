@@ -4,19 +4,21 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 
 type Slide = {
-  src:   string
-  title: string
-  maker: string
+  src:    string
+  title:  string
+  maker:  string
+  camera?: string
+  lens?:   string
 }
 
 const SLIDES: Slide[] = [
-  { src: '/hero/image-1.jpg', title: 'Ritual Motion',         maker: 'Marcus Okafor'   },
-  { src: '/hero/image-2.jpg', title: 'Platform No. 7',        maker: 'Elena Vasquez'   },
-  { src: '/hero/image-3.jpg', title: 'San Polo Morning',      maker: 'James Whitfield' },
-  { src: '/hero/image-4.jpg', title: 'First Light, December', maker: 'Sarah Chen'      },
-  { src: '/hero/image-5.jpg', title: 'Baltic Dusk',           maker: 'Tomás Reinholt'  },
-  { src: '/hero/image-6.jpg', title: 'Quiet Shore',           maker: 'Priya Nambiar'   },
-  { src: '/hero/image-7.jpg', title: 'After the Rain',        maker: 'Daniel Ferreira' },
+  { src: '/hero/image-1.jpg', title: 'Ritual Motion',         maker: 'Marcus Okafor',   camera: 'Sony A7 IV',        lens: 'FE 35mm f/1.8'         },
+  { src: '/hero/image-2.jpg', title: 'Platform No. 7',        maker: 'Elena Vasquez',   camera: 'Fujifilm X-T5',     lens: 'XF 23mm f/2 R WR'      },
+  { src: '/hero/image-3.jpg', title: 'San Polo Morning',      maker: 'James Whitfield', camera: 'Nikon Z8',          lens: 'Nikkor Z 24-70mm f/4 S' },
+  { src: '/hero/image-4.jpg', title: 'First Light, December', maker: 'Sarah Chen',      camera: 'Canon EOS R5',      lens: 'RF 50mm f/1.2L USM'    },
+  { src: '/hero/image-5.jpg', title: 'Baltic Dusk',           maker: 'Tomás Reinholt',  camera: 'Leica M11',         lens: 'Summicron-M 28mm f/2'  },
+  { src: '/hero/image-6.jpg', title: 'Quiet Shore',           maker: 'Priya Nambiar',   camera: 'OM System OM-1',    lens: 'M.Zuiko 12-40mm f/2.8' },
+  { src: '/hero/image-7.jpg', title: 'After the Rain',        maker: 'Daniel Ferreira', camera: 'Panasonic S5 II',   lens: 'Lumix S 85mm f/1.8'    },
 ]
 
 // clubName prop kept for API compatibility
@@ -65,12 +67,23 @@ export default function HeroSlideshow({ clubName }: { clubName: string }) {
           />
 
           {/* Layer 4 — image credit */}
-          <div className="absolute bottom-0 right-0 p-4 sm:p-5 text-right">
-            <p style={{ color: 'rgba(255,255,255,0.97)', textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.75), 0 4px 24px rgba(0,0,0,0.55)', lineHeight: 1.4 }}>
-              <span style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 18, fontWeight: 400 }}>{slide.title}</span>
-              <br />
-              <span style={{ fontSize: 13, fontWeight: 400 }}>{slide.maker}</span>
+          <div className="absolute bottom-0 right-0 p-4 sm:p-5 text-right" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.75), 0 4px 24px rgba(0,0,0,0.55)' }}>
+            <p style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 18, fontWeight: 400, color: 'rgba(255,255,255,0.97)', lineHeight: 1.3 }}>
+              {slide.title}
             </p>
+            <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.90)', marginTop: 3, lineHeight: 1.4 }}>
+              {slide.maker}
+            </p>
+            {slide.camera && (
+              <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.60)', marginTop: 2, lineHeight: 1.4 }}>
+                {slide.camera}
+              </p>
+            )}
+            {slide.lens && (
+              <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.60)', lineHeight: 1.4 }}>
+                {slide.lens}
+              </p>
+            )}
           </div>
         </>
       ) : (
