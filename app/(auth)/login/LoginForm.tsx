@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
 
 const labelSx: React.CSSProperties = {
@@ -34,36 +33,7 @@ export default function LoginForm({
   pendingParam?: string
   resetParam?: string
 }) {
-  const [error, setError]     = useState<string | null>(errorParam ?? null)
   const [loading, setLoading] = useState(false)
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
-
-    const form     = e.currentTarget
-    const email    = (form.elements.namedItem('email')    as HTMLInputElement).value
-    const password = (form.elements.namedItem('password') as HTMLInputElement).value
-
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    )
-
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
-
-    if (authError) {
-      setError(authError.message)
-      setLoading(false)
-      return
-    }
-
-    // Session is now in browser cookies — hard navigate so all fresh cookies
-    // are included in the server component render (router.push + refresh can
-    // race and miss the newly-set sb-* cookies).
-    window.location.href = '/default'
-  }
 
   return (
     <>
@@ -86,13 +56,24 @@ export default function LoginForm({
         </div>
       )}
 
-      {error && (
+      {errorParam && (
         <div className="mb-4 rounded-lg px-4 py-3 text-sm" style={{ background: 'rgba(211,47,47,0.12)', border: '1px solid rgba(211,47,47,0.35)', color: '#F09595' }}>
-          {error}
+          {errorParam}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      {/*
+        Native HTML form POST to the API route.
+        The server sets session cookies directly on the 303 redirect response,
+        so the browser stores them before making the GET /default request.
+        No JS cookie-setting involved — eliminates all browser cookie-race issues.
+      */}
+      <form
+        action="/api/auth/login"
+        method="POST"
+        className="flex flex-col gap-4"
+        onSubmit={() => setLoading(true)}
+      >
         <div>
           <label htmlFor="email" style={labelSx}>Email</label>
           <input
