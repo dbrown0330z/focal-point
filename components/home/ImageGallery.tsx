@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 
-export type GalleryImage = { id: string; publicUrl: string; title: string }
+export type GalleryImage = { id: string; publicUrl: string; title: string; maker?: string }
 
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
 
@@ -124,10 +124,19 @@ function Lightbox({
             priority
           />
         </div>
-        {current.title && (
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', textAlign: 'center', maxWidth: 600, lineHeight: 1.4 }}>
-            {current.title}
-          </p>
+        {(current.title || current.maker) && (
+          <div style={{ textAlign: 'center', maxWidth: 600, lineHeight: 1.4 }}>
+            {current.title && (
+              <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.80)' }}>
+                {current.title}
+              </p>
+            )}
+            {current.maker && (
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>
+                {current.maker}
+              </p>
+            )}
+          </div>
         )}
       </div>
 
@@ -201,7 +210,7 @@ export function Grid8Gallery({
           <button
             key={img.id}
             onClick={() => setLightboxIndex(i)}
-            className="group aspect-square rounded-lg overflow-hidden block"
+            className="group relative aspect-square rounded-lg overflow-hidden block"
             style={{ background: 'var(--surface-1)', cursor: 'zoom-in', padding: 0, border: 'none' }}
             aria-label={`View ${img.title}`}
           >
@@ -212,6 +221,20 @@ export function Grid8Gallery({
               height={400}
               className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
             />
+            {/* Hover overlay: title + maker */}
+            <div
+              className="absolute inset-0 flex flex-col justify-end p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 55%)' }}
+            >
+              <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.95)', lineHeight: 1.3, textAlign: 'left' }}>
+                {img.title}
+              </p>
+              {img.maker && (
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', marginTop: 2, textAlign: 'left', lineHeight: 1.2 }}>
+                  {img.maker}
+                </p>
+              )}
+            </div>
           </button>
         ))}
       </div>

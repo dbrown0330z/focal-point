@@ -111,7 +111,7 @@ function UpcomingEventsBlock({ events }: { events: CalendarEvent[] }) {
 
 // ─── Image grid / strip blocks ────────────────────────────────────────────────
 
-type GalleryImage = { id: string; publicUrl: string; title: string }
+type GalleryImage = { id: string; publicUrl: string; title: string; maker?: string }
 
 const GALLERY_LABELS: Record<string, string> = {
   'competition-winners': 'Competition winners',
@@ -344,12 +344,13 @@ export default async function HomepageRenderer({
   if (needsImages) {
     const { data } = await supabase
       .from('images')
-      .select('id, storage_path, title')
+      .select('id, storage_path, title, profiles!images_owner_id_fkey(display_name)')
       .order('created_at', { ascending: false })
       .limit(8)
-    galleryImages = (data ?? []).map((img: { id: string; storage_path: string; title: string }) => ({
+    galleryImages = (data ?? []).map((img: { id: string; storage_path: string; title: string; profiles: { display_name: string } | null }) => ({
       id:        img.id,
       title:     img.title,
+      maker:     img.profiles?.display_name ?? undefined,
       publicUrl: supabaseRaw.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
     }))
   }
