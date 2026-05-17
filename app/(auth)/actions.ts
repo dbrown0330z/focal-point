@@ -15,8 +15,7 @@ export async function login(formData: FormData) {
     redirect('/login?error=' + encodeURIComponent(error.message))
   }
 
-  // app/page.tsx handles the club redirect for authenticated users
-  redirect('/')
+  redirect('/default')
 }
 
 export async function signup(formData: FormData) {
