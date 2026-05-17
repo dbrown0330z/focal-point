@@ -17,7 +17,7 @@ export default async function ClubHomePage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
+  if (!user) redirect('/login?error=no-user')
 
   const clubId = await requireClubId()
 
@@ -40,7 +40,7 @@ export default async function ClubHomePage({
       .single(),
   ])
 
-  if (!profile || !membership) redirect('/login')
+  if (!profile || !membership) redirect(`/login?error=${!profile ? 'no-profile' : 'no-membership'}`)
 
   // Member just approved but hasn't completed onboarding
   if (membership.membership_status === 'approved') redirect('/onboarding/profile')
