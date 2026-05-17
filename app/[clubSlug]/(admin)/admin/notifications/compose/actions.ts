@@ -88,7 +88,7 @@ export async function sendNotification(args: {
     args.toOption === 'all_members'  ? `All members (${emailList.length})` :
                                        `${emailList.length} selected member${emailList.length === 1 ? '' : 's'}`
 
-  await admin.from('sent_messages').insert({
+  await service.from('sent_messages').insert({
     sent_by:          user.id,
     subject:          args.subject,
     html_body:        args.htmlBody,

@@ -4,7 +4,7 @@ import MembersClient from './MembersClient'
 
 export default async function MembersPage() {
   const supabase        = await createClient()
-  const serviceSupabase = createServiceClient()
+  const admin = createServiceClient()
 
   const [
     { data: profiles },
@@ -19,7 +19,7 @@ export default async function MembersPage() {
       .order('member_number', { ascending: true }),
     admin.from('submissions').select('member_id'),
     admin.from('club_settings').select('member_classes_enabled').single(),
-    serviceSupabase.auth.admin.listUsers({ perPage: 1000 }),
+    admin.auth.admin.listUsers({ perPage: 1000 }),
     admin.from('member_classes').select('id, name').order('sort_order').order('created_at'),
   ])
 

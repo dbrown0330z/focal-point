@@ -32,7 +32,7 @@ export default async function CompetitionDetailPage({
   const { id } = await params
   const clubSlug        = await requireClubSlug()
   const supabase        = await createClient()
-  const serviceSupabase = createServiceClient()
+  const admin = createServiceClient()
 
   const { data: competition } = await admin
     .from('competitions')
@@ -56,7 +56,7 @@ export default async function CompetitionDetailPage({
       .from('submissions')
       .select('category_id')
       .eq('competition_id', id),
-    serviceSupabase
+    admin
       .from('profiles')
       .select('id, first_name, last_name')
       .in('membership_status', ['active', 'complimentary'])
