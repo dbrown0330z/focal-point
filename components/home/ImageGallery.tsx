@@ -175,7 +175,7 @@ export function Grid8Gallery({
           <button
             key={img.id}
             onClick={() => setLightboxIndex(i)}
-            className="aspect-square rounded-lg overflow-hidden block"
+            className="group aspect-square rounded-lg overflow-hidden block"
             style={{ background: 'var(--surface-1)', cursor: 'zoom-in', padding: 0, border: 'none' }}
             aria-label={`View ${img.title}`}
           >
@@ -184,7 +184,7 @@ export function Grid8Gallery({
               alt={img.title}
               width={400}
               height={400}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
             />
           </button>
         ))}
@@ -235,7 +235,7 @@ export function Strip8Gallery({ images }: { images: GalleryImage[] }) {
           <button
             key={img.id}
             onClick={() => setLightboxIndex(i)}
-            className="flex-shrink-0 rounded-lg overflow-hidden block"
+            className="group flex-shrink-0 rounded-lg overflow-hidden block"
             style={{ width: 140, height: 140, background: 'var(--surface-1)', cursor: 'zoom-in', padding: 0, border: 'none' }}
             aria-label={`View ${img.title}`}
           >
@@ -244,7 +244,7 @@ export function Strip8Gallery({ images }: { images: GalleryImage[] }) {
               alt={img.title}
               width={280}
               height={280}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
             />
           </button>
         ))}

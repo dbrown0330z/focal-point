@@ -292,6 +292,80 @@
   }
 }
 
+/* ─── Global interactive affordances ────────────────────────────────────────── */
+
+/*
+ * Cursor: every interactive element defaults to pointer.
+ * Exceptions (e.g. magnifier over a lightbox image) are overridden locally.
+ */
+button,
+[role="button"],
+[type="button"],
+[type="submit"],
+[type="reset"],
+select,
+label[for],
+summary,
+a[href] {
+  cursor: pointer;
+}
+
+/*
+ * Links: soft underline on hover using a color-matched decoration.
+ * Targets plain <a> elements outside rich-text contexts (which have their own rules).
+ * MUI components manage their own hover; this targets native anchors only.
+ */
+a[href]:not(.MuiButtonBase-root):not(.MuiButton-root):not([class*="Mui"]) {
+  text-decoration: none;
+  transition: color 0.12s ease, text-decoration-color 0.12s ease;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+}
+a[href]:not(.MuiButtonBase-root):not(.MuiButton-root):not([class*="Mui"]):hover {
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+}
+
+/*
+ * Image cards: the same scale + overlay used in My Images.
+ * Apply .img-card to the outer wrapper (overflow-hidden + relative),
+ * .img-card-img to the <img>, .img-card-overlay to the dark scrim.
+ */
+.img-card { overflow: hidden; }
+.img-card-img {
+  transition: transform 0.20s ease;
+}
+.img-card:hover .img-card-img {
+  transform: scale(1.05);
+}
+.img-card-overlay {
+  transition: background-color 0.20s ease;
+  background-color: transparent;
+}
+.img-card:hover .img-card-overlay {
+  background-color: rgba(0, 0, 0, 0.10);
+}
+
+/*
+ * Secondary / outline MUI buttons: subtle bg lift on hover.
+ * MUI's own :hover already handles primary (contained) buttons.
+ * This targets outlined + text variants that have no hover bg by default.
+ */
+.MuiButton-outlined:hover,
+.MuiButton-text:hover {
+  background-color: var(--surface-1) !important;
+}
+
+/*
+ * Segmented toggle buttons (view switcher, filter chips).
+ * Add class="toggle-btn" to inactive states; active states already have
+ * a solid background so need no hover treatment.
+ */
+.toggle-btn:not([data-active="true"]):hover {
+  background-color: var(--surface-1) !important;
+  color: var(--text-primary) !important;
+}
+
 /* ─── About page rich-text content ──────────────────────────────────────────── */
 
 .about-page-content {

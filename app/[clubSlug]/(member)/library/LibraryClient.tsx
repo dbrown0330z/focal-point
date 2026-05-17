@@ -467,6 +467,8 @@ export default function LibraryClient({ images, clubSlug }: { images: Image[]; c
                   key={v}
                   onClick={() => setView(v)}
                   aria-label={v}
+                  className="toggle-btn"
+                  data-active={view === v ? 'true' : undefined}
                   style={{
                     background:   view === v ? 'var(--toggle-selected)' : 'transparent',
                     border:       `1px solid ${view === v ? 'var(--toggle-selected)' : 'var(--border-default)'}`,
@@ -530,6 +532,8 @@ export default function LibraryClient({ images, clubSlug }: { images: Image[]; c
                   <button
                     key={f.key}
                     onClick={() => setStatusFilter(f.key)}
+                    className="toggle-btn"
+                    data-active={active ? 'true' : undefined}
                     style={{
                       padding:      '5px 18px',
                       background:   active ? 'var(--toggle-selected)' : 'transparent',
@@ -635,6 +639,8 @@ export default function LibraryClient({ images, clubSlug }: { images: Image[]; c
                   <button
                     key={f.key}
                     onClick={() => setStatusFilter(f.key)}
+                    className="toggle-btn"
+                    data-active={active ? 'true' : undefined}
                     style={{
                       padding:      '5px 18px',
                       background:   active ? 'var(--toggle-selected)' : 'transparent',
