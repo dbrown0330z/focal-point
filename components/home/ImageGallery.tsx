@@ -11,10 +11,12 @@ function Lightbox({
   images,
   startIndex,
   onClose,
+  contextTitle,
 }: {
-  images:     GalleryImage[]
-  startIndex: number
-  onClose:    () => void
+  images:        GalleryImage[]
+  startIndex:    number
+  onClose:       () => void
+  contextTitle?: string
 }) {
   const [index, setIndex] = useState(startIndex)
   const current = images[index]
@@ -71,7 +73,7 @@ function Lightbox({
         justifyContent:  'center',
       }}
     >
-      {/* Top bar: counter + close */}
+      {/* Top bar: context title + ESC hint + close */}
       <div
         onClick={e => e.stopPropagation()}
         style={{
@@ -85,30 +87,33 @@ function Lightbox({
           padding:        '14px 20px',
         }}
       >
-        {multi ? (
-          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', fontWeight: 500 }}>
-            {index + 1} / {images.length}
+        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', fontWeight: 500 }}>
+          {contextTitle ?? ''}
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 500, letterSpacing: '0.06em' }}>
+            ESC
           </span>
-        ) : <span />}
-        <button
-          onClick={onClose}
-          aria-label="Close"
-          style={{
-            background:   'none',
-            border:       'none',
-            cursor:       'pointer',
-            color:        'rgba(255,255,255,0.80)',
-            fontSize:     22,
-            lineHeight:   1,
-            padding:      4,
-            borderRadius: 4,
-          }}
-        >
-          ✕
-        </button>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              background:   'none',
+              border:       'none',
+              cursor:       'pointer',
+              color:        'rgba(255,255,255,0.80)',
+              fontSize:     22,
+              lineHeight:   1,
+              padding:      4,
+              borderRadius: 4,
+            }}
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
-      {/* Image + caption */}
+      {/* Image + caption + dots */}
       <div
         onClick={e => e.stopPropagation()}
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '0 56px' }}
@@ -127,15 +132,36 @@ function Lightbox({
         {(current.title || current.maker) && (
           <div style={{ textAlign: 'center', maxWidth: 600, lineHeight: 1.4 }}>
             {current.title && (
-              <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.80)' }}>
+              <p style={{ fontSize: 17, fontWeight: 600, color: 'rgba(255,255,255,0.95)' }}>
                 {current.title}
               </p>
             )}
             {current.maker && (
-              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', marginTop: 3 }}>
                 {current.maker}
               </p>
             )}
+          </div>
+        )}
+        {/* Dots */}
+        {multi && (
+          <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+            {images.map((_, i) => (
+              <button
+                key={i}
+                onClick={e => { e.stopPropagation(); setIndex(i) }}
+                style={{
+                  height:     8,
+                  width:      i === index ? 20 : 8,
+                  borderRadius: 9999,
+                  background: i === index ? 'white' : 'rgba(255,255,255,0.35)',
+                  border:     'none',
+                  cursor:     'pointer',
+                  padding:    0,
+                  transition: 'width 0.15s, background 0.15s',
+                }}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -244,6 +270,7 @@ export function Grid8Gallery({
           images={shown}
           startIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
+          contextTitle={galleryName ? `Gallery Snapshot · ${galleryName}` : 'Gallery Snapshot'}
         />
       )}
     </>
@@ -286,6 +313,7 @@ export function Strip8Gallery({ images }: { images: GalleryImage[] }) {
           images={shown}
           startIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
+          contextTitle="Member Photos"
         />
       )}
     </>

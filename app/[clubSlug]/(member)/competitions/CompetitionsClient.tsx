@@ -287,10 +287,12 @@ function SubmissionsLightbox({
   submissions,
   startId,
   onClose,
+  competitionTitle,
 }: {
-  submissions: Submission[]
-  startId: string
-  onClose: () => void
+  submissions:      Submission[]
+  startId:          string
+  onClose:          () => void
+  competitionTitle: string
 }) {
   const [currentId, setCurrentId] = useState(startId)
   const idx = submissions.findIndex(s => s.id === currentId)
@@ -321,19 +323,30 @@ function SubmissionsLightbox({
       style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
+      {/* Top bar: context title + ESC hint + close */}
       <div
-        className="relative flex w-full max-w-3xl flex-col items-center px-4"
+        className="absolute left-0 right-0 top-0 flex items-center justify-between px-5 py-3.5"
         onClick={e => e.stopPropagation()}
       >
-        {/* Close */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute -top-10 right-4 flex h-8 w-8 items-center justify-center rounded-full text-white/70 transition-colors hover:text-white"
-          style={{ background: 'rgba(255,255,255,0.12)' }}
-        >
-          <IconClose />
-        </button>
+        <span className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.65)' }}>
+          My Submissions · {competitionTitle}
+        </span>
+        <div className="flex items-center gap-2.5">
+          <span className="text-[11px] font-medium tracking-[0.06em]" style={{ color: 'rgba(255,255,255,0.35)' }}>ESC</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-white/70 transition-colors hover:text-white"
+            style={{ background: 'rgba(255,255,255,0.12)' }}
+          >
+            <IconClose />
+          </button>
+        </div>
+      </div>
+      <div
+        className="relative flex w-full max-w-5xl flex-col items-center px-4"
+        onClick={e => e.stopPropagation()}
+      >
 
         {/* Image */}
         <div className="relative w-full">
@@ -341,7 +354,7 @@ function SubmissionsLightbox({
           <img
             src={current.publicUrl}
             alt={current.imageTitle}
-            className="max-h-[72vh] w-full rounded-xl object-contain"
+            className="max-h-[80vh] w-full rounded-xl object-contain"
             style={{ background: 'rgba(0,0,0,0.4)' }}
           />
           {idx > 0 && (
@@ -368,7 +381,7 @@ function SubmissionsLightbox({
 
         {/* Caption */}
         <div className="mt-3 text-center">
-          <p className="text-[15px] font-semibold text-white">{current.imageTitle}</p>
+          <p className="text-[17px] font-semibold text-white">{current.imageTitle}</p>
           <p className="mt-0.5 text-[12px] text-white/60">{current.categoryName}</p>
         </div>
 
@@ -1135,6 +1148,7 @@ function OpenCompetitionCard({
           submissions={submissions}
           startId={lightboxId}
           onClose={() => setLightboxId(null)}
+          competitionTitle={competition.title}
         />
       )}
     </div>
@@ -1322,6 +1336,7 @@ function JudgingCompetitionCard({
           submissions={submissions}
           startId={lightboxId}
           onClose={() => setLightboxId(null)}
+          competitionTitle={competition.title}
         />
       )}
     </>
