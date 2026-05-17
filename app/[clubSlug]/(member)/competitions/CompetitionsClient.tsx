@@ -978,7 +978,7 @@ function OpenCompetitionCard({
         {/* My Submissions */}
         <div style={{ padding: '22px 28px', borderRight: '1px solid var(--border-default)' }}>
           <div className="mb-4 flex items-center justify-between">
-            <p className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-[13px] font-bold uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
               My Submissions
             </p>
             <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
@@ -1059,8 +1059,8 @@ function OpenCompetitionCard({
 
         {/* Club Stats */}
         <div style={{ padding: '22px 24px' }}>
-          <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
-            Club Stats
+          <p className="mb-4 text-[13px] font-bold uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
+            Club Submissions
           </p>
 
           <div
@@ -1088,7 +1088,7 @@ function OpenCompetitionCard({
 
           {competition.categories.length > 0 && (
             <div>
-              <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
+              <p className="mb-2 text-[13px] font-bold uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
                 By category
               </p>
               <div className="space-y-2">
