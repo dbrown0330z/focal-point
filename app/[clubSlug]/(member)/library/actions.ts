@@ -50,6 +50,7 @@ export async function deleteImage(imageId: string, storagePath: string) {
   }
 
   // DB record gone — clean up storage
+  const admin = createServiceClient()
   await admin.storage.from('images').remove([storagePath])
 
   revalidatePath('/library')

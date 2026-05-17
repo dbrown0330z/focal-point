@@ -49,7 +49,7 @@ export async function createEvent(data: {
 }
 
 export async function deleteEvent(id: string): Promise<{ error?: string }> {
-  const supabase = await createClient()
+  const admin = createServiceClient()
   const { error } = await admin.from('calendar_events').delete().eq('id', id)
   if (error) return { error: error.message }
   revalidatePath('/calendar')

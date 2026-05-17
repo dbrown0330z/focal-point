@@ -67,6 +67,7 @@ export async function submitUploadedImage(data: {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  const admin = createServiceClient()
 
   try {
     await guardOpenCompetition(supabase, data.competitionId, user.id)
