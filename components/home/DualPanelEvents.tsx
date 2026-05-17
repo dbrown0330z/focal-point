@@ -213,7 +213,6 @@ export default function DualPanelEvents({ events }: { events: CEvent[] }) {
                   display:      'flex',
                   alignItems:   'center',
                   gap:          10,
-                  width:        '100%',
                   padding:      '9px 6px',
                   margin:       '0 -6px',
                   width:        'calc(100% + 12px)',
