@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
 
@@ -35,7 +34,6 @@ export default function LoginForm({
   pendingParam?: string
   resetParam?: string
 }) {
-  const router = useRouter()
   const [error, setError]     = useState<string | null>(errorParam ?? null)
   const [loading, setLoading] = useState(false)
 
@@ -61,9 +59,10 @@ export default function LoginForm({
       return
     }
 
-    // Session is now in browser cookies — navigate to club
-    router.push('/default')
-    router.refresh()
+    // Session is now in browser cookies — hard navigate so all fresh cookies
+    // are included in the server component render (router.push + refresh can
+    // race and miss the newly-set sb-* cookies).
+    window.location.href = '/default'
   }
 
   return (
