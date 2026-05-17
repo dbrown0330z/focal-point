@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 import StandingsClient from './StandingsClient'
 import type { AwardTier } from '@/types/competition'
@@ -77,11 +78,11 @@ export default async function StandingsPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const admin = createServiceClient()
   const params = await searchParams
 
   // Club settings
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: settingsRaw } = await (supabase as any)
+  const { data: settingsRaw } = await admin
     .from('club_settings')
     .select('season_start_month')
     .single()
@@ -100,8 +101,7 @@ export default async function StandingsPage({
   })
 
   // Current user profile
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: me } = await (supabase as any)
+  const { data: me } = await admin
     .from('profiles')
     .select('id, display_name, avatar_url, skill_level, shooting_interests')
     .eq('id', user.id)
@@ -116,8 +116,7 @@ export default async function StandingsPage({
   } : null
 
   // Competitions closed in this season window
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: compsRaw } = await (supabase as any)
+  const { data: compsRaw } = await admin
     .from('competitions')
     .select('id, title, awards_enabled, award_types, closes_at')
     .eq('status', 'closed')
@@ -143,8 +142,7 @@ export default async function StandingsPage({
 
   if (compIds.length > 0) {
     // Submissions + scores for this season's competitions
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: subsRaw } = await (supabase as any)
+    const { data: subsRaw } = await admin
       .from('submissions')
       .select('id, member_id, competition_id, scores(score, award_id)')
       .in('competition_id', compIds)
@@ -156,8 +154,7 @@ export default async function StandingsPage({
 
     // Member profiles for everyone who submitted
     const memberIds = [...new Set(submissions.map(s => s.member_id))]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: profilesRaw } = await (supabase as any)
+    const { data: profilesRaw } = await admin
       .from('profiles')
       .select('id, display_name, avatar_url, skill_level, shooting_interests')
       .in('id', memberIds)

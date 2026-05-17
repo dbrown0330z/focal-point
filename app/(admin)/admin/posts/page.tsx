@@ -1,10 +1,10 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export default async function AdminPostsPage() {
-  const supabase = await createClient()
+  const admin = createServiceClient()
 
-  const { data: posts } = await supabase
+  const { data: posts } = await admin
     .from('posts')
     .select('id, title, published_at, created_at')
     .order('created_at', { ascending: false })

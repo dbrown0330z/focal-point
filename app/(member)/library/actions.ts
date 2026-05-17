@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export async function createImageRecord(data: {
   title: string
@@ -14,7 +15,8 @@ export async function createImageRecord(data: {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { error } = await supabase.from('images').insert({
+  const admin = createServiceClient()
+  const { error } = await admin.from('images').insert({
     owner_id: user.id,
     title:        data.title,
     description:  data.description || null,
@@ -33,8 +35,9 @@ export async function deleteImage(imageId: string, storagePath: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const admin = createServiceClient()
   // Delete DB record first — FK restrict will block if image has any submissions
-  const { error } = await supabase
+  const { error } = await admin
     .from('images')
     .delete()
     .eq('id', imageId)
@@ -47,7 +50,7 @@ export async function deleteImage(imageId: string, storagePath: string) {
   }
 
   // DB record gone — clean up storage
-  await supabase.storage.from('images').remove([storagePath])
+  await admin.storage.from('images').remove([storagePath])
 
   revalidatePath('/library')
   return { error: null }

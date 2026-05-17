@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export type CalendarEventType = 'competition' | 'regular_meeting' | 'board_meeting' | 'field_trip' | 'other' | 'submission_open' | 'submission_closed'
 
@@ -30,7 +31,8 @@ export async function createEvent(data: {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { error } = await supabase.from('calendar_events').insert({
+  const admin = createServiceClient()
+  const { error } = await admin.from('calendar_events').insert({
     title:       data.title,
     description: data.description || null,
     location:    data.location    || null,
@@ -47,8 +49,8 @@ export async function createEvent(data: {
 }
 
 export async function deleteEvent(id: string): Promise<{ error?: string }> {
-  const supabase = await createClient()
-  const { error } = await supabase.from('calendar_events').delete().eq('id', id)
+  const admin = createServiceClient()
+  const { error } = await admin.from('calendar_events').delete().eq('id', id)
   if (error) return { error: error.message }
   revalidatePath('/calendar')
   return {}

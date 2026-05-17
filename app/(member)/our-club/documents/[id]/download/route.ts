@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,15 +11,16 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const supabase = await createClient()
 
   // Auth check — must be active member
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.redirect(new URL('/login', process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'))
 
+  const admin = createServiceClient()
+
   // Fetch the document record
-  const { data: doc, error } = await supabase
+  const { data: doc, error } = await admin
     .from('documents')
     .select('file_path, file_name, mime_type')
     .eq('id', id)
@@ -30,7 +32,7 @@ export async function GET(
   }
 
   // Generate a signed URL (60 min TTL)
-  const { data: signed, error: signErr } = await supabase
+  const { data: signed, error: signErr } = await admin
     .storage
     .from('documents')
     .createSignedUrl(doc.file_path, 3600, {

@@ -3,16 +3,18 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
-async function guardOpenCompetition(supabase: Awaited<ReturnType<typeof createClient>>, competitionId: string, userId: string) {
-  const { data: comp } = await supabase
+async function guardOpenCompetition(admin: SupabaseClient, competitionId: string, userId: string) {
+  const { data: comp } = await admin
     .from('competitions')
     .select('status, submission_limit')
     .eq('id', competitionId)
     .single()
   if (comp?.status !== 'open') throw new Error('Competition is not open for submissions')
 
-  const { count } = await supabase
+  const { count } = await admin
     .from('submissions')
     .select('id', { count: 'exact', head: true })
     .eq('competition_id', competitionId)
@@ -30,13 +32,14 @@ export async function submitFromLibrary(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const admin = createServiceClient()
   try {
-    await guardOpenCompetition(supabase, competitionId, user.id)
+    await guardOpenCompetition(admin, competitionId, user.id)
   } catch (e) {
     return { error: (e as Error).message }
   }
 
-  const { error } = await supabase.from('submissions').insert({
+  const { error } = await admin.from('submissions').insert({
     competition_id: competitionId,
     category_id: categoryId,
     image_id: imageId,
@@ -65,13 +68,14 @@ export async function submitUploadedImage(data: {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const admin = createServiceClient()
   try {
-    await guardOpenCompetition(supabase, data.competitionId, user.id)
+    await guardOpenCompetition(admin, data.competitionId, user.id)
   } catch (e) {
     return { error: (e as Error).message }
   }
 
-  const { data: img, error: imgErr } = await supabase.from('images').insert({
+  const { data: img, error: imgErr } = await admin.from('images').insert({
     owner_id: user.id,
     title: data.title,
     storage_path: data.storagePath,
@@ -80,7 +84,7 @@ export async function submitUploadedImage(data: {
 
   if (imgErr || !img) return { error: imgErr?.message ?? 'Failed to save image' }
 
-  const { error: subErr } = await supabase.from('submissions').insert({
+  const { error: subErr } = await admin.from('submissions').insert({
     competition_id: data.competitionId,
     category_id: data.categoryId,
     image_id: img.id,
@@ -88,7 +92,7 @@ export async function submitUploadedImage(data: {
   })
 
   if (subErr) {
-    await supabase.from('images').delete().eq('id', img.id)
+    await admin.from('images').delete().eq('id', img.id)
     const msg = subErr.code === '23505'
       ? 'That photo is already submitted to a competition'
       : subErr.message
@@ -106,7 +110,8 @@ export async function withdrawFromCompetition(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { error } = await supabase
+  const admin = createServiceClient()
+  const { error } = await admin
     .from('submissions')
     .update({ status: 'withdrawn' })
     .eq('id', submissionId)
@@ -126,7 +131,8 @@ export async function editImageTitleAction(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { error } = await supabase
+  const admin = createServiceClient()
+  const { error } = await admin
     .from('images')
     .update({ title: newTitle.trim() })
     .eq('id', imageId)
@@ -146,7 +152,8 @@ export async function changeCategoryAction(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: sub } = await supabase
+  const admin = createServiceClient()
+  const { data: sub } = await admin
     .from('submissions')
     .select('competition_id')
     .eq('id', submissionId)
@@ -155,7 +162,7 @@ export async function changeCategoryAction(
 
   if (!sub) return { error: 'Submission not found' }
 
-  const { data: comp } = await supabase
+  const { data: comp } = await admin
     .from('competitions')
     .select('status')
     .eq('id', sub.competition_id)
@@ -163,7 +170,7 @@ export async function changeCategoryAction(
 
   if (comp?.status !== 'open') return { error: 'Category can only be changed while submissions are open' }
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('submissions')
     .update({ category_id: newCategoryId })
     .eq('id', submissionId)

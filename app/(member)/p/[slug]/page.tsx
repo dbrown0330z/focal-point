@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,10 +9,9 @@ export default async function CustomPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const admin = createServiceClient()
 
-  const { data: page } = await supabase
+  const { data: page } = await admin
     .from('nav_custom_pages')
     .select('title, content, page_type, external_url, status, visibility')
     .eq('slug', slug)

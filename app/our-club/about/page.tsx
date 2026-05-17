@@ -1,16 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AboutPage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const supabase = await createClient()
+  const admin = createServiceClient()
 
   const [{ data: { user } }, { data: settingsRaw }, { data: pageRaw }] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from('club_settings').select('club_name').single() as Promise<{ data: { club_name: string } | null }>,
-    supabase
+    admin.from('club_settings').select('club_name').single() as Promise<{ data: { club_name: string } | null }>,
+    admin
       .from('pages')
       .select('id, content')
       .eq('slug', 'about')

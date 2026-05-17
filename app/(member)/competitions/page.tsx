@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import CompetitionsClient from './CompetitionsClient'
 
 export const dynamic = 'force-dynamic'
@@ -6,9 +7,10 @@ export const dynamic = 'force-dynamic'
 export default async function CompetitionsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
 
   // Current competitions: open or judging
-  const { data: currentRaw } = await supabase
+  const { data: currentRaw } = await admin
     .from('competitions')
     .select('id, title, short_title, status, closes_at, results_at, submission_limit, competition_categories(id, name), judge_tokens(judge_name)')
     .in('status', ['open', 'judging'])
@@ -20,7 +22,7 @@ export default async function CompetitionsPage() {
   const currentCompetitions = await Promise.all(
     (currentRaw ?? []).map(async comp => {
       const mySubmissions = user ? await (async () => {
-        const { data } = await supabase
+        const { data } = await admin
           .from('submissions')
           .select('id, image_id, category_id, images(title, storage_path), competition_categories(name)')
           .eq('competition_id', comp.id)
@@ -35,12 +37,12 @@ export default async function CompetitionsPage() {
             categoryId: s.category_id,
             categoryName: cat?.name ?? '',
             imageTitle: img?.title ?? '',
-            publicUrl: supabase.storage.from('images').getPublicUrl(img?.storage_path ?? '').data.publicUrl,
+            publicUrl: admin.storage.from('images').getPublicUrl(img?.storage_path ?? '').data.publicUrl,
           }
         })
       })() : []
 
-      const { data: allSubs } = await supabase
+      const { data: allSubs } = await admin
         .from('submissions')
         .select('member_id, category_id, competition_categories(name)')
         .eq('competition_id', comp.id)
@@ -83,7 +85,7 @@ export default async function CompetitionsPage() {
   )
 
   const libraryImages = user ? await (async () => {
-    const { data: imgs } = await supabase
+    const { data: imgs } = await admin
       .from('images')
       .select('id, title, storage_path, created_at')
       .eq('owner_id', user.id)
@@ -96,12 +98,12 @@ export default async function CompetitionsPage() {
         title: img.title,
         storage_path: img.storage_path,
         created_at: img.created_at,
-        publicUrl: supabase.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
+        publicUrl: admin.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
       }))
   })() : []
 
   // Previous competitions: closed only
-  const { data: pastRaw } = await supabase
+  const { data: pastRaw } = await admin
     .from('competitions')
     .select('id, title, status, closes_at, judge_tokens(judge_name)')
     .eq('status', 'closed')
@@ -110,7 +112,7 @@ export default async function CompetitionsPage() {
 
   const previousCompetitions = await Promise.all(
     (pastRaw ?? []).map(async comp => {
-      const { count } = await supabase
+      const { count } = await admin
         .from('submissions')
         .select('id', { count: 'exact', head: true })
         .eq('competition_id', comp.id)

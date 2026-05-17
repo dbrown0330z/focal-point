@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import MembersClient from './MembersClient'
 
 export const dynamic = 'force-dynamic'
@@ -23,10 +23,9 @@ type RawMember = {
 }
 
 export default async function MembersPage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const admin = createServiceClient()
 
-  const { data: settingsRaw } = await supabase
+  const { data: settingsRaw } = await admin
     .from('club_settings')
     .select('member_directory_visibility')
     .single() as { data: { member_directory_visibility: string } | null }
@@ -34,7 +33,7 @@ export default async function MembersPage() {
   const visible = settingsRaw?.member_directory_visibility !== 'admin_only'
 
   const membersRaw: RawMember[] = visible
-    ? ((await supabase
+    ? ((await admin
         .from('profiles')
         .select('id, display_name, avatar_url, bio, skill_level, shooting_interests, camera_brands, location, created_at')
         .eq('membership_status', 'active')

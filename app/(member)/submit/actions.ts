@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export type SubmitInput = {
   competitionId: string
@@ -33,8 +34,10 @@ export async function finalizeSubmission(input: SubmitInput): Promise<SubmitResu
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: 'Not authenticated.' }
 
+  const admin = createServiceClient()
+
   // ── Validate competition ────────────────────────────────────────────────────
-  const { data: comp } = await supabase
+  const { data: comp } = await admin
     .from('competitions')
     .select('status, submission_limit, max_entries_per_category')
     .eq('id', input.competitionId)
@@ -45,7 +48,7 @@ export async function finalizeSubmission(input: SubmitInput): Promise<SubmitResu
   if (comp.status !== 'open') return { ok: false, error: 'This competition is not open for submissions.' }
 
   // ── Check overall entry limit ───────────────────────────────────────────────
-  const { count: memberCount } = await supabase
+  const { count: memberCount } = await admin
     .from('submissions')
     .select('id', { count: 'exact', head: true })
     .eq('competition_id', input.competitionId)
@@ -59,7 +62,7 @@ export async function finalizeSubmission(input: SubmitInput): Promise<SubmitResu
   // ── Check per-category limit ────────────────────────────────────────────────
   const maxPerCat = (comp as Record<string, unknown>).max_entries_per_category as number | null
   if (maxPerCat) {
-    const { count: catCount } = await supabase
+    const { count: catCount } = await admin
       .from('submissions')
       .select('id', { count: 'exact', head: true })
       .eq('competition_id', input.competitionId)
@@ -78,7 +81,7 @@ export async function finalizeSubmission(input: SubmitInput): Promise<SubmitResu
   if (input.imageSource === 'upload') {
     if (!input.storagePath || !input.title) return { ok: false, error: 'Missing required fields.' }
 
-    const { data: newImage, error: imgErr } = await supabase
+    const { data: newImage, error: imgErr } = await admin
       .from('images')
       .insert({
         owner_id:       user.id,
@@ -102,7 +105,7 @@ export async function finalizeSubmission(input: SubmitInput): Promise<SubmitResu
   } else {
     if (!input.libraryImageId) return { ok: false, error: 'No image selected.' }
     // Update title if changed on an existing library image
-    await supabase
+    await admin
       .from('images')
       .update({ title: input.title })
       .eq('id', input.libraryImageId)
@@ -111,7 +114,7 @@ export async function finalizeSubmission(input: SubmitInput): Promise<SubmitResu
   }
 
   // ── Create submission ───────────────────────────────────────────────────────
-  const { data: submission, error: subErr } = await supabase
+  const { data: submission, error: subErr } = await admin
     .from('submissions')
     .insert({
       image_id:                  imageId,
@@ -128,7 +131,7 @@ export async function finalizeSubmission(input: SubmitInput): Promise<SubmitResu
   if (subErr || !submission) {
     // Clean up orphaned image record if the submission itself failed
     if (input.imageSource === 'upload') {
-      await supabase.from('images').delete().eq('id', imageId).eq('owner_id', user.id)
+      await admin.from('images').delete().eq('id', imageId).eq('owner_id', user.id)
     }
     const msg = subErr?.code === '23505'
       ? 'This image is already entered in another competition.'
@@ -137,14 +140,14 @@ export async function finalizeSubmission(input: SubmitInput): Promise<SubmitResu
   }
 
   // ── Compute remaining entries for confirmation screen ──────────────────────
-  const { count: newMemberCount } = await supabase
+  const { count: newMemberCount } = await admin
     .from('submissions')
     .select('id', { count: 'exact', head: true })
     .eq('competition_id', input.competitionId)
     .eq('member_id', user.id)
     .eq('status', 'submitted')
 
-  const { count: totalEntries } = await supabase
+  const { count: totalEntries } = await admin
     .from('submissions')
     .select('id', { count: 'exact', head: true })
     .eq('competition_id', input.competitionId)
@@ -168,8 +171,10 @@ export async function withdrawSubmission(submissionId: string, competitionId: st
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: 'Not authenticated.' }
 
+  const admin = createServiceClient()
+
   // Validate that the competition allows withdrawals and is in an eligible status
-  const { data: comp } = await supabase
+  const { data: comp } = await admin
     .from('competitions')
     .select('status, withdrawal_frees_slot')
     .eq('id', competitionId)
@@ -186,7 +191,7 @@ export async function withdrawSubmission(submissionId: string, competitionId: st
     return { ok: false, error: 'Withdrawals are no longer accepted for this competition.' }
   }
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('submissions')
     .update({ status: 'withdrawn' })
     .eq('id', submissionId)

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import Link from 'next/link'
 
 function timeAgo(dateStr: string): string {
@@ -15,6 +16,7 @@ function timeAgo(dateStr: string): string {
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient()
+  const admin = createServiceClient()
 
   const [
     { count: pendingCount },
@@ -25,14 +27,14 @@ export default async function AdminDashboardPage() {
     { data: recentCompetitions },
     { data: clubSettings },
   ] = await Promise.all([
-    supabase.from('profiles').select('id', { count: 'exact', head: true }).in('membership_status', ['pending', 'approved']),
-    supabase.from('profiles').select('id', { count: 'exact', head: true }).in('membership_status', ['active', 'complimentary']),
-    supabase.from('competitions').select('id, title, status, closes_at').in('status', ['open', 'judging']).is('deleted_at', null).order('created_at', { ascending: false }),
-    supabase.from('submissions').select('id, submitted_at, images(title), profiles!member_id(display_name)').order('submitted_at', { ascending: false }).limit(4),
-    supabase.from('profiles').select('id, display_name, created_at').order('created_at', { ascending: false }).limit(3),
-    supabase.from('competitions').select('id, title, created_at').is('deleted_at', null).order('created_at', { ascending: false }).limit(3),
+    admin.from('profiles').select('id', { count: 'exact', head: true }).in('membership_status', ['pending', 'approved']),
+    admin.from('profiles').select('id', { count: 'exact', head: true }).in('membership_status', ['active', 'complimentary']),
+    admin.from('competitions').select('id, title, status, closes_at').in('status', ['open', 'judging']).is('deleted_at', null).order('created_at', { ascending: false }),
+    admin.from('submissions').select('id, submitted_at, images(title), profiles!member_id(display_name)').order('submitted_at', { ascending: false }).limit(4),
+    admin.from('profiles').select('id, display_name, created_at').order('created_at', { ascending: false }).limit(3),
+    admin.from('competitions').select('id, title, created_at').is('deleted_at', null).order('created_at', { ascending: false }).limit(3),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any).from('club_settings').select('membership_terms_reviewed').single(),
+    (admin as any).from('club_settings').select('membership_terms_reviewed').single(),
   ])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

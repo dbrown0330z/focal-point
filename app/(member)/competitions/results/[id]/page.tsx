@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import ResultsClient from './ResultsClient'
 import type { AwardTier } from '@/types/competition'
 
@@ -69,10 +69,10 @@ export default async function CompetitionResultsPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const supabase = await createClient()
+  const admin = createServiceClient()
 
   // Fetch competition (closed only — results aren't visible during judging)
-  const { data: comp } = await supabase
+  const { data: comp } = await admin
     .from('competitions')
     .select(`
       id, title, closes_at, results_at,
@@ -88,7 +88,7 @@ export default async function CompetitionResultsPage({
   if (!comp) notFound()
 
   // Fetch all submitted entries for this competition
-  const { data: rawSubs } = await supabase
+  const { data: rawSubs } = await admin
     .from('submissions')
     .select(`
       id, member_id, category_id,
@@ -131,7 +131,7 @@ export default async function CompetitionResultsPage({
     const awardLabel = awardId ? (awardMap.get(awardId) ?? null) : null
     const judgeNotes = scores.map(s => s.notes).filter(Boolean) as string[]
 
-    const imageUrl   = supabase.storage.from('images').getPublicUrl(img?.storage_path ?? '').data.publicUrl
+    const imageUrl   = admin.storage.from('images').getPublicUrl(img?.storage_path ?? '').data.publicUrl
     const memberName = profile?.display_name
       || [profile?.first_name, profile?.last_name].filter(Boolean).join(' ')
       || 'Unknown'

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import SubmitClient, { type CompetitionForSubmit, type LibraryImageForSubmit } from './SubmitClient'
 
 export default async function SubmitPage({
@@ -13,8 +14,10 @@ export default async function SubmitPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const admin = createServiceClient()
+
   // ── Open competitions with their settings + categories ─────────────────────
-  const { data: rawComps } = await supabase
+  const { data: rawComps } = await admin
     .from('competitions')
     .select(`
       id, title, closes_at, submission_limit,
@@ -27,7 +30,7 @@ export default async function SubmitPage({
   // Fetch new columns separately to avoid TS type errors (types not regenerated yet)
   const compIds = (rawComps ?? []).map(c => c.id)
   const { data: compSettings } = compIds.length > 0
-    ? await supabase
+    ? await admin
         .from('competitions')
         .select('id, require_capture_date, capture_date_window_months, image_reuse_rule, withdrawal_frees_slot, max_entries_per_category, allow_notes_to_judge, max_long_edge')
         .in('id', compIds)
@@ -38,7 +41,7 @@ export default async function SubmitPage({
   )
 
   // ── Member's active submissions per competition/category ───────────────────
-  const { data: mySubmissions } = await supabase
+  const { data: mySubmissions } = await admin
     .from('submissions')
     .select('competition_id, category_id')
     .eq('member_id', user.id)
@@ -74,7 +77,7 @@ export default async function SubmitPage({
   })
 
   // ── Library images with active submission status ───────────────────────────
-  const { data: rawImages } = await supabase
+  const { data: rawImages } = await admin
     .from('images')
     .select(`
       id, title, storage_path, created_at, exif_data,
@@ -90,7 +93,7 @@ export default async function SubmitPage({
   // Fetch new image columns separately
   const imageIds = (rawImages ?? []).map(i => i.id)
   const { data: imageExtras } = imageIds.length > 0
-    ? await supabase
+    ? await admin
         .from('images')
         .select('id, file_size, width_px, height_px, exif_unique_id')
         .in('id', imageIds)
@@ -114,7 +117,7 @@ export default async function SubmitPage({
     return {
       id:           img.id,
       title:        img.title,
-      publicUrl:    supabase.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
+      publicUrl:    admin.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
       createdAt:    img.created_at,
       fileSize:     (extras.file_size as number | null) ?? null,
       widthPx:      (extras.width_px as number | null) ?? null,

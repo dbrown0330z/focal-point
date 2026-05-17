@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import Link from 'next/link'
 import MemberNav from '@/components/layout/MemberNav'
 import MemberThemeProvider from '@/components/layout/MemberThemeProvider'
@@ -7,11 +8,12 @@ export default async function OurClubLayout({ children }: { children: React.Reac
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  const admin = createServiceClient()
   const [{ data: profile }, { data: clubSettings }] = await Promise.all([
     user
-      ? supabase.from('profiles').select('display_name, role, membership_status, avatar_url').eq('id', user.id).single()
+      ? admin.from('profiles').select('display_name, role, membership_status, avatar_url').eq('id', user.id).single()
       : Promise.resolve({ data: null }),
-    supabase.from('club_settings').select('club_name').single(),
+    admin.from('club_settings').select('club_name').single(),
   ])
 
   const clubName = clubSettings?.club_name ?? 'Our Camera Club'

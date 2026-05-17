@@ -3,18 +3,20 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export async function submitImage(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const admin = createServiceClient()
   const competitionId = formData.get('competition_id') as string
   const categoryId    = formData.get('category_id') as string
   const imageId       = formData.get('image_id') as string
 
   // Verify competition is still open
-  const { data: competition } = await supabase
+  const { data: competition } = await admin
     .from('competitions')
     .select('status, submission_limit')
     .eq('id', competitionId)
@@ -25,7 +27,7 @@ export async function submitImage(formData: FormData) {
   }
 
   // Check member hasn't hit their limit
-  const { count } = await supabase
+  const { count } = await admin
     .from('submissions')
     .select('id', { count: 'exact', head: true })
     .eq('competition_id', competitionId)
@@ -36,7 +38,7 @@ export async function submitImage(formData: FormData) {
     redirect(`/competitions/${competitionId}?error=Submission+limit+reached`)
   }
 
-  const { error } = await supabase.from('submissions').insert({
+  const { error } = await admin.from('submissions').insert({
     competition_id: competitionId,
     category_id: categoryId,
     image_id: imageId,
@@ -60,7 +62,8 @@ export async function withdrawSubmission(submissionId: string, competitionId: st
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  await supabase
+  const admin = createServiceClient()
+  await admin
     .from('submissions')
     .update({ status: 'withdrawn' })
     .eq('id', submissionId)

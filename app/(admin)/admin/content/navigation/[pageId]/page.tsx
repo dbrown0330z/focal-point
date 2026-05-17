@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 import CustomPageEditor from './CustomPageEditor'
 
@@ -10,10 +10,9 @@ export default async function EditCustomPagePage({
   params: Promise<{ pageId: string }>
 }) {
   const { pageId } = await params
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const admin = createServiceClient()
 
-  const { data: page, error } = await supabase
+  const { data: page, error } = await admin
     .from('nav_custom_pages')
     .select('id, title, slug, visibility, status, content, page_type, updated_at')
     .eq('id', pageId)

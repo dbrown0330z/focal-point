@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import WithdrawButton from './WithdrawButton'
 
 const statusStyles: Record<string, string> = {
@@ -26,6 +27,7 @@ export default async function CompetitionPage({
   const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
 
   const [
     { data: competition },
@@ -33,25 +35,25 @@ export default async function CompetitionPage({
     { data: mySubmissions },
     { data: judgeTokens },
   ] = await Promise.all([
-    supabase
+    admin
       .from('competitions')
       .select('*, competition_categories(id, name)')
       .eq('id', id)
       .neq('status', 'draft')
       .is('deleted_at', null)
       .single(),
-    supabase
+    admin
       .from('competitions')
       .select('withdrawal_frees_slot')
       .eq('id', id)
       .single(),
-    supabase
+    admin
       .from('submissions')
       .select('id, status, image_id, category_id, images(title, storage_path), competition_categories(name)')
       .eq('competition_id', id)
       .eq('member_id', user!.id)
       .eq('status', 'submitted'),
-    supabase
+    admin
       .from('judge_tokens')
       .select('judge_name')
       .eq('competition_id', id),
@@ -132,7 +134,7 @@ export default async function CompetitionPage({
             {mySubmissions!.map(sub => {
               const image    = sub.images as unknown as { title: string; storage_path: string }
               const category = sub.competition_categories as unknown as { name: string }
-              const publicUrl = supabase.storage.from('images').getPublicUrl(image.storage_path).data.publicUrl
+              const publicUrl = admin.storage.from('images').getPublicUrl(image.storage_path).data.publicUrl
 
               return (
                 <div key={sub.id} className="flex items-center gap-4 rounded-xl border border-border-default bg-surface-2 p-3">

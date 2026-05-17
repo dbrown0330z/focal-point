@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import AboutPageEditor from './AboutPageEditor'
 
 export const dynamic = 'force-dynamic'
@@ -6,10 +6,9 @@ export const dynamic = 'force-dynamic'
 type RawPage = { id: string; content: string | null }
 
 export default async function AdminAboutPage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const admin = createServiceClient()
 
-  const { data } = await supabase
+  const { data } = await admin
     .from('pages')
     .select('id, content')
     .eq('slug', 'about')
