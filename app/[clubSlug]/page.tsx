@@ -40,7 +40,7 @@ export default async function ClubHomePage({
       .single(),
   ])
 
-  if (!profile || !membership) redirect(`/login?error=${!profile ? 'no-profile' : 'no-membership'}`)
+  if (!profile || !membership) redirect(`/login?error=${!profile ? 'no-profile' : 'no-membership'}&uid=${user.id.slice(0,8)}&cid=${clubId.slice(0,8)}`)
 
   // Member just approved but hasn't completed onboarding
   if (membership.membership_status === 'approved') redirect('/onboarding/profile')
