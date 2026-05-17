@@ -311,19 +311,16 @@ a[href] {
 }
 
 /*
- * Links: soft underline on hover using a color-matched decoration.
- * Targets plain <a> elements outside rich-text contexts (which have their own rules).
- * MUI components manage their own hover; this targets native anchors only.
+ * Links: subtle opacity dip on hover.
+ * Opacity works even when inline styles set textDecoration/color,
+ * since it applies to the element as a whole rather than a specific property.
+ * MUI components and elements with their own hover classes are excluded.
  */
-a[href]:not(.MuiButtonBase-root):not(.MuiButton-root):not([class*="Mui"]) {
-  text-decoration: none;
-  transition: color 0.12s ease, text-decoration-color 0.12s ease;
-  text-decoration-color: transparent;
-  text-underline-offset: 3px;
+a[href]:not(.MuiButtonBase-root):not(.MuiButton-root):not([class*="Mui"]):not([class*="hover:"]) {
+  transition: opacity 0.15s ease;
 }
-a[href]:not(.MuiButtonBase-root):not(.MuiButton-root):not([class*="Mui"]):hover {
-  text-decoration: underline;
-  text-decoration-color: currentColor;
+a[href]:not(.MuiButtonBase-root):not(.MuiButton-root):not([class*="Mui"]):not([class*="hover:"]):hover {
+  opacity: 0.72;
 }
 
 /*
