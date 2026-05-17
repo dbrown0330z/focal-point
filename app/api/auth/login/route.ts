@@ -37,16 +37,9 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
-  console.log('[api/auth/login] email:', email)
-  console.log('[api/auth/login] error:', error?.message ?? 'none')
-  console.log('[api/auth/login] user:', data?.user?.id ?? 'none')
-  console.log('[api/auth/login] cookies to set:', cookiesToApply.map(c => c.name))
-
   const redirectUrl = error
     ? new URL(`/login?error=${encodeURIComponent(error.message)}`, request.url)
     : new URL('/default', request.url)
-
-  console.log('[api/auth/login] redirecting to:', redirectUrl.pathname)
 
   const response = NextResponse.redirect(redirectUrl, { status: 303 })
 
