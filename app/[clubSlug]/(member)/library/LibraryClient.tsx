@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { deleteImage } from '@/app/[clubSlug]/(member)/library/actions'
+import { Lightbox, type LightboxImage } from '@/components/ui/Lightbox'
 import Button from '@mui/material/Button'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
@@ -319,81 +320,6 @@ function DetailPanel({ image, onClose }: { image: Image; onClose: () => void }) 
   )
 }
 
-// ─── Lightbox ─────────────────────────────────────────────────────────────────
-
-function Lightbox({ images, index, onClose, onPrev, onNext, onGoTo }: {
-  images: Image[]; index: number
-  onClose: () => void; onPrev: () => void; onNext: () => void; onGoTo: (i: number) => void
-}) {
-  const image = images[index]
-
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'ArrowLeft')  onPrev()
-      if (e.key === 'ArrowRight') onNext()
-      if (e.key === 'Escape')     onClose()
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [onPrev, onNext, onClose])
-
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
-
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90" onClick={onClose}>
-      {/* Top bar: context title + ESC hint + close */}
-      <div className="absolute left-0 right-0 top-0 flex items-center justify-between px-5 py-3.5" onClick={e => e.stopPropagation()}>
-        <span className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.65)' }}>My Image Gallery</span>
-        <div className="flex items-center gap-2.5">
-          <span className="text-[11px] font-medium tracking-[0.06em]" style={{ color: 'rgba(255,255,255,0.35)' }}>ESC</span>
-          <button onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white transition-colors" aria-label="Close">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      </div>
-      <button onClick={e => { e.stopPropagation(); onPrev() }} disabled={images.length <= 1} className="absolute left-4 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-20" aria-label="Previous">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
-      <div className="flex max-w-[85vw] flex-col items-center" onClick={e => e.stopPropagation()}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={image.publicUrl} alt={image.title} className="max-h-[80vh] max-w-[85vw] rounded-lg object-contain shadow-2xl" />
-        <div className="mt-3 flex flex-col items-center gap-0.5 text-center">
-          {image.title && <p className="text-[17px] font-semibold text-white">{image.title}</p>}
-        </div>
-        {/* Dots */}
-        {images.length > 1 && (
-          <div className="mt-3 flex gap-1.5">
-            {images.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={e => { e.stopPropagation(); onGoTo(i) }}
-                className="h-2 rounded-full transition-all"
-                style={{
-                  width:      i === index ? 20 : 8,
-                  background: i === index ? 'white' : 'rgba(255,255,255,0.35)',
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-      <button onClick={e => { e.stopPropagation(); onNext() }} disabled={images.length <= 1} className="absolute right-4 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-20" aria-label="Next">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-    </div>
-  )
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
@@ -445,13 +371,6 @@ export default function LibraryClient({ images, clubSlug }: { images: Image[]; c
 
   const lightboxImages = view === 'list' ? listFiltered : galleryFiltered
   const openLightbox   = (i: number) => setLightboxIndex(i)
-  const closeLightbox  = useCallback(() => setLightboxIndex(null), [])
-  const goPrev = useCallback(() =>
-    setLightboxIndex(i => i === null ? null : (i - 1 + lightboxImages.length) % lightboxImages.length),
-    [lightboxImages.length])
-  const goNext = useCallback(() =>
-    setLightboxIndex(i => i === null ? null : (i + 1) % lightboxImages.length),
-    [lightboxImages.length])
 
   // Arrow-key navigation through rows when detail panel is open
   useEffect(() => {
@@ -789,7 +708,12 @@ export default function LibraryClient({ images, clubSlug }: { images: Image[]; c
 
       {/* Lightbox */}
       {lightboxIndex !== null && (
-        <Lightbox images={lightboxImages} index={lightboxIndex} onClose={closeLightbox} onPrev={goPrev} onNext={goNext} onGoTo={i => setLightboxIndex(i)} />
+        <Lightbox
+          images={lightboxImages.map((img): LightboxImage => ({ src: img.publicUrl, title: img.title }))}
+          startIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          contextTitle="My Image Gallery"
+        />
       )}
 
     </>

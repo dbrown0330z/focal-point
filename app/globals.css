@@ -336,11 +336,11 @@ a[href]:not(.MuiButtonBase-root):not(.MuiButton-root):not([class*="Mui"]):not([c
   transform: scale(1.05);
 }
 .img-card-overlay {
-  transition: background-color 0.20s ease;
-  background-color: transparent;
+  transition: opacity 0.20s ease;
+  opacity: 0;
 }
 .img-card:hover .img-card-overlay {
-  background-color: rgba(0, 0, 0, 0.10);
+  opacity: 1;
 }
 
 /*

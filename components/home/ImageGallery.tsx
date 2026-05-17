@@ -1,193 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
+import { Lightbox, type LightboxImage } from '@/components/ui/Lightbox'
 
 export type GalleryImage = { id: string; publicUrl: string; title: string; maker?: string }
-
-// ─── Lightbox ─────────────────────────────────────────────────────────────────
-
-function Lightbox({
-  images,
-  startIndex,
-  onClose,
-  contextTitle,
-}: {
-  images:        GalleryImage[]
-  startIndex:    number
-  onClose:       () => void
-  contextTitle?: string
-}) {
-  const [index, setIndex] = useState(startIndex)
-  const current = images[index]
-  const multi   = images.length > 1
-
-  const prev = useCallback(() => setIndex(i => (i - 1 + images.length) % images.length), [images.length])
-  const next = useCallback(() => setIndex(i => (i + 1) % images.length),                 [images.length])
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape')     onClose()
-      if (e.key === 'ArrowLeft')  prev()
-      if (e.key === 'ArrowRight') next()
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [onClose, prev, next])
-
-  // Prevent body scroll while open
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
-
-  const btnBase: React.CSSProperties = {
-    position:   'absolute',
-    top:        '50%',
-    transform:  'translateY(-50%)',
-    background: 'rgba(0,0,0,0.55)',
-    border:     '1px solid rgba(255,255,255,0.18)',
-    borderRadius: 8,
-    color:      'rgba(255,255,255,0.90)',
-    cursor:     'pointer',
-    padding:    '10px 14px',
-    fontSize:   20,
-    lineHeight: 1,
-    zIndex:     10,
-    transition: 'background 0.15s',
-  }
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-      style={{
-        position:        'fixed',
-        inset:           0,
-        zIndex:          2000,
-        background:      'rgba(0,0,0,0.92)',
-        display:         'flex',
-        flexDirection:   'column',
-        alignItems:      'center',
-        justifyContent:  'center',
-      }}
-    >
-      {/* Top bar: context title + ESC hint + close */}
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          position:       'absolute',
-          top:            0,
-          left:           0,
-          right:          0,
-          display:        'flex',
-          alignItems:     'center',
-          justifyContent: 'space-between',
-          padding:        '14px 20px',
-        }}
-      >
-        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', fontWeight: 500 }}>
-          {contextTitle ?? ''}
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 500, letterSpacing: '0.06em' }}>
-            ESC
-          </span>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            style={{
-              background:   'none',
-              border:       'none',
-              cursor:       'pointer',
-              color:        'rgba(255,255,255,0.80)',
-              fontSize:     22,
-              lineHeight:   1,
-              padding:      4,
-              borderRadius: 4,
-            }}
-          >
-            ✕
-          </button>
-        </div>
-      </div>
-
-      {/* Image + caption + dots */}
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '0 56px' }}
-      >
-        <div style={{ position: 'relative', width: '90vw', maxWidth: 1100, height: '75vh' }}>
-          <Image
-            key={current.publicUrl}
-            src={current.publicUrl}
-            alt={current.title}
-            fill
-            style={{ objectFit: 'contain' }}
-            sizes="(max-width: 1200px) 90vw, 1100px"
-            priority
-          />
-        </div>
-        {(current.title || current.maker) && (
-          <div style={{ textAlign: 'center', maxWidth: 600, lineHeight: 1.4 }}>
-            {current.title && (
-              <p style={{ fontSize: 17, fontWeight: 600, color: 'rgba(255,255,255,0.95)' }}>
-                {current.title}
-              </p>
-            )}
-            {current.maker && (
-              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', marginTop: 3 }}>
-                {current.maker}
-              </p>
-            )}
-          </div>
-        )}
-        {/* Dots */}
-        {multi && (
-          <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-            {images.map((_, i) => (
-              <button
-                key={i}
-                onClick={e => { e.stopPropagation(); setIndex(i) }}
-                style={{
-                  height:     8,
-                  width:      i === index ? 20 : 8,
-                  borderRadius: 9999,
-                  background: i === index ? 'white' : 'rgba(255,255,255,0.35)',
-                  border:     'none',
-                  cursor:     'pointer',
-                  padding:    0,
-                  transition: 'width 0.15s, background 0.15s',
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Prev / Next */}
-      {multi && (
-        <>
-          <button
-            aria-label="Previous image"
-            onClick={e => { e.stopPropagation(); prev() }}
-            style={{ ...btnBase, left: 16 }}
-          >
-            ‹
-          </button>
-          <button
-            aria-label="Next image"
-            onClick={e => { e.stopPropagation(); next() }}
-            style={{ ...btnBase, right: 16 }}
-          >
-            ›
-          </button>
-        </>
-      )}
-    </div>
-  )
-}
 
 // ─── Grid 8 ───────────────────────────────────────────────────────────────────
 
@@ -236,7 +53,7 @@ export function Grid8Gallery({
           <button
             key={img.id}
             onClick={() => setLightboxIndex(i)}
-            className="group relative aspect-square rounded-lg overflow-hidden block"
+            className="img-card relative aspect-square rounded-lg block"
             style={{ background: 'var(--surface-1)', cursor: 'zoom-in', padding: 0, border: 'none' }}
             aria-label={`View ${img.title}`}
           >
@@ -245,11 +62,11 @@ export function Grid8Gallery({
               alt={img.title}
               width={400}
               height={400}
-              className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+              className="img-card-img w-full h-full object-cover"
             />
             {/* Hover overlay: title + maker */}
             <div
-              className="absolute inset-0 flex flex-col justify-end p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              className="img-card-overlay absolute inset-0 flex flex-col justify-end p-2.5"
               style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 55%)' }}
             >
               <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.95)', lineHeight: 1.3, textAlign: 'left' }}>
@@ -267,7 +84,7 @@ export function Grid8Gallery({
 
       {lightboxIndex !== null && (
         <Lightbox
-          images={shown}
+          images={shown.map((img): LightboxImage => ({ src: img.publicUrl, title: img.title, subtitle: img.maker }))}
           startIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           contextTitle={galleryName ? `Gallery Snapshot · ${galleryName}` : 'Gallery Snapshot'}
@@ -293,7 +110,7 @@ export function Strip8Gallery({ images }: { images: GalleryImage[] }) {
           <button
             key={img.id}
             onClick={() => setLightboxIndex(i)}
-            className="group flex-shrink-0 rounded-lg overflow-hidden block"
+            className="img-card flex-shrink-0 rounded-lg block"
             style={{ width: 140, height: 140, background: 'var(--surface-1)', cursor: 'zoom-in', padding: 0, border: 'none' }}
             aria-label={`View ${img.title}`}
           >
@@ -302,7 +119,7 @@ export function Strip8Gallery({ images }: { images: GalleryImage[] }) {
               alt={img.title}
               width={280}
               height={280}
-              className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+              className="img-card-img w-full h-full object-cover"
             />
           </button>
         ))}
@@ -310,7 +127,7 @@ export function Strip8Gallery({ images }: { images: GalleryImage[] }) {
 
       {lightboxIndex !== null && (
         <Lightbox
-          images={shown}
+          images={shown.map((img): LightboxImage => ({ src: img.publicUrl, title: img.title, subtitle: img.maker }))}
           startIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           contextTitle="Member Photos"
