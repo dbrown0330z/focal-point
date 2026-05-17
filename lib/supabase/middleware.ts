@@ -89,23 +89,16 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.rewrite(new URL('/club-pending', request.url))
       }
 
-      // ── Inject club context into request headers ──────────────────────────
-      // Server components and server actions read these via getClubContext().
-      // NextResponse.next() requires { headers } shape — not a plain Request.
-      const requestHeaders = new Headers(request.headers)
-      requestHeaders.set('x-club-id',   club.id)
-      requestHeaders.set('x-club-slug', club.slug)
-      requestHeaders.set('x-club-name', club.name)
+      // ── Inject club context as short-lived session cookies ───────────────
+      // NextResponse.next({ request: { headers } }) does not reliably forward
+      // custom headers to server components in Next.js 16. Using response
+      // cookies instead — they are always readable via cookies() in any SC.
+      supabaseResponse = NextResponse.next({ request })
 
-      // Pass the club-enriched request through — no URL rewrite needed.
-      // Routes are now at app/[clubSlug]/... so Next.js matches them directly.
-      supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } })
-
-      // Copy auth cookies from the original request into the response so the
-      // browser keeps its session across navigations.
-      request.cookies.getAll().forEach(({ name, value }) => {
-        supabaseResponse.cookies.set(name, value)
-      })
+      const cookieOpts = { httpOnly: true, sameSite: 'lax' as const, path: '/', maxAge: 60 * 60 }
+      supabaseResponse.cookies.set('x-club-id',   club.id,   cookieOpts)
+      supabaseResponse.cookies.set('x-club-slug', club.slug, cookieOpts)
+      supabaseResponse.cookies.set('x-club-name', club.name, cookieOpts)
 
       // ── Route protection (club-scoped routes) ─────────────────────────────
       // Derive the path segment after the club slug for route classification.

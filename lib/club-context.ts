@@ -18,7 +18,7 @@
  *   const clubId = await requireClubId()
  */
 
-import { headers } from 'next/headers'
+import { cookies } from 'next/headers'
 
 export type ClubContext = {
   clubId:   string
@@ -27,14 +27,15 @@ export type ClubContext = {
 }
 
 /**
- * Returns the club context from request headers, or null if not in a club route.
- * Safe to call from any server component.
+ * Returns the club context set by middleware as short-lived cookies.
+ * Using cookies instead of request headers because NextResponse.next({ request: { headers } })
+ * does not reliably forward custom headers to server components in Next.js 16.
  */
 export async function getClubContext(): Promise<ClubContext | null> {
-  const h = await headers()
-  const clubId   = h.get('x-club-id')
-  const clubSlug = h.get('x-club-slug')
-  const clubName = h.get('x-club-name')
+  const jar    = await cookies()
+  const clubId   = jar.get('x-club-id')?.value
+  const clubSlug = jar.get('x-club-slug')?.value
+  const clubName = jar.get('x-club-name')?.value
 
   if (!clubId || !clubSlug) return null
 
