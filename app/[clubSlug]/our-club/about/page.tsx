@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getClubContext } from '@/lib/club-context'
 import Link from 'next/link'
 
@@ -6,16 +7,17 @@ export const dynamic = 'force-dynamic'
 
 export default async function AboutPage() {
   const supabase = await createClient()
+  const admin = createServiceClient()
   const ctx    = await getClubContext()
   const clubId = ctx?.clubId
 
   const [{ data: { user } }, { data: settingsRaw }, { data: pageRaw }] = await Promise.all([
     supabase.auth.getUser(),
     clubId
-      ? supabase.from('club_settings').select('club_name').eq('club_id', clubId).single() as unknown as Promise<{ data: { club_name: string } | null }>
+      ? admin.from('club_settings').select('club_name').eq('club_id', clubId).single() as unknown as Promise<{ data: { club_name: string } | null }>
       : Promise.resolve({ data: null }),
     clubId
-      ? supabase.from('pages').select('id, content').eq('slug', 'about').eq('club_id', clubId).maybeSingle() as unknown as Promise<{ data: { id: string; content: string | null } | null }>
+      ? admin.from('pages').select('id, content').eq('slug', 'about').eq('club_id', clubId).maybeSingle() as unknown as Promise<{ data: { id: string; content: string | null } | null }>
       : Promise.resolve({ data: null }),
   ])
 

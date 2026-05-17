@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import ResultsClient from './ResultsClient'
 import type { AwardTier } from '@/types/competition'
 
@@ -70,6 +71,7 @@ export default async function CompetitionResultsPage({
 }) {
   const { id } = await params
   const supabase = await createClient()
+  const admin = createServiceClient()
 
   // Fetch competition (closed only — results aren't visible during judging)
   const { data: comp } = await supabase
@@ -131,7 +133,7 @@ export default async function CompetitionResultsPage({
     const awardLabel = awardId ? (awardMap.get(awardId) ?? null) : null
     const judgeNotes = scores.map(s => s.notes).filter(Boolean) as string[]
 
-    const imageUrl   = supabase.storage.from('images').getPublicUrl(img?.storage_path ?? '').data.publicUrl
+    const imageUrl   = admin.storage.from('images').getPublicUrl(img?.storage_path ?? '').data.publicUrl
     const memberName = profile?.display_name
       || [profile?.first_name, profile?.last_name].filter(Boolean).join(' ')
       || 'Unknown'

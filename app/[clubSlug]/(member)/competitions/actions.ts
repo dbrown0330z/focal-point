@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import type { Json } from '@/types/database'
 
 async function guardOpenCompetition(supabase: Awaited<ReturnType<typeof createClient>>, competitionId: string, userId: string) {
@@ -29,6 +30,7 @@ export async function submitFromLibrary(
 ): Promise<{ error: string | null }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
   if (!user) redirect('/login')
 
   try {
@@ -37,7 +39,7 @@ export async function submitFromLibrary(
     return { error: (e as Error).message }
   }
 
-  const { error } = await supabase.from('submissions').insert({
+  const { error } = await admin.from('submissions').insert({
     competition_id: competitionId,
     category_id: categoryId,
     image_id: imageId,
@@ -72,7 +74,7 @@ export async function submitUploadedImage(data: {
     return { error: (e as Error).message }
   }
 
-  const { data: img, error: imgErr } = await supabase.from('images').insert({
+  const { data: img, error: imgErr } = await admin.from('images').insert({
     owner_id: user.id,
     title: data.title,
     storage_path: data.storagePath,
@@ -81,7 +83,7 @@ export async function submitUploadedImage(data: {
 
   if (imgErr || !img) return { error: imgErr?.message ?? 'Failed to save image' }
 
-  const { error: subErr } = await supabase.from('submissions').insert({
+  const { error: subErr } = await admin.from('submissions').insert({
     competition_id: data.competitionId,
     category_id: data.categoryId,
     image_id: img.id,
@@ -89,7 +91,7 @@ export async function submitUploadedImage(data: {
   })
 
   if (subErr) {
-    await supabase.from('images').delete().eq('id', img.id)
+    await admin.from('images').delete().eq('id', img.id)
     const msg = subErr.code === '23505'
       ? 'That photo is already submitted to a competition'
       : subErr.message

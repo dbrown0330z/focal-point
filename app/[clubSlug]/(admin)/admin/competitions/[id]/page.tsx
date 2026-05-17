@@ -32,7 +32,7 @@ export default async function CompetitionDetailPage({
   const supabase        = await createClient()
   const serviceSupabase = createServiceClient()
 
-  const { data: competition } = await supabase
+  const { data: competition } = await admin
     .from('competitions')
     .select('*, competition_categories(*), judge_tokens(id, judge_name, judge_email, token)')
     .eq('id', id)
@@ -46,11 +46,11 @@ export default async function CompetitionDetailPage({
     { data: submissionRows },
     { data: profiles },
   ] = await Promise.all([
-    supabase
+    admin
       .from('submissions')
       .select('id', { count: 'exact', head: true })
       .eq('competition_id', id),
-    supabase
+    admin
       .from('submissions')
       .select('category_id')
       .eq('competition_id', id),

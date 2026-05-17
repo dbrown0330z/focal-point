@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import CompetitionsClient from './CompetitionsClient'
 
 export const dynamic = 'force-dynamic'
@@ -6,6 +7,7 @@ export const dynamic = 'force-dynamic'
 export default async function CompetitionsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
 
   // Current competitions: open or judging
   const { data: currentRaw } = await supabase
@@ -35,7 +37,7 @@ export default async function CompetitionsPage() {
             categoryId: s.category_id,
             categoryName: cat?.name ?? '',
             imageTitle: img?.title ?? '',
-            publicUrl: supabase.storage.from('images').getPublicUrl(img?.storage_path ?? '').data.publicUrl,
+            publicUrl: admin.storage.from('images').getPublicUrl(img?.storage_path ?? '').data.publicUrl,
           }
         })
       })() : []
@@ -96,7 +98,7 @@ export default async function CompetitionsPage() {
         title: img.title,
         storage_path: img.storage_path,
         created_at: img.created_at,
-        publicUrl: supabase.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
+        publicUrl: admin.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
       }))
   })() : []
 

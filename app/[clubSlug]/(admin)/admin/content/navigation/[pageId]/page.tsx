@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 import CustomPageEditor from './CustomPageEditor'
 
@@ -11,8 +12,9 @@ export default async function EditCustomPagePage({
 }) {
   const { pageId } = await params
   const supabase = await createClient()
+  const admin = createServiceClient()
 
-  const { data: page, error } = await supabase
+  const { data: page, error } = await admin
     .from('nav_custom_pages')
     .select('id, title, slug, visibility, status, content, page_type, updated_at')
     .eq('id', pageId)

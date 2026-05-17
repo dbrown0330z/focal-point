@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import ProfileClient from './ProfileClient'
 
 export const dynamic = 'force-dynamic'
@@ -42,6 +43,7 @@ export type ProfileData = {
 export default async function ProfilePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
   if (!user) redirect('/login')
 
   const [{ data: profile }, { data: subsRaw }] = await Promise.all([
@@ -87,7 +89,7 @@ export default async function ProfilePage() {
     const awardTypes = (comp.award_types ?? []) as AwardTierRaw[]
     const awardLabel = awardId ? (awardTypes.find(t => t.id === awardId)?.label ?? null) : null
     const year       = comp.closes_at ? new Date(comp.closes_at).getFullYear() : new Date().getFullYear()
-    const publicUrl  = supabase.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl
+    const publicUrl  = admin.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl
 
     return [{
       submissionId:     sub.id,

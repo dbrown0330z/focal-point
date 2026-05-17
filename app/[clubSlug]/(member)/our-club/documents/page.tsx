@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import DocumentsClient from './DocumentsClient'
 
 export const dynamic = 'force-dynamic'
@@ -26,13 +27,14 @@ type RawDocument = {
 
 export default async function DocumentsPage() {
   const supabase = await createClient()
+  const admin = createServiceClient()
 
   const [{ data: categoriesRaw }, { data: docsRaw }] = await Promise.all([
-    supabase
+    admin
       .from('document_categories')
       .select('id, name, sort_order')
       .order('sort_order') as unknown as Promise<{ data: RawCategory[] | null }>,
-    supabase
+    admin
       .from('documents')
       .select('id, title, description, file_name, file_size, mime_type, file_path, sort_order, uploaded_at, category_id, document_categories(id, name)')
       .is('deleted_at', null)

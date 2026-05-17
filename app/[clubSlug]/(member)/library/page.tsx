@@ -1,10 +1,12 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import LibraryClient from './LibraryClient'
 
 export default async function LibraryPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
   if (!user) redirect('/login')
 
   const { data: images, error } = await supabase
@@ -52,7 +54,7 @@ export default async function LibraryPage() {
       storage_path:     image.storage_path,
       created_at:       image.created_at,
       exifData:         (image.exif_data ?? null) as Record<string, unknown> | null,
-      publicUrl:        supabase.storage.from('images').getPublicUrl(image.storage_path).data.publicUrl,
+      publicUrl:        admin.storage.from('images').getPublicUrl(image.storage_path).data.publicUrl,
       isSubmitted:      !!activeSub,
       competitionTitle: competition?.title ?? null,
       competitionDate:  competition?.closes_at ?? competition?.opens_at ?? null,

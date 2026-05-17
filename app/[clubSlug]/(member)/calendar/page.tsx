@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import CalendarClient from './CalendarClient'
 import type { CalendarEvent } from './actions'
 
@@ -8,29 +9,30 @@ export const dynamic = 'force-dynamic'
 export default async function CalendarPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
+  const { data: profile } = await admin
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single()
 
   const [{ data: events }, { data: locationRows }, { data: clubSettings }, { data: competitions }] = await Promise.all([
-    supabase
+    admin
       .from('calendar_events')
       .select('id, title, description, location, starts_at, ends_at, all_day, event_type, created_by')
       .order('starts_at', { ascending: true }),
-    supabase
+    admin
       .from('meeting_locations')
       .select('name, address')
       .order('sort_order')
       .order('created_at'),
-    supabase
+    admin
       .from('club_settings')
       .select('timezone')
       .single(),
-    supabase
+    admin
       .from('competitions')
       .select('id, title, short_title, opens_at, closes_at, results_at')
       .in('status', ['open', 'judging', 'results_pending', 'results_published'])

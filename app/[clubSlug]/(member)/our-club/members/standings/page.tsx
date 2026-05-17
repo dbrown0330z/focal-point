@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 import StandingsClient from './StandingsClient'
 import type { AwardTier } from '@/types/competition'
@@ -75,12 +76,13 @@ export default async function StandingsPage({
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
   if (!user) redirect('/login')
 
   const params = await searchParams
 
   // Club settings
-  const { data: settingsRaw } = await supabase
+  const { data: settingsRaw } = await admin
     .from('club_settings')
     .select('season_start_month')
     .single()
@@ -115,7 +117,7 @@ export default async function StandingsPage({
   } : null
 
   // Competitions closed in this season window
-  const { data: compsRaw } = await supabase
+  const { data: compsRaw } = await admin
     .from('competitions')
     .select('id, title, awards_enabled, award_types, closes_at')
     .eq('status', 'closed')
@@ -141,7 +143,7 @@ export default async function StandingsPage({
 
   if (compIds.length > 0) {
     // Submissions + scores for this season's competitions
-    const { data: subsRaw } = await supabase
+    const { data: subsRaw } = await admin
       .from('submissions')
       .select('id, member_id, competition_id, scores(score, award_id)')
       .in('competition_id', compIds)

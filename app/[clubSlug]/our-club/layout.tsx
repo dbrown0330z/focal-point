@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getClubContext } from '@/lib/club-context'
 import Link from 'next/link'
 import MemberNav from '@/components/layout/MemberNav'
@@ -17,6 +18,7 @@ export default async function OurClubLayout({
   const clubId = ctx?.clubId
 
   const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
 
   const [{ data: membership }, { data: profile }, { data: clubSettings }] = await Promise.all([
     user && clubId
@@ -28,10 +30,10 @@ export default async function OurClubLayout({
           .maybeSingle()
       : Promise.resolve({ data: null }),
     user
-      ? supabase.from('profiles').select('display_name, avatar_url').eq('id', user.id).single()
+      ? admin.from('profiles').select('display_name, avatar_url').eq('id', user.id).single()
       : Promise.resolve({ data: null }),
     clubId
-      ? supabase.from('club_settings').select('club_name').eq('club_id', clubId).single()
+      ? admin.from('club_settings').select('club_name').eq('club_id', clubId).single()
       : Promise.resolve({ data: null }),
   ])
 

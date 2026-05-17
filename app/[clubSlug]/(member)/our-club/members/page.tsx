@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import MembersClient from './MembersClient'
 
 export const dynamic = 'force-dynamic'
@@ -24,8 +25,9 @@ type RawMember = {
 
 export default async function MembersPage() {
   const supabase = await createClient()
+  const admin = createServiceClient()
 
-  const { data: settingsRaw } = await supabase
+  const { data: settingsRaw } = await admin
     .from('club_settings')
     .select('member_directory_visibility')
     .single()

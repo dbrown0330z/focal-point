@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getResend } from '@/lib/email/client'
 
 export type SendResult =
@@ -87,7 +88,7 @@ export async function sendNotification(args: {
     args.toOption === 'all_members'  ? `All members (${emailList.length})` :
                                        `${emailList.length} selected member${emailList.length === 1 ? '' : 's'}`
 
-  await supabase.from('sent_messages').insert({
+  await admin.from('sent_messages').insert({
     sent_by:          user.id,
     subject:          args.subject,
     html_body:        args.htmlBody,

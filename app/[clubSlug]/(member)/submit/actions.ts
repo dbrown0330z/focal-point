@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import type { Json } from '@/types/database'
 
 export type SubmitInput = {
@@ -32,6 +33,7 @@ export type SubmitResult =
 export async function finalizeSubmission(input: SubmitInput): Promise<SubmitResult> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
   if (!user) return { ok: false, error: 'Not authenticated.' }
 
   // ── Validate competition ────────────────────────────────────────────────────
@@ -129,7 +131,7 @@ export async function finalizeSubmission(input: SubmitInput): Promise<SubmitResu
   if (subErr || !submission) {
     // Clean up orphaned image record if the submission itself failed
     if (input.imageSource === 'upload') {
-      await supabase.from('images').delete().eq('id', imageId).eq('owner_id', user.id)
+      await admin.from('images').delete().eq('id', imageId).eq('owner_id', user.id)
     }
     const msg = subErr?.code === '23505'
       ? 'This image is already entered in another competition.'

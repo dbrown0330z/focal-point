@@ -3,10 +3,12 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export async function submitImage(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
   if (!user) redirect('/login')
 
   const competitionId = formData.get('competition_id') as string
@@ -36,7 +38,7 @@ export async function submitImage(formData: FormData) {
     redirect(`/competitions/${competitionId}?error=Submission+limit+reached`)
   }
 
-  const { error } = await supabase.from('submissions').insert({
+  const { error } = await admin.from('submissions').insert({
     competition_id: competitionId,
     category_id: categoryId,
     image_id: imageId,

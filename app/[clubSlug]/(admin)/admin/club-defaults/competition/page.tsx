@@ -1,15 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import CompetitionDefaultsClient from './CompetitionDefaultsClient'
 
 export default async function CompetitionDefaultsPage() {
   const supabase = await createClient()
+  const admin = createServiceClient()
 
   const [{ data: categories }, { data: defaults }] = await Promise.all([
-    supabase
+    admin
       .from('competition_default_categories')
       .select('id, name')
       .order('sort_order', { ascending: true }),
-    supabase
+    admin
       .from('competition_defaults')
       .select('*')
       .single(),

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import SubmitClient, { type CompetitionForSubmit, type LibraryImageForSubmit } from './SubmitClient'
 
 export default async function SubmitPage({
@@ -11,6 +12,7 @@ export default async function SubmitPage({
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
   if (!user) redirect('/login')
 
   // ── Open competitions with their settings + categories ─────────────────────
@@ -114,7 +116,7 @@ export default async function SubmitPage({
     return {
       id:           img.id,
       title:        img.title,
-      publicUrl:    supabase.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
+      publicUrl:    admin.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
       createdAt:    img.created_at,
       fileSize:     (extras.file_size as number | null) ?? null,
       widthPx:      (extras.width_px as number | null) ?? null,

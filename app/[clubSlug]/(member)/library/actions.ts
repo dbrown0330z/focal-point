@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import type { Json } from '@/types/database'
 
 export async function createImageRecord(data: {
@@ -13,9 +14,10 @@ export async function createImageRecord(data: {
 }): Promise<void> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
   if (!user) redirect('/login')
 
-  const { error } = await supabase.from('images').insert({
+  const { error } = await admin.from('images').insert({
     owner_id: user.id,
     title:        data.title,
     description:  data.description || null,
@@ -48,7 +50,7 @@ export async function deleteImage(imageId: string, storagePath: string) {
   }
 
   // DB record gone — clean up storage
-  await supabase.storage.from('images').remove([storagePath])
+  await admin.storage.from('images').remove([storagePath])
 
   revalidatePath('/library')
   return { error: null }

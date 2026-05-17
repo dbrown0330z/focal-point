@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export type ProfileUpdateData = {
   first_name: string
@@ -18,9 +19,10 @@ export type ProfileUpdateData = {
 export async function updateProfile(data: ProfileUpdateData): Promise<{ error: string | null }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
   if (!user) return { error: 'Not authenticated' }
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('profiles')
     .update({
       first_name:         data.first_name || null,
@@ -46,7 +48,7 @@ export async function updateAvatarUrl(avatarUrl: string): Promise<{ error: strin
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('profiles')
     .update({ avatar_url: avatarUrl })
     .eq('id', user.id)

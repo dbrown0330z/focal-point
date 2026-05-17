@@ -17,10 +17,10 @@ export default async function MembersPage() {
       .from('profiles')
       .select('id, first_name, last_name, display_name, member_number, membership_status, membership_class, role, created_at, bio, camera_brands, shooting_interests, experience_level, avatar_url')
       .order('member_number', { ascending: true }),
-    supabase.from('submissions').select('member_id'),
-    supabase.from('club_settings').select('member_classes_enabled').single(),
+    admin.from('submissions').select('member_id'),
+    admin.from('club_settings').select('member_classes_enabled').single(),
     serviceSupabase.auth.admin.listUsers({ perPage: 1000 }),
-    supabase.from('member_classes').select('id, name').order('sort_order').order('created_at'),
+    admin.from('member_classes').select('id, name').order('sort_order').order('created_at'),
   ])
 
   const emailById: Record<string, string> = {}
