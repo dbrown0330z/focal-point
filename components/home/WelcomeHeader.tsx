@@ -10,10 +10,10 @@ function formatHeaderDate(date: Date, tz: string): string {
 
 // ─── Greeting pool ────────────────────────────────────────────────────────────
 
-const GREETINGS_ANY       = ['Welcome back', 'Howdy', 'Good to see you', 'Greetings']
-const GREETINGS_MORNING   = ['Good morning', "Mornin'", 'Camera or coffee']
-const GREETINGS_AFTERNOON = ['Good afternoon', 'Good day']
-const GREETINGS_EVENING   = ['Good evening', "Evenin'"]
+const GREETINGS_ANY       = ['Welcome back', 'Howdy', 'Great to see you', 'Greetings', 'Right on time', 'Aloha', 'Buongiorno', 'Ciao']
+const GREETINGS_MORNING   = ['Good morning', "Mornin'", 'Bonjour', 'Buenos días']
+const GREETINGS_AFTERNOON = ['Good afternoon', 'Good day', 'Bonjour', 'Buenas tardes']
+const GREETINGS_EVENING   = ['Good evening', "Evenin'", 'Bonsoir', 'Buenas noches']
 
 function pickGreeting(date: Date, tz: string): string {
   const hour = parseInt(
