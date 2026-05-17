@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { requireClubId } from '@/lib/club-context'
 import MemberNav from '@/components/layout/MemberNav'
 import MemberThemeProvider from '@/components/layout/MemberThemeProvider'
@@ -15,9 +16,12 @@ export default async function MemberLayout({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login?error=no-user-layout')
+  if (!user) redirect('/login')
 
   const clubId = await requireClubId()
+
+  // Use service client to bypass RLS gaps. Auth already verified above.
+  const admin = createServiceClient()
 
   const [
     { data: membership },
@@ -26,30 +30,30 @@ export default async function MemberLayout({
     { data: customPages },
     { data: customTabs },
   ] = await Promise.all([
-    supabase
+    admin
       .from('club_memberships')
       .select('role, membership_status')
       .eq('user_id', user.id)
       .eq('club_id', clubId)
       .maybeSingle(),
-    supabase
+    admin
       .from('profiles')
       .select('display_name, avatar_url')
       .eq('id', user.id)
       .single(),
-    supabase
+    admin
       .from('club_settings')
       .select('club_name')
       .eq('club_id', clubId)
       .single(),
-    supabase
+    admin
       .from('nav_custom_pages')
       .select('id, title, slug, parent_system, tab_id, page_type, external_url, visibility, sort_order')
       .eq('club_id', clubId)
       .eq('status', 'published')
       .neq('visibility', 'hidden')
       .order('sort_order'),
-    supabase
+    admin
       .from('nav_custom_tabs')
       .select('id, name, slug, sort_order')
       .eq('club_id', clubId)

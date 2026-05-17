@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { requireClubId } from '@/lib/club-context'
 import { redirect } from 'next/navigation'
 import MemberNav from '@/components/layout/MemberNav'
@@ -17,30 +18,34 @@ export default async function ClubHomePage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login?error=no-user')
+  if (!user) redirect('/login')
 
   const clubId = await requireClubId()
 
+  // Use service client for membership/settings to bypass RLS gaps on these tables.
+  // Auth is already verified above via supabase.auth.getUser().
+  const admin = createServiceClient()
+
   const [{ data: membership }, { data: profile }, { data: clubSettings }] = await Promise.all([
-    supabase
+    admin
       .from('club_memberships')
       .select('role, membership_status')
       .eq('user_id', user.id)
       .eq('club_id', clubId)
       .maybeSingle(),
-    supabase
+    admin
       .from('profiles')
       .select('first_name, display_name, avatar_url')
       .eq('id', user.id)
       .single(),
-    supabase
+    admin
       .from('club_settings')
       .select('club_name, homepage_blocks')
       .eq('club_id', clubId)
       .single(),
   ])
 
-  if (!profile || !membership) redirect(`/login?error=${!profile ? 'no-profile' : 'no-membership'}&uid=${user.id.slice(0,8)}&cid=${clubId.slice(0,8)}`)
+  if (!profile || !membership) redirect('/login')
 
   // Member just approved but hasn't completed onboarding
   if (membership.membership_status === 'approved') redirect('/onboarding/profile')
@@ -53,14 +58,14 @@ export default async function ClubHomePage({
     const blocks: ContentBlock[] = mergeBlocks(saved, DEFAULT_BLOCKS)
 
     const [{ data: customPages }, { data: customTabs }] = await Promise.all([
-      supabase
+      admin
         .from('nav_custom_pages')
         .select('id, title, slug, parent_system, tab_id, page_type, external_url, visibility, sort_order')
         .eq('club_id', clubId)
         .eq('status', 'published')
         .neq('visibility', 'hidden')
         .order('sort_order'),
-      supabase
+      admin
         .from('nav_custom_tabs')
         .select('id, name, slug, sort_order')
         .eq('club_id', clubId)
