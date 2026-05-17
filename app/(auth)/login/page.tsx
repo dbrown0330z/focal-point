@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { login } from '../actions'
 
 const labelSx: React.CSSProperties = {
   display: 'block',
@@ -61,7 +60,7 @@ export default async function LoginPage({
         </div>
       )}
 
-      <form action={login} className="flex flex-col gap-4">
+      <form method="POST" action="/api/auth/login" className="flex flex-col gap-4">
         <div>
           <label htmlFor="email" style={labelSx}>Email</label>
           <input
