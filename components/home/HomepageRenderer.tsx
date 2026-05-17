@@ -127,15 +127,16 @@ function Grid8Block({ images, block }: { images: GalleryImage[]; block: ContentB
 
   if (images.length === 0) return (
     <Section>
-      <SectionHeading>Recent images</SectionHeading>
+      <div className="flex items-center justify-between mb-1">
+        <SectionHeading>Gallery Snapshot</SectionHeading>
+      </div>
       <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No images in the library yet.</p>
     </Section>
   )
 
   return (
     <Section>
-      <SectionHeading>Recent images</SectionHeading>
-      <Grid8Gallery images={images} galleryName={galleryName} galleryHref="/library" />
+      <Grid8Gallery images={images} galleryName={galleryName} galleryHref="/library" totalImages={images.length} />
     </Section>
   )
 }
