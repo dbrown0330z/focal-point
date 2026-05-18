@@ -3,16 +3,6 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getClubContext } from '@/lib/club-context'
 
-export const metadata: Metadata = {
-  icons: {
-    icon: [
-      { url: '/favicon-club.ico', sizes: 'any' },
-      { url: '/favicon-club.png', type: 'image/png' },
-    ],
-    apple: '/apple-touch-icon-club.png',
-  },
-}
-
 /**
  * Root layout for all club-scoped routes.
  *
@@ -20,6 +10,20 @@ export const metadata: Metadata = {
  * auth protection before this layout runs. We just confirm the club was resolved
  * (i.e. the slug is valid) and pass through to child layouts.
  */
+export async function generateMetadata(): Promise<Metadata> {
+  const ctx = await getClubContext()
+  return {
+    title: ctx?.clubName ?? 'Focal Point',
+    icons: {
+      icon: [
+        { url: '/favicon-club.ico', sizes: 'any' },
+        { url: '/favicon-club.png', type: 'image/png' },
+      ],
+      apple: '/apple-touch-icon-club.png',
+    },
+  }
+}
+
 export default async function ClubSlugLayout({
   children,
 }: {
