@@ -32,6 +32,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Focal Point',
   description: 'Your camera club, online.',
+  icons: {
+    icon: '/favicon.png',
+    apple: '/apple-touch-icon.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
