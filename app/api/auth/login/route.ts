@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
   const formData = await request.formData()
   const email    = formData.get('email')    as string
   const password = formData.get('password') as string
+  const next     = (formData.get('next') as string | null)?.trim() || null
 
   // Collect cookies that Supabase wants to set
   const cookiesToApply: Array<{
@@ -38,8 +39,8 @@ export async function POST(request: NextRequest) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
   const redirectUrl = error
-    ? new URL(`/login?error=${encodeURIComponent(error.message)}`, request.url)
-    : new URL('/default', request.url)
+    ? new URL(`/login?error=${encodeURIComponent(error.message)}${next ? `&next=${encodeURIComponent(next)}` : ''}`, request.url)
+    : new URL(next ?? '/default', request.url)
 
   const response = NextResponse.redirect(redirectUrl, { status: 303 })
 

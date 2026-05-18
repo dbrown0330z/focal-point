@@ -68,5 +68,11 @@ export async function resetPassword(formData: FormData) {
 export async function logout() {
   const supabase = await createClient()
   await supabase.auth.signOut()
-  redirect('/')
+  // Determine where to send the user after sign-out.
+  // If we're inside a club route the context cookie is still set at this point,
+  // so we can build a ?next= URL that brings them back to the right login page.
+  const { getClubContext } = await import('@/lib/club-context')
+  const ctx = await getClubContext()
+  const next = ctx ? `/${ctx.clubSlug}` : null
+  redirect(next ? `/login?next=${encodeURIComponent(next)}` : '/login')
 }

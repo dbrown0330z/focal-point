@@ -28,10 +28,12 @@ export default function LoginForm({
   errorParam,
   pendingParam,
   resetParam,
+  nextParam,
 }: {
   errorParam?: string
   pendingParam?: string
   resetParam?: string
+  nextParam?: string
 }) {
   const [loading, setLoading] = useState(false)
 
@@ -74,6 +76,7 @@ export default function LoginForm({
         className="flex flex-col gap-4"
         onSubmit={() => setLoading(true)}
       >
+        {nextParam && <input type="hidden" name="next" value={nextParam} />}
         <div>
           <label htmlFor="email" style={labelSx}>Email</label>
           <input
