@@ -98,7 +98,7 @@ export default function PricingPage() {
                     Free Trial
                   </div>
                   <div className="mkt-price-amt">
-                    $0<small>/ 30 days</small>
+                    $000.00<small>/ 30 days</small>
                   </div>
                 </div>
                 <p style={{ color: 'var(--ink-soft)', fontSize: 15, margin: 0 }}>
@@ -128,7 +128,7 @@ export default function PricingPage() {
                     Standard
                   </div>
                   <div className="mkt-price-amt">
-                    $49<small>/ month</small>
+                    $000.00<small>/ month</small>
                   </div>
                 </div>
                 <p style={{ color: 'rgba(232,226,211,0.80)', fontSize: 15, margin: 0 }}>
@@ -157,7 +157,7 @@ export default function PricingPage() {
                     Club Pro
                   </div>
                   <div className="mkt-price-amt">
-                    $149<small>/ month</small>
+                    $000.00<small>/ month</small>
                   </div>
                 </div>
                 <p style={{ color: 'var(--ink-soft)', fontSize: 15, margin: 0 }}>

@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react'
-import { Instrument_Serif, DM_Sans, DM_Mono, Space_Grotesk } from 'next/font/google'
+import { Bitter, DM_Sans, DM_Mono, Space_Grotesk } from 'next/font/google'
 import { Nav } from '@/components/marketing/Nav'
 import { Footer } from '@/components/marketing/Footer'
 import './marketing.css'
 
-const instrumentSerif = Instrument_Serif({
+const bitter = Bitter({
   subsets:  ['latin'],
-  weight:   ['400'],
+  weight:   ['400', '500', '700'],
   style:    ['normal', 'italic'],
-  variable: '--font-instrument-serif',
+  variable: '--font-bitter',
 })
 const dmSans = DM_Sans({
   subsets:  ['latin'],
@@ -29,7 +29,7 @@ const spaceGrotesk = Space_Grotesk({
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
     <div
-      className={`marketing-root ${instrumentSerif.variable} ${dmSans.variable} ${dmMono.variable} ${spaceGrotesk.variable}`}
+      className={`marketing-root ${bitter.variable} ${dmSans.variable} ${dmMono.variable} ${spaceGrotesk.variable}`}
     >
       <Nav />
       <main>{children}</main>

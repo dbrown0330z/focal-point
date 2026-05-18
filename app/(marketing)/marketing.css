@@ -2,7 +2,7 @@
 
 .marketing-root {
   /* fonts (loaded via next/font, injected as CSS vars) */
-  --serif:    var(--font-instrument-serif, "Instrument Serif", Georgia, serif);
+  --serif:    var(--font-bitter, "Bitter", Georgia, serif);
   --sans:     var(--font-dm-sans, "DM Sans", system-ui, sans-serif);
   --mono:     var(--font-dm-mono, "DM Mono", ui-monospace, monospace);
   --wordmark: var(--font-space-grotesk, "Space Grotesk", system-ui, sans-serif);
