@@ -1,6 +1,14 @@
 import type { ReactNode } from 'react'
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getClubContext } from '@/lib/club-context'
+
+export const metadata: Metadata = {
+  icons: {
+    icon: '/favicon-club.png',
+    apple: '/apple-touch-icon-club.png',
+  },
+}
 
 /**
  * Root layout for all club-scoped routes.
