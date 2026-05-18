@@ -25,8 +25,8 @@ export async function login(formData: FormData) {
     redirect('/login?error=' + encodeURIComponent(error.message))
   }
 
-  console.log('[login] success, redirecting to /default')
-  redirect('/default')
+  console.log('[login] success, redirecting to /')
+  redirect('/')
 }
 
 export async function signup(formData: FormData) {

@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
   const redirectUrl = error
     ? new URL(`/login?error=${encodeURIComponent(error.message)}${next ? `&next=${encodeURIComponent(next)}` : ''}`, request.url)
-    : new URL(next ?? '/default', request.url)
+    : new URL(next ?? '/', request.url)
 
   const response = NextResponse.redirect(redirectUrl, { status: 303 })
 
