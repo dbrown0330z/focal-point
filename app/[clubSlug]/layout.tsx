@@ -5,7 +5,10 @@ import { getClubContext } from '@/lib/club-context'
 
 export const metadata: Metadata = {
   icons: {
-    icon: '/favicon-club.png',
+    icon: [
+      { url: '/favicon-club.ico', sizes: 'any' },
+      { url: '/favicon-club.png', type: 'image/png' },
+    ],
     apple: '/apple-touch-icon-club.png',
   },
 }
