@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubId } from '@/lib/club-context'
 
 const PATH = '/admin/club-defaults'
 
@@ -28,14 +29,20 @@ export async function saveClubSettings(data: {
   member_directory_visibility: string
 }): Promise<{ error?: string }> {
   const supabase = createServiceClient()
+  const clubId = await requireClubId()
+
   const { error } = await supabase
     .from('club_settings')
     .update({ ...data, updated_at: new Date().toISOString() })
-    .neq('id', '00000000-0000-0000-0000-000000000000') // matches the single row
+    .neq('id', '00000000-0000-0000-0000-000000000000')
   if (error) return { error: error.message }
+
+  // Keep clubs.name in sync — middleware reads this for the browser tab title
+  await supabase.from('clubs').update({ name: data.club_name }).eq('id', clubId)
+
   revalidatePath(PATH)
-  revalidatePath('/')        // refresh member homepage so nav shows updated club name
-  revalidatePath('/', 'layout') // also refresh the shared layout
+  revalidatePath('/')
+  revalidatePath('/', 'layout')
   return {}
 }
 
