@@ -187,7 +187,7 @@ export async function saveCompetitionDefaults(data: {
 }): Promise<{ error?: string }> {
   const supabase = await createClient()
   const { error } = await supabase
-    .from('competition_defaults')
+      .from('competition_defaults')
     .update({ ...data, updated_at: new Date().toISOString() })
     .neq('id', '00000000-0000-0000-0000-000000000000')
   if (error) return { error: error.message }

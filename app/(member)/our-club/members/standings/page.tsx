@@ -131,7 +131,8 @@ export default async function StandingsPage({
     award_types: AwardTier[] | null
     closes_at: string
   }
-  const competitions: CompRow[] = compsRaw ?? []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const competitions: CompRow[] = (compsRaw ?? []) as any[]
   const compIds = competitions.map(c => c.id)
   const awardsConfigured = competitions.some(c => c.awards_enabled)
 

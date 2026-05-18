@@ -17,8 +17,9 @@ export default async function ComposePage() {
   ])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fromEmail = (settings as any)?.from_email?.trim() || ''
-  const clubName  = settings?.club_name?.trim() || 'Your Club'
+  const settingsAny = settings as any
+  const fromEmail = settingsAny?.from_email?.trim() || ''
+  const clubName  = settingsAny?.club_name?.trim() || 'Your Club'
 
   return <ComposeClient members={members ?? []} fromEmail={fromEmail} clubName={clubName} />
 }

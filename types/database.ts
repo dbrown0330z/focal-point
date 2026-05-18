@@ -56,6 +56,13 @@ export type Database = {
           member_classes_enabled: boolean
           default_meeting_location_id: string | null
           updated_at: string
+          membership_terms_reviewed?: boolean | null
+          membership_terms_updated_at?: string | null
+          membership_terms_content?: string | null
+          membership_terms_source?: string | null
+          membership_terms_file_path?: string | null
+          membership_terms_file_name?: string | null
+          from_email?: string | null
         }
         Insert: {
           id?: string
@@ -69,6 +76,12 @@ export type Database = {
           member_classes_enabled?: boolean
           default_meeting_location_id?: string | null
           updated_at?: string
+          membership_terms_reviewed?: boolean | null
+          membership_terms_updated_at?: string | null
+          membership_terms_content?: string | null
+          membership_terms_source?: string | null
+          membership_terms_file_path?: string | null
+          membership_terms_file_name?: string | null
         }
         Update: {
           club_name?: string
@@ -81,6 +94,12 @@ export type Database = {
           member_classes_enabled?: boolean
           default_meeting_location_id?: string | null
           updated_at?: string
+          membership_terms_reviewed?: boolean | null
+          membership_terms_updated_at?: string | null
+          membership_terms_content?: string | null
+          membership_terms_source?: string | null
+          membership_terms_file_path?: string | null
+          membership_terms_file_name?: string | null
         }
         Relationships: []
       }
@@ -210,6 +229,25 @@ export type Database = {
           submission_limit:     number
           template_id:          string | null
           title:                string
+          short_title:          string | null
+          max_entries_per_category:       number | null
+          max_entries_per_member:         number | null
+          allow_ties:                     boolean | null
+          image_long_edge:                number | null
+          watermark_enabled:              boolean | null
+          hide_exif_data:                 boolean | null
+          require_judge_comments:         boolean | null
+          judge_comments_min_chars:       number | null
+          withdrawal_frees_slot:          boolean | null
+          require_capture_date:           boolean | null
+          capture_date_window_months:     number | null
+          image_reuse_rule:               string | null
+          allow_notes_to_judge:           boolean | null
+          max_long_edge:                  number | null
+          score_min_to_publish_enabled:   boolean | null
+          score_min_to_publish:           number | null
+          results_visibility:             string | null
+          results_visibility_delay_hours: number | null
           archived_at:          string | null
           cancelled_at:         string | null
           cancellation_reason:  string | null
@@ -310,6 +348,13 @@ export type Database = {
           created_at: string
           description: string | null
           exif_data: Record<string, unknown> | null
+          exif_unique_id: string | null
+          p_hash: string | null
+          p_hash_status: string | null
+          file_size: number | null
+          width_px: number | null
+          height_px: number | null
+          deleted_at: string | null
           id: string
           owner_id: string
           storage_path: string
@@ -319,6 +364,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           exif_data?: Record<string, unknown> | null
+          exif_unique_id?: string | null
+          p_hash?: string | null
+          p_hash_status?: string | null
+          file_size?: number | null
+          width_px?: number | null
+          height_px?: number | null
+          deleted_at?: string | null
           id?: string
           owner_id: string
           storage_path: string
@@ -438,6 +490,15 @@ export type Database = {
           membership_status: Database["public"]["Enums"]["membership_status"]
           role: Database["public"]["Enums"]["user_role"] | null
           shooting_interests: string[]
+          skill_level: string | null
+          member_class_id: string | null
+          join_date: string | null
+          phone: string | null
+          website: string | null
+          instagram: string | null
+          location: string | null
+          total_points: number | null
+          competition_count: number | null
         }
         Insert: {
           avatar_url?: string | null
@@ -454,6 +515,15 @@ export type Database = {
           membership_status?: Database["public"]["Enums"]["membership_status"]
           role?: Database["public"]["Enums"]["user_role"] | null
           shooting_interests?: string[]
+          skill_level?: string | null
+          member_class_id?: string | null
+          join_date?: string | null
+          phone?: string | null
+          website?: string | null
+          instagram?: string | null
+          location?: string | null
+          total_points?: number | null
+          competition_count?: number | null
         }
         Update: {
           avatar_url?: string | null
@@ -470,6 +540,15 @@ export type Database = {
           membership_status?: Database["public"]["Enums"]["membership_status"]
           role?: Database["public"]["Enums"]["user_role"] | null
           shooting_interests?: string[]
+          skill_level?: string | null
+          member_class_id?: string | null
+          join_date?: string | null
+          phone?: string | null
+          website?: string | null
+          instagram?: string | null
+          location?: string | null
+          total_points?: number | null
+          competition_count?: number | null
         }
         Relationships: []
       }
@@ -491,7 +570,7 @@ export type Database = {
           judge_token_id:  string
           notes?:          string | null
           rank?:           number | null
-          score:           number
+          score?:          number
           flagged?:        boolean
           submission_id:   string
           award_id?:       string | null
@@ -566,6 +645,12 @@ export type Database = {
           member_id: string
           status: Database["public"]["Enums"]["submission_status"]
           submitted_at: string
+          notes: string | null
+          duplicate_warning_shown: boolean | null
+          duplicate_warning_override: boolean | null
+          image_title: string | null
+          capture_date: string | null
+          category_name: string | null
         }
         Insert: {
           category_id: string
@@ -573,6 +658,11 @@ export type Database = {
           id?: string
           image_id: string
           member_id: string
+          notes?: string | null
+          duplicate_warning_shown?: boolean | null
+          duplicate_warning_override?: boolean | null
+          image_title?: string | null
+          capture_date?: string | null
           status?: Database["public"]["Enums"]["submission_status"]
           submitted_at?: string
         }
@@ -615,6 +705,47 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      // ── Tables pending migration (stubs — regenerate types once migrations land) ──
+      calendar_events: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any>; Relationships: []
+      }
+      club_memberships: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any>; Relationships: []
+      }
+      clubs: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any>; Relationships: []
+      }
+      competition_defaults: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any>; Relationships: []
+      }
+      document_categories: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any>; Relationships: []
+      }
+      documents: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any>; Relationships: []
+      }
+      judge_directory: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any>; Relationships: []
+      }
+      nav_custom_pages: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any>; Relationships: []
+      }
+      nav_custom_tabs: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any>; Relationships: []
+      }
+      pages: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Row: Record<string, any>; Insert: Record<string, any>; Update: Record<string, any>; Relationships: []
       }
     }
     Views: {

@@ -14,7 +14,8 @@ export default async function NavigationPage() {
   return (
     <NavigationClient
       customPages={customPages ?? []}
-      customTabs={customTabs ?? []}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      customTabs={(customTabs ?? []) as any}
     />
   )
 }

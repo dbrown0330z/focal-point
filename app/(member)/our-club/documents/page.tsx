@@ -31,18 +31,20 @@ export default async function DocumentsPage() {
     admin
       .from('document_categories')
       .select('id, name, sort_order')
-      .order('sort_order') as Promise<{ data: RawCategory[] | null }>,
+      .order('sort_order')  as any,
     admin
       .from('documents')
       .select('id, title, description, file_name, file_size, mime_type, file_path, sort_order, uploaded_at, category_id, document_categories(id, name)')
       .is('deleted_at', null)
       .order('sort_order')
-      .order('uploaded_at', { ascending: false }) as Promise<{ data: RawDocument[] | null }>,
+      .order('uploaded_at', { ascending: false })  as any,
   ])
 
-  const categories = (categoriesRaw ?? []).map(c => ({ id: c.id, name: c.name }))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const categories = ((categoriesRaw ?? []) as any[]).map((c: RawCategory) => ({ id: c.id, name: c.name }))
 
-  const documents: DocumentRow[] = (docsRaw ?? []).map(d => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const documents: DocumentRow[] = ((docsRaw ?? []) as any[]).map((d: RawDocument) => ({
     id:          d.id,
     title:       d.title,
     description: d.description ?? null,

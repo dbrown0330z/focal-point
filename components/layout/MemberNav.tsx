@@ -111,7 +111,7 @@ function NavDropdown({
   children: React.ReactNode
 }) {
   const [open, setOpen] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const onEnter = () => { clearTimeout(timerRef.current); setOpen(true) }
   const onLeave = () => { timerRef.current = setTimeout(() => setOpen(false), 80) }

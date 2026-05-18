@@ -94,7 +94,8 @@ export async function finalizeSubmission(input: SubmitInput): Promise<SubmitResu
         file_size:      input.fileSize ?? null,
         width_px:       input.widthPx ?? null,
         height_px:      input.heightPx ?? null,
-      } as Record<string, unknown>)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
       .select('id')
       .single()
 
@@ -124,7 +125,8 @@ export async function finalizeSubmission(input: SubmitInput): Promise<SubmitResu
       notes:                     input.notes || null,
       duplicate_warning_shown:   input.duplicateWarningShown,
       duplicate_warning_override: input.duplicateWarningOverride,
-    } as Record<string, unknown>)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
     .select('id')
     .single()
 

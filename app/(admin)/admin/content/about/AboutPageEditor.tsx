@@ -292,7 +292,7 @@ export default function AboutPageEditor({
     const p = document.createElement('p')
     p.appendChild(document.createTextNode(' '))
     if (anchor === editor) { range.insertNode(p); range.insertNode(node) }
-    else { anchor.after(p); anchor.after(node) }
+    else { (anchor as Element).after(p); (anchor as Element).after(node) }
     const newRange = document.createRange()
     newRange.setStart(p.firstChild!, 0)
     newRange.collapse(true)

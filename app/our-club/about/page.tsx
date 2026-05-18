@@ -10,12 +10,12 @@ export default async function AboutPage() {
 
   const [{ data: { user } }, { data: settingsRaw }, { data: pageRaw }] = await Promise.all([
     supabase.auth.getUser(),
-    admin.from('club_settings').select('club_name').single() as Promise<{ data: { club_name: string } | null }>,
+    admin.from('club_settings').select('club_name').single()  as any,
     admin
       .from('pages')
       .select('id, content')
       .eq('slug', 'about')
-      .single() as Promise<{ data: { id: string; content: string | null } | null }>,
+      .single()  as any,
   ])
 
   const clubName   = settingsRaw?.club_name ?? 'Our Camera Club'
