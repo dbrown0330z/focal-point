@@ -31,4 +31,5 @@ export async function upsertScore(token: string, formData: FormData) {
 
   revalidatePath(`/judge/${token}/score`)
   revalidatePath(`/judge/${token}/score/${submissionId}`)
+  revalidatePath(`/judge/${token}/landing`)
 }
