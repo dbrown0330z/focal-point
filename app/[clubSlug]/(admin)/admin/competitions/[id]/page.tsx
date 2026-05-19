@@ -47,6 +47,7 @@ export default async function CompetitionDetailPage({
     { count: submissionCount },
     { data: submissionRows },
     { data: profiles },
+    { data: judgeDirectory },
   ] = await Promise.all([
     admin
       .from('submissions')
@@ -58,9 +59,13 @@ export default async function CompetitionDetailPage({
       .eq('competition_id', id),
     admin
       .from('profiles')
-      .select('id, first_name, last_name')
+      .select('id, first_name, last_name, email')
       .in('membership_status', ['active', 'complimentary'])
       .order('last_name', { ascending: true }),
+    admin
+      .from('judge_directory')
+      .select('id, name, email')
+      .order('name', { ascending: true }),
   ])
 
   const headersList = await headers()
@@ -93,10 +98,23 @@ export default async function CompetitionDetailPage({
     count: catCountMap[c.id] ?? 0,
   }))
 
-  const members = (profiles ?? []).map(p => ({
-    id:   p.id,
-    name: [p.first_name, p.last_name].filter(Boolean).join(' ') || '—',
+  // Merge judge directory (external judges) + active members, deduplicated by email
+  const dirJudges = (judgeDirectory ?? []).map(j => ({
+    id:    `dir_${j.id}`,
+    name:  j.name,
+    email: j.email ?? '',
   }))
+  const dirEmails = new Set(dirJudges.map(j => j.email.toLowerCase()))
+  const members = [
+    ...dirJudges,
+    ...(profiles ?? [])
+      .filter(p => !p.email || !dirEmails.has((p.email as string).toLowerCase()))
+      .map(p => ({
+        id:    p.id,
+        name:  [p.first_name, p.last_name].filter(Boolean).join(' ') || '—',
+        email: (p.email as string | null) ?? '',
+      })),
+  ]
 
   return (
     <div className="space-y-8">

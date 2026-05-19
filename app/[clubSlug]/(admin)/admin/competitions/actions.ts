@@ -188,19 +188,34 @@ export async function addJudge(competitionId: string, formData: FormData) {
 export async function addJudgeFromMember(competitionId: string, memberId: string) {
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('first_name, last_name')
-    .eq('id', memberId)
-    .single()
+  let judgeEmail = ''
+  let judgeName  = ''
 
-  if (!profile) throw new Error('Member not found')
-
-  const { data: authUser } = await supabase.auth.admin.getUserById(memberId)
-  const judgeEmail = authUser?.user?.email ?? ''
-  const judgeName  = [profile.first_name, profile.last_name].filter(Boolean).join(' ')
-
-  if (!judgeEmail) throw new Error('Member has no email address on file')
+  if (memberId.startsWith('dir_')) {
+    // Judge directory entry
+    const dirId = memberId.slice(4)
+    const { data: dirEntry } = await supabase
+      .from('judge_directory')
+      .select('name, email')
+      .eq('id', dirId)
+      .single()
+    if (!dirEntry) throw new Error('Judge not found in directory')
+    judgeName  = dirEntry.name
+    judgeEmail = dirEntry.email ?? ''
+    if (!judgeEmail) throw new Error('Judge has no email address on file')
+  } else {
+    // Club member from profiles
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('id', memberId)
+      .single()
+    if (!profile) throw new Error('Member not found')
+    const { data: authUser } = await supabase.auth.admin.getUserById(memberId)
+    judgeEmail = authUser?.user?.email ?? ''
+    judgeName  = [profile.first_name, profile.last_name].filter(Boolean).join(' ')
+    if (!judgeEmail) throw new Error('Member has no email address on file')
+  }
 
   const { data: jt, error } = await supabase
     .from('judge_tokens')
