@@ -179,22 +179,60 @@ type SpotlightStats = {
   bestScore:       number | null
 }
 
-function DonutRing({ value, size = 88 }: { value: number; size?: number }) {
-  const r = (size - 10) / 2
+const DONUT_COLORS = [
+  '#0097A7', // teal
+  '#6C47D4', // purple
+  '#E65100', // orange
+  '#00796B', // green
+  '#AD1457', // pink
+  '#7B6B38', // gold
+]
+
+function DonutChart({
+  segments,
+  total,
+  size = 88,
+}: {
+  segments: { name: string; count: number }[]
+  total:    number
+  size?:    number
+}) {
+  const strokeWidth = 10
+  const r    = (size - strokeWidth) / 2
+  const cx   = size / 2
+  const cy   = size / 2
   const circ = 2 * Math.PI * r
+
+  // Build arc segments
+  let offset = 0
+  const arcs = segments.map((seg, i) => {
+    const fraction = total > 0 ? seg.count / total : 0
+    const dash     = fraction * circ
+    const arc = { dash, offset, color: DONUT_COLORS[i % DONUT_COLORS.length] }
+    offset += dash
+    return arc
+  })
+
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: 'block' }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--surface-1)" strokeWidth={9} />
-      <circle
-        cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke="var(--border-default)" strokeWidth={9}
-        strokeDasharray={circ} strokeDashoffset={0}
-        strokeLinecap="round"
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-      />
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: 'block', flexShrink: 0 }}>
+      {/* Track */}
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--surface-1)" strokeWidth={strokeWidth} />
+      {/* Segments */}
+      {arcs.map((arc, i) => (
+        <circle
+          key={i}
+          cx={cx} cy={cy} r={r}
+          fill="none"
+          stroke={arc.color}
+          strokeWidth={strokeWidth}
+          strokeDasharray={`${arc.dash} ${circ - arc.dash}`}
+          strokeDashoffset={-(arc.offset - circ / 4)}
+        />
+      ))}
+      {/* Centre label */}
       <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle"
-        style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 20, fontWeight: 700, fill: 'var(--text-primary)' }}>
-        {value}
+        style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 20, fontWeight: 600, fill: 'var(--text-primary)' }}>
+        {total}
       </text>
     </svg>
   )
@@ -258,7 +296,7 @@ function MemberSpotlightBlock({
             <h3 style={{
               fontFamily:    'var(--font-lora, Georgia, serif)',
               fontSize:      28,
-              fontWeight:    700,
+              fontWeight:    400,
               letterSpacing: '-0.02em',
               color:         'var(--text-primary)',
               margin:        0,
@@ -344,11 +382,18 @@ function MemberSpotlightBlock({
                 </p>
                 {hasStats ? (
                   <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <DonutRing value={stats.totalSubs} />
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      {stats.categoryCounts.slice(0, 5).map(c => (
+                    <DonutChart
+                      segments={stats.categoryCounts.slice(0, DONUT_COLORS.length)}
+                      total={stats.totalSubs}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                      {stats.categoryCounts.slice(0, DONUT_COLORS.length).map((c, i) => (
                         <div key={c.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--text-disabled)', flexShrink: 0, display: 'inline-block' }} />
+                          <span style={{
+                            width: 8, height: 8, borderRadius: '50%',
+                            background: DONUT_COLORS[i % DONUT_COLORS.length],
+                            flexShrink: 0, display: 'inline-block',
+                          }} />
                           <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1 }}>{c.name}</span>
                         </div>
                       ))}
