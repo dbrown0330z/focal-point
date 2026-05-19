@@ -58,7 +58,7 @@ function AddJudgeForm({
   members:       Member[]
   onCancel?:     () => void
 }) {
-  const [mode,          setMode]          = useState<'member' | 'manual'>('member')
+  const [mode,          setMode]          = useState<'member' | 'manual'>(members.length > 0 ? 'member' : 'manual')
   const [selectedId,    setSelectedId]    = useState('')
   const [manualName,    setManualName]    = useState('')
   const [manualEmail,   setManualEmail]   = useState('')
@@ -96,14 +96,14 @@ function AddJudgeForm({
           onClick={() => setMode('member')}
           className={`px-3 py-1.5 transition-colors ${mode === 'member' ? 'bg-action-primary text-white' : 'bg-surface-1 text-content-secondary hover:bg-surface-0'}`}
         >
-          Club member
+          Select from list
         </button>
         <button
           type="button"
           onClick={() => setMode('manual')}
           className={`px-3 py-1.5 transition-colors ${mode === 'manual' ? 'bg-action-primary text-white' : 'bg-surface-1 text-content-secondary hover:bg-surface-0'}`}
         >
-          External judge
+          Enter manually
         </button>
       </div>
 
@@ -114,7 +114,7 @@ function AddJudgeForm({
             onChange={e => setSelectedId(e.target.value)}
             displayEmpty
           >
-            <MenuItem value=""><em>Select a member…</em></MenuItem>
+            <MenuItem value=""><em>Select a judge or member…</em></MenuItem>
             {members.map(m => (
               <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>
             ))}
