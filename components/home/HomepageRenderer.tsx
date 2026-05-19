@@ -160,73 +160,253 @@ function Strip8Block({ images }: { images: GalleryImage[] }) {
 // ─── Member spotlight block ───────────────────────────────────────────────────
 
 type SpotlightMember = {
-  id: string
-  display_name: string
-  avatar_url: string | null
-  bio: string | null
-  membership_class: string | null
-  member_number: number
+  id:                 string
+  display_name:       string
+  avatar_url:         string | null
+  bio:                string | null
+  experience_level:   string | null
+  membership_class:   string | null
+  member_number:      number
+  camera_brands:      string[]
+  shooting_interests: string[]
+}
+
+type SpotlightStats = {
+  bestImageUrl:    string | null
+  totalSubs:       number
+  categoryCounts:  { name: string; count: number }[]
+  avgScore:        number | null
+  bestScore:       number | null
+}
+
+function DonutRing({ value, size = 88 }: { value: number; size?: number }) {
+  const r = (size - 10) / 2
+  const circ = 2 * Math.PI * r
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: 'block' }}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--surface-1)" strokeWidth={9} />
+      <circle
+        cx={size / 2} cy={size / 2} r={r} fill="none"
+        stroke="var(--border-default)" strokeWidth={9}
+        strokeDasharray={circ} strokeDashoffset={0}
+        strokeLinecap="round"
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+      />
+      <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle"
+        style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 20, fontWeight: 700, fill: 'var(--text-primary)' }}>
+        {value}
+      </text>
+    </svg>
+  )
 }
 
 function MemberSpotlightBlock({
   member,
   settings,
-  memberPhotoUrl,
+  stats,
 }: {
-  member:         SpotlightMember
-  settings:       SpotlightSettings
-  memberPhotoUrl: string | null
+  member:   SpotlightMember
+  settings: SpotlightSettings
+  stats:    SpotlightStats
 }) {
-  // Show a library photo if available, fall back to avatar, then initials
-  const photoUrl = memberPhotoUrl ?? member.avatar_url
+  const photoUrl  = stats.bestImageUrl ?? member.avatar_url
+  const hasAbout  = member.camera_brands.length > 0 || member.shooting_interests.length > 0
+  const hasStats  = stats.totalSubs > 0
+  const hasScores = stats.avgScore !== null || stats.bestScore !== null
 
   return (
     <Section>
       <SectionHeading>Member spotlight</SectionHeading>
-      <div className="flex gap-5 items-start">
-        {/* Square photo */}
-        <div
-          className="flex-shrink-0 rounded-xl overflow-hidden flex items-center justify-center"
-          style={{
-            width:      140,
-            height:     140,
-            background: 'var(--surface-1)',
-            fontSize:   32,
-            fontWeight: 700,
-            color:      'var(--text-tertiary)',
-            fontFamily: 'var(--font-lora, Georgia, serif)',
-          }}
-        >
+
+      {/* Main row: photo + info */}
+      <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
+
+        {/* Photo */}
+        <div style={{
+          flexShrink:  0,
+          width:       200,
+          height:      200,
+          borderRadius: 12,
+          overflow:    'hidden',
+          background:  'var(--surface-1)',
+          display:     'flex',
+          alignItems:  'center',
+          justifyContent: 'center',
+          fontSize:    40,
+          fontWeight:  700,
+          color:       'var(--text-tertiary)',
+          fontFamily:  'var(--font-lora, Georgia, serif)',
+        }}>
           {photoUrl ? (
             <Image
               src={photoUrl}
               alt={member.display_name}
-              width={140}
-              height={140}
-              className="w-full h-full object-cover"
+              width={200}
+              height={200}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           ) : (
             <span>{initials(member.display_name)}</span>
           )}
         </div>
 
-        {/* Info */}
-        <div className="flex-1 min-w-0 pt-1">
-          <p style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>
-            {member.display_name}
-          </p>
-          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
-            {member.membership_class
-              ? `${member.membership_class} · Member #${member.member_number}`
-              : `Member #${member.member_number}`}
-          </p>
+        {/* Right side */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+
+          {/* Name + level badge */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+            <h3 style={{
+              fontFamily:    'var(--font-lora, Georgia, serif)',
+              fontSize:      28,
+              fontWeight:    700,
+              letterSpacing: '-0.02em',
+              color:         'var(--text-primary)',
+              margin:        0,
+              lineHeight:    1.15,
+            }}>
+              {member.display_name}
+            </h3>
+            {member.experience_level && (
+              <span style={{
+                fontSize:     12,
+                fontWeight:   500,
+                color:        'var(--text-secondary)',
+                background:   'var(--surface-1)',
+                border:       '1px solid var(--border-default)',
+                borderRadius: 9999,
+                padding:      '3px 10px',
+                whiteSpace:   'nowrap',
+              }}>
+                {member.experience_level}
+              </span>
+            )}
+          </div>
+
+          {/* Bio */}
           {member.bio && (
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 10, lineHeight: 1.6, display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 4, overflow: 'hidden' }}>
+            <p style={{
+              fontSize:   14,
+              lineHeight: 1.65,
+              color:      'var(--text-secondary)',
+              margin:     '0 0 18px',
+              display:    '-webkit-box',
+              WebkitBoxOrient:  'vertical',
+              WebkitLineClamp:  3,
+              overflow:         'hidden',
+            }}>
               {member.bio}
             </p>
           )}
+
+          {/* Stats row */}
+          {(hasAbout || hasStats || hasScores) && (
+            <div style={{
+              display:             'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap:                 '0 1px',
+              background:          'var(--border-subtle)',
+              border:              '1px solid var(--border-subtle)',
+              borderRadius:        10,
+              overflow:            'hidden',
+              marginTop:           member.bio ? 0 : 4,
+            }}>
+
+              {/* About */}
+              <div style={{ background: 'var(--surface-0)', padding: '14px 16px' }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 10px', fontFamily: 'var(--font-lora, Georgia, serif)' }}>
+                  About
+                </p>
+                {member.camera_brands.length > 0 && (
+                  <div style={{ marginBottom: 6 }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Gear</span>
+                    <p style={{ fontSize: 13, color: 'var(--text-primary)', margin: '2px 0 0', lineHeight: 1.5 }}>
+                      {member.camera_brands.join(', ')}
+                    </p>
+                  </div>
+                )}
+                {member.shooting_interests.length > 0 && (
+                  <div>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Interests</span>
+                    <p style={{ fontSize: 13, color: 'var(--text-primary)', margin: '2px 0 0', lineHeight: 1.5 }}>
+                      {member.shooting_interests.join(', ')}
+                    </p>
+                  </div>
+                )}
+                {!hasAbout && (
+                  <p style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic', margin: 0 }}>—</p>
+                )}
+              </div>
+
+              {/* Submissions */}
+              <div style={{ background: 'var(--surface-0)', padding: '14px 16px' }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 10px', fontFamily: 'var(--font-lora, Georgia, serif)' }}>
+                  Submissions
+                </p>
+                {hasStats ? (
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <DonutRing value={stats.totalSubs} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {stats.categoryCounts.slice(0, 5).map(c => (
+                        <div key={c.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--text-disabled)', flexShrink: 0, display: 'inline-block' }} />
+                          <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1 }}>{c.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic', margin: 0 }}>No entries yet</p>
+                )}
+              </div>
+
+              {/* Results */}
+              <div style={{ background: 'var(--surface-0)', padding: '14px 16px' }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 10px', fontFamily: 'var(--font-lora, Georgia, serif)' }}>
+                  Results
+                </p>
+                {hasScores ? (
+                  <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                    {member.membership_class && (
+                      <div style={{
+                        flexShrink:   0,
+                        width:        52,
+                        border:       '1px solid var(--border-default)',
+                        borderRadius: 8,
+                        textAlign:    'center',
+                        padding:      '6px 4px 8px',
+                        background:   'var(--surface-2)',
+                      }}>
+                        <p style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: '0 0 3px' }}>Class</p>
+                        <p style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0, lineHeight: 1 }}>
+                          {member.membership_class}
+                        </p>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {stats.avgScore !== null && (
+                        <div>
+                          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Avg Score </span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{stats.avgScore.toFixed(1)}</span>
+                        </div>
+                      )}
+                      {stats.bestScore !== null && (
+                        <div>
+                          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Best Score </span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{stats.bestScore}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic', margin: 0 }}>No results yet</p>
+                )}
+              </div>
+
+            </div>
+          )}
+
           {settings.mode === 'automatic' && (
-            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8, fontStyle: 'italic' }}>
+            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, fontStyle: 'italic' }}>
               Auto-selected · changes each visit
             </p>
           )}
@@ -358,23 +538,25 @@ export default async function HomepageRenderer({
   // ── Fetch spotlight member ────────────────────────────────────────────────
   const spotlightBlock = enabled.find(b => b.type === 'member-spotlight')
   let spotlightMember: SpotlightMember | null = null
-  let spotlightPhotoUrl: string | null = null
+  let spotlightStats: SpotlightStats = { bestImageUrl: null, totalSubs: 0, categoryCounts: [], avgScore: null, bestScore: null }
+
   if (spotlightBlock?.spotlightSettings) {
     const { mode, memberName } = spotlightBlock.spotlightSettings
+    const profileSelect = 'id, display_name, avatar_url, bio, experience_level, membership_class, member_number, camera_brands, shooting_interests'
+
     if (mode === 'manual' && memberName?.trim()) {
       const { data } = await supabase
         .from('profiles')
-        .select('id, display_name, avatar_url, bio, membership_class, member_number')
+        .select(profileSelect)
         .ilike('display_name', `%${memberName.trim()}%`)
         .eq('membership_status', 'active')
         .limit(1)
         .maybeSingle()
       spotlightMember = data as SpotlightMember | null
     } else {
-      // Automatic: pull up to 20 active members and pick one randomly server-side
       const { data } = await supabase
         .from('profiles')
-        .select('id, display_name, avatar_url, bio, membership_class, member_number')
+        .select(profileSelect)
         .eq('membership_status', 'active')
         .limit(20)
       const pool = (data ?? []) as SpotlightMember[]
@@ -383,19 +565,77 @@ export default async function HomepageRenderer({
       }
     }
 
-    // Fetch one library image for the spotlight member
     if (spotlightMember) {
-      const { data: imgData } = await supabase
-        .from('images')
-        .select('storage_path')
-        .eq('owner_id', spotlightMember.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-      if (imgData?.storage_path) {
-        spotlightPhotoUrl = supabaseRaw.storage
+      // Submissions for this member with category names
+      const { data: memberSubs } = await supabase
+        .from('submissions')
+        .select('id, category_id, image_id, competition_categories(name)')
+        .eq('member_id', spotlightMember.id)
+        .eq('status', 'submitted')
+
+      const subIds = (memberSubs ?? []).map(s => s.id)
+
+      // Category counts
+      const catMap: Record<string, { name: string; count: number }> = {}
+      for (const sub of memberSubs ?? []) {
+        const catName = (sub.competition_categories as { name: string } | null)?.name ?? 'Uncategorised'
+        if (!catMap[sub.category_id]) catMap[sub.category_id] = { name: catName, count: 0 }
+        catMap[sub.category_id].count++
+      }
+
+      // Scores and best image (parallel)
+      let bestImageUrl: string | null = null
+      let avgScore: number | null = null
+      let bestScore: number | null = null
+
+      if (subIds.length > 0) {
+        const [{ data: allScores }, { data: topScoreRow }] = await Promise.all([
+          supabase.from('scores').select('score').in('submission_id', subIds),
+          supabase.from('scores').select('score, submission_id').in('submission_id', subIds).order('score', { ascending: false }).limit(1).maybeSingle(),
+        ])
+
+        if (allScores?.length) {
+          const vals = allScores.map(s => s.score)
+          avgScore  = vals.reduce((a, b) => a + b, 0) / vals.length
+          bestScore = Math.max(...vals)
+        }
+
+        // Get the image for the best-scored submission
+        if (topScoreRow) {
+          const bestSub = (memberSubs ?? []).find(s => s.id === topScoreRow.submission_id)
+          if (bestSub?.image_id) {
+            const { data: imgRow } = await supabase
+              .from('images')
+              .select('storage_path')
+              .eq('id', bestSub.image_id)
+              .single()
+            if (imgRow?.storage_path) {
+              bestImageUrl = supabaseRaw.storage.from('images').getPublicUrl(imgRow.storage_path).data.publicUrl
+            }
+          }
+        }
+      }
+
+      // Fall back to most recent library image if no competition image found
+      if (!bestImageUrl) {
+        const { data: imgData } = await supabase
           .from('images')
-          .getPublicUrl(imgData.storage_path).data.publicUrl
+          .select('storage_path')
+          .eq('owner_id', spotlightMember.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (imgData?.storage_path) {
+          bestImageUrl = supabaseRaw.storage.from('images').getPublicUrl(imgData.storage_path).data.publicUrl
+        }
+      }
+
+      spotlightStats = {
+        bestImageUrl,
+        totalSubs:      (memberSubs ?? []).length,
+        categoryCounts: Object.values(catMap),
+        avgScore,
+        bestScore,
       }
     }
   }
@@ -441,7 +681,7 @@ export default async function HomepageRenderer({
                 key={block.id}
                 member={spotlightMember}
                 settings={block.spotlightSettings}
-                memberPhotoUrl={spotlightPhotoUrl}
+                stats={spotlightStats}
               />
             ) : null
 
