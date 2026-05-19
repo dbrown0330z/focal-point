@@ -4,11 +4,14 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getClubContext } from '@/lib/club-context'
 
 export async function submitImage(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
+  const ctx = await getClubContext()
+  const slug = ctx?.clubSlug ?? ''
   if (!user) redirect('/login')
 
   const competitionId = formData.get('competition_id') as string
@@ -23,7 +26,7 @@ export async function submitImage(formData: FormData) {
     .single()
 
   if (competition?.status !== 'open') {
-    redirect(`/competitions/${competitionId}?error=Competition+is+not+open+for+submissions`)
+    redirect(`/${slug}/competitions/${competitionId}?error=Competition+is+not+open+for+submissions`)
   }
 
   // Check member hasn't hit their limit
@@ -35,7 +38,7 @@ export async function submitImage(formData: FormData) {
     .eq('status', 'submitted')
 
   if ((count ?? 0) >= (competition?.submission_limit ?? 0)) {
-    redirect(`/competitions/${competitionId}?error=Submission+limit+reached`)
+    redirect(`/${slug}/competitions/${competitionId}?error=Submission+limit+reached`)
   }
 
   const { error } = await admin.from('submissions').insert({
@@ -50,11 +53,11 @@ export async function submitImage(formData: FormData) {
     const msg = error.code === '23505'
       ? 'That photo is already submitted to another competition'
       : error.message
-    redirect(`/competitions/${competitionId}?error=` + encodeURIComponent(msg))
+    redirect(`/${slug}/competitions/${competitionId}?error=` + encodeURIComponent(msg))
   }
 
-  revalidatePath(`/competitions/${competitionId}`)
-  redirect(`/competitions/${competitionId}`)
+  revalidatePath(`/${slug}/competitions/${competitionId}`)
+  redirect(`/${slug}/competitions/${competitionId}`)
 }
 
 export async function withdrawSubmission(submissionId: string, competitionId: string) {
@@ -62,11 +65,14 @@ export async function withdrawSubmission(submissionId: string, competitionId: st
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const ctx = await getClubContext()
+  const slug = ctx?.clubSlug ?? ''
+
   await supabase
     .from('submissions')
     .update({ status: 'withdrawn' })
     .eq('id', submissionId)
     .eq('member_id', user.id) // ensure ownership
 
-  revalidatePath(`/competitions/${competitionId}`)
+  revalidatePath(`/${slug}/competitions/${competitionId}`)
 }
