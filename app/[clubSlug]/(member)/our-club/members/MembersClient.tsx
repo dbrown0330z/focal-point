@@ -65,7 +65,7 @@ export default function MembersClient({
       if (q && !m.display_name.toLowerCase().includes(q) &&
                !(m.location ?? '').toLowerCase().includes(q) &&
                !(m.bio ?? '').toLowerCase().includes(q)) return false
-      if (skillFilter && m.skill_level !== skillFilter) return false
+      if (skillFilter && m.experience_level !== skillFilter) return false
       if (interestFilter && !(m.shooting_interests ?? []).includes(interestFilter)) return false
       return true
     })
@@ -174,9 +174,9 @@ export default function MembersClient({
                   </div>
 
                   {/* Skill badge */}
-                  {member.skill_level && (
+                  {member.experience_level && (
                     <div>
-                      <SkillBadge level={member.skill_level} />
+                      <SkillBadge level={member.experience_level} />
                     </div>
                   )}
 

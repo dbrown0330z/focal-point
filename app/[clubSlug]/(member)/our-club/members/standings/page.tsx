@@ -106,7 +106,7 @@ export default async function StandingsPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: me } = await (supabase as any)
     .from('profiles')
-    .select('id, display_name, avatar_url, skill_level, shooting_interests')
+    .select('id, display_name, avatar_url, experience_level, shooting_interests')
     .eq('id', user.id)
     .single()
 
@@ -114,7 +114,7 @@ export default async function StandingsPage({
     id:               me.id,
     displayName:      me.display_name,
     avatarUrl:        me.avatar_url ?? null,
-    skillLevel:       me.skill_level ?? null,
+    skillLevel:       me.experience_level ?? null,
     shootingInterests: me.shooting_interests ?? null,
   } : null
 
@@ -160,10 +160,10 @@ export default async function StandingsPage({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: profilesRaw } = await (supabase as any)
       .from('profiles')
-      .select('id, display_name, avatar_url, skill_level, shooting_interests')
+      .select('id, display_name, avatar_url, experience_level, shooting_interests')
       .in('id', memberIds)
 
-    type ProfileRow = { id: string; display_name: string; avatar_url: string | null; skill_level: string | null; shooting_interests: string[] | null }
+    type ProfileRow = { id: string; display_name: string; avatar_url: string | null; experience_level: string | null; shooting_interests: string[] | null }
     const profileMap = new Map<string, ProfileRow>(
       (profilesRaw ?? []).map((p: ProfileRow) => [p.id, p])
     )
@@ -204,7 +204,7 @@ export default async function StandingsPage({
         memberId:            entry.memberId,
         displayName:         profile?.display_name ?? 'Unknown',
         avatarUrl:           profile?.avatar_url ?? null,
-        skillLevel:          profile?.skill_level ?? null,
+        skillLevel:          profile?.experience_level ?? null,
         score:               entry.score,
         competitionsEntered: entry.competitionsEntered,
         isCurrentUser:       entry.memberId === user.id,
