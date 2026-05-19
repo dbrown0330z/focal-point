@@ -856,25 +856,37 @@ export type Database = {
       }
       judge_directory: {
         Row: {
-          club_id: string | null
+          club_id:    string | null
           created_at: string
-          email: string
-          id: string
-          name: string
+          email:      string
+          first_name: string | null
+          id:         string
+          last_name:  string | null
+          name:       string
+          phone:      string | null
+          website:    string | null
         }
         Insert: {
-          club_id?: string | null
+          club_id?:    string | null
           created_at?: string
-          email: string
-          id?: string
-          name: string
+          email:       string
+          first_name?: string | null
+          id?:         string
+          last_name?:  string | null
+          name:        string
+          phone?:      string | null
+          website?:    string | null
         }
         Update: {
-          club_id?: string | null
+          club_id?:    string | null
           created_at?: string
-          email?: string
-          id?: string
-          name?: string
+          email?:      string
+          first_name?: string | null
+          id?:         string
+          last_name?:  string | null
+          name?:       string
+          phone?:      string | null
+          website?:    string | null
         }
         Relationships: [
           {
