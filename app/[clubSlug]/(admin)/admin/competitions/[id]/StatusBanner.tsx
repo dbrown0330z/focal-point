@@ -72,13 +72,22 @@ export function StatusBanner({
     }
 
     return (
-      <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4">
-        <p className="text-sm font-medium text-content-primary">
-          Submissions open · {submissionCount} {submissionCount === 1 ? 'entry' : 'entries'} received
-        </p>
-        {closesAt && (
-          <p className="text-sm text-content-secondary mt-0.5">Closes {fmtDate(closesAt)}</p>
-        )}
+      <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-content-primary">
+            Submissions open · {submissionCount} {submissionCount === 1 ? 'entry' : 'entries'} received
+          </p>
+          {closesAt && (
+            <p className="text-sm text-content-secondary mt-0.5">Closes {fmtDate(closesAt)}</p>
+          )}
+        </div>
+        <button
+          disabled={isPending}
+          onClick={() => startTransition(() => transitionStatus(id, 'judging'))}
+          className={`shrink-0 ${btnPrimary}`}
+        >
+          {isPending ? 'Updating…' : 'Close submissions & begin judging →'}
+        </button>
       </div>
     )
   }

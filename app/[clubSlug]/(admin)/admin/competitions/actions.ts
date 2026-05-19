@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubSlug } from '@/lib/club-context'
 import { sendJudgeInvitation, sendMemberCancellationNotification, sendJudgeCancellationNotification } from '@/lib/email/send'
 import type { Database } from '@/types/database'
 import type { CompetitionConfig, CompetitionSchedule, CompetitionType } from '@/types/competition'
@@ -75,18 +76,20 @@ export async function updateCompetition(id: string, formData: FormData) {
 
 export async function transitionStatus(id: string, status: CompetitionStatus) {
   const supabase = createServiceClient()
+  const slug = await requireClubSlug()
   await supabase.from('competitions').update({ status }).eq('id', id)
-  revalidatePath(`/admin/competitions/${id}`)
-  revalidatePath('/admin/competitions')
-  revalidatePath('/competitions')
+  revalidatePath(`/${slug}/admin/competitions/${id}`)
+  revalidatePath(`/${slug}/admin/competitions`)
+  revalidatePath(`/${slug}/competitions`)
 }
 
 export async function publishCompetition(id: string) {
   const supabase = createServiceClient()
+  const slug = await requireClubSlug()
   await supabase.from('competitions').update({ status: 'open' }).eq('id', id)
-  revalidatePath(`/admin/competitions/${id}`)
-  revalidatePath('/admin/competitions')
-  revalidatePath('/competitions')
+  revalidatePath(`/${slug}/admin/competitions/${id}`)
+  revalidatePath(`/${slug}/admin/competitions`)
+  revalidatePath(`/${slug}/competitions`)
 }
 
 export async function updateCompetitionTitle(id: string, title: string) {
