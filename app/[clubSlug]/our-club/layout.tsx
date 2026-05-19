@@ -22,7 +22,7 @@ export default async function OurClubLayout({
 
   const [{ data: membership }, { data: profile }, { data: clubSettings }] = await Promise.all([
     user && clubId
-      ? supabase
+      ? admin
           .from('club_memberships')
           .select('role, membership_status')
           .eq('user_id', user.id)
