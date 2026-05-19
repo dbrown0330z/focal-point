@@ -938,7 +938,10 @@ function OpenCompetitionCard({
 
               <CategoryIndicator
                 categories={competition.categories}
-                byCat={clubStats.byCat}
+                byCat={competition.categories.map(cat => ({
+                  name: cat.name,
+                  count: submissions.filter(s => s.categoryId === cat.id).length,
+                }))}
                 categoryLimit={competition.categoryLimit}
               />
             </>
