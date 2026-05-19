@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { addJudge, addJudgeFromMember, removeJudge } from '../actions'
+import { addJudge, addJudgeFromMember, removeJudge, adminOpenJudgePortal } from '../actions'
 import FormControl from '@mui/material/FormControl'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
@@ -11,6 +11,7 @@ type JudgeToken = {
   judge_name:          string
   judge_email:         string
   token:               string
+  access_code:         string | null
   invitation_sent_at?: string | null
 }
 
@@ -178,9 +179,11 @@ export function JudgeSection({
   const judgingUrl = judge ? `${origin}/judge/${judge.token}` : ''
 
   const [copied,        setCopied]        = useState(false)
+  const [codeCopied,    setCodeCopied]    = useState(false)
   const [showConfirm,   setShowConfirm]   = useState(false)
   const [showAddForm,   setShowAddForm]   = useState(false)
   const [removePending, setRemovePending] = useState(false)
+  const [portalPending, startPortal]      = useTransition()
 
   const handleCopy = () => {
     navigator.clipboard.writeText(judgingUrl)
@@ -284,6 +287,7 @@ export function JudgeSection({
               {removePending ? 'Removing…' : 'Change judge'}
             </button>
           </div>
+          {/* Magic link */}
           <div className="mt-2 flex items-center gap-2 rounded-lg bg-surface-1 px-3 py-2">
             <span className="flex-1 truncate font-mono text-xs text-content-secondary">
               {judgingUrl}
@@ -296,6 +300,42 @@ export function JudgeSection({
               {copied ? 'Copied!' : 'Copy'}
             </button>
           </div>
+
+          {/* Access code */}
+          {judge.access_code && (
+            <div className="mt-1.5 flex items-center gap-2">
+              <span className="text-xs text-content-tertiary">Access code:</span>
+              <span className="font-mono text-sm font-semibold tracking-widest text-content-primary">
+                {judge.access_code}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(judge.access_code!)
+                  setCodeCopied(true)
+                  setTimeout(() => setCodeCopied(false), 2000)
+                }}
+                className="text-xs text-content-tertiary hover:text-content-primary transition-colors"
+              >
+                {codeCopied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+          )}
+
+          {/* Admin portal access */}
+          {isWindowOpen && (
+            <div className="mt-2.5">
+              <button
+                type="button"
+                disabled={portalPending}
+                onClick={() => startPortal(() => adminOpenJudgePortal(judge.token))}
+                className="text-xs font-medium text-action-primary hover:underline disabled:opacity-60 transition-colors"
+              >
+                {portalPending ? 'Opening…' : 'Open judging portal →'}
+              </button>
+            </div>
+          )}
+
           {!isWindowOpen && judgingOpensAt && (
             <p className="mt-1.5 text-xs text-content-tertiary">
               Judging link becomes active on {fmtDate(judgingOpensAt)}

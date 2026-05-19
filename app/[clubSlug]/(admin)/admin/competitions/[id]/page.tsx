@@ -36,7 +36,7 @@ export default async function CompetitionDetailPage({
 
   const { data: competition } = await admin
     .from('competitions')
-    .select('*, competition_categories(*), judge_tokens(id, judge_name, judge_email, token)')
+    .select('*, competition_categories(*), judge_tokens(id, judge_name, judge_email, token, access_code, invitation_sent_at)')
     .eq('id', id)
     .single()
 

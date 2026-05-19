@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { headers } from 'next/headers'
+import { headers, cookies } from 'next/headers'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireClubSlug } from '@/lib/club-context'
 import { sendJudgeInvitation, sendMemberCancellationNotification, sendJudgeCancellationNotification } from '@/lib/email/send'
@@ -81,6 +81,19 @@ export async function transitionStatus(id: string, status: CompetitionStatus) {
   revalidatePath(`/${slug}/admin/competitions/${id}`)
   revalidatePath(`/${slug}/admin/competitions`)
   revalidatePath(`/${slug}/competitions`)
+}
+
+// Lets an admin bypass the judge access-code screen and go straight to the judging portal.
+// Sets the same verification cookie the code-entry flow would set.
+export async function adminOpenJudgePortal(token: string) {
+  const cookieStore = await cookies()
+  cookieStore.set(`jv_${token}`, '1', {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: `/judge/${token}`,
+    maxAge: 60 * 60 * 24 * 30,
+  })
+  redirect(`/judge/${token}/landing`)
 }
 
 export async function publishCompetition(id: string) {
