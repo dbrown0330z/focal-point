@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import Link from 'next/link'
 import { IrisApertureLogo } from '@/components/marketing/IrisApertureLogo'
 import { SectionHeader } from '@/components/marketing/SectionHeader'
@@ -17,8 +18,9 @@ export default async function HomePage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (user) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: membership } = await (supabase as any)
+    // Use service client to bypass RLS — auth is already verified above
+    const admin = createServiceClient()
+    const { data: membership } = await admin
       .from('club_memberships')
       .select('club_id')
       .eq('user_id', user.id)
@@ -27,8 +29,7 @@ export default async function HomePage() {
       .maybeSingle()
 
     if (membership?.club_id) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: club } = await (supabase as any)
+      const { data: club } = await admin
         .from('clubs')
         .select('slug')
         .eq('id', membership.club_id)
