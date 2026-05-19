@@ -226,7 +226,7 @@ export default function CompetitionsListClient({
                     <TableCell sx={COL_CELL}>
                       <Typography
                         component={Link}
-                        href={`/admin/competitions/${comp.id}`}
+                        href={`/${clubSlug}/admin/competitions/${comp.id}`}
                         sx={{
                           fontSize: 14, fontWeight: 400,
                           color: 'primary.main',
@@ -253,7 +253,7 @@ export default function CompetitionsListClient({
                           </Typography>
                           <Typography
                             component={Link}
-                            href={`/admin/competitions/${comp.id}#judge`}
+                            href={`/${clubSlug}/admin/competitions/${comp.id}#judge`}
                             sx={{
                               fontSize: 12, color: 'primary.main', fontFamily: 'inherit',
                               textDecoration: 'none',
@@ -292,7 +292,7 @@ export default function CompetitionsListClient({
                       ) : (
                         <Typography
                           component={Link}
-                          href={`/admin/competitions/${comp.id}`}
+                          href={`/${clubSlug}/admin/competitions/${comp.id}`}
                           sx={{
                             fontSize: 14, fontWeight: 400,
                             color: 'primary.main',
