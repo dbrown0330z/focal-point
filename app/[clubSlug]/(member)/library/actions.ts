@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getClubContext } from '@/lib/club-context'
 import type { Json } from '@/types/database'
 
 export async function createImageRecord(data: {
@@ -15,6 +16,8 @@ export async function createImageRecord(data: {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
+  const ctx = await getClubContext()
+  const slug = ctx?.clubSlug ?? ''
   if (!user) redirect('/login')
 
   const { error } = await admin.from('images').insert({
@@ -25,16 +28,19 @@ export async function createImageRecord(data: {
     exif_data:    data.exif_data as Json,
   })
 
-  if (error) redirect('/library/upload?error=' + encodeURIComponent(error.message))
+  if (error) redirect(`/${slug}/library/upload?error=${encodeURIComponent(error.message)}`)
 
-  revalidatePath('/library')
-  redirect('/library')
+  revalidatePath(`/${slug}/library`)
+  redirect(`/${slug}/library`)
 }
 
 export async function deleteImage(imageId: string, storagePath: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const ctx = await getClubContext()
+  const slug = ctx?.clubSlug ?? ''
 
   // Delete DB record first — FK restrict will block if image has any submissions
   const { error } = await supabase
@@ -45,7 +51,7 @@ export async function deleteImage(imageId: string, storagePath: string) {
 
   if (error) {
     // FK violation means the image has been submitted to a competition
-    revalidatePath('/library')
+    revalidatePath(`/${slug}/library`)
     return { error: 'This image has been submitted to a competition and cannot be deleted.' }
   }
 
@@ -53,6 +59,6 @@ export async function deleteImage(imageId: string, storagePath: string) {
   const admin = createServiceClient()
   await admin.storage.from('images').remove([storagePath])
 
-  revalidatePath('/library')
+  revalidatePath(`/${slug}/library`)
   return { error: null }
 }
