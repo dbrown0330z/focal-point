@@ -21,6 +21,12 @@ const RESERVED_SEGMENTS = new Set([
   'onboarding',
   // Legal / public
   'terms',
+  // Club app route segments — these must never be treated as club slugs.
+  // If a bare redirect accidentally sends a user to /competitions, the
+  // middleware would previously match it as a club slug lookup, poison
+  // all nav links, and cascade 404s on every subsequent click.
+  'competitions', 'library', 'submit', 'profile', 'calendar',
+  'our-club', 'admin', 'p',
 ])
 
 // ─── Club slug resolution ─────────────────────────────────────────────────────
