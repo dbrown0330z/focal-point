@@ -306,14 +306,16 @@ function MemberSpotlightBlock({
             </h3>
             {member.experience_level && (
               <span style={{
-                fontSize:     12,
-                fontWeight:   500,
-                color:        'var(--text-secondary)',
-                background:   'var(--surface-1)',
-                border:       '1px solid var(--border-default)',
-                borderRadius: 9999,
-                padding:      '3px 10px',
-                whiteSpace:   'nowrap',
+                fontSize:      12,
+                fontWeight:    600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                padding:       '3px 10px',
+                borderRadius:  20,
+                background:    'color-mix(in srgb, var(--action-primary) 12%, transparent)',
+                border:        '1px solid color-mix(in srgb, var(--action-primary) 30%, transparent)',
+                color:         'var(--action-primary)',
+                whiteSpace:    'nowrap',
               }}>
                 {member.experience_level}
               </span>
