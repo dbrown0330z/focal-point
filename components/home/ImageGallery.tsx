@@ -4,7 +4,15 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { Lightbox, type LightboxImage } from '@/components/ui/Lightbox'
 
-export type GalleryImage = { id: string; publicUrl: string; title: string; maker?: string }
+export type GalleryImage = {
+  id:        string
+  publicUrl: string
+  title:     string
+  maker?:    string
+  date?:     string       // e.g. "March 2025"
+  category?: string
+  score?:    number
+}
 
 // ─── Grid 8 ───────────────────────────────────────────────────────────────────
 
@@ -25,8 +33,8 @@ export function Grid8Gallery({
 
   return (
     <>
-      {/* Header: title + "View full gallery →" */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
         <div>
           <h2 style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', lineHeight: 1.3, margin: 0 }}>
             Gallery Snapshot
@@ -38,49 +46,122 @@ export function Grid8Gallery({
           )}
         </div>
         {galleryHref && (
-          <a
-            href={galleryHref}
-            style={{ fontSize: 13, fontWeight: 500, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0, marginTop: 2 }}
-          >
+          <a href={galleryHref} style={{ fontSize: 13, fontWeight: 500, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0 }}>
             View full gallery →
           </a>
         )}
       </div>
 
-      {/* Image grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* 4×2 dark card grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
         {shown.map((img, i) => (
           <button
             key={img.id}
             onClick={() => setLightboxIndex(i)}
-            className="img-card relative aspect-square rounded-lg block"
-            style={{ background: 'var(--surface-1)', cursor: 'zoom-in', padding: 0, border: 'none' }}
             aria-label={`View ${img.title}`}
+            style={{
+              position:    'relative',
+              display:     'flex',
+              flexDirection: 'column',
+              background:  '#111',
+              borderRadius: 12,
+              overflow:    'hidden',
+              cursor:      'zoom-in',
+              padding:     0,
+              border:      '1px solid rgba(255,255,255,0.07)',
+              textAlign:   'left',
+            }}
           >
-            <Image
-              src={img.publicUrl}
-              alt={img.title}
-              width={400}
-              height={400}
-              className="img-card-img w-full h-full object-cover"
-            />
-            {/* Hover overlay: title + maker */}
-            <div
-              className="img-card-overlay absolute inset-0 flex flex-col justify-end p-2.5"
-              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 55%)' }}
-            >
-              <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.95)', lineHeight: 1.3, textAlign: 'left' }}>
-                {img.title}
-              </p>
-              {img.maker && (
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', marginTop: 2, textAlign: 'left', lineHeight: 1.2 }}>
-                  {img.maker}
+            {/* Image */}
+            <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3', overflow: 'hidden', flexShrink: 0 }}>
+              <Image
+                src={img.publicUrl}
+                alt={img.title}
+                fill
+                sizes="(max-width: 768px) 50vw, 25vw"
+                style={{ objectFit: 'cover', transition: 'transform 0.3s ease' }}
+                className="gallery-card-img"
+              />
+            </div>
+
+            {/* Info bar */}
+            <div style={{
+              padding:    '10px 12px',
+              display:    'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              gap:        8,
+              flex:       1,
+            }}>
+              {/* Left: title + byline */}
+              <div style={{ minWidth: 0 }}>
+                <p style={{
+                  fontSize:    13,
+                  fontWeight:  600,
+                  color:       'rgba(255,255,255,0.92)',
+                  lineHeight:  1.3,
+                  margin:      0,
+                  overflow:    'hidden',
+                  textOverflow:'ellipsis',
+                  whiteSpace:  'nowrap',
+                }}>
+                  {img.title}
                 </p>
+                {(img.maker || img.date) && (
+                  <p style={{
+                    fontSize:  11,
+                    color:     'rgba(255,255,255,0.42)',
+                    margin:    '3px 0 0',
+                    lineHeight: 1.2,
+                    overflow:   'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {[img.maker, img.date].filter(Boolean).join(' · ')}
+                  </p>
+                )}
+              </div>
+
+              {/* Right: category + score */}
+              {(img.category || img.score != null) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                  {img.category && (
+                    <span style={{
+                      fontSize:     11,
+                      fontWeight:   500,
+                      color:        'rgba(255,255,255,0.65)',
+                      border:       '1px solid rgba(255,255,255,0.18)',
+                      borderRadius: 9999,
+                      padding:      '2px 8px',
+                      whiteSpace:   'nowrap',
+                    }}>
+                      {img.category}
+                    </span>
+                  )}
+                  {img.score != null && (
+                    <span style={{
+                      fontSize:     12,
+                      fontWeight:   700,
+                      color:        '#fff',
+                      background:   'var(--action-primary)',
+                      borderRadius: 9999,
+                      padding:      '2px 8px',
+                      whiteSpace:   'nowrap',
+                    }}>
+                      {img.score % 1 === 0 ? img.score : img.score.toFixed(1)}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           </button>
         ))}
       </div>
+
+      <style>{`
+        .gallery-card-img { transition: transform 0.3s ease; }
+        button:hover .gallery-card-img { transform: scale(1.04); }
+      `}</style>
 
       {lightboxIndex !== null && (
         <Lightbox

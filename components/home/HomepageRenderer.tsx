@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import HeroSlideshow from './HeroSlideshow'
 import CustomContentNote from './CustomContentNote'
-import { Grid8Gallery, Strip8Gallery } from './ImageGallery'
+import { Grid8Gallery, Strip8Gallery, type GalleryImage } from './ImageGallery'
 import CompetitionsBlock from './CompetitionsBlock'
 import DualPanelBlock from './DualPanelBlock'
 import DualPanelEvents from './DualPanelEvents'
@@ -111,7 +111,6 @@ function UpcomingEventsBlock({ events }: { events: CalendarEvent[] }) {
 
 // ─── Image grid / strip blocks ────────────────────────────────────────────────
 
-type GalleryImage = { id: string; publicUrl: string; title: string; maker?: string }
 
 const GALLERY_LABELS: Record<string, string> = {
   'competition-winners': 'Competition winners',
@@ -569,17 +568,64 @@ export default async function HomepageRenderer({
   const needsImages = enabled.some(b => ['grid-6', 'strip-8'].includes(b.type))
   let galleryImages: GalleryImage[] = []
   if (needsImages) {
-    const { data } = await supabase
-      .from('images')
-      .select('id, storage_path, title, profiles!images_owner_id_fkey(display_name)')
-      .order('created_at', { ascending: false })
-      .limit(8)
-    galleryImages = (data ?? []).map((img: { id: string; storage_path: string; title: string; profiles: { display_name: string } | null }) => ({
-      id:        img.id,
-      title:     img.title,
-      maker:     img.profiles?.display_name ?? undefined,
-      publicUrl: supabaseRaw.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
-    }))
+    const grid6Block     = enabled.find(b => b.type === 'grid-6')
+    const gallerySource  = grid6Block?.grid6Settings?.gallerySource ?? 'recent-uploads'
+    const isWinners      = gallerySource === 'competition-winners'
+
+    if (isWinners) {
+      // For competition winners: pull top-scored submissions with image + category + score
+      const { data: scoredRows } = await supabase
+        .from('scores')
+        .select('score, submissions!inner(image_id, competition_categories(name), competitions(closes_at), images(id, title, storage_path, profiles!images_owner_id_fkey(display_name)))')
+        .order('score', { ascending: false })
+        .limit(16) // fetch extra to deduplicate by image
+
+      type ScoredRow = {
+        score: number
+        submissions: {
+          image_id: string
+          competition_categories: { name: string } | null
+          competitions: { closes_at: string | null } | null
+          images: { id: string; title: string; storage_path: string; profiles: { display_name: string } | null } | null
+        }
+      }
+
+      const seen = new Set<string>()
+      for (const row of (scoredRows ?? []) as ScoredRow[]) {
+        const img = row.submissions?.images
+        if (!img || seen.has(img.id)) continue
+        seen.add(img.id)
+        const closesAt   = row.submissions?.competitions?.closes_at
+        const monthYear  = closesAt
+          ? new Date(closesAt).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })
+          : undefined
+        galleryImages.push({
+          id:       img.id,
+          title:    img.title,
+          maker:    img.profiles?.display_name ?? undefined,
+          date:     monthYear,
+          category: row.submissions?.competition_categories?.name ?? undefined,
+          score:    row.score,
+          publicUrl: supabaseRaw.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
+        })
+        if (galleryImages.length >= 8) break
+      }
+    } else {
+      // Recent uploads or other sources: images with upload date
+      const { data } = await supabase
+        .from('images')
+        .select('id, storage_path, title, created_at, profiles!images_owner_id_fkey(display_name)')
+        .order('created_at', { ascending: false })
+        .limit(8)
+      type ImgRow = { id: string; storage_path: string; title: string; created_at: string; profiles: { display_name: string } | null }
+      galleryImages = (data ?? []).map((img: ImgRow) => ({
+        id:       img.id,
+        title:    img.title,
+        maker:    img.profiles?.display_name ?? undefined,
+        date:     new Date(img.created_at).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' }),
+        publicUrl: supabaseRaw.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
+      }))
+    }
   }
 
   // ── Fetch spotlight member ────────────────────────────────────────────────
