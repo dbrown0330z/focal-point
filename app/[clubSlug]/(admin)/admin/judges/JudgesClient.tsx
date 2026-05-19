@@ -8,7 +8,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Link,
   Paper,
   Stack,
   Table,
@@ -23,64 +22,41 @@ import {
 } from '@mui/material'
 import GavelIcon from '@mui/icons-material/Gavel'
 import { TrashBtn } from '@/components/ui/TrashBtn'
+import { saveJudge, deleteJudge } from './actions'
 
 type Judge = {
-  id: string
-  firstName: string
-  lastName: string
+  id:    string
+  name:  string
   email: string
-  phone: string | null
-  website: string | null
-  competitionsJudged: number
-  lastJudgeDate: string | null
-}
-
-function FieldLabel({ children, optional }: { children: React.ReactNode; optional?: boolean }) {
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, mb: 0.75 }}>
-      <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'text.primary' }}>{children}</Typography>
-      {optional && (
-        <Typography sx={{ fontSize: 11, color: 'text.disabled' }}>optional</Typography>
-      )}
-    </Box>
-  )
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-function JudgeModal({ open, onClose, onSave, editJudge }: {
-  open: boolean
-  onClose: () => void
-  onSave: (judge: Judge) => void
+function JudgeModal({ open, onClose, editJudge }: {
+  open:       boolean
+  onClose:    () => void
   editJudge?: Judge | null
 }) {
   const isEdit = !!editJudge
 
-  const [firstName, setFirstName] = useState(editJudge?.firstName ?? '')
-  const [lastName,  setLastName]  = useState(editJudge?.lastName  ?? '')
-  const [email,     setEmail]     = useState(editJudge?.email     ?? '')
-  const [phone,     setPhone]     = useState(editJudge?.phone     ?? '')
-  const [website,   setWebsite]   = useState(editJudge?.website   ?? '')
+  const [name,      setName]      = useState(editJudge?.name  ?? '')
+  const [email,     setEmail]     = useState(editJudge?.email ?? '')
   const [submitted, setSubmitted] = useState(false)
   const [pending,   start]        = useTransition()
 
-  // Sync fields when editJudge changes (modal re-opens for a different judge)
+  // Sync fields when editJudge changes
   const [lastEditId, setLastEditId] = useState(editJudge?.id)
   if (editJudge?.id !== lastEditId) {
     setLastEditId(editJudge?.id)
-    setFirstName(editJudge?.firstName ?? '')
-    setLastName(editJudge?.lastName   ?? '')
-    setEmail(editJudge?.email         ?? '')
-    setPhone(editJudge?.phone         ?? '')
-    setWebsite(editJudge?.website     ?? '')
+    setName(editJudge?.name   ?? '')
+    setEmail(editJudge?.email ?? '')
     setSubmitted(false)
   }
 
   function validate() {
     return {
-      firstName: !firstName.trim() ? 'First name is required' : null,
-      lastName:  !lastName.trim()  ? 'Last name is required'  : null,
-      email:     !email.trim()
+      name:  !name.trim()  ? 'Name is required' : null,
+      email: !email.trim()
         ? 'Email is required'
         : !EMAIL_RE.test(email)
           ? 'Enter a valid email address'
@@ -89,8 +65,7 @@ function JudgeModal({ open, onClose, onSave, editJudge }: {
   }
 
   function handleClose() {
-    setFirstName(''); setLastName(''); setEmail('')
-    setPhone(''); setWebsite(''); setSubmitted(false)
+    setName(''); setEmail(''); setSubmitted(false)
     onClose()
   }
 
@@ -98,56 +73,33 @@ function JudgeModal({ open, onClose, onSave, editJudge }: {
     e.preventDefault()
     setSubmitted(true)
     const errs = validate()
-    if (errs.firstName || errs.lastName || errs.email) return
+    if (errs.name || errs.email) return
     start(async () => {
-      // replace with server action once judges table exists
-      onSave({
-        id:                 editJudge?.id ?? crypto.randomUUID(),
-        firstName:          firstName.trim(),
-        lastName:           lastName.trim(),
-        email:              email.trim(),
-        phone:              phone.trim() || null,
-        website:            website.trim() || null,
-        competitionsJudged: editJudge?.competitionsJudged ?? 0,
-        lastJudgeDate:      editJudge?.lastJudgeDate      ?? null,
-      })
+      await saveJudge({ id: editJudge?.id, name: name.trim(), email: email.trim() })
       handleClose()
     })
   }
 
   const errs = validate()
-  const show  = submitted
+  const show = submitted
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
-      <DialogTitle>{isEdit ? 'Edit judge' : 'New judge'}</DialogTitle>
+      <DialogTitle>{isEdit ? 'Edit judge' : 'Add judge'}</DialogTitle>
       <form onSubmit={handleSubmit} noValidate>
         <DialogContent>
           <Stack spacing={2.5} sx={{ pt: 0.5 }}>
-
-            <Stack direction="row" spacing={1.5}>
-              <Box sx={{ flex: 1 }}>
-                <FieldLabel>First name</FieldLabel>
-                <TextField
-                  size="small" fullWidth autoFocus placeholder="Jane"
-                  value={firstName} onChange={e => setFirstName(e.target.value)}
-                  error={show && !!errs.firstName}
-                  helperText={show ? errs.firstName : undefined}
-                />
-              </Box>
-              <Box sx={{ flex: 1 }}>
-                <FieldLabel>Last name</FieldLabel>
-                <TextField
-                  size="small" fullWidth placeholder="Smith"
-                  value={lastName} onChange={e => setLastName(e.target.value)}
-                  error={show && !!errs.lastName}
-                  helperText={show ? errs.lastName : undefined}
-                />
-              </Box>
-            </Stack>
-
             <Box>
-              <FieldLabel>Email</FieldLabel>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 0.75 }}>Name</Typography>
+              <TextField
+                size="small" fullWidth autoFocus placeholder="Jane Smith"
+                value={name} onChange={e => setName(e.target.value)}
+                error={show && !!errs.name}
+                helperText={show ? errs.name : undefined}
+              />
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 0.75 }}>Email</Typography>
               <TextField
                 size="small" fullWidth type="email" placeholder="jane@example.com"
                 value={email} onChange={e => setEmail(e.target.value)}
@@ -155,28 +107,11 @@ function JudgeModal({ open, onClose, onSave, editJudge }: {
                 helperText={show && errs.email
                   ? errs.email
                   : <Typography component="span" sx={{ fontSize: 11, color: 'text.disabled', lineHeight: 1.5 }}>
-                      A magic-link will be sent here when the judge is assigned to a competition.
+                      A magic-link will be sent here when assigned to a competition.
                     </Typography>
                 }
               />
             </Box>
-
-            <Box>
-              <FieldLabel optional>Phone</FieldLabel>
-              <TextField
-                size="small" fullWidth type="tel" placeholder="+1 555 000 0000"
-                value={phone} onChange={e => setPhone(e.target.value)}
-              />
-            </Box>
-
-            <Box>
-              <FieldLabel optional>Personal website</FieldLabel>
-              <TextField
-                size="small" fullWidth type="url" placeholder="https://..."
-                value={website} onChange={e => setWebsite(e.target.value)}
-              />
-            </Box>
-
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
@@ -184,7 +119,7 @@ function JudgeModal({ open, onClose, onSave, editJudge }: {
             Cancel
           </Button>
           <Button type="submit" variant="contained" size="small" disabled={pending}>
-            {pending ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Judge'}
+            {pending ? 'Saving…' : isEdit ? 'Save changes' : 'Add judge'}
           </Button>
         </DialogActions>
       </form>
@@ -193,16 +128,16 @@ function JudgeModal({ open, onClose, onSave, editJudge }: {
 }
 
 function DeleteConfirmDialog({ open, onClose, onConfirm }: {
-  open: boolean
-  onClose: () => void
+  open:      boolean
+  onClose:   () => void
   onConfirm: () => void
 }) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Delete judge?</DialogTitle>
+      <DialogTitle>Remove judge?</DialogTitle>
       <DialogContent>
         <Typography sx={{ fontSize: 14, color: 'text.secondary', lineHeight: 1.7 }}>
-          Are you sure you want to delete this judge? Voting history will be lost and cannot be recovered.
+          This removes the judge from your directory. Any competitions they&apos;ve already been assigned to are not affected.
         </Typography>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2.5 }}>
@@ -210,7 +145,7 @@ function DeleteConfirmDialog({ open, onClose, onConfirm }: {
           Cancel
         </Button>
         <Button onClick={onConfirm} variant="contained" color="error" size="small">
-          Delete
+          Remove
         </Button>
       </DialogActions>
     </Dialog>
@@ -218,23 +153,11 @@ function DeleteConfirmDialog({ open, onClose, onConfirm }: {
 }
 
 export default function JudgesClient({ judges: initial }: { judges: Judge[] }) {
-  const [judges,      setJudges]      = useState<Judge[]>(initial)
-  const [modalOpen,   setModalOpen]   = useState(false)
-  const [editJudge,   setEditJudge]   = useState<Judge | null>(null)
-  const [deleteId,    setDeleteId]    = useState<string | null>(null)
-
-  function handleSave(judge: Judge) {
-    setJudges(prev => {
-      const exists = prev.some(j => j.id === judge.id)
-      return exists ? prev.map(j => j.id === judge.id ? judge : j) : [...prev, judge]
-    })
-  }
-
-  function handleDelete() {
-    if (!deleteId) return
-    setJudges(prev => prev.filter(j => j.id !== deleteId))
-    setDeleteId(null)
-  }
+  const [judges,    setJudges]    = useState<Judge[]>(initial)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editJudge, setEditJudge] = useState<Judge | null>(null)
+  const [deleteId,  setDeleteId]  = useState<string | null>(null)
+  const [pending,   start]        = useTransition()
 
   function openEdit(judge: Judge) {
     setEditJudge(judge)
@@ -246,6 +169,16 @@ export default function JudgesClient({ judges: initial }: { judges: Judge[] }) {
     setModalOpen(true)
   }
 
+  function handleDelete() {
+    if (!deleteId) return
+    const id = deleteId
+    setDeleteId(null)
+    start(async () => {
+      await deleteJudge(id)
+      setJudges(prev => prev.filter(j => j.id !== id))
+    })
+  }
+
   return (
     <>
       <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -255,19 +188,19 @@ export default function JudgesClient({ judges: initial }: { judges: Judge[] }) {
         </Box>
         {judges.length > 0 && (
           <Button variant="contained" size="small" onClick={openNew}>
-            Add Judge
+            Add judge
           </Button>
         )}
       </Box>
 
-{judges.length === 0 ? (
+      {judges.length === 0 ? (
         <Paper variant="outlined" sx={{ py: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
           <GavelIcon sx={{ fontSize: 40, color: 'text.disabled' }} />
           <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary' }}>
             No judges added yet
           </Typography>
           <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-            Add judges here to assign them to competitions.
+            Add judges here to quickly assign them to competitions.
           </Typography>
           <Button variant="contained" sx={{ mt: 0.5 }} onClick={openNew}>
             Add judge
@@ -278,8 +211,8 @@ export default function JudgesClient({ judges: initial }: { judges: Judge[] }) {
           <Table size="small">
             <TableHead>
               <TableRow sx={{ bgcolor: 'action.hover' }}>
-                {['First name', 'Last name', 'Email', 'Phone', 'Tot Judged', 'Last judged', '', '', ''].map((h, i) => (
-                  <TableCell key={i} sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', py: 1.25, whiteSpace: 'nowrap', fontFamily: 'inherit', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {['Name', 'Email', '', ''].map((h, i) => (
+                  <TableCell key={i} sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', py: 1.25, fontFamily: 'inherit', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     {h}
                   </TableCell>
                 ))}
@@ -288,35 +221,21 @@ export default function JudgesClient({ judges: initial }: { judges: Judge[] }) {
             <TableBody>
               {judges.map(judge => (
                 <TableRow key={judge.id} hover>
-                  <TableCell sx={{ fontSize: 14, py: 1.25, fontFamily: 'inherit' }}>{judge.firstName}</TableCell>
-                  <TableCell sx={{ fontSize: 14, py: 1.25, fontFamily: 'inherit' }}>{judge.lastName}</TableCell>
-                  <TableCell sx={{ fontSize: 14, py: 1.25, fontFamily: 'inherit' }}>{judge.email}</TableCell>
-                  <TableCell sx={{ fontSize: 14, py: 1.25, fontFamily: 'inherit', color: judge.phone ? 'text.primary' : 'text.disabled' }}>
-                    {judge.phone ?? '—'}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 14, py: 1.25, fontFamily: 'inherit', textAlign: 'center' }}>{judge.competitionsJudged}</TableCell>
-                  <TableCell sx={{ fontSize: 14, py: 1.25, fontFamily: 'inherit', color: judge.lastJudgeDate ? 'text.primary' : 'text.disabled', whiteSpace: 'nowrap' }}>
-                    {judge.lastJudgeDate
-                      ? new Date(judge.lastJudgeDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-                      : '—'}
-                  </TableCell>
-                  <TableCell sx={{ py: 1.25, fontFamily: 'inherit' }}>
-                    <Link
-                      component="button"
-                      underline="hover"
+                  <TableCell sx={{ fontSize: 14, py: 1.25, fontFamily: 'inherit', fontWeight: 500 }}>{judge.name}</TableCell>
+                  <TableCell sx={{ fontSize: 14, py: 1.25, fontFamily: 'inherit', color: 'text.secondary' }}>{judge.email}</TableCell>
+                  <TableCell sx={{ py: 1.25, fontFamily: 'inherit', width: 60 }}>
+                    <Button
+                      size="small"
+                      variant="text"
                       onClick={() => openEdit(judge)}
-                      sx={{ fontSize: 14, fontFamily: 'inherit', color: '#1A6FC4', background: 'none', border: 'none', cursor: 'pointer' }}
+                      disabled={pending}
+                      sx={{ fontSize: 13, fontFamily: 'inherit', minWidth: 0, p: '2px 8px' }}
                     >
                       Edit
-                    </Link>
+                    </Button>
                   </TableCell>
-                  <TableCell sx={{ py: 1.25, fontFamily: 'inherit' }}>
-                    <Link href={`/admin/judges/${judge.id}`} underline="hover" sx={{ fontSize: 14, fontFamily: 'inherit', color: '#1A6FC4', whiteSpace: 'nowrap' }}>
-                      Stats
-                    </Link>
-                  </TableCell>
-                  <TableCell sx={{ py: 1.25, fontFamily: 'inherit' }}>
-                    <Tooltip title="Delete judge">
+                  <TableCell sx={{ py: 1.25, fontFamily: 'inherit', width: 40 }}>
+                    <Tooltip title="Remove judge">
                       <span>
                         <TrashBtn onClick={() => setDeleteId(judge.id)} />
                       </span>
@@ -331,8 +250,7 @@ export default function JudgesClient({ judges: initial }: { judges: Judge[] }) {
 
       <JudgeModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSave={handleSave}
+        onClose={() => { setModalOpen(false); setEditJudge(null) }}
         editJudge={editJudge}
       />
 
