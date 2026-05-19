@@ -33,6 +33,7 @@ export default async function CompetitionPage({
     { data: competition },
     { data: compExtra },
     { data: mySubmissions },
+    { data: allSubmissions },
     { data: judgeTokens },
   ] = await Promise.all([
     supabase
@@ -52,6 +53,11 @@ export default async function CompetitionPage({
       .select('id, status, image_id, category_id, images(title, storage_path), competition_categories(name)')
       .eq('competition_id', id)
       .eq('member_id', user!.id)
+      .eq('status', 'submitted'),
+    admin
+      .from('submissions')
+      .select('id, member_id, images(title, storage_path), competition_categories(name), profiles(display_name)')
+      .eq('competition_id', id)
       .eq('status', 'submitted'),
     supabase
       .from('judge_tokens')
@@ -160,6 +166,41 @@ export default async function CompetitionPage({
           </div>
         )}
       </section>
+
+      {/* All entries */}
+      {(allSubmissions?.length ?? 0) > 0 && (
+        <section>
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-content-tertiary">
+            All entries ({allSubmissions!.length})
+          </h2>
+          <div className="space-y-2">
+            {allSubmissions!.map(sub => {
+              const image    = sub.images as unknown as { title: string; storage_path: string }
+              const category = sub.competition_categories as unknown as { name: string }
+              const profile  = sub.profiles as unknown as { display_name: string } | null
+              const publicUrl = admin.storage.from('images').getPublicUrl(image.storage_path).data.publicUrl
+              const isOwn = sub.member_id === user!.id
+
+              return (
+                <div key={sub.id} className="flex items-center gap-4 rounded-xl border border-border-default bg-surface-2 p-3">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-surface-1">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={publicUrl} alt={image.title} className="h-full w-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-sm font-medium text-content-primary">{image.title}</p>
+                    <p className="text-xs text-content-tertiary">{category.name}</p>
+                    <p className="text-xs text-content-secondary mt-0.5">
+                      {profile?.display_name ?? 'Unknown member'}
+                      {isOwn && <span className="ml-1.5 text-content-tertiary">(you)</span>}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Submit CTA or status messages */}
       <section>
