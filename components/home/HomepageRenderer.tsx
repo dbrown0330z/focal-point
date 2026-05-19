@@ -578,7 +578,7 @@ export default async function HomepageRenderer({
         .from('scores')
         .select('score, submissions!inner(image_id, competition_categories(name), competitions(closes_at), images(id, title, storage_path, profiles!images_owner_id_fkey(display_name)))')
         .order('score', { ascending: false })
-        .limit(16) // fetch extra to deduplicate by image
+        .limit(12) // fetch extra to deduplicate by image
 
       type ScoredRow = {
         score: number
@@ -608,7 +608,7 @@ export default async function HomepageRenderer({
           score:    row.score,
           publicUrl: supabaseRaw.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
         })
-        if (galleryImages.length >= 8) break
+        if (galleryImages.length >= 6) break
       }
     } else {
       // Recent uploads or other sources: images with upload date
@@ -763,7 +763,7 @@ export default async function HomepageRenderer({
             return <UpcomingEventsBlock key={block.id} events={events} />
 
           case 'grid-6':
-            return <Grid8Block key={block.id} images={galleryImages.slice(0, 8)} block={block} />
+            return <Grid8Block key={block.id} images={galleryImages.slice(0, 6)} block={block} />
 
           case 'strip-8':
             return <Strip8Block key={block.id} images={galleryImages} />

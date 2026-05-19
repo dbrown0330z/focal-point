@@ -28,7 +28,7 @@ export function Grid8Gallery({
   totalImages?:  number
 }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
-  const shown = images.slice(0, 8)
+  const shown = images.slice(0, 6)
   const total = totalImages ?? shown.length
 
   return (
@@ -52,8 +52,8 @@ export function Grid8Gallery({
         )}
       </div>
 
-      {/* 4×2 dark card grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+      {/* 3×2 dark card grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
         {shown.map((img, i) => (
           <button
             key={img.id}
@@ -141,9 +141,10 @@ export function Grid8Gallery({
                   {img.score != null && (
                     <span style={{
                       fontSize:     12,
-                      fontWeight:   700,
-                      color:        '#fff',
-                      background:   'var(--action-primary)',
+                      fontWeight:   600,
+                      color:        'color-mix(in srgb, var(--action-primary) 85%, white)',
+                      background:   'color-mix(in srgb, var(--action-primary) 22%, transparent)',
+                      border:       '1px solid color-mix(in srgb, var(--action-primary) 50%, transparent)',
                       borderRadius: 9999,
                       padding:      '2px 8px',
                       whiteSpace:   'nowrap',
