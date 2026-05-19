@@ -42,7 +42,7 @@ export default async function CompetitionsPage() {
         })
       })() : []
 
-      const { data: allSubs } = await supabase
+      const { data: allSubs } = await admin
         .from('submissions')
         .select('member_id, category_id, competition_categories(name)')
         .eq('competition_id', comp.id)
@@ -112,7 +112,7 @@ export default async function CompetitionsPage() {
 
   const previousCompetitions = await Promise.all(
     (pastRaw ?? []).map(async comp => {
-      const { count } = await supabase
+      const { count } = await admin
         .from('submissions')
         .select('id', { count: 'exact', head: true })
         .eq('competition_id', comp.id)
