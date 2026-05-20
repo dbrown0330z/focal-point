@@ -195,7 +195,14 @@ function SlimRow({ card }: { card: JudgingCard | ComingSoonCard }) {
       : 'Opening soon'
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' }}>
+    <div style={{
+      display:      'flex',
+      alignItems:   'center',
+      gap:          8,
+      padding:      '10px 13px',
+      borderRadius: 8,
+      border:       '1px solid var(--border-subtle)',
+    }}>
       <StatusDot kind={card.kind} />
       <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {card.name}
@@ -412,7 +419,7 @@ export default async function DualPanelBlock() {
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <h2 style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', lineHeight: 1.3 }}>
-              Competitions
+              Competition activity
             </h2>
             <Link href="/competitions" style={{ fontSize: 13, fontWeight: 500, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0 }}>
               View all →
