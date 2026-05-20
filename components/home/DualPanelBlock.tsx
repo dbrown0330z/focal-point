@@ -62,62 +62,62 @@ function OpenCompCard({ card }: { card: OpenCard }) {
 
   return (
     <div style={{
-      background:   'var(--surface-1)',
       borderRadius: 10,
-      padding:      '13px 15px',
       border:       '1px solid var(--border-default)',
-      borderLeft:   '3px solid var(--action-primary)',
+      borderLeft:   '3px solid var(--phase-open-border)',
+      overflow:     'hidden',
     }}>
-      {/* Name row */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginBottom: 5 }}>
-        <StatusDot kind="open" />
-        <span style={{
-          fontFamily: 'var(--font-lora, Georgia, serif)',
-          fontSize: 14, fontWeight: 700,
-          color: 'var(--text-primary)', lineHeight: 1.3,
-        }}>
-          {card.name}
-        </span>
+      {/* ── Header zone — green tint ── */}
+      <div style={{ background: 'var(--phase-open-bg)', padding: '13px 15px 11px' }}>
+
+        {/* Name row */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginBottom: 5 }}>
+          <StatusDot kind="open" />
+          <span style={{
+            fontFamily: 'var(--font-lora, Georgia, serif)',
+            fontSize: 14, fontWeight: 700,
+            color: 'var(--text-primary)', lineHeight: 1.3,
+          }}>
+            {card.name}
+          </span>
+        </div>
+
+        {/* Submissions open + deadline */}
+        <p style={{ fontSize: 12, color: 'var(--text-secondary)', paddingLeft: 20, lineHeight: 1.5 }}>
+          <span style={{ color: 'var(--status-success)', fontWeight: 600 }}>Submissions open</span>
+          {card.closesAt && days !== null && (
+            <>
+              {' · '}Closes {fmtDate(card.closesAt)}
+              {' · '}
+              <span style={{ color: days <= 3 ? 'var(--status-warning)' : 'inherit', fontWeight: days <= 3 ? 600 : 400 }}>
+                {days} day{days !== 1 ? 's' : ''} left
+              </span>
+            </>
+          )}
+        </p>
       </div>
 
-      {/* Deadline */}
-      {card.closesAt && days !== null && (
-        <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10, paddingLeft: 20 }}>
-          Closes {fmtDate(card.closesAt)}
-          {' · '}
-          <span style={{ color: days <= 3 ? 'var(--status-warning)' : 'inherit', fontWeight: days <= 3 ? 600 : 400 }}>
-            {days} day{days !== 1 ? 's' : ''} left
-          </span>
-        </p>
-      )}
-
-      {/* Entries + member status + CTA */}
+      {/* ── Footer zone — entry status + CTA ── */}
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: 10, paddingLeft: 20,
-        borderTop: '1px solid var(--border-subtle)', paddingTop: 9,
+        background:  'var(--surface-1)',
+        borderTop:   '1px solid var(--border-subtle)',
+        padding:     '9px 15px 11px',
+        paddingLeft: 35,
+        display:     'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
       }}>
         <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
           <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{card.totalEntries}</span>
           {' '}entr{card.totalEntries === 1 ? 'y' : 'ies'}
           {' · '}
-          {complete
-            ? <span style={{ color: 'var(--status-success-text)', fontWeight: 500 }}>
-                All {card.memberMax} submitted
-              </span>
-            : card.memberUsed === 0
-              ? "You haven't entered yet"
-              : <><span style={{ fontWeight: 500 }}>{card.memberUsed}</span>{` of ${card.memberMax} submitted`}</>
-          }
+          <span style={{ fontWeight: 500 }}>{card.memberUsed}</span>
+          {` of ${card.memberMax} submitted`}
         </p>
-        {!complete && (
-          <Link
-            href={`/submit?competition=${card.id}`}
-            style={{ fontSize: 12, fontWeight: 600, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
-          >
-            Enter →
-          </Link>
-        )}
+        <Link
+          href={`/submit?competition=${card.id}`}
+          style={{ fontSize: 12, fontWeight: 600, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
+        >
+          {complete ? 'Edit your submissions →' : 'Submit an image →'}
+        </Link>
       </div>
     </div>
   )
