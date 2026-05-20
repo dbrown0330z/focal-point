@@ -40,15 +40,14 @@ export async function AppFooter({ variant }: { variant: FooterVariant }) {
           line-height: 0;
           text-decoration: none;
         }
-        /* light-mode logo shown by default; dark-mode logo hidden */
+        /* light mode (no .dark class): show light logo */
         .app-footer-logo-light { display: block; }
         .app-footer-logo-dark  { display: none;  }
-        @media (prefers-color-scheme: dark) {
-          .app-footer-logo-light { display: none;  }
-          .app-footer-logo-dark  { display: block; }
-        }
+        /* dark mode (.dark class on <html>): show dark logo */
+        :root.dark .app-footer-logo-light { display: none;  }
+        :root.dark .app-footer-logo-dark  { display: block; }
         .app-footer-logo img {
-          width: 150px;
+          width: 100px;
           height: auto;
           display: block;
         }
@@ -84,12 +83,12 @@ export async function AppFooter({ variant }: { variant: FooterVariant }) {
               {/* Light-mode logo */}
               <span className="app-footer-logo-light">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={LOGO_LIGHT} alt="Focal Point" width={150} height={51} />
+                <img src={LOGO_LIGHT} alt="Focal Point" width={100} height={34} />
               </span>
               {/* Dark-mode logo */}
               <span className="app-footer-logo-dark">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={LOGO_DARK} alt="Focal Point" width={150} height={51} />
+                <img src={LOGO_DARK} alt="Focal Point" width={100} height={34} />
               </span>
             </a>
 
