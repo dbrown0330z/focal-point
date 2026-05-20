@@ -210,7 +210,7 @@ function DonutChart({
   total:    number
   size?:    number
 }) {
-  const strokeWidth = 10
+  const strokeWidth = 13
   const r    = (size - strokeWidth) / 2
   const cx   = size / 2
   const cy   = size / 2
@@ -230,7 +230,19 @@ function DonutChart({
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: 'block', flexShrink: 0 }}>
       {/* Track */}
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--surface-1)" strokeWidth={strokeWidth} />
-      {/* Segments */}
+      {/* Pass 1: white outlines slightly wider — creates gap/border between slices */}
+      {arcs.map((arc, i) => (
+        <circle
+          key={`outline-${i}`}
+          cx={cx} cy={cy} r={r}
+          fill="none"
+          stroke="white"
+          strokeWidth={strokeWidth + 2.5}
+          strokeDasharray={`${arc.dash} ${circ - arc.dash}`}
+          strokeDashoffset={-(arc.offset - circ / 4)}
+        />
+      ))}
+      {/* Pass 2: colored segments on top */}
       {arcs.map((arc, i) => (
         <circle
           key={i}
@@ -290,17 +302,27 @@ function MemberSpotlightBlock({
           fontFamily:  'var(--font-lora, Georgia, serif)',
         }}>
           {photoUrl ? (
-            <Image
-              src={photoUrl}
-              alt={member.display_name}
-              width={200}
-              height={200}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
+            <a
+              href={photoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'block', width: '100%', height: '100%' }}
+              aria-label={`View ${member.display_name}'s photo`}
+            >
+              <Image
+                src={photoUrl}
+                alt={member.display_name}
+                width={200}
+                height={200}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s ease' }}
+                className="spotlight-img"
+              />
+            </a>
           ) : (
             <span>{initials(member.display_name)}</span>
           )}
         </div>
+        <style>{`.spotlight-img:hover { transform: scale(1.04); }`}</style>
 
         {/* Right side */}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -309,7 +331,7 @@ function MemberSpotlightBlock({
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
             <h3 style={{
               fontFamily:    'var(--font-lora, Georgia, serif)',
-              fontSize:      28,
+              fontSize:      32,
               fontWeight:    400,
               letterSpacing: '-0.02em',
               color:         'var(--text-primary)',
