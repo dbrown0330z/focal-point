@@ -102,7 +102,7 @@ export function Grid8Gallery({
                 }}>
                   {img.title}
                 </p>
-                {(img.maker || img.date) && (
+                {img.maker && (
                   <p style={{
                     fontSize:  11,
                     color:     'rgba(255,255,255,0.42)',
@@ -112,42 +112,26 @@ export function Grid8Gallery({
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                   }}>
-                    {[img.maker, img.date].filter(Boolean).join(' · ')}
+                    {img.maker}
                   </p>
                 )}
               </div>
 
-              {/* Right: category + score */}
-              {(img.category || img.score != null) && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-                  {img.category && (
-                    <span style={{
-                      fontSize:     11,
-                      fontWeight:   500,
-                      color:        'rgba(255,255,255,0.65)',
-                      border:       '1px solid rgba(255,255,255,0.18)',
-                      borderRadius: 9999,
-                      padding:      '2px 8px',
-                      whiteSpace:   'nowrap',
-                    }}>
-                      {img.category}
-                    </span>
-                  )}
-                  {img.score != null && (
-                    <span style={{
-                      fontSize:     12,
-                      fontWeight:   600,
-                      color:        'color-mix(in srgb, var(--action-primary) 85%, white)',
-                      background:   'color-mix(in srgb, var(--action-primary) 22%, transparent)',
-                      border:       '1px solid color-mix(in srgb, var(--action-primary) 50%, transparent)',
-                      borderRadius: 9999,
-                      padding:      '2px 8px',
-                      whiteSpace:   'nowrap',
-                    }}>
-                      {img.score % 1 === 0 ? img.score : img.score.toFixed(1)}
-                    </span>
-                  )}
-                </div>
+              {/* Right: score */}
+              {img.score != null && (
+                <span style={{
+                  fontSize:     12,
+                  fontWeight:   600,
+                  color:        'color-mix(in srgb, var(--action-primary) 85%, white)',
+                  background:   'color-mix(in srgb, var(--action-primary) 22%, transparent)',
+                  border:       '1px solid color-mix(in srgb, var(--action-primary) 50%, transparent)',
+                  borderRadius: 9999,
+                  padding:      '2px 8px',
+                  whiteSpace:   'nowrap',
+                  flexShrink:   0,
+                }}>
+                  {img.score % 1 === 0 ? img.score : img.score.toFixed(1)}
+                </span>
               )}
             </div>
           </button>
