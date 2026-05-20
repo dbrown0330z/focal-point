@@ -11,11 +11,24 @@ function formatHeaderDate(date: Date, tz: string): string {
 // ─── Greeting pool ────────────────────────────────────────────────────────────
 
 const GREETINGS_ANY       = ['Welcome back', 'Howdy', 'Great to see you', 'Greetings', 'Right on time', 'Aloha', 'Buongiorno', 'Ciao']
-const GREETINGS_MORNING   = ['Good morning', "Mornin'", 'Bonjour', 'Buenos días']
-const GREETINGS_AFTERNOON = ['Good afternoon', 'Good day', 'Bonjour', 'Buenas tardes']
-const GREETINGS_EVENING   = ['Good evening', "Evenin'", 'Bonsoir', 'Buenas noches']
+const GREETINGS_MORNING   = ['Good morning', "Mornin'", 'Bonjour']
+const GREETINGS_AFTERNOON = ['Good afternoon', 'Good day', 'Bonjour']
+const GREETINGS_EVENING   = ['Good evening', "Evenin'"]
+
+// Day-of-week greetings — keyed by JS day index (0 = Sunday)
+const GREETINGS_DOW: Partial<Record<number, string>> = {
+  1: 'Happy Monday',
+  3: 'Happy hump day',
+  5: 'TGIF',
+}
 
 function pickGreeting(date: Date, tz: string): string {
+  // Day-of-week greeting always wins when one is defined for today
+  const dowStr = date.toLocaleString('en-US', { weekday: 'long', timeZone: tz })
+  const dowMap: Record<string, number> = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 }
+  const dow = dowMap[dowStr]
+  if (dow !== undefined && GREETINGS_DOW[dow]) return GREETINGS_DOW[dow]!
+
   const hour = parseInt(
     date.toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: tz }),
     10,
