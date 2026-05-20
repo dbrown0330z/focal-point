@@ -2,11 +2,16 @@ import { createServiceClient } from '@/lib/supabase/service'
 
 export type FooterVariant = 'auth' | 'app' | 'judge'
 
+// SVG logos (light/dark) are served from /public.
+// Mono PNG is the fallback while SVGs aren't available.
+const LOGO_LIGHT = '/fp-logo-light.svg'
+const LOGO_DARK  = '/fp-logo-dark.svg'
+
 export async function AppFooter({ variant }: { variant: FooterVariant }) {
   const service = createServiceClient()
   const { data } = await service.from('club_settings').select('club_name').single()
-  const clubName = data?.club_name ?? 'Our Camera Club'
-  const year     = new Date().getFullYear()
+  const clubName  = data?.club_name ?? 'Our Camera Club'
+  const year      = new Date().getFullYear()
   const showLinks = variant !== 'judge'
 
   return (
@@ -35,12 +40,12 @@ export async function AppFooter({ variant }: { variant: FooterVariant }) {
           line-height: 0;
           text-decoration: none;
         }
-        /* light mode: show light logo, hide dark logo */
-        .app-footer-logo-light { display: inline; }
-        .app-footer-logo-dark  { display: none;   }
+        /* light-mode logo shown by default; dark-mode logo hidden */
+        .app-footer-logo-light { display: block; }
+        .app-footer-logo-dark  { display: none;  }
         @media (prefers-color-scheme: dark) {
-          .app-footer-logo-light { display: none;   }
-          .app-footer-logo-dark  { display: inline; }
+          .app-footer-logo-light { display: none;  }
+          .app-footer-logo-dark  { display: block; }
         }
         .app-footer-logo img {
           width: 150px;
@@ -70,30 +75,28 @@ export async function AppFooter({ variant }: { variant: FooterVariant }) {
         }
       `}</style>
 
-      {/* Spacer above divider so footer doesn't crowd page content */}
       <div style={{ paddingTop: 48 }}>
         <div className="app-footer-inner">
           <hr className="app-footer-divider" />
           <div className="app-footer-body">
 
-            {/* Logo — one per mode, CSS toggles visibility */}
             <a href="/" aria-label="Focal Point home" className="app-footer-logo">
+              {/* Light-mode logo */}
               <span className="app-footer-logo-light">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/fp-logo-light.svg" alt="Focal Point" width={150} height={51} />
+                <img src={LOGO_LIGHT} alt="Focal Point" width={150} height={51} />
               </span>
+              {/* Dark-mode logo */}
               <span className="app-footer-logo-dark">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/fp-logo-dark.svg" alt="Focal Point" width={150} height={51} />
+                <img src={LOGO_DARK} alt="Focal Point" width={150} height={51} />
               </span>
             </a>
 
-            {/* Copyright */}
             <p className="app-footer-copy">
               © {year} {clubName} · Powered by Focal Point
             </p>
 
-            {/* Links — omitted on judge portal */}
             {showLinks && (
               <p className="app-footer-links">
                 <a href="/focal_point_privacy_policy.docx" target="_blank" rel="noopener noreferrer">
