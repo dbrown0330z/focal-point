@@ -162,22 +162,6 @@ export function Grid8Gallery({
                 )}
               </div>
 
-              {/* Score removed */}
-              {false && img.score != null && (
-                <span style={{
-                  fontSize:     12,
-                  fontWeight:   600,
-                  color:        'color-mix(in srgb, var(--action-primary) 85%, white)',
-                  background:   'color-mix(in srgb, var(--action-primary) 22%, transparent)',
-                  border:       '1px solid color-mix(in srgb, var(--action-primary) 50%, transparent)',
-                  borderRadius: 9999,
-                  padding:      '2px 8px',
-                  whiteSpace:   'nowrap',
-                  flexShrink:   0,
-                }}>
-                  {img.score % 1 === 0 ? img.score : img.score.toFixed(1)}
-                </span>
-              )}
             </div>
           </button>
         ))}
