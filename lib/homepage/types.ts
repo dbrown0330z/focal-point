@@ -120,7 +120,7 @@ export const DEFAULT_BLOCKS: ContentBlock[] = [
   },
   {
     id: 'upcoming-events', name: 'Upcoming events', type: 'upcoming-events', enabled: true,
-    eventsSettings: { count: 5 },
+    eventsSettings: { count: 4 },
   },
   {
     id: 'member-spotlight', name: 'Member spotlight', type: 'member-spotlight', enabled: true,

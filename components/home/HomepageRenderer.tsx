@@ -106,11 +106,11 @@ type CalendarEvent = {
   location: string | null
 }
 
-function UpcomingEventsBlock({ events }: { events: CalendarEvent[] }) {
+function UpcomingEventsBlock({ events, limit }: { events: CalendarEvent[]; limit: number }) {
   return (
     <Section>
       <div className="flex items-center justify-between mb-4">
-        <SectionHeading>Next 4 events</SectionHeading>
+        <SectionHeading>Next {limit} events</SectionHeading>
         <Link href="/calendar" className="text-[13px] font-medium" style={{ color: 'var(--action-primary)' }}>
           View all →
         </Link>
@@ -770,7 +770,7 @@ export default async function HomepageRenderer({
             ) : null
 
           case 'upcoming-events':
-            return <UpcomingEventsBlock key={block.id} events={events} />
+            return <UpcomingEventsBlock key={block.id} events={events} limit={eventsBlock?.eventsSettings?.count ?? 4} />
 
           case 'grid-6':
             return <Grid8Block key={block.id} images={galleryImages.slice(0, 6)} block={block} />

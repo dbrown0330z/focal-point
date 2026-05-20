@@ -21,8 +21,8 @@ const SLIDES: Slide[] = [
   { src: '/hero/image-7.jpg', title: 'After the Rain',        maker: 'Daniel Ferreira', camera: 'Panasonic S5 II',   lens: 'Lumix S 85mm f/1.8'    },
 ]
 
-const INTERVAL_MS   = 5000
-const TRANSITION_MS = 750  // duration of the slide-in animation
+const INTERVAL_MS   = 7000
+const TRANSITION_MS = 1600  // duration of the slide-in animation
 
 function SlideLayer({ slide, priority = false }: { slide: Slide; priority?: boolean }) {
   return (
@@ -143,7 +143,7 @@ export default function HeroSlideshow({ clubName }: { clubName: string }) {
           style={{
             transform:  isSliding ? 'translateX(0)' : 'translateX(100%)',
             transition: isSliding
-              ? `transform ${TRANSITION_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`
+              ? `transform ${TRANSITION_MS}ms cubic-bezier(0.05, 0.9, 0.25, 1)`
               : 'none',
           }}
           onTransitionEnd={handleTransitionEnd}
