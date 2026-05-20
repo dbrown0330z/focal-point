@@ -4,6 +4,58 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { Lightbox, type LightboxImage } from '@/components/ui/Lightbox'
 
+// ─── Spotlight image with lightbox ────────────────────────────────────────────
+
+export function SpotlightImageLightbox({
+  src,
+  alt,
+  title,
+  maker,
+}: {
+  src:    string
+  alt:    string
+  title?: string
+  maker?: string
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        aria-label={`View ${alt}`}
+        style={{
+          display:  'block',
+          width:    '100%',
+          height:   '100%',
+          padding:  0,
+          border:   'none',
+          background: 'none',
+          cursor:   'zoom-in',
+        }}
+      >
+        <Image
+          src={src}
+          alt={alt}
+          width={200}
+          height={200}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s ease' }}
+          className="spotlight-img"
+        />
+      </button>
+      <style>{`.spotlight-img:hover { transform: scale(1.04); }`}</style>
+      {open && (
+        <Lightbox
+          images={[{ src, title: title ?? alt, subtitle: maker }]}
+          startIndex={0}
+          onClose={() => setOpen(false)}
+          contextTitle="Member Spotlight"
+        />
+      )}
+    </>
+  )
+}
+
 export type GalleryImage = {
   id:        string
   publicUrl: string
