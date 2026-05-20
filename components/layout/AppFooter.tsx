@@ -47,7 +47,7 @@ export async function AppFooter({ variant }: { variant: FooterVariant }) {
         :root.dark .app-footer-logo-light { display: none;  }
         :root.dark .app-footer-logo-dark  { display: block; }
         .app-footer-logo img {
-          width: 100px;
+          width: 120px;
           height: auto;
           display: block;
         }
@@ -79,16 +79,16 @@ export async function AppFooter({ variant }: { variant: FooterVariant }) {
           <hr className="app-footer-divider" />
           <div className="app-footer-body">
 
-            <a href="/" aria-label="Focal Point home" className="app-footer-logo">
+            <a href="/" target="_blank" rel="noopener noreferrer" aria-label="Focal Point home" className="app-footer-logo">
               {/* Light-mode logo */}
               <span className="app-footer-logo-light">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={LOGO_LIGHT} alt="Focal Point" width={100} height={34} />
+                <img src={LOGO_LIGHT} alt="Focal Point" width={120} height={41} />
               </span>
               {/* Dark-mode logo */}
               <span className="app-footer-logo-dark">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={LOGO_DARK} alt="Focal Point" width={100} height={34} />
+                <img src={LOGO_DARK} alt="Focal Point" width={120} height={41} />
               </span>
             </a>
 
