@@ -537,7 +537,7 @@ export default async function HomepageRenderer({
   const eventsBlock = enabled.find(b => b.type === 'upcoming-events')
   let events: CalendarEvent[] = []
   if (eventsBlock) {
-    const limit  = eventsBlock.eventsSettings?.count ?? 4
+    const limit  = Math.min(eventsBlock.eventsSettings?.count ?? 4, 4)
     const nowIso = new Date().toISOString()
 
     // Manual calendar events + upcoming competition milestones in parallel
