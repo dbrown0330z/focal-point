@@ -7,6 +7,8 @@ export type FooterVariant = 'auth' | 'app' | 'judge'
 const LOGO_LIGHT = '/fp-logo-light.svg'
 const LOGO_DARK  = '/fp-logo-dark.svg'
 
+const MARKETING_URL = `https://${process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'focalpointhq.com'}`
+
 export async function AppFooter({ variant }: { variant: FooterVariant }) {
   const service = createServiceClient()
   const { data } = await service.from('club_settings').select('club_name').single()
@@ -39,7 +41,10 @@ export async function AppFooter({ variant }: { variant: FooterVariant }) {
           display: inline-block;
           line-height: 0;
           text-decoration: none;
+          opacity: 0.65;
+          transition: opacity 0.2s ease;
         }
+        .app-footer-logo:hover { opacity: 1; }
         /* light mode (no .dark class): show light logo */
         .app-footer-logo-light { display: block; }
         .app-footer-logo-dark  { display: none;  }
@@ -79,7 +84,7 @@ export async function AppFooter({ variant }: { variant: FooterVariant }) {
           <hr className="app-footer-divider" />
           <div className="app-footer-body">
 
-            <a href="/" target="_blank" rel="noopener noreferrer" aria-label="Focal Point home" className="app-footer-logo">
+            <a href={MARKETING_URL} target="_blank" rel="noopener noreferrer" aria-label="Focal Point home" className="app-footer-logo">
               {/* Light-mode logo */}
               <span className="app-footer-logo-light">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
