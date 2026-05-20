@@ -4,6 +4,7 @@ import { getClubContext } from '@/lib/club-context'
 import Link from 'next/link'
 import MemberNav from '@/components/layout/MemberNav'
 import MemberThemeProvider from '@/components/layout/MemberThemeProvider'
+import { AppFooter } from '@/components/layout/AppFooter'
 
 export default async function OurClubLayout({
   children,
@@ -56,6 +57,7 @@ export default async function OurClubLayout({
           <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
             {children}
           </main>
+          <AppFooter variant="app" />
         </div>
       </MemberThemeProvider>
     )
@@ -90,6 +92,7 @@ export default async function OurClubLayout({
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
         {children}
       </main>
+      <AppFooter variant="app" />
     </div>
   )
 }
