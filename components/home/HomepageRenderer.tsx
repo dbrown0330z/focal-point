@@ -536,8 +536,9 @@ export default async function HomepageRenderer({
   // ── Fetch events if the block is on ──────────────────────────────────────
   const eventsBlock = enabled.find(b => b.type === 'upcoming-events')
   let events: CalendarEvent[] = []
+  const eventsLimit = 4   // hard cap — DB value is ignored
   if (eventsBlock) {
-    const limit  = Math.min(eventsBlock.eventsSettings?.count ?? 4, 4)
+    const limit  = eventsLimit
     const nowIso = new Date().toISOString()
 
     // Manual calendar events + upcoming competition milestones in parallel
@@ -770,7 +771,7 @@ export default async function HomepageRenderer({
             ) : null
 
           case 'upcoming-events':
-            return <UpcomingEventsBlock key={block.id} events={events} limit={eventsBlock?.eventsSettings?.count ?? 4} />
+            return <UpcomingEventsBlock key={block.id} events={events} limit={eventsLimit} />
 
           case 'grid-6':
             return <Grid8Block key={block.id} images={galleryImages.slice(0, 6)} block={block} />
