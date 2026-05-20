@@ -19,6 +19,7 @@ const SLIDES: Slide[] = [
   { src: '/hero/image-5.jpg', title: 'Baltic Dusk',           maker: 'Tomás Reinholt',  camera: 'Leica M11',         lens: 'Summicron-M 28mm f/2'  },
   { src: '/hero/image-6.jpg', title: 'Quiet Shore',           maker: 'Priya Nambiar',   camera: 'OM System OM-1',    lens: 'M.Zuiko 12-40mm f/2.8' },
   { src: '/hero/image-7.jpg', title: 'After the Rain',        maker: 'Daniel Ferreira', camera: 'Panasonic S5 II',   lens: 'Lumix S 85mm f/1.8'    },
+  { src: '/hero/image-8.jpg', title: 'Still Water',           maker: 'Aoife Brennan',   camera: 'Sony A7R V',        lens: 'FE 24mm f/1.4 GM'      },
 ]
 
 const INTERVAL_MS      = 7000  // time between advances
