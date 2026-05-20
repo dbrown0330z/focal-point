@@ -7,9 +7,11 @@ import { useAdminTheme } from '@/components/layout/AdminThemeContext'
 export default function AdminShell({
   children,
   clubSlug,
+  footer,
 }: {
   children: React.ReactNode
   clubSlug: string
+  footer?: React.ReactNode
 }) {
   const { theme } = useAdminTheme()
   return (
@@ -21,6 +23,7 @@ export default function AdminShell({
             <div className="mx-auto w-full max-w-[1000px]">
               {children}
             </div>
+            {footer}
           </main>
         </div>
       </div>

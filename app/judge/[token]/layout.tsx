@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import JudgeTopbar from './JudgeTopbar'
+import { AppFooter } from '@/components/layout/AppFooter'
 
 export default async function JudgeLayout({
   children,
@@ -36,6 +37,7 @@ export default async function JudgeLayout({
         judgeName={judgeToken?.judge_name ?? null}
       />
       <main>{children}</main>
+      <AppFooter variant="judge" />
     </div>
   )
 }

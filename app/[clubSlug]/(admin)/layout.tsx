@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { requireClubId } from '@/lib/club-context'
 import AdminThemeProvider from '@/components/layout/AdminThemeProvider'
 import AdminShell from '@/components/admin/AdminShell'
+import { AppFooter } from '@/components/layout/AppFooter'
 
 export default async function AdminLayout({
   children,
@@ -32,7 +33,7 @@ export default async function AdminLayout({
 
   return (
     <AdminThemeProvider>
-      <AdminShell clubSlug={clubSlug}>{children}</AdminShell>
+      <AdminShell clubSlug={clubSlug} footer={<AppFooter variant="app" />}>{children}</AdminShell>
     </AdminThemeProvider>
   )
 }

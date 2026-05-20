@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { requireClubId } from '@/lib/club-context'
 import MemberNav from '@/components/layout/MemberNav'
 import MemberThemeProvider from '@/components/layout/MemberThemeProvider'
+import { AppFooter } from '@/components/layout/AppFooter'
 
 export default async function MemberLayout({
   children,
@@ -78,6 +79,7 @@ export default async function MemberLayout({
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
           {children}
         </main>
+        <AppFooter variant="app" />
       </div>
     </MemberThemeProvider>
   )

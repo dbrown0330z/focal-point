@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { AppFooter } from '@/components/layout/AppFooter'
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -7,43 +8,47 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
 
   return (
     <div
-      className="flex min-h-screen flex-col items-center justify-center px-4 py-12"
+      className="flex min-h-screen flex-col"
       style={{ background: '#141414' }}
     >
-      <div className="mb-8 text-center">
-        <h1
+      <div className="flex flex-1 flex-col items-center justify-center px-4 py-12">
+        <div className="mb-8 text-center">
+          <h1
+            style={{
+              fontFamily: 'var(--font-lora, Lora, Georgia, serif)',
+              fontSize: '26px',
+              fontWeight: 700,
+              letterSpacing: '-0.01em',
+              color: 'var(--action-primary)',
+              lineHeight: 1.2,
+            }}
+          >
+            {clubName}
+          </h1>
+          <p
+            style={{
+              marginTop: '6px',
+              fontSize: '14px',
+              color: '#9E9E9E',
+              fontFamily: 'var(--font-nunito, Nunito, system-ui, sans-serif)',
+            }}
+          >
+            Your camera club, online.
+          </p>
+        </div>
+
+        <div
+          className="w-full max-w-sm rounded-xl p-8"
           style={{
-            fontFamily: 'var(--font-lora, Lora, Georgia, serif)',
-            fontSize: '26px',
-            fontWeight: 700,
-            letterSpacing: '-0.01em',
-            color: 'var(--action-primary)',
-            lineHeight: 1.2,
+            background: '#1E1E1E',
+            border: '1px solid rgba(255,255,255,0.08)',
           }}
         >
-          {clubName}
-        </h1>
-        <p
-          style={{
-            marginTop: '6px',
-            fontSize: '14px',
-            color: '#9E9E9E',
-            fontFamily: 'var(--font-nunito, Nunito, system-ui, sans-serif)',
-          }}
-        >
-          Your camera club, online.
-        </p>
+          {children}
+        </div>
       </div>
 
-      <div
-        className="w-full max-w-sm rounded-xl p-8"
-        style={{
-          background: '#1E1E1E',
-          border: '1px solid rgba(255,255,255,0.08)',
-        }}
-      >
-        {children}
-      </div>
+      <AppFooter variant="auth" />
     </div>
   )
 }
