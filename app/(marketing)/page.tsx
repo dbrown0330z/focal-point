@@ -12,12 +12,18 @@ import {
   IconGavel, IconSparkle, IconStar, IconArrow,
 } from '@/components/marketing/Icons'
 
-export default async function HomePage() {
-  // Auth redirect: logged-in members with an active club go straight there
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ref?: string }>
+}) {
+  const params = await searchParams
+  // Auth redirect: logged-in members with an active club go straight there.
+  // Skip when ref=app so footer logo links from inside the app land here.
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (user) {
+  if (user && params.ref !== 'app') {
     // Use service client to bypass RLS — auth is already verified above
     const admin = createServiceClient()
     const { data: membership } = await admin

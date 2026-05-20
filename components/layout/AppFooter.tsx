@@ -7,7 +7,7 @@ export type FooterVariant = 'auth' | 'app' | 'judge'
 const LOGO_LIGHT = '/fp-logo-light.svg'
 const LOGO_DARK  = '/fp-logo-dark.svg'
 
-const MARKETING_URL = `https://${process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'focalpointhq.com'}`
+const MARKETING_URL = `https://${process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'focalpointhq.com'}?ref=app`
 
 export async function AppFooter({ variant }: { variant: FooterVariant }) {
   const service = createServiceClient()

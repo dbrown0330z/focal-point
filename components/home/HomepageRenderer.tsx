@@ -110,7 +110,7 @@ function UpcomingEventsBlock({ events }: { events: CalendarEvent[] }) {
   return (
     <Section>
       <div className="flex items-center justify-between mb-4">
-        <SectionHeading>Upcoming events</SectionHeading>
+        <SectionHeading>Next 4 events</SectionHeading>
         <Link href="/calendar" className="text-[13px] font-medium" style={{ color: 'var(--action-primary)' }}>
           View all →
         </Link>
@@ -537,7 +537,7 @@ export default async function HomepageRenderer({
   const eventsBlock = enabled.find(b => b.type === 'upcoming-events')
   let events: CalendarEvent[] = []
   if (eventsBlock) {
-    const limit  = eventsBlock.eventsSettings?.count ?? 5
+    const limit  = eventsBlock.eventsSettings?.count ?? 4
     const nowIso = new Date().toISOString()
 
     // Manual calendar events + upcoming competition milestones in parallel

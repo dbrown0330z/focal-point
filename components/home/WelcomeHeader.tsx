@@ -163,7 +163,7 @@ export default async function WelcomeHeader({
             lineHeight:    1.1,
             letterSpacing: '-0.02em',
           }}>
-            {greeting}, <em style={{ fontStyle: 'italic' }}>{firstName}</em>.
+            {greeting}, <em style={{ fontStyle: 'italic', color: 'var(--text-secondary)' }}>{firstName}</em>.
           </h1>
         </div>
 
