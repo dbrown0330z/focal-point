@@ -306,7 +306,7 @@ function MemberSpotlightBlock({
         <div style={{ flex: 1, minWidth: 0 }}>
 
           {/* Name + level badge */}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
             <h3 style={{
               fontFamily:    'var(--font-lora, Georgia, serif)',
               fontSize:      28,
@@ -364,7 +364,7 @@ function MemberSpotlightBlock({
 
               {/* About */}
               <div style={{ background: 'var(--surface-1)', padding: '14px 16px' }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 10px', fontFamily: 'var(--font-lora, Georgia, serif)' }}>
+                <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 10px', fontFamily: 'var(--font-lora, Georgia, serif)' }}>
                   About
                 </p>
                 {member.camera_brands.length > 0 && (
@@ -390,7 +390,7 @@ function MemberSpotlightBlock({
 
               {/* Submissions */}
               <div style={{ background: 'var(--surface-1)', padding: '14px 16px' }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 10px', fontFamily: 'var(--font-lora, Georgia, serif)' }}>
+                <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 10px', fontFamily: 'var(--font-lora, Georgia, serif)' }}>
                   Submissions
                 </p>
                 {hasStats ? (
@@ -419,7 +419,7 @@ function MemberSpotlightBlock({
 
               {/* Results */}
               <div style={{ background: 'var(--surface-1)', padding: '14px 16px' }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 10px', fontFamily: 'var(--font-lora, Georgia, serif)' }}>
+                <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 10px', fontFamily: 'var(--font-lora, Georgia, serif)' }}>
                   Results
                 </p>
                 {hasScores ? (
@@ -443,14 +443,14 @@ function MemberSpotlightBlock({
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {stats.avgScore !== null && (
                         <div>
-                          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Avg Score </span>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{stats.avgScore.toFixed(1)}</span>
+                          <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Avg Score </span>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{stats.avgScore.toFixed(1)}</span>
                         </div>
                       )}
                       {stats.bestScore !== null && (
                         <div>
-                          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Best Score </span>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{stats.bestScore}</span>
+                          <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Best Score </span>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{stats.bestScore}</span>
                         </div>
                       )}
                     </div>
@@ -463,11 +463,6 @@ function MemberSpotlightBlock({
             </div>
           )}
 
-          {settings.mode === 'automatic' && (
-            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, fontStyle: 'italic' }}>
-              Auto-selected · changes each visit
-            </p>
-          )}
         </div>
       </div>
       </div>{/* end tintedBox */}
