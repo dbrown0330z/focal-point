@@ -263,10 +263,17 @@ export default async function DualPanelBlock() {
   type RawComp = { id: string; title: string; short_title: string | null; status: string; opens_at: string | null; closes_at: string | null; results_at: string | null; submission_limit: number | null }
   const comps = (allCompsRaw ?? []) as RawComp[]
 
-  const openList       = comps.filter(c => c.status === 'open').sort((a, b) => (a.closes_at ?? '').localeCompare(b.closes_at ?? ''))
+  // A competition is only "open" if its opens_at has passed (or has no opens_at gate).
+  // If opens_at is still in the future it renders as "coming soon" regardless of DB status.
+  const openList       = comps.filter(c => c.status === 'open' && (!c.opens_at || c.opens_at <= nowIso)).sort((a, b) => (a.closes_at ?? '').localeCompare(b.closes_at ?? ''))
   const resultsList    = comps.filter(c => c.status === 'results_published').sort((a, b) => (b.results_at ?? '').localeCompare(a.results_at ?? ''))
   const judgingList    = comps.filter(c => (JUDGING_STATUSES as readonly string[]).includes(c.status))
-  const comingSoonList = comps.filter(c => c.status === 'draft' && c.opens_at && c.opens_at > nowIso).sort((a, b) => (a.opens_at ?? '').localeCompare(b.opens_at ?? ''))
+  const comingSoonList = comps
+    .filter(c =>
+      (c.status === 'draft' && c.opens_at && c.opens_at > nowIso) ||
+      (c.status === 'open'  && c.opens_at && c.opens_at > nowIso),
+    )
+    .sort((a, b) => (a.opens_at ?? '').localeCompare(b.opens_at ?? ''))
 
   const s1 = openList.slice(0, MAX_CARDS)
   const r1 = MAX_CARDS - s1.length
