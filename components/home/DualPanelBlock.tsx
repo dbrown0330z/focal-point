@@ -158,7 +158,7 @@ export default async function DualPanelBlock() {
   }
   const allEvents = [...(calData ?? []) as CEvent[], ...compEvents]
   allEvents.sort((a, b) => a.starts_at.localeCompare(b.starts_at))
-  const events = allEvents.slice(0, 5)
+  const events = allEvents.slice(0, 4)
 
   // ── Round 2: competition details (typed async IIFEs → const) ─────────────
   //  Using typed return values avoids TypeScript narrowing mutable vars to `never`.
@@ -285,12 +285,12 @@ export default async function DualPanelBlock() {
     <div className="border-b border-[var(--border-subtle)] py-7 last:border-b-0">
       <div className="grid grid-cols-1 md:grid-cols-2">
 
-        {/* ── LEFT: Next 5 Events ─────────────────────────────────────────── */}
+        {/* ── LEFT: Next 4 Events ─────────────────────────────────────────── */}
         <div className="pb-8 md:pb-0 md:pr-8 md:border-r" style={{ borderColor: 'var(--border-subtle)' }}>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <h2 style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', lineHeight: 1.3 }}>
-              Next 5 Events
+              Next 4 Events
             </h2>
             <Link href="/calendar" style={{ fontSize: 13, fontWeight: 500, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0 }}>
               View all →
