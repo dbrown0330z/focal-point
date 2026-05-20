@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import { createServiceClient } from '@/lib/supabase/service'
 
 export type FooterVariant = 'auth' | 'app' | 'judge'
@@ -8,10 +7,6 @@ export async function AppFooter({ variant }: { variant: FooterVariant }) {
   const { data } = await service.from('club_settings').select('club_name').single()
   const clubName = data?.club_name ?? 'Our Camera Club'
   const year     = new Date().getFullYear()
-
-  const logoSrc   = variant === 'auth' ? '/fp-footer-logo-mono.png' : '/fp-footer-logo-color.png'
-  // color: 880×300  mono: 860×300
-  const logoH     = variant === 'auth' ? Math.round(150 * 300 / 860) : Math.round(150 * 300 / 880)
   const showLinks = variant !== 'judge'
 
   return (
@@ -35,8 +30,23 @@ export async function AppFooter({ variant }: { variant: FooterVariant }) {
           padding: 20px 0 28px;
           text-align: center;
         }
-        .app-footer-logo { display: inline-block; line-height: 0; }
-        .app-footer-logo img { width: 150px; height: auto; }
+        .app-footer-logo {
+          display: inline-block;
+          line-height: 0;
+          text-decoration: none;
+        }
+        /* light mode: show light logo, hide dark logo */
+        .app-footer-logo-light { display: inline; }
+        .app-footer-logo-dark  { display: none;   }
+        @media (prefers-color-scheme: dark) {
+          .app-footer-logo-light { display: none;   }
+          .app-footer-logo-dark  { display: inline; }
+        }
+        .app-footer-logo img {
+          width: 150px;
+          height: auto;
+          display: block;
+        }
         .app-footer-copy {
           font-size: 12px;
           color: var(--text-secondary);
@@ -65,15 +75,17 @@ export async function AppFooter({ variant }: { variant: FooterVariant }) {
         <div className="app-footer-inner">
           <hr className="app-footer-divider" />
           <div className="app-footer-body">
-            {/* Logo — links to marketing home */}
+
+            {/* Logo — one per mode, CSS toggles visibility */}
             <a href="/" aria-label="Focal Point home" className="app-footer-logo">
-              <Image
-                src={logoSrc}
-                alt="Focal Point"
-                width={variant === 'auth' ? 860 : 880}
-                height={300}
-                style={{ width: 150, height: 'auto', background: 'transparent' }}
-              />
+              <span className="app-footer-logo-light">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/fp-logo-light.svg" alt="Focal Point" width={150} height={51} />
+              </span>
+              <span className="app-footer-logo-dark">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/fp-logo-dark.svg" alt="Focal Point" width={150} height={51} />
+              </span>
             </a>
 
             {/* Copyright */}

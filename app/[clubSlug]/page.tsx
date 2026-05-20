@@ -8,6 +8,7 @@ import HomepageRenderer from '@/components/home/HomepageRenderer'
 import WelcomeHeader from '@/components/home/WelcomeHeader'
 import { DEFAULT_BLOCKS, mergeBlocks, type ContentBlock } from '@/lib/homepage/types'
 import { logout } from '@/app/(auth)/actions'
+import { AppFooter } from '@/components/layout/AppFooter'
 
 export default async function ClubHomePage({
   params,
@@ -92,6 +93,7 @@ export default async function ClubHomePage({
           <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-10">
             <HomepageRenderer blocks={blocks} clubName={clubName} />
           </div>
+          <AppFooter variant="app" />
         </div>
       </MemberThemeProvider>
     )
