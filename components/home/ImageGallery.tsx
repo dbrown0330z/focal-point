@@ -80,7 +80,7 @@ export function Grid8Gallery({
   totalImages?:  number
 }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
-  const shown = images.slice(0, 6)
+  const shown = images.slice(0, 8)
   const total = totalImages ?? shown.length
 
   return (
@@ -99,8 +99,8 @@ export function Grid8Gallery({
         )}
       </div>
 
-      {/* 3×2 dark card grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+      {/* 4×2 dark card grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
         {shown.map((img, i) => (
           <button
             key={img.id}
@@ -132,18 +132,11 @@ export function Grid8Gallery({
             </div>
 
             {/* Info bar */}
-            <div style={{
-              padding:    '10px 12px',
-              display:    'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-              gap:        8,
-              flex:       1,
-            }}>
-              {/* Left: title + byline */}
+            <div style={{ padding: '10px 12px', flex: 1 }}>
+              {/* Title + byline */}
               <div style={{ minWidth: 0 }}>
                 <p style={{
-                  fontSize:    13,
+                  fontSize:    12,
                   fontWeight:  600,
                   color:       'rgba(255,255,255,0.92)',
                   lineHeight:  1.3,
@@ -169,8 +162,8 @@ export function Grid8Gallery({
                 )}
               </div>
 
-              {/* Right: score */}
-              {img.score != null && (
+              {/* Score removed */}
+              {false && img.score != null && (
                 <span style={{
                   fontSize:     12,
                   fontWeight:   600,

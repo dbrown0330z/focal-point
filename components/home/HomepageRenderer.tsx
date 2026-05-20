@@ -278,8 +278,8 @@ function MemberSpotlightBlock({
         {/* Photo */}
         <div style={{
           flexShrink:  0,
-          width:       200,
-          height:      200,
+          width:       240,
+          height:      240,
           borderRadius: 12,
           overflow:    'hidden',
           background:  'var(--surface-1)',
@@ -365,7 +365,7 @@ function MemberSpotlightBlock({
             }}>
 
               {/* About */}
-              <div style={{ background: 'var(--surface-1)', padding: '14px 16px' }}>
+              <div style={{ background: 'var(--surface-1)', padding: '14px 22px' }}>
                 <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 10px', fontFamily: 'var(--font-lora, Georgia, serif)' }}>
                   About
                 </p>
@@ -391,7 +391,7 @@ function MemberSpotlightBlock({
               </div>
 
               {/* Submissions */}
-              <div style={{ background: 'var(--surface-1)', padding: '14px 16px' }}>
+              <div style={{ background: 'var(--surface-1)', padding: '14px 22px' }}>
                 <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 10px', fontFamily: 'var(--font-lora, Georgia, serif)' }}>
                   Submissions
                 </p>
@@ -420,7 +420,7 @@ function MemberSpotlightBlock({
               </div>
 
               {/* Results */}
-              <div style={{ background: 'var(--surface-1)', padding: '14px 16px' }}>
+              <div style={{ background: 'var(--surface-1)', padding: '14px 22px' }}>
                 <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 10px', fontFamily: 'var(--font-lora, Georgia, serif)' }}>
                   Results
                 </p>
