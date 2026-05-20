@@ -26,12 +26,27 @@ function initials(name: string): string {
 function Section({
   children,
   className = '',
+  tinted = false,
 }: {
-  children: React.ReactNode
+  children:  React.ReactNode
   className?: string
+  tinted?:   boolean
 }) {
+  if (tinted) {
+    return (
+      <div className={`border-b border-[var(--border-subtle)] pt-10 pb-8 last:border-b-0 ${className}`}>
+        <div style={{
+          background:   'var(--surface-1)',
+          borderRadius: 14,
+          padding:      '20px 22px',
+        }}>
+          {children}
+        </div>
+      </div>
+    )
+  }
   return (
-    <div className={`border-b border-[var(--border-subtle)] py-7 last:border-b-0 ${className}`}>
+    <div className={`border-b border-[var(--border-subtle)] pt-10 pb-8 last:border-b-0 ${className}`}>
       {children}
     </div>
   )
@@ -39,7 +54,7 @@ function Section({
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', marginBottom: 16, lineHeight: 1.3 }}>
+    <h2 style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 24, fontWeight: 400, letterSpacing: '-0.01em', color: 'var(--text-primary)', marginBottom: 16, lineHeight: 1.3 }}>
       {children}
     </h2>
   )
@@ -66,9 +81,11 @@ function CustomContentBlock({
         body:    '',
       }))
 
+  const heading = (label && label !== 'Custom content') ? label : 'News & Notes'
+
   return (
     <Section>
-      {label && label !== 'Custom content' && <SectionHeading>{label}</SectionHeading>}
+      <SectionHeading>{heading}</SectionHeading>
       <div className={`grid gap-4 ${gridCols}`}>
         {displayNotes.map(note => (
           <CustomContentNote
@@ -125,16 +142,14 @@ function Grid8Block({ images, block }: { images: GalleryImage[]; block: ContentB
   const galleryName   = GALLERY_LABELS[gallerySource] ?? 'Recent uploads'
 
   if (images.length === 0) return (
-    <Section>
-      <div className="flex items-center justify-between mb-1">
-        <SectionHeading>Gallery Snapshot</SectionHeading>
-      </div>
+    <Section tinted>
+      <SectionHeading>Gallery Snapshot</SectionHeading>
       <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No images in the library yet.</p>
     </Section>
   )
 
   return (
-    <Section>
+    <Section tinted>
       <Grid8Gallery images={images} galleryName={galleryName} galleryHref="/library" totalImages={images.length} />
     </Section>
   )
@@ -252,7 +267,7 @@ function MemberSpotlightBlock({
   const hasScores = stats.avgScore !== null || stats.bestScore !== null
 
   return (
-    <Section>
+    <Section tinted>
       <SectionHeading>Member spotlight</SectionHeading>
 
       {/* Main row: photo + info */}
@@ -343,15 +358,12 @@ function MemberSpotlightBlock({
               display:             'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
               gap:                 '0 1px',
-              background:          'var(--border-subtle)',
-              border:              '1px solid var(--border-subtle)',
-              borderRadius:        10,
-              overflow:            'hidden',
+              background:          'var(--border-default)',
               marginTop:           member.bio ? 0 : 4,
             }}>
 
               {/* About */}
-              <div style={{ background: 'var(--surface-0)', padding: '14px 16px' }}>
+              <div style={{ background: 'var(--surface-1)', padding: '14px 16px' }}>
                 <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 10px', fontFamily: 'var(--font-lora, Georgia, serif)' }}>
                   About
                 </p>
@@ -377,7 +389,7 @@ function MemberSpotlightBlock({
               </div>
 
               {/* Submissions */}
-              <div style={{ background: 'var(--surface-0)', padding: '14px 16px' }}>
+              <div style={{ background: 'var(--surface-1)', padding: '14px 16px' }}>
                 <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 10px', fontFamily: 'var(--font-lora, Georgia, serif)' }}>
                   Submissions
                 </p>
@@ -406,7 +418,7 @@ function MemberSpotlightBlock({
               </div>
 
               {/* Results */}
-              <div style={{ background: 'var(--surface-0)', padding: '14px 16px' }}>
+              <div style={{ background: 'var(--surface-1)', padding: '14px 16px' }}>
                 <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 10px', fontFamily: 'var(--font-lora, Georgia, serif)' }}>
                   Results
                 </p>
