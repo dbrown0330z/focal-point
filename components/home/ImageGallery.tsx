@@ -33,18 +33,13 @@ export function Grid8Gallery({
 
   return (
     <>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
-        <div>
-          <h2 style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', lineHeight: 1.3, margin: 0 }}>
-            Gallery Snapshot
-          </h2>
-          {galleryName && (
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3 }}>
-              {galleryName} · {total} image{total !== 1 ? 's' : ''}
-            </p>
-          )}
-        </div>
+      {/* Sub-header: source label + link */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        {galleryName && (
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
+            {galleryName} · {total} image{total !== 1 ? 's' : ''}
+          </p>
+        )}
         {galleryHref && (
           <a href={galleryHref} style={{ fontSize: 13, fontWeight: 500, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0 }}>
             View full gallery →

@@ -23,30 +23,15 @@ function initials(name: string): string {
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
-function Section({
-  children,
-  className = '',
-  tinted = false,
-}: {
-  children:  React.ReactNode
-  className?: string
-  tinted?:   boolean
-}) {
-  if (tinted) {
-    return (
-      <div className={`border-b border-[var(--border-subtle)] pt-10 pb-8 last:border-b-0 ${className}`}>
-        <div style={{
-          background:   'var(--surface-1)',
-          borderRadius: 14,
-          padding:      '20px 22px',
-        }}>
-          {children}
-        </div>
-      </div>
-    )
-  }
+const tintedBox: React.CSSProperties = {
+  background:   'var(--surface-1)',
+  borderRadius: 14,
+  padding:      '20px 22px',
+}
+
+function Section({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`border-b border-[var(--border-subtle)] pt-10 pb-8 last:border-b-0 ${className}`}>
+    <div className={`pt-11 pb-8 ${className}`}>
       {children}
     </div>
   )
@@ -54,7 +39,16 @@ function Section({
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 24, fontWeight: 400, letterSpacing: '-0.01em', color: 'var(--text-primary)', marginBottom: 16, lineHeight: 1.3 }}>
+    <h2 style={{
+      fontFamily:    'var(--font-lora, Georgia, serif)',
+      fontSize:      24,
+      fontWeight:    400,
+      letterSpacing: '-0.01em',
+      color:         'var(--text-primary)',
+      marginTop:     4,
+      marginBottom:  12,
+      lineHeight:    1.3,
+    }}>
       {children}
     </h2>
   )
@@ -142,15 +136,20 @@ function Grid8Block({ images, block }: { images: GalleryImage[]; block: ContentB
   const galleryName   = GALLERY_LABELS[gallerySource] ?? 'Recent uploads'
 
   if (images.length === 0) return (
-    <Section tinted>
+    <Section>
       <SectionHeading>Gallery Snapshot</SectionHeading>
-      <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No images in the library yet.</p>
+      <div style={tintedBox}>
+        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic', margin: 0 }}>No images in the library yet.</p>
+      </div>
     </Section>
   )
 
   return (
-    <Section tinted>
-      <Grid8Gallery images={images} galleryName={galleryName} galleryHref="/library" totalImages={images.length} />
+    <Section>
+      <SectionHeading>Gallery Snapshot</SectionHeading>
+      <div style={tintedBox}>
+        <Grid8Gallery images={images} galleryName={galleryName} galleryHref="/library" totalImages={images.length} />
+      </div>
     </Section>
   )
 }
@@ -267,8 +266,9 @@ function MemberSpotlightBlock({
   const hasScores = stats.avgScore !== null || stats.bestScore !== null
 
   return (
-    <Section tinted>
+    <Section>
       <SectionHeading>Member spotlight</SectionHeading>
+      <div style={tintedBox}>
 
       {/* Main row: photo + info */}
       <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
@@ -470,6 +470,7 @@ function MemberSpotlightBlock({
           )}
         </div>
       </div>
+      </div>{/* end tintedBox */}
     </Section>
   )
 }
