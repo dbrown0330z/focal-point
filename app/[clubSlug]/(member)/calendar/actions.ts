@@ -55,3 +55,27 @@ export async function deleteEvent(id: string): Promise<{ error?: string }> {
   revalidatePath('/calendar')
   return {}
 }
+
+export async function updateEvent(id: string, data: {
+  title: string
+  description: string
+  location: string
+  starts_at: string
+  ends_at: string
+  all_day: boolean
+  event_type: CalendarEventType
+}): Promise<{ error?: string }> {
+  const admin = createServiceClient()
+  const { error } = await admin.from('calendar_events').update({
+    title:       data.title,
+    description: data.description || null,
+    location:    data.location    || null,
+    starts_at:   data.starts_at,
+    ends_at:     data.ends_at     || null,
+    all_day:     data.all_day,
+    event_type:  data.event_type,
+  }).eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/calendar')
+  return {}
+}
