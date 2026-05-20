@@ -13,13 +13,13 @@ type Slide = {
 
 const SLIDES: Slide[] = [
   { src: '/hero/image-1.jpg', title: 'Ritual Motion',         maker: 'Marcus Okafor',   camera: 'Sony A7 IV',        lens: 'FE 35mm f/1.8'              },
-  { src: '/hero/image-2.jpg', title: 'Baltic Dusk',           maker: 'Ingrid Larsen',   camera: 'Nikon Z6 III',      lens: 'Nikkor Z 24mm f/1.8 S'      },
+  { src: '/hero/image-2.jpg', title: 'Sparrows, Rush Hour',    maker: 'Ingrid Larsen',   camera: 'Nikon Z6 III',      lens: 'Nikkor Z 24mm f/1.8 S'      },
   { src: '/hero/image-3.jpg', title: 'San Polo, Venice',      maker: 'James Whitfield', camera: 'Nikon Z8',          lens: 'Nikkor Z 24-70mm f/4 S'     },
   { src: '/hero/image-4.jpg', title: 'First Light, December', maker: 'Sarah Chen',      camera: 'Canon EOS R5',      lens: 'RF 50mm f/1.2L USM'         },
   { src: '/hero/image-5.jpg', title: 'Platform No. 7',        maker: 'Yuki Tanaka',     camera: 'Sony A7R V',        lens: 'FE 200-600mm f/5.6-6.3 G'   },
   { src: '/hero/image-6.jpg', title: 'Quiet Shore',           maker: 'Priya Nambiar',   camera: 'OM System OM-1',    lens: 'M.Zuiko 12-40mm f/2.8'      },
   { src: '/hero/image-7.jpg', title: 'After the Rain',        maker: 'Daniel Ferreira', camera: 'Panasonic S5 II',   lens: 'Lumix S 85mm f/1.8'         },
-  { src: '/hero/image-8.jpg', title: 'Still Water',           maker: 'Aoife Brennan',   camera: 'Olympus OM-D E-M1', lens: 'M.Zuiko 60mm f/2.8 Macro'   },
+  { src: '/hero/image-8.jpg', title: 'Green Eyes',             maker: 'Aoife Brennan',   camera: 'Olympus OM-D E-M1', lens: 'M.Zuiko 60mm f/2.8 Macro'   },
 ]
 
 const INTERVAL_MS      = 7000  // time between advances
