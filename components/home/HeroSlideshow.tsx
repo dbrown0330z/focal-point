@@ -21,13 +21,25 @@ const SLIDES: Slide[] = [
   { src: '/hero/image-7.jpg', title: 'After the Rain',        maker: 'Daniel Ferreira', camera: 'Panasonic S5 II',   lens: 'Lumix S 85mm f/1.8'    },
 ]
 
-const INTERVAL_MS   = 7000
-const TRANSITION_MS = 1600  // duration of the slide-in animation
+const INTERVAL_MS      = 7000  // time between advances
+const FADE_MS          = 1100  // cross-fade duration
+const CREDITS_DELAY_MS = 200   // wait after image settles before credits appear
+const CREDITS_FADE_MS  = 700   // credits fade-in duration
 
-function SlideLayer({ slide, priority = false }: { slide: Slide; priority?: boolean }) {
+// ─── Slide layer ──────────────────────────────────────────────────────────────
+
+function SlideLayer({
+  slide,
+  priority = false,
+  creditsVisible,
+}: {
+  slide:         Slide
+  priority?:     boolean
+  creditsVisible: boolean
+}) {
   return (
     <>
-      {/* Blurred fill — covers any letterbox gaps for non-landscape images */}
+      {/* Blurred fill — covers letterbox gaps */}
       <Image
         src={slide.src}
         alt=""
@@ -38,7 +50,7 @@ function SlideLayer({ slide, priority = false }: { slide: Slide; priority?: bool
         sizes="(max-width: 1152px) 100vw, 1152px"
         style={{ filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.08)' }}
       />
-      {/* Sharp image — object-contain so nothing is cropped */}
+      {/* Sharp image — never cropped */}
       <Image
         src={slide.src}
         alt={slide.title}
@@ -50,12 +62,20 @@ function SlideLayer({ slide, priority = false }: { slide: Slide; priority?: bool
       {/* Gradient for credit legibility */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 45%)' }}
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.60) 0%, transparent 50%)' }}
       />
-      {/* Credit */}
+
+      {/* ── Credits — second animation, fades in after image settles ── */}
       <div
         className="absolute bottom-0 right-0 p-4 sm:p-5 text-right"
-        style={{ textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.75), 0 4px 24px rgba(0,0,0,0.55)' }}
+        style={{
+          textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.75)',
+          opacity:    creditsVisible ? 1 : 0,
+          transform:  creditsVisible ? 'translateY(0)' : 'translateY(10px)',
+          transition: creditsVisible
+            ? `opacity ${CREDITS_FADE_MS}ms ease, transform ${CREDITS_FADE_MS}ms ease`
+            : 'none',
+        }}
       >
         <p style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 18, fontWeight: 400, color: 'rgba(255,255,255,0.97)', lineHeight: 1.3 }}>
           {slide.title}
@@ -78,46 +98,68 @@ function SlideLayer({ slide, priority = false }: { slide: Slide; priority?: bool
   )
 }
 
+// ─── Main component ───────────────────────────────────────────────────────────
+
 // clubName prop kept for API compatibility
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function HeroSlideshow({ clubName }: { clubName: string }) {
-  const [activeIdx,    setActiveIdx]    = useState<number | null>(null)
-  const [incomingIdx,  setIncomingIdx]  = useState<number | null>(null)
-  const [isSliding,    setIsSliding]    = useState(false)
-  const activeIdxRef = useRef<number>(0)
+  const [activeIdx,      setActiveIdx]      = useState<number | null>(null)
+  const [incomingIdx,    setIncomingIdx]    = useState<number | null>(null)
+  const [isFading,       setIsFading]       = useState(false)
+  const [creditsVisible, setCreditsVisible] = useState(false)
+  const activeIdxRef = useRef(0)
 
-  // Pick a random starting slide on mount (avoids SSR hydration mismatch)
+  // Pick random start slide on mount (avoids SSR hydration mismatch)
   useEffect(() => {
     const initial = Math.floor(Math.random() * SLIDES.length)
     activeIdxRef.current = initial
     setActiveIdx(initial)
   }, [])
 
-  // Auto-advance every INTERVAL_MS
+  // Fade credits in after each slide settles (including the first)
   useEffect(() => {
     if (activeIdx === null) return
+    setCreditsVisible(false)
+    const t = setTimeout(() => setCreditsVisible(true), CREDITS_DELAY_MS)
+    return () => clearTimeout(t)
+  }, [activeIdx])
 
+  // Preload the next slide's image so it's ready when the crossfade starts
+  useEffect(() => {
+    if (activeIdx === null) return
+    const nextIdx = (activeIdx + 1) % SLIDES.length
+    const img = new window.Image()
+    img.src = SLIDES[nextIdx].src
+  }, [activeIdx])
+
+  // Auto-advance timer — re-arms each time activeIdx is set
+  useEffect(() => {
+    if (activeIdx === null) return
     const timer = setInterval(() => {
       const next = (activeIdxRef.current + 1) % SLIDES.length
       setIncomingIdx(next)
-      // Two rAF passes ensure the browser paints translateX(100%) before
-      // we flip isSliding → true and trigger the CSS transition.
+      setCreditsVisible(false)
+
+      // Two rAFs ensure incoming starts at opacity 0 before transition begins
       requestAnimationFrame(() =>
-        requestAnimationFrame(() => setIsSliding(true))
+        requestAnimationFrame(() => setIsFading(true))
       )
+
+      // After cross-fade completes, promote incoming → active
+      setTimeout(() => {
+        activeIdxRef.current = next
+        setActiveIdx(next)
+        setIncomingIdx(null)
+        setIsFading(false)
+      }, FADE_MS)
     }, INTERVAL_MS)
 
     return () => clearInterval(timer)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeIdx])   // re-arm after first slide is set
+  }, [activeIdx])
 
-  function handleTransitionEnd() {
-    if (incomingIdx === null) return
-    activeIdxRef.current = incomingIdx
-    setActiveIdx(incomingIdx)
-    setIncomingIdx(null)
-    setIsSliding(false)
-  }
+  const activeSlide   = activeIdx   !== null ? SLIDES[activeIdx]   : null
+  const incomingSlide = incomingIdx !== null ? SLIDES[incomingIdx] : null
 
   return (
     <div
@@ -125,30 +167,37 @@ export default function HeroSlideshow({ clubName }: { clubName: string }) {
       style={{ aspectRatio: '21/8', minHeight: 220, maxHeight: 480 }}
     >
       {/* Placeholder while JS hydrates */}
-      {activeIdx === null && (
+      {!activeSlide && (
         <div className="absolute inset-0" style={{ background: 'var(--surface-1)' }} />
       )}
 
-      {/* Active (current) slide */}
-      {activeIdx !== null && (
-        <div className="absolute inset-0">
-          <SlideLayer slide={SLIDES[activeIdx]} priority />
-        </div>
-      )}
-
-      {/* Incoming slide — slides in from the right with ease-out */}
-      {incomingIdx !== null && (
+      {/* Active (outgoing) slide — fades to 0 during transition */}
+      {activeSlide && (
         <div
           className="absolute inset-0"
           style={{
-            transform:  isSliding ? 'translateX(0)' : 'translateX(100%)',
-            transition: isSliding
-              ? `transform ${TRANSITION_MS}ms cubic-bezier(0.05, 0.9, 0.25, 1)`
+            opacity:    isFading ? 0 : 1,
+            transition: isFading ? `opacity ${FADE_MS}ms ease-in-out` : 'none',
+          }}
+        >
+          <SlideLayer slide={activeSlide} priority creditsVisible={creditsVisible} />
+        </div>
+      )}
+
+      {/* Incoming slide — cross-fades in with a subtle drift from right */}
+      {incomingSlide && (
+        <div
+          className="absolute inset-0"
+          style={{
+            opacity:    isFading ? 1 : 0,
+            transform:  isFading ? 'translateX(0)' : 'translateX(28px)',
+            transition: isFading
+              ? `opacity ${FADE_MS}ms ease-in-out, transform ${FADE_MS}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`
               : 'none',
           }}
-          onTransitionEnd={handleTransitionEnd}
         >
-          <SlideLayer slide={SLIDES[incomingIdx]} />
+          {/* Credits always hidden on incoming — they fade in only after it becomes active */}
+          <SlideLayer slide={incomingSlide} creditsVisible={false} />
         </div>
       )}
     </div>
