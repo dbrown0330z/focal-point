@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 
 type Slide = {
@@ -26,6 +26,7 @@ const INTERVAL_MS      = 7000  // time between advances
 const FADE_MS          = 1100  // cross-fade duration
 const CREDITS_DELAY_MS = 200   // wait after image settles before credits appear
 const CREDITS_FADE_MS  = 700   // credits fade-in duration
+const MAX_LOAD_WAIT_MS = 3000  // start fade even if image hasn't loaded yet
 
 // ─── Slide layer ──────────────────────────────────────────────────────────────
 
@@ -33,10 +34,12 @@ function SlideLayer({
   slide,
   priority = false,
   creditsVisible,
+  onSharpLoad,
 }: {
-  slide:         Slide
-  priority?:     boolean
+  slide:          Slide
+  priority?:      boolean
   creditsVisible: boolean
+  onSharpLoad?:   () => void
 }) {
   return (
     <>
@@ -59,6 +62,7 @@ function SlideLayer({
         className="object-contain"
         priority={priority}
         sizes="(max-width: 1152px) 100vw, 1152px"
+        onLoad={onSharpLoad}
       />
       {/* Gradient for credit legibility */}
       <div
@@ -108,7 +112,11 @@ export default function HeroSlideshow({ clubName }: { clubName: string }) {
   const [incomingIdx,    setIncomingIdx]    = useState<number | null>(null)
   const [isFading,       setIsFading]       = useState(false)
   const [creditsVisible, setCreditsVisible] = useState(false)
-  const activeIdxRef = useRef(0)
+
+  const activeIdxRef    = useRef(0)
+  // Guard so onLoad and the fallback timeout don't both kick off a fade
+  const fadeStartedRef  = useRef(false)
+  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Pick random start slide on mount (avoids SSR hydration mismatch)
   useEffect(() => {
@@ -125,39 +133,64 @@ export default function HeroSlideshow({ clubName }: { clubName: string }) {
     return () => clearTimeout(t)
   }, [activeIdx])
 
-  // Preload the next slide's image so it's ready when the crossfade starts
+  // Preload the next two slides so they're warm in cache
   useEffect(() => {
     if (activeIdx === null) return
-    const nextIdx = (activeIdx + 1) % SLIDES.length
-    const img = new window.Image()
-    img.src = SLIDES[nextIdx].src
+    for (let i = 1; i <= 2; i++) {
+      const idx = (activeIdx + i) % SLIDES.length
+      const img = new window.Image()
+      img.src = SLIDES[idx].src
+    }
   }, [activeIdx])
 
-  // Auto-advance timer — re-arms each time activeIdx is set
+  // Execute the crossfade for `next`. Called by either onSharpLoad or
+  // the fallback timeout — the guard ensures it only runs once per advance.
+  const startFade = useCallback((next: number) => {
+    if (fadeStartedRef.current) return
+    fadeStartedRef.current = true
+
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current)
+      fallbackTimerRef.current = null
+    }
+
+    // Two rAFs ensure incoming renders at opacity 0 before the transition begins
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => setIsFading(true))
+    )
+
+    setTimeout(() => {
+      activeIdxRef.current = next
+      setActiveIdx(next)
+      setIncomingIdx(null)
+      setIsFading(false)
+    }, FADE_MS)
+  }, [])
+
+  // Auto-advance timer — mounts the incoming slide and waits for it to load
   useEffect(() => {
     if (activeIdx === null) return
+
     const timer = setInterval(() => {
       const next = (activeIdxRef.current + 1) % SLIDES.length
+
+      // Reset fade guard for this advance cycle
+      fadeStartedRef.current = false
+
       setIncomingIdx(next)
       setCreditsVisible(false)
 
-      // Two rAFs ensure incoming starts at opacity 0 before transition begins
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => setIsFading(true))
-      )
-
-      // After cross-fade completes, promote incoming → active
-      setTimeout(() => {
-        activeIdxRef.current = next
-        setActiveIdx(next)
-        setIncomingIdx(null)
-        setIsFading(false)
-      }, FADE_MS)
+      // Safety fallback: if the image hasn't fired onLoad within MAX_LOAD_WAIT_MS,
+      // start the fade anyway so the slideshow never stalls
+      fallbackTimerRef.current = setTimeout(() => startFade(next), MAX_LOAD_WAIT_MS)
     }, INTERVAL_MS)
 
-    return () => clearInterval(timer)
+    return () => {
+      clearInterval(timer)
+      if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current)
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeIdx])
+  }, [activeIdx, startFade])
 
   const activeSlide   = activeIdx   !== null ? SLIDES[activeIdx]   : null
   const incomingSlide = incomingIdx !== null ? SLIDES[incomingIdx] : null
@@ -185,7 +218,8 @@ export default function HeroSlideshow({ clubName }: { clubName: string }) {
         </div>
       )}
 
-      {/* Incoming slide — cross-fades in with a subtle drift from right */}
+      {/* Incoming slide — rendered at opacity 0, fades in only once its image
+          has loaded (onSharpLoad → startFade). Drift from right on entry. */}
       {incomingSlide && (
         <div
           className="absolute inset-0"
@@ -197,8 +231,11 @@ export default function HeroSlideshow({ clubName }: { clubName: string }) {
               : 'none',
           }}
         >
-          {/* Credits always hidden on incoming — they fade in only after it becomes active */}
-          <SlideLayer slide={incomingSlide} creditsVisible={false} />
+          <SlideLayer
+            slide={incomingSlide}
+            creditsVisible={false}
+            onSharpLoad={() => startFade(incomingIdx!)}
+          />
         </div>
       )}
     </div>
