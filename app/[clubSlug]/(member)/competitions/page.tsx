@@ -9,18 +9,31 @@ export default async function CompetitionsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
 
-  // Current competitions: open or judging
+  const nowIso = new Date().toISOString()
+
+  // Current competitions: open or judging — includes opens_at so we can
+  // separate "truly open" from "open status but submissions not yet started"
   const { data: currentRaw } = await supabase
     .from('competitions')
-    .select('id, title, short_title, status, closes_at, results_at, submission_limit, competition_categories(id, name), judge_tokens(judge_name)')
+    .select('id, title, short_title, status, opens_at, closes_at, results_at, submission_limit, competition_categories(id, name), judge_tokens(judge_name)')
     .in('status', ['open', 'judging'])
     .is('archived_at', null)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
 
+  // Separate "truly active" from "scheduled — opens_at still in future"
+  const activeRaw    = (currentRaw ?? []).filter(c => !('opens_at' in c) || !(c as {opens_at: string|null}).opens_at || (c as {opens_at: string|null}).opens_at! <= nowIso)
+  const upcomingRaw  = (currentRaw ?? []).filter(c => ('opens_at' in c) && (c as {opens_at: string|null}).opens_at && (c as {opens_at: string|null}).opens_at! > nowIso)
+
+  const upcomingCompetitions = upcomingRaw.map(c => ({
+    id:      c.id,
+    title:   (c as unknown as { short_title: string | null }).short_title ?? c.title,
+    opensAt: (c as unknown as { opens_at: string | null }).opens_at ?? null,
+  }))
+
   // For each current competition, fetch member submissions and club stats
   const currentCompetitions = await Promise.all(
-    (currentRaw ?? []).map(async comp => {
+    activeRaw.map(async comp => {
       const mySubmissions = user ? await (async () => {
         const { data } = await supabase
           .from('submissions')
@@ -135,6 +148,7 @@ export default async function CompetitionsPage() {
     <CompetitionsClient
       userId={user?.id ?? ''}
       currentCompetitions={currentCompetitions}
+      upcomingCompetitions={upcomingCompetitions}
       previousCompetitions={previousCompetitions}
       libraryImages={libraryImages}
     />

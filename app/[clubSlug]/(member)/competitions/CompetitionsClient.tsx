@@ -60,9 +60,16 @@ type LibraryImage = {
   publicUrl: string
 }
 
+type UpcomingCompetition = {
+  id:      string
+  title:   string
+  opensAt: string | null
+}
+
 type Props = {
   userId: string
-  currentCompetitions: CurrentCompetition[]
+  currentCompetitions:  CurrentCompetition[]
+  upcomingCompetitions: UpcomingCompetition[]
   previousCompetitions: PreviousCompetition[]
   libraryImages: LibraryImage[]
 }
@@ -1287,6 +1294,43 @@ function PreviousCompetitionsBlock({ competitions }: { competitions: PreviousCom
   )
 }
 
+// ─── Upcoming competitions ────────────────────────────────────────────────────
+
+function UpcomingCompetitionsBlock({ competitions }: { competitions: UpcomingCompetition[] }) {
+  if (competitions.length === 0) return null
+  return (
+    <div>
+      <h2 className="mb-3 text-[15px] font-bold tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
+        Coming Up
+      </h2>
+      <div className="space-y-3">
+        {competitions.map(comp => (
+          <div
+            key={comp.id}
+            className="flex items-center justify-between gap-4"
+            style={{
+              borderRadius: 10,
+              border: '1px solid var(--border-subtle)',
+              padding: '12px 18px',
+              background: 'var(--surface-1)',
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <span style={{ color: 'var(--text-tertiary)', fontSize: 13 }} aria-hidden="true">○</span>
+              <span className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {comp.title}
+              </span>
+            </div>
+            <span className="text-[13px] shrink-0" style={{ color: 'var(--text-secondary)' }}>
+              Opens {comp.opensAt ? formatDate(comp.opensAt, { month: 'long', day: 'numeric' }) : '—'}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── No competition ───────────────────────────────────────────────────────────
 
 function NoCompetition() {
@@ -1302,7 +1346,7 @@ function NoCompetition() {
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export default function CompetitionsClient({
-  userId, currentCompetitions, previousCompetitions, libraryImages,
+  userId, currentCompetitions, upcomingCompetitions, previousCompetitions, libraryImages,
 }: Props) {
   const [submissionsMap, setSubmissionsMap] = useState<Record<string, Submission[]>>(
     () => Object.fromEntries(currentCompetitions.map(c => [c.id, c.mySubmissions]))
@@ -1389,6 +1433,9 @@ export default function CompetitionsClient({
             </div>
           )}
         </div>
+
+        {/* Upcoming — scheduled but submissions not yet open */}
+        <UpcomingCompetitionsBlock competitions={upcomingCompetitions} />
 
         {/* Previous — only shown when there are closed competitions with results ready */}
         {previousCompetitions.length > 0 && (
