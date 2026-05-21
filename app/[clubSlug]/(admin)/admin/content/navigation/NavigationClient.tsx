@@ -5,15 +5,20 @@ import { useEffect, useRef, useState, useTransition } from 'react'
 import {
   Box,
   Button,
+  CircularProgress,
   Dialog, DialogActions, DialogContent, DialogTitle,
   FormControl, FormControlLabel, FormLabel,
   MenuItem, Radio, RadioGroup,
   Select, Tab, Tabs, TextField, Tooltip, Alert,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
+import CloseIcon from '@mui/icons-material/Close'
+import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import HomepageEditor from './HomepageEditor'
 import type { ContentBlock } from '@/lib/homepage/types'
+import AboutPageEditor from '../about/AboutPageEditor'
+import CustomPageEditorComponent from './[pageId]/CustomPageEditor'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -283,11 +288,12 @@ function SysSubRow({ item }: { item: SysItem }) {
 // ── Navigation tab: custom sub-item row ───────────────────────────────────────
 
 function CustomSubRow({
-  page, onDelete, pending,
+  page, onDelete, onEdit, pending,
   onDragStart, onDragOver, onDrop, onDragEnd, isDragOver,
 }: {
   page: CustomPage
   onDelete: (id: string) => void
+  onEdit: (page: CustomPage) => void
   pending: boolean
   onDragStart: () => void
   onDragOver: (e: React.DragEvent) => void
@@ -321,13 +327,13 @@ function CustomSubRow({
 
         {/* Edit */}
         {page.page_type === 'rich_text' && (
-          <Link
-            href={`/admin/content/navigation/${page.id}`}
+          <button
+            onClick={() => onEdit(page)}
             className="flex-shrink-0 text-[12px] font-medium hover:underline"
             style={{ color: 'var(--action-primary)' }}
           >
             Edit
-          </Link>
+          </button>
         )}
 
         {/* Trash */}
@@ -410,12 +416,14 @@ function SysNavRow({
   customSubPages,
   onAddSubPage,
   onDeletePage,
+  onEditPage,
   pending,
 }: {
   item:           SysItem
   customSubPages: CustomPage[]
   onAddSubPage:   (parentKey: ParentSystem) => void
   onDeletePage:   (id: string) => void
+  onEditPage:     (page: CustomPage) => void
   pending:        boolean
 }) {
   const [open, setOpen] = useState(false)
@@ -480,7 +488,7 @@ function SysNavRow({
           ))}
           {localCustom.map((page, idx) => (
             <CustomSubRow
-              key={page.id} page={page} onDelete={onDeletePage} pending={pending}
+              key={page.id} page={page} onDelete={onDeletePage} onEdit={onEditPage} pending={pending}
               onDragStart={() => onCustomDragStart(idx)}
               onDragOver={e => onCustomDragOver(e, idx)}
               onDrop={() => onCustomDrop(idx)}
@@ -510,6 +518,7 @@ function CustomTabRow({
   customSubPages,
   onAddSubPage,
   onDeletePage,
+  onEditPage,
   onDeleteTab,
   pending,
 }: {
@@ -517,6 +526,7 @@ function CustomTabRow({
   customSubPages: CustomPage[]
   onAddSubPage:   (tabId: string) => void
   onDeletePage:   (id: string) => void
+  onEditPage:     (page: CustomPage) => void
   onDeleteTab:    (id: string) => void
   pending:        boolean
 }) {
@@ -578,7 +588,7 @@ function CustomTabRow({
         <div>
           {localPages.map((page, idx) => (
             <CustomSubRow
-              key={page.id} page={page} onDelete={onDeletePage} pending={pending}
+              key={page.id} page={page} onDelete={onDeletePage} onEdit={onEditPage} pending={pending}
               onDragStart={() => onDragStart(idx)}
               onDragOver={e => onDragOver(e, idx)}
               onDrop={() => onDrop(idx)}
@@ -605,41 +615,20 @@ function CustomTabRow({
 function PagesTable({
   pages,
   tabs,
-  onAddPage,
+  onEditPage,
   onDeletePage,
   pending,
 }: {
-  pages:       CustomPage[]
-  tabs:        CustomTab[]
-  onAddPage:   () => void
+  pages:        CustomPage[]
+  tabs:         CustomTab[]
+  onEditPage:   (page: CustomPage) => void
   onDeletePage: (id: string) => void
-  pending:     boolean
+  pending:      boolean
 }) {
-  const liveCount  = pages.filter(p => p.status === 'published').length
-  const draftCount = pages.filter(p => p.status === 'draft').length
-
   const COL = 'grid-cols-[1.8fr_5.5rem_8rem_8rem_8rem_6rem_2.5rem]'
 
   return (
     <div>
-      {/* Stats + action bar */}
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-          <span className="font-semibold text-content-primary">{pages.length}</span> total
-          <span className="mx-2" style={{ color: 'var(--border-default)' }}>·</span>
-          <span className="font-semibold" style={{ color: 'var(--action-primary)' }}>{liveCount}</span> live
-          <span className="mx-2" style={{ color: 'var(--border-default)' }}>·</span>
-          <span className="font-semibold text-content-secondary">{draftCount}</span> draft
-        </p>
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
-          onClick={onAddPage}
-        >
-          New page
-        </Button>
-      </div>
 
       {/* Table */}
       <div
@@ -708,8 +697,8 @@ function PagesTable({
               </span>
               {page.page_type === 'rich_text' && (
                 <Tooltip title="Edit page content">
-                  <Link
-                    href={`/admin/content/navigation/${page.id}`}
+                  <button
+                    onClick={() => onEditPage(page)}
                     className="flex items-center justify-center rounded p-1 transition-colors hover:bg-surface-1"
                     style={{ color: 'var(--text-tertiary)' }}
                   >
@@ -717,7 +706,7 @@ function PagesTable({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
-                  </Link>
+                  </button>
                 </Tooltip>
               )}
             </div>
@@ -847,6 +836,194 @@ function AddTabDialog({
   )
 }
 
+// ── System pages table ────────────────────────────────────────────────────────
+
+const SYSTEM_PAGES_LIST = [
+  { title: 'Home',                 url: '/',                           audience: 'Public + members', editable: false },
+  { title: 'Calendar',             url: '/calendar',                   audience: 'All members',      editable: false },
+  { title: 'My images',            url: '/library',                    audience: 'All members',      editable: false },
+  { title: 'Galleries',            url: '/library/galleries',          audience: 'All members',      editable: false },
+  { title: 'Current competitions', url: '/competitions',               audience: 'All members',      editable: false },
+  { title: 'Competition results',  url: '/competitions/results',       audience: 'All members',      editable: false },
+  { title: 'About our club',       url: '/our-club/about',             audience: 'All members',      editable: true  },
+  { title: 'Member directory',     url: '/our-club/members',           audience: 'All members',      editable: false },
+  { title: 'Standings',            url: '/our-club/members/standings', audience: 'All members',      editable: false },
+  { title: 'Documents',            url: '/our-club/documents',         audience: 'All members',      editable: false },
+]
+
+function SystemPagesTable({ onEditAbout }: { onEditAbout: () => void }) {
+  const COL = 'grid-cols-[1.8fr_9rem_8rem_6rem]'
+  return (
+    <div>
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+        System pages
+      </p>
+      <div className="rounded-[10px] overflow-hidden mb-6" style={{ border: '1px solid var(--border-default)' }}>
+        {/* Header */}
+        <div className={`grid ${COL} gap-3 px-4 py-2.5`} style={{ borderBottom: '1px solid var(--border-default)', background: 'var(--surface-1)' }}>
+          {['Page', 'URL', 'Audience', ''].map(h => (
+            <span key={h} className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{h}</span>
+          ))}
+        </div>
+        {SYSTEM_PAGES_LIST.map((row, i) => (
+          <div
+            key={row.url}
+            className={`grid ${COL} items-center gap-3 px-4 py-3`}
+            style={{ borderBottom: i < SYSTEM_PAGES_LIST.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{row.title}</span>
+              <SystemChip />
+              {!row.editable && (
+                <Tooltip title="Content is generated automatically">
+                  <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </span>
+                </Tooltip>
+              )}
+            </div>
+            <span className="font-mono text-[12px] truncate" style={{ color: 'var(--text-secondary)' }}>{row.url}</span>
+            <span className="text-[13px] truncate" style={{ color: 'var(--text-secondary)' }}>{row.audience}</span>
+            <div className="flex justify-end">
+              {row.editable ? (
+                <button
+                  onClick={onEditAbout}
+                  className="text-[12px] font-medium hover:underline"
+                  style={{ color: 'var(--action-primary)' }}
+                >
+                  Edit content →
+                </button>
+              ) : (
+                <LiveBadge />
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Mobile nav preview ────────────────────────────────────────────────────────
+
+function MobileNavPreview({ tabs }: { tabs: CustomTab[] }) {
+  const navItems = [
+    'Home', 'Calendar', 'Images', 'Competitions', 'Our Club',
+    ...tabs.map(t => t.name),
+  ]
+  return (
+    <div className="sticky top-6">
+      <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+        Mobile preview
+      </p>
+      {/* Phone frame */}
+      <div
+        className="mx-auto rounded-[24px] overflow-hidden"
+        style={{
+          width: 220,
+          border: '2px solid var(--border-default)',
+          background: 'var(--surface-1)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
+        }}
+      >
+        {/* Status bar */}
+        <div className="px-4 pt-3 pb-1 flex justify-between items-center" style={{ background: 'var(--surface-2)' }}>
+          <span className="text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>9:41</span>
+          <div className="flex gap-1">
+            <div className="rounded-full" style={{ width: 4, height: 4, background: 'var(--text-tertiary)' }} />
+            <div className="rounded-full" style={{ width: 4, height: 4, background: 'var(--text-tertiary)' }} />
+            <div className="rounded-full" style={{ width: 4, height: 4, background: 'var(--text-tertiary)' }} />
+          </div>
+        </div>
+        {/* App bar */}
+        <div className="px-4 py-2.5 flex items-center justify-between" style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border-subtle)' }}>
+          <span className="text-[13px] font-semibold" style={{ fontFamily: 'var(--font-primary)', color: 'var(--text-primary)' }}>
+            Club
+          </span>
+          <svg className="h-4 w-4" style={{ color: 'var(--text-primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </div>
+        {/* Nav items */}
+        <div style={{ background: 'var(--surface-0)' }}>
+          {navItems.map((item, i) => (
+            <div
+              key={item}
+              className="px-4 py-3 flex items-center justify-between"
+              style={{ borderBottom: i < navItems.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}
+            >
+              <span className="text-[13px]" style={{ color: i === 0 ? 'var(--action-primary)' : 'var(--text-primary)', fontWeight: i === 0 ? 600 : 400 }}>
+                {item}
+              </span>
+              <svg className="h-3 w-3" style={{ color: 'var(--text-tertiary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          ))}
+        </div>
+        {/* Bottom bar */}
+        <div className="h-4" style={{ background: 'var(--surface-2)' }} />
+      </div>
+      <p className="mt-3 text-center text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+        Approximate mobile layout
+      </p>
+    </div>
+  )
+}
+
+// ── Add-to-nav dialog ─────────────────────────────────────────────────────────
+
+function AddToNavDialog({
+  page,
+  tabs,
+  defaultParent,
+  onClose,
+  onSave,
+  pending,
+}: {
+  page:          CustomPage
+  tabs:          CustomTab[]
+  defaultParent: ParentSystem | string
+  onClose:       () => void
+  onSave:        (parent: ParentSystem | string) => void
+  pending:       boolean
+}) {
+  const [parent, setParent] = useState<string>(defaultParent)
+  const parentOptions: { value: string; label: string }[] = [
+    { value: 'our-club',     label: 'Our Club' },
+    { value: 'calendar',     label: 'Calendar' },
+    { value: 'images',       label: 'Images' },
+    { value: 'competitions', label: 'Competitions' },
+    ...tabs.map(t => ({ value: t.id, label: t.name })),
+  ]
+  return (
+    <Dialog open onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>Add to navigation?</DialogTitle>
+      <DialogContent sx={{ pt: '12px !important', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <p className="text-[13px]" style={{ color: 'var(--text-secondary)', margin: 0 }}>
+          <strong>&ldquo;{page.title}&rdquo;</strong> was created. Would you like to add it to the site navigation?
+        </p>
+        <FormControl size="small" fullWidth>
+          <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Menu location</FormLabel>
+          <Select value={parent} onChange={e => setParent(e.target.value)} sx={{ fontSize: 13 }}>
+            {parentOptions.map(o => (
+              <MenuItem key={o.value} value={o.value} sx={{ fontSize: 13 }}>{o.label}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+        <Button variant="outlined" color="secondary" onClick={onClose}>Skip</Button>
+        <Button variant="contained" disabled={pending} onClick={() => onSave(parent)}>
+          Add to {parentOptions.find(o => o.value === parent)?.label ?? 'navigation'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function NavigationClient({
@@ -858,11 +1035,63 @@ export default function NavigationClient({
   customTabs:             CustomTab[]
   initialHomepageBlocks?: ContentBlock[]
 }) {
-  const [activeTab, setActiveTab] = useState<MainTab>('navigation')
+  const params = useParams()
+  const clubSlug = typeof params.clubSlug === 'string' ? params.clubSlug : ''
+
+  const [activeTab, setActiveTab] = useState<MainTab>('homepage')
   const [pages,     setPages]     = useState<CustomPage[]>(initialPages)
   const [tabs,      setTabs]      = useState<CustomTab[]>(initialTabs)
   const [pending, startTrans]     = useTransition()
   const [err,       setErr]       = useState<string | null>(null)
+
+  // ── About page inline editor ──────────────────────────────────────────────
+  const [aboutDialogOpen, setAboutDialogOpen] = useState(false)
+  const [aboutLoading,    setAboutLoading]    = useState(false)
+  const [aboutPageData,   setAboutPageData]   = useState<{ id: string | null; content: string } | null>(null)
+
+  // ── Custom page inline editor ─────────────────────────────────────────────
+  const [editingCustomPage,  setEditingCustomPage]  = useState<CustomPage | null>(null)
+  const [customPageContent,  setCustomPageContent]  = useState('')
+  const [customPageLoading,  setCustomPageLoading]  = useState(false)
+
+  // ── "Add to navigation?" prompt shown after page creation ─────────────────
+  const [addToNavPage,   setAddToNavPage]   = useState<CustomPage | null>(null)
+  const [addToNavParent, setAddToNavParent] = useState<ParentSystem | string>('our-club')
+
+  async function openAboutEditor() {
+    setAboutDialogOpen(true)
+    if (aboutPageData) return
+    setAboutLoading(true)
+    const supabase = createClient()
+    const { data } = await supabase.from('pages').select('id, content').eq('slug', 'about').maybeSingle()
+    setAboutPageData({ id: data?.id ?? null, content: data?.content ?? '' })
+    setAboutLoading(false)
+  }
+
+  async function openCustomPageEditor(page: CustomPage) {
+    setEditingCustomPage(page)
+    setCustomPageLoading(true)
+    const supabase = createClient()
+    const { data } = await supabase.from('nav_custom_pages').select('content').eq('id', page.id).maybeSingle()
+    setCustomPageContent((data as unknown as { content?: string } | null)?.content ?? '')
+    setCustomPageLoading(false)
+  }
+
+  function saveAddToNav(parent: ParentSystem | string, page: CustomPage) {
+    setAddToNavPage(null)
+    setErr(null)
+    startTrans(async () => {
+      const supabase = createClient()
+      const isSystem = (['calendar', 'images', 'competitions', 'our-club'] as string[]).includes(parent)
+      await supabase.from('nav_custom_pages').update({
+        ...(isSystem ? { parent_system: parent, tab_id: null } : { parent_system: null, tab_id: parent }),
+      }).eq('id', page.id)
+      setPages(prev => prev.map(p => p.id === page.id
+        ? { ...p, ...(isSystem ? { parent_system: parent as ParentSystem, tab_id: null } : { parent_system: null, tab_id: parent }) }
+        : p
+      ))
+    })
+  }
 
   // ── Add page state ────────────────────────────────────────────────────────
   const [addPageOpen,   setAddPageOpen]   = useState(false)
@@ -897,6 +1126,8 @@ export default function NavigationClient({
       }).select().single()
       if (error) { setErr(error.message); return }
       setPages(prev => [...prev, data as CustomPage])
+      setAddToNavPage(data as CustomPage)
+      setAddToNavParent('our-club')
     })
   }
 
@@ -940,9 +1171,9 @@ export default function NavigationClient({
     )
 
   const MAIN_TABS = [
-    { key: 'navigation' as MainTab, label: 'Navigation' },
     { key: 'homepage'   as MainTab, label: 'Homepage' },
-    { key: 'pages'      as MainTab, label: 'Custom Pages' },
+    { key: 'pages'      as MainTab, label: 'Pages' },
+    { key: 'navigation' as MainTab, label: 'Navigation' },
   ]
 
   return (
@@ -970,55 +1201,56 @@ export default function NavigationClient({
 
       {/* ── Navigation tab ──────────────────────────────────────────────── */}
       {activeTab === 'navigation' && (
-        <div>
-          <div
-            className="rounded-[10px] overflow-hidden"
-            style={{ border: '1px solid var(--border-default)' }}
-          >
-            {/* System nav rows */}
-            {SYSTEM_NAV.map(item => (
-              <SysNavRow
-                key={item.href}
-                item={item}
-                customSubPages={item.parentKey ? pagesFor(item.parentKey) : []}
-                onAddSubPage={key => openAddPage(key, SLOT_LABEL[key])}
-                onDeletePage={deletePage}
-                pending={pending}
-              />
-            ))}
-
-            {/* Custom tab rows */}
-            {tabs.map(tab => (
-              <CustomTabRow
-                key={tab.id}
-                tab={tab}
-                customSubPages={pagesFor(tab.id)}
-                onAddSubPage={id => openAddPage(id, tab.name)}
-                onDeletePage={deletePage}
-                onDeleteTab={deleteTab}
-                pending={pending}
-              />
-            ))}
+        <div className="flex gap-8 items-start">
+          <div className="flex-1 min-w-0">
+            {/* Nav tree */}
+            <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
+              {SYSTEM_NAV.map(item => (
+                <SysNavRow
+                  key={item.href}
+                  item={item}
+                  customSubPages={item.parentKey ? pagesFor(item.parentKey) : []}
+                  onAddSubPage={key => openAddPage(key, SLOT_LABEL[key])}
+                  onDeletePage={deletePage}
+                  onEditPage={openCustomPageEditor}
+                  pending={pending}
+                />
+              ))}
+              {tabs.map(tab => (
+                <CustomTabRow
+                  key={tab.id}
+                  tab={tab}
+                  customSubPages={pagesFor(tab.id)}
+                  onAddSubPage={id => openAddPage(id, tab.name)}
+                  onDeletePage={deletePage}
+                  onEditPage={openCustomPageEditor}
+                  onDeleteTab={deleteTab}
+                  pending={pending}
+                />
+              ))}
+            </div>
+            <div className="mt-4">
+              {tabs.length < 2 ? (
+                <button
+                  onClick={() => setAddTabOpen(true)}
+                  className="flex items-center gap-2 rounded-[8px] border px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-surface-1"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add top-level tab
+                </button>
+              ) : (
+                <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+                  Maximum of 2 custom tabs reached.
+                </p>
+              )}
+            </div>
           </div>
-
-          {/* Add top-level tab */}
-          <div className="mt-4">
-            {tabs.length < 2 ? (
-              <button
-                onClick={() => setAddTabOpen(true)}
-                className="flex items-center gap-2 rounded-[8px] border px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-surface-1"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add top-level tab
-              </button>
-            ) : (
-              <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-                Maximum of 2 custom tabs reached. Consider adding pages under an existing menu.
-              </p>
-            )}
+          {/* Mobile preview column */}
+          <div className="w-56 flex-shrink-0 hidden lg:block">
+            <MobileNavPreview tabs={tabs} />
           </div>
         </div>
       )}
@@ -1028,15 +1260,31 @@ export default function NavigationClient({
         <HomepageEditor initialBlocks={initialHomepageBlocks} />
       )}
 
-      {/* ── Custom Pages tab ─────────────────────────────────────────────── */}
+      {/* ── Pages tab ────────────────────────────────────────────────────── */}
       {activeTab === 'pages' && (
-        <PagesTable
-          pages={pages}
-          tabs={tabs}
-          onAddPage={() => openAddPage('our-club', 'Our Club')}
-          onDeletePage={deletePage}
-          pending={pending}
-        />
+        <div>
+          <SystemPagesTable onEditAbout={openAboutEditor} />
+          <div className="mb-4 flex items-center justify-between">
+            <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+              Custom pages
+            </p>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
+              onClick={() => openAddPage('our-club', 'Our Club')}
+            >
+              New page
+            </Button>
+          </div>
+          <PagesTable
+            pages={pages}
+            tabs={tabs}
+            onEditPage={openCustomPageEditor}
+            onDeletePage={deletePage}
+            pending={pending}
+          />
+        </div>
       )}
 
       {/* ── Dialogs ─────────────────────────────────────────────────────── */}
@@ -1053,6 +1301,81 @@ export default function NavigationClient({
         onSave={saveAddTab}
         pending={pending}
       />
+
+      {/* About page inline editor dialog */}
+      <Dialog open={aboutDialogOpen} onClose={() => setAboutDialogOpen(false)} fullScreen>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
+            <Button
+              startIcon={<CloseIcon sx={{ fontSize: 16 }} />}
+              variant="text"
+              color="secondary"
+              size="small"
+              onClick={() => setAboutDialogOpen(false)}
+            >
+              Back to Pages
+            </Button>
+          </Box>
+          {aboutLoading || !aboutPageData ? (
+            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CircularProgress size={32} />
+            </Box>
+          ) : (
+            <Box sx={{ flex: 1, overflow: 'hidden' }}>
+              <AboutPageEditor pageId={aboutPageData.id} initialContent={aboutPageData.content} />
+            </Box>
+          )}
+        </Box>
+      </Dialog>
+
+      {/* Custom page inline editor dialog */}
+      {editingCustomPage && (
+        <Dialog open onClose={() => setEditingCustomPage(null)} fullScreen>
+          <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
+              <Button
+                startIcon={<CloseIcon sx={{ fontSize: 16 }} />}
+                variant="text"
+                color="secondary"
+                size="small"
+                onClick={() => setEditingCustomPage(null)}
+              >
+                Back to Pages
+              </Button>
+            </Box>
+            {customPageLoading ? (
+              <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CircularProgress size={32} />
+              </Box>
+            ) : (
+              <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                <CustomPageEditorComponent
+                  pageId={editingCustomPage.id}
+                  menuLabel={menuLocationLabel(editingCustomPage, tabs)}
+                  initialTitle={editingCustomPage.title}
+                  initialContent={customPageContent}
+                  initialVisibility={editingCustomPage.visibility}
+                  initialStatus={editingCustomPage.status}
+                  slug={editingCustomPage.slug}
+                  clubSlug={clubSlug}
+                />
+              </Box>
+            )}
+          </Box>
+        </Dialog>
+      )}
+
+      {/* Add to navigation prompt */}
+      {addToNavPage && (
+        <AddToNavDialog
+          page={addToNavPage}
+          tabs={tabs}
+          defaultParent={addToNavParent}
+          onClose={() => setAddToNavPage(null)}
+          onSave={parent => saveAddToNav(parent, addToNavPage)}
+          pending={pending}
+        />
+      )}
     </div>
   )
 }
