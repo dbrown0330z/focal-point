@@ -39,6 +39,10 @@ export interface AffiliationsSettings {
   maxColumns: number; affiliations: Affiliation[]
 }
 
+export interface DualPanelSettings {
+  eventCount: 3 | 4 | 5 | 6
+}
+
 export interface CompetitionsSettings {
   heading:          string
   showScoreChart:   boolean
@@ -64,6 +68,7 @@ export interface ContentBlock {
   eventsSettings?:         EventsSettings
   customContentSettings?:  CustomContentSettings
   affiliationsSettings?:   AffiliationsSettings
+  dualPanelSettings?:      DualPanelSettings
   competitionsSettings?:   CompetitionsSettings
 }
 
@@ -110,6 +115,7 @@ export const DEFAULT_BLOCKS: ContentBlock[] = [
   },
   {
     id: 'dual-panel', name: 'Events & competitions', type: 'dual-panel', enabled: true,
+    dualPanelSettings: { eventCount: 4 },
   },
   {
     id: 'custom-content-1', name: 'Custom content', type: 'custom-content', enabled: true,

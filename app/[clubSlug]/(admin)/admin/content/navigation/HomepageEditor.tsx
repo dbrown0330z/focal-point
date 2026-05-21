@@ -37,6 +37,7 @@ import {
   type Affiliation,
   type AffiliationType,
   type AffiliationsSettings,
+  type DualPanelSettings,
   type CompetitionsSettings,
 } from '@/lib/homepage/types'
 
@@ -47,6 +48,10 @@ const MAX_CUSTOM_CONTENT = 4
 // ── Modal metadata ─────────────────────────────────────────────────────────────
 
 const MODAL_META: Record<string, { title: string; description: string }> = {
+  'dual-panel': {
+    title:       'Events & competitions',
+    description: 'A two-column panel showing your next upcoming events on the left and live competition activity on the right. Configure how many events appear in the list.',
+  },
   'welcome': {
     title:       'Welcome block',
     description: 'Controls the hero section visitors see on first arrival. Logged-in members see a compact greeting instead of the full hero — no config needed for that state.',
@@ -333,6 +338,25 @@ function SpotlightModalBody({ block, onChange }: { block: ContentBlock; onChange
         </FieldRow>
       )}
     </Box>
+  )
+}
+
+function DualPanelModalBody({ block, onChange }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void }) {
+  const s = block.dualPanelSettings!
+  return (
+    <FieldRow label="Number of events to show">
+      <Box sx={{ display: 'flex', gap: 0.75 }}>
+        {([3, 4, 5, 6] as const).map(n => (
+          <button key={n} onClick={() => onChange({ dualPanelSettings: { ...s, eventCount: n } })} style={{
+            width: 32, height: 30, cursor: 'pointer', borderRadius: 4,
+            border: `1px solid ${s.eventCount === n ? 'var(--action-primary)' : 'var(--border-default)'}`,
+            background: s.eventCount === n ? 'rgba(30,77,140,0.07)' : 'var(--surface-2)',
+            color: s.eventCount === n ? 'var(--action-primary)' : 'var(--text-secondary)',
+            fontSize: 13, fontWeight: 600, transition: 'all 0.1s',
+          }}>{n}</button>
+        ))}
+      </Box>
+    </FieldRow>
   )
 }
 
@@ -670,6 +694,7 @@ function BlockEditModal({
         {block.type === 'grid-6'           && <Grid6ModalBody            block={block} onChange={onUpdate} />}
         {block.type === 'strip-8'          && <Strip8ModalBody           block={block} onChange={onUpdate} />}
         {block.type === 'member-spotlight' && <SpotlightModalBody        block={block} onChange={onUpdate} />}
+        {block.type === 'dual-panel'        && <DualPanelModalBody        block={block} onChange={onUpdate} />}
         {block.type === 'upcoming-events'  && <EventsModalBody           block={block} onChange={onUpdate} />}
         {block.type === 'custom-content'   && <CustomContentModalBody    block={block} onChange={onUpdate} />}
         {block.type === 'affiliations'     && <AffiliationsModalBody     block={block} onChange={onUpdate} />}
@@ -712,6 +737,10 @@ function getBlockSubtitle(block: ContentBlock): string | null {
       const s = block.spotlightSettings; if (!s) return null
       return s.mode === 'manual' && s.memberName ? `Pinned: ${s.memberName}` : 'Auto-rotates each visit'
     }
+    case 'dual-panel': {
+      const s = block.dualPanelSettings; if (!s) return null
+      return `Next ${s.eventCount} events · live competition activity`
+    }
     case 'upcoming-events': {
       const s = block.eventsSettings; if (!s) return null
       return `Next ${s.count} event${s.count === 1 ? '' : 's'}`
@@ -748,7 +777,7 @@ function BlockCard({
   onDragStart: () => void
   onDragOver:  (e: React.DragEvent) => void
 }) {
-  const configOnly = ['large-image','grid-6','strip-8','upcoming-events','member-spotlight','competitions'].includes(block.type)
+  const configOnly = ['large-image','grid-6','strip-8','dual-panel','upcoming-events','member-spotlight','competitions'].includes(block.type)
   const displayName = block.label ?? block.name
   const subtitle    = getBlockSubtitle(block)
 
@@ -1200,6 +1229,87 @@ function PreviewBlock({ block, audience, t, compact }: { block: ContentBlock; au
               </div>
             </div>
 
+          </div>
+        </PbSection>
+      )
+    }
+
+    case 'dual-panel': {
+      const eventCount = Math.min(block.dualPanelSettings?.eventCount ?? 4, DUMMY_EVENTS.length)
+      const phaseOpen    = 'rgba(46,125,50,0.07)'
+      const openBorder   = '#2E7D32'
+      const judgeBorder  = '#A67C00'
+      const greenText    = '#2E7D32'
+      return (
+        <PbSection t={t} noBorder>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0, minHeight: 200 }}>
+
+            {/* ── Left: Events ── */}
+            <div style={{ paddingRight: 20, borderRight: `1px solid ${t.borderSubtle}` }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ fontFamily: t.fontSerif, fontSize: 15, fontWeight: 700, color: t.textPrimary }}>Next {eventCount} Events</div>
+                <span style={{ fontSize: 11, color: t.actionPrimary, fontFamily: t.fontSans }}>Calendar →</span>
+              </div>
+              {DUMMY_EVENTS.slice(0, eventCount).map((ev, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 0', borderBottom: i < eventCount - 1 ? `1px solid ${t.borderSubtle}` : 'none' }}>
+                  <div style={{ minWidth: 40, textAlign: 'center', background: t.surface1, borderRadius: 6, padding: '3px 5px', flexShrink: 0 }}>
+                    <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: t.actionPrimary, fontFamily: t.fontSans }}>
+                      {ev.date.replace(/\d/g,'').trim().replace(/\s+/,'').slice(0,3)}
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: t.textPrimary, lineHeight: 1.1, fontFamily: t.fontSerif }}>
+                      {ev.date.replace(/\D/g,'').trim().slice(0,2)}
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: t.textPrimary, fontFamily: t.fontSans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.title}</div>
+                    <div style={{ fontSize: 10, color: t.textTertiary, marginTop: 1, fontFamily: t.fontSans }}>{ev.time}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ── Right: Competition activity ── */}
+            <div style={{ paddingLeft: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ fontFamily: t.fontSerif, fontSize: 15, fontWeight: 700, color: t.textPrimary }}>Competition activity</div>
+                <span style={{ fontSize: 11, color: t.actionPrimary, fontFamily: t.fontSans }}>View all →</span>
+              </div>
+
+              {/* Open competition card */}
+              <div style={{ borderRadius: 8, border: `1px solid ${t.borderDefault}`, marginBottom: 8, overflow: 'hidden' }}>
+                <div style={{ background: phaseOpen, borderLeft: `3px solid ${openBorder}`, padding: '8px 10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: openBorder, flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: t.textPrimary, fontFamily: t.fontSans }}>Monthly Salon</span>
+                  </div>
+                  <div style={{ fontSize: 10, color: greenText, marginTop: 3, fontFamily: t.fontSans, fontWeight: 600 }}>
+                    Submissions open · Closes Jun 5 · 16 days left
+                  </div>
+                </div>
+                <div style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: `1px solid ${t.borderSubtle}` }}>
+                  <span style={{ fontSize: 10, color: t.textSecondary, fontFamily: t.fontSans }}>0 entries · 0 of 3 submitted</span>
+                  <span style={{ fontSize: 10, color: t.actionPrimary, fontFamily: t.fontSans, fontWeight: 600 }}>Submit an image →</span>
+                </div>
+              </div>
+
+              {/* Judging row */}
+              <div style={{ borderRadius: 8, border: `1px solid ${t.borderSubtle}`, borderLeft: `3px solid ${judgeBorder}`, padding: '7px 10px', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill={judgeBorder}><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4-8c0 2.21-1.79 4-4 4s-4-1.79-4-4 1.79-4 4-4 4 1.79 4 4z"/></svg>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: t.textPrimary, fontFamily: t.fontSans }}>May 2026</span>
+                </div>
+                <span style={{ fontSize: 10, color: t.textTertiary, fontFamily: t.fontSans }}>Judging in progress</span>
+              </div>
+
+              {/* Coming soon row */}
+              <div style={{ borderRadius: 8, border: `1px solid ${t.borderSubtle}`, padding: '7px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', border: `1.5px solid ${t.textTertiary}`, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: t.textSecondary, fontFamily: t.fontSans }}>Monthly Salon – July</span>
+                </div>
+                <span style={{ fontSize: 10, color: t.textTertiary, fontFamily: t.fontSans }}>Opens Jul 22</span>
+              </div>
+            </div>
           </div>
         </PbSection>
       )
