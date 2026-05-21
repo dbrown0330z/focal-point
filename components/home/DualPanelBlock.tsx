@@ -42,7 +42,7 @@ type CompCard = OpenCard | ResultsCard | JudgingCard | ComingSoonCard
 function StatusDot({ kind }: { kind: CompCard['kind'] }) {
   const styles: Record<CompCard['kind'], { symbol: string; color: string }> = {
     open:        { symbol: '●', color: 'var(--action-primary)' },
-    results:     { symbol: '✓', color: 'var(--status-success)' },
+    results:     { symbol: '✓', color: 'var(--action-primary)' },
     judging:     { symbol: '◐', color: 'var(--status-warning)' },
     coming_soon: { symbol: '○', color: 'var(--text-tertiary)' },
   }
@@ -130,7 +130,7 @@ function ResultsCompCard({ card }: { card: ResultsCard }) {
       borderRadius: 10,
       padding:      '13px 15px',
       border:       '1px solid var(--border-default)',
-      borderLeft:   '3px solid var(--status-success)',
+      borderLeft:   '3px solid var(--action-primary)',
     }}>
       {/* Name + "Results published" */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginBottom: 7 }}>
@@ -194,14 +194,19 @@ function SlimRow({ card }: { card: JudgingCard | ComingSoonCard }) {
       ? `Opens ${fmtDate(card.opensAt)}`
       : 'Opening soon'
 
+  const leftBorder = card.kind === 'judging'
+    ? '3px solid var(--status-warning)'
+    : '1px solid var(--border-subtle)'  // coming_soon: no accent bar
+
   return (
     <div style={{
       display:      'flex',
       alignItems:   'center',
       gap:          8,
-      padding:      '10px 13px',
+      padding:      card.kind === 'judging' ? '10px 13px 10px 11px' : '10px 13px',
       borderRadius: 8,
       border:       '1px solid var(--border-subtle)',
+      borderLeft:   leftBorder,
     }}>
       <StatusDot kind={card.kind} />
       <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
