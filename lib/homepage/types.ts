@@ -27,8 +27,13 @@ export interface ContentNote {
 export interface CustomContentSettings {
   columns: 1 | 2 | 3; previewLines: number; notes: ContentNote[]
 }
+export type AffiliationType = 'PSA' | 'facebook' | 'instagram' | 'youtube' | 'flickr' | '500px' | 'twitter' | 'vimeo' | 'other'
+
 export interface Affiliation {
-  id: string; name: string; url: string
+  id: string
+  type: AffiliationType
+  name: string   // label shown on the tile; auto-set for known types, user-entered for 'other'
+  url: string
 }
 export interface AffiliationsSettings {
   maxColumns: number; affiliations: Affiliation[]

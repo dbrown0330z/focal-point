@@ -35,6 +35,7 @@ import {
   type ContentNote,
   type CustomContentSettings,
   type Affiliation,
+  type AffiliationType,
   type AffiliationsSettings,
   type CompetitionsSettings,
 } from '@/lib/homepage/types'
@@ -449,12 +450,21 @@ function CustomContentModalBody({ block, onChange }: { block: ContentBlock; onCh
   )
 }
 
+const AFFILIATION_TYPE_LABELS: Record<string, string> = {
+  PSA: 'PSA', facebook: 'Facebook', instagram: 'Instagram',
+  youtube: 'YouTube', flickr: 'Flickr', '500px': '500px',
+  twitter: 'X / Twitter', vimeo: 'Vimeo', other: 'Other',
+}
+
 function AffiliationsModalBody({ block, onChange }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void }) {
   const s = block.affiliationsSettings!
+
   const addItem = () =>
-    onChange({ affiliationsSettings: { ...s, affiliations: [...s.affiliations, { id: crypto.randomUUID(), name: '', url: '' }] } })
-  const setItem = (id: string, k: keyof Affiliation, v: string) =>
-    onChange({ affiliationsSettings: { ...s, affiliations: s.affiliations.map(a => a.id === id ? { ...a, [k]: v } : a) } })
+    onChange({ affiliationsSettings: { ...s, affiliations: [...s.affiliations, { id: crypto.randomUUID(), type: 'other' as AffiliationType, name: '', url: '' }] } })
+
+  const setItem = (id: string, updates: Partial<Affiliation>) =>
+    onChange({ affiliationsSettings: { ...s, affiliations: s.affiliations.map(a => a.id === id ? { ...a, ...updates } : a) } })
+
   const removeItem = (id: string) =>
     onChange({ affiliationsSettings: { ...s, affiliations: s.affiliations.filter(a => a.id !== id) } })
 
@@ -479,18 +489,48 @@ function AffiliationsModalBody({ block, onChange }: { block: ContentBlock; onCha
           Entries ({s.affiliations.length} / {s.maxColumns})
         </Typography>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          {s.affiliations.map((a, i) => (
-            <Box key={a.id} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <Typography sx={{ fontSize: 11, color: 'text.tertiary', minWidth: 18, textAlign: 'right' }}>{i + 1}</Typography>
-              <TextField size="small" value={a.name} onChange={e => setItem(a.id, 'name', e.target.value)}
-                placeholder="Name (e.g. PSA)" sx={{ ...inputSx, flex: '0 0 120px' }} />
-              <TextField size="small" value={a.url} onChange={e => setItem(a.id, 'url', e.target.value)}
-                placeholder="https://…" sx={{ ...inputSx, flex: 1 }} />
-              <IconButton size="small" onClick={() => removeItem(a.id)} sx={{ color: 'text.secondary', flexShrink: 0 }}>
-                <DeleteOutlineIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            </Box>
-          ))}
+          {s.affiliations.map((a, i) => {
+            const aff = a as Affiliation & { type?: AffiliationType }
+            const currentType: AffiliationType = aff.type ?? 'other'
+            return (
+              <Box key={a.id} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                <Typography sx={{ fontSize: 11, color: 'text.tertiary', minWidth: 18, textAlign: 'right', mt: 1 }}>{i + 1}</Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, flex: '0 0 160px' }}>
+                  <Select
+                    size="small"
+                    value={currentType}
+                    onChange={e => {
+                      const t = e.target.value as AffiliationType
+                      const autoName = t !== 'other' ? (AFFILIATION_TYPE_LABELS[t] ?? '') : ''
+                      setItem(a.id, { type: t, name: t !== 'other' ? autoName : '' })
+                    }}
+                    sx={{ ...inputSx, fontSize: 13 }}
+                  >
+                    <MenuItem value="PSA" sx={{ fontSize: 13 }}>PSA</MenuItem>
+                    <Divider />
+                    <MenuItem value="facebook"  sx={{ fontSize: 13 }}>Facebook</MenuItem>
+                    <MenuItem value="instagram" sx={{ fontSize: 13 }}>Instagram</MenuItem>
+                    <MenuItem value="youtube"   sx={{ fontSize: 13 }}>YouTube</MenuItem>
+                    <MenuItem value="flickr"    sx={{ fontSize: 13 }}>Flickr</MenuItem>
+                    <MenuItem value="500px"     sx={{ fontSize: 13 }}>500px</MenuItem>
+                    <MenuItem value="twitter"   sx={{ fontSize: 13 }}>X / Twitter</MenuItem>
+                    <MenuItem value="vimeo"     sx={{ fontSize: 13 }}>Vimeo</MenuItem>
+                    <Divider />
+                    <MenuItem value="other"     sx={{ fontSize: 13, fontStyle: 'italic' }}>Other…</MenuItem>
+                  </Select>
+                  {currentType === 'other' && (
+                    <TextField size="small" value={a.name} onChange={e => setItem(a.id, { name: e.target.value })}
+                      placeholder="Display name" sx={{ ...inputSx }} />
+                  )}
+                </Box>
+                <TextField size="small" value={a.url} onChange={e => setItem(a.id, { url: e.target.value })}
+                  placeholder="https://…" sx={{ ...inputSx, flex: 1, mt: currentType === 'other' ? 0 : 0 }} />
+                <IconButton size="small" onClick={() => removeItem(a.id)} sx={{ color: 'text.secondary', flexShrink: 0, mt: 0.25 }}>
+                  <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Box>
+            )
+          })}
           {s.affiliations.length < s.maxColumns && (
             <Button startIcon={<AddIcon />} size="small" variant="outlined" color="secondary"
               onClick={addItem} sx={{ alignSelf: 'flex-start', textTransform: 'none', fontSize: 13, mt: 0.5 }}>
@@ -1222,23 +1262,26 @@ function PreviewBlock({ block, audience, t, compact }: { block: ContentBlock; au
     case 'affiliations': {
       const s = block.affiliationsSettings!
       const items = s.affiliations.length > 0 ? s.affiliations : [
-        { id: 'p1', name: 'PSA',       url: '' },
-        { id: 'p2', name: 'NZIPP',     url: '' },
-        { id: 'p3', name: 'Instagram', url: '' },
-        { id: 'p4', name: 'Facebook',  url: '' },
+        { id: 'p1', type: 'PSA' as AffiliationType,       name: 'PSA',       url: '' },
+        { id: 'p2', type: 'instagram' as AffiliationType, name: 'Instagram', url: '' },
+        { id: 'p3', type: 'facebook' as AffiliationType,  name: 'Facebook',  url: '' },
+        { id: 'p4', type: 'twitter' as AffiliationType,   name: 'X / Twitter', url: '' },
       ].slice(0, s.maxColumns)
 
       return (
         <PbSection t={t} noBorder>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
-            {items.map((a, i) => (
-              <div key={a.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, minWidth: 72 }}>
-                <div style={{ width: 48, height: 48, borderRadius: t.radius, background: AFFILIATION_COLORS[i % AFFILIATION_COLORS.length] + '22', border: `1px solid ${AFFILIATION_COLORS[i % AFFILIATION_COLORS.length]}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: t.fontSans, fontSize: 10, fontWeight: 700, color: AFFILIATION_COLORS[i % AFFILIATION_COLORS.length], letterSpacing: '0.04em' }}>
-                  {a.name.slice(0, 4).toUpperCase()}
+            {items.map((a) => {
+              const aff = a as { id: string; type?: AffiliationType; name: string; url: string }
+              return (
+                <div key={a.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, minWidth: 64 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: t.radius, background: t.surface1, border: `1px solid ${t.borderDefault}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textSecondary }}>
+                    <AffiliationLogoPreview type={aff.type ?? 'other'} name={aff.name} />
+                  </div>
+                  <div style={{ fontSize: 10, color: t.textTertiary, fontFamily: t.fontSans, textAlign: 'center', maxWidth: 64, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{aff.name || '—'}</div>
                 </div>
-                <div style={{ fontSize: 10, color: t.textTertiary, fontFamily: t.fontSans, textAlign: 'center' }}>{a.name}</div>
-              </div>
-            ))}
+              )
+            })}
           </div>
           {s.affiliations.length === 0 && (
             <div style={{ textAlign: 'center', marginTop: 8, fontSize: 11, color: t.textTertiary, fontFamily: t.fontSans, fontStyle: 'italic' }}>
@@ -1257,6 +1300,77 @@ function PreviewBlock({ block, audience, t, compact }: { block: ContentBlock; au
 
 function SunIcon()  { return <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-12.37l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0zM7.05 18.36l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0z"/></svg> }
 function MoonIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg> }
+
+// ── Brand logo SVGs ────────────────────────────────────────────────────────────
+
+function FacebookSvg({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+    </svg>
+  )
+}
+function InstagramSvg({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+      <circle cx="12" cy="12" r="4"/>
+      <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
+    </svg>
+  )
+}
+function YouTubeSvg({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-1.96C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.4 19.54C5.12 20 12 20 12 20s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>
+      <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="white"/>
+    </svg>
+  )
+}
+function FlickrSvg({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="7" cy="12" r="4.5"/>
+      <circle cx="17" cy="12" r="4.5" opacity="0.45"/>
+    </svg>
+  )
+}
+function FiveHundredSvg({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12.5 3C7.25 3 3 7.25 3 12.5S7.25 22 12.5 22 22 17.75 22 12.5 17.75 3 12.5 3zm.5 13.5c-2.21 0-4-1.79-4-4s1.79-4 4-4c1.1 0 2.09.45 2.81 1.17L14.5 11H17V8.5l-.83.83A5.47 5.47 0 0 0 13 8c-3.04 0-5.5 2.46-5.5 5.5S9.96 19 13 19c2.72 0 4.99-1.97 5.43-4.57h-1.53c-.43 1.73-1.99 3.07-3.9 3.07z"/>
+    </svg>
+  )
+}
+function TwitterXSvg({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.733-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+    </svg>
+  )
+}
+function VimeoSvg({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M22.396 7.164c-.093 2.026-1.507 4.799-4.242 8.32C15.322 19.04 12.93 20.8 10.97 20.8c-1.202 0-2.22-1.137-3.055-3.41L6.49 12.69C5.83 10.42 5.125 9.285 4.37 9.285c-.165 0-.74.348-1.726.98L2 9.01c1.386-.617 2.66-1.793 3.835-3.498C7.17 3.93 8.06 3.077 8.587 3.001c1.232-.119 1.99.72 2.277 2.514.304 1.917.515 3.109.632 3.578.35 1.593.737 2.39 1.158 2.39.327 0 .819-.516 1.475-1.547.654-1.032 1.004-1.815 1.052-2.35.094-1.12-.324-1.68-1.254-1.68-.447 0-.908.104-1.38.31.917-3.003 2.666-4.462 5.252-4.377 1.914.057 2.816 1.297 2.597 3.325z"/>
+    </svg>
+  )
+}
+
+function AffiliationLogoPreview({ type, name }: { type: AffiliationType; name: string }) {
+  const sz = 20
+  switch (type) {
+    case 'PSA': return <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '-0.01em' }}>PSA</span>
+    case 'facebook':  return <FacebookSvg size={sz} />
+    case 'instagram': return <InstagramSvg size={sz} />
+    case 'youtube':   return <YouTubeSvg size={sz} />
+    case 'flickr':    return <FlickrSvg size={sz} />
+    case '500px':     return <FiveHundredSvg size={sz} />
+    case 'twitter':   return <TwitterXSvg size={sz} />
+    case 'vimeo':     return <VimeoSvg size={sz} />
+    default: return <span style={{ fontSize: 9, fontWeight: 700, textAlign: 'center', wordBreak: 'break-all', maxWidth: 40, lineHeight: 1.2 }}>{name.slice(0, 6)}</span>
+  }
+}
 
 // ── Issue display ──────────────────────────────────────────────────────────────
 

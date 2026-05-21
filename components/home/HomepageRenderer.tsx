@@ -472,6 +472,77 @@ function MemberSpotlightBlock({
   )
 }
 
+// ─── Affiliation logo SVGs (monochrome, uses currentColor) ────────────────────
+
+function FacebookSvg({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+    </svg>
+  )
+}
+function InstagramSvg({ size = 26 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+      <circle cx="12" cy="12" r="4"/>
+      <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
+    </svg>
+  )
+}
+function YouTubeSvg({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-1.96C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.4 19.54C5.12 20 12 20 12 20s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>
+      <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" style={{ fill: 'var(--surface-2, #fff)' }}/>
+    </svg>
+  )
+}
+function FlickrSvg({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="7" cy="12" r="4.5"/>
+      <circle cx="17" cy="12" r="4.5" opacity="0.45"/>
+    </svg>
+  )
+}
+function FiveHundredSvg({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12.5 3C7.25 3 3 7.25 3 12.5S7.25 22 12.5 22 22 17.75 22 12.5 17.75 3 12.5 3zm.5 13.5c-2.21 0-4-1.79-4-4s1.79-4 4-4c1.1 0 2.09.45 2.81 1.17L14.5 11H17V8.5l-.83.83A5.47 5.47 0 0 0 13 8c-3.04 0-5.5 2.46-5.5 5.5S9.96 19 13 19c2.72 0 4.99-1.97 5.43-4.57h-1.53c-.43 1.73-1.99 3.07-3.9 3.07z"/>
+    </svg>
+  )
+}
+function TwitterXSvg({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.733-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+    </svg>
+  )
+}
+function VimeoSvg({ size = 26 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M22.396 7.164c-.093 2.026-1.507 4.799-4.242 8.32C15.322 19.04 12.93 20.8 10.97 20.8c-1.202 0-2.22-1.137-3.055-3.41L6.49 12.69C5.83 10.42 5.125 9.285 4.37 9.285c-.165 0-.74.348-1.726.98L2 9.01c1.386-.617 2.66-1.793 3.835-3.498C7.17 3.93 8.06 3.077 8.587 3.001c1.232-.119 1.99.72 2.277 2.514.304 1.917.515 3.109.632 3.578.35 1.593.737 2.39 1.158 2.39.327 0 .819-.516 1.475-1.547.654-1.032 1.004-1.815 1.052-2.35.094-1.12-.324-1.68-1.254-1.68-.447 0-.908.104-1.38.31.917-3.003 2.666-4.462 5.252-4.377 1.914.057 2.816 1.297 2.597 3.325z"/>
+    </svg>
+  )
+}
+
+function AffiliationLogo({ type, name }: { type?: string; name: string }) {
+  const sz = 28
+  switch (type) {
+    case 'PSA':       return <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', fontFamily: 'var(--font-primary, serif)', color: 'currentColor' }}>PSA</span>
+    case 'facebook':  return <FacebookSvg size={sz} />
+    case 'instagram': return <InstagramSvg size={sz - 2} />
+    case 'youtube':   return <YouTubeSvg size={sz} />
+    case 'flickr':    return <FlickrSvg size={sz} />
+    case '500px':     return <FiveHundredSvg size={sz} />
+    case 'twitter':   return <TwitterXSvg size={sz - 4} />
+    case 'vimeo':     return <VimeoSvg size={sz - 2} />
+    default:          return <span style={{ fontSize: 11, fontWeight: 700, textAlign: 'center', wordBreak: 'break-word', maxWidth: 56, lineHeight: 1.25, color: 'currentColor' }}>{name}</span>
+  }
+}
+
 // ─── Affiliations block ───────────────────────────────────────────────────────
 
 function AffiliationsBlock({ settings }: { settings: AffiliationsSettings }) {
@@ -489,31 +560,48 @@ function AffiliationsBlock({ settings }: { settings: AffiliationsSettings }) {
 
   return (
     <Section>
-      <div className="flex flex-wrap gap-3 justify-center">
+      <div className="flex flex-wrap gap-4 justify-center items-end">
         {affiliations.map(a => {
-          const inner = (
-            <span
+          const aff = a as typeof a & { type?: string }
+          const tile = (
+            <div
               key={a.id}
               style={{
-                display: 'inline-block',
-                fontSize: 13, fontWeight: 600,
-                color: 'var(--text-secondary)',
-                background: 'var(--surface-1)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 8,
-                padding: '6px 16px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
               }}
             >
-              {a.name}
-            </span>
+              <div
+                style={{
+                  width: 72, height: 72, borderRadius: 10,
+                  background: 'var(--surface-1)',
+                  border: '1px solid var(--border-default)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--text-secondary)',
+                  transition: 'border-color 0.15s, color 0.15s',
+                }}
+              >
+                <AffiliationLogo type={aff.type} name={a.name} />
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', textAlign: 'center', maxWidth: 80 }}>
+                {a.name}
+              </span>
+            </div>
           )
           return a.url ? (
-            <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer" style={{ opacity: 1, transition: 'opacity 0.15s' }}
-               onMouseOver={e => (e.currentTarget.style.opacity = '0.7')}
-               onMouseOut={e  => (e.currentTarget.style.opacity = '1')}>
-              {inner}
+            <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer"
+               style={{ textDecoration: 'none' }}
+               className="group"
+               onMouseOver={e => {
+                 const box = e.currentTarget.querySelector('div') as HTMLDivElement | null
+                 if (box) { box.style.borderColor = 'var(--action-primary)'; box.style.color = 'var(--action-primary)' }
+               }}
+               onMouseOut={e => {
+                 const box = e.currentTarget.querySelector('div') as HTMLDivElement | null
+                 if (box) { box.style.borderColor = 'var(--border-default)'; box.style.color = 'var(--text-secondary)' }
+               }}>
+              {tile}
             </a>
-          ) : <span key={a.id}>{inner}</span>
+          ) : <div key={a.id}>{tile}</div>
         })}
       </div>
     </Section>
