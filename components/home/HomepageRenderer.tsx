@@ -560,17 +560,17 @@ function AffiliationsBlock({ settings }: { settings: AffiliationsSettings }) {
 
   return (
     <Section>
+      {/* CSS-only hover — server component can't use onMouseOver */}
+      <style>{`
+        .affil-link:hover .affil-tile { border-color: var(--action-primary); color: var(--action-primary); }
+      `}</style>
       <div className="flex flex-wrap gap-4 justify-center items-end">
         {affiliations.map(a => {
           const aff = a as typeof a & { type?: string }
           const tile = (
-            <div
-              key={a.id}
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-              }}
-            >
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
               <div
+                className="affil-tile"
                 style={{
                   width: 72, height: 72, borderRadius: 10,
                   background: 'var(--surface-1)',
@@ -589,16 +589,7 @@ function AffiliationsBlock({ settings }: { settings: AffiliationsSettings }) {
           )
           return a.url ? (
             <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer"
-               style={{ textDecoration: 'none' }}
-               className="group"
-               onMouseOver={e => {
-                 const box = e.currentTarget.querySelector('div') as HTMLDivElement | null
-                 if (box) { box.style.borderColor = 'var(--action-primary)'; box.style.color = 'var(--action-primary)' }
-               }}
-               onMouseOut={e => {
-                 const box = e.currentTarget.querySelector('div') as HTMLDivElement | null
-                 if (box) { box.style.borderColor = 'var(--border-default)'; box.style.color = 'var(--text-secondary)' }
-               }}>
+               className="affil-link" style={{ textDecoration: 'none' }}>
               {tile}
             </a>
           ) : <div key={a.id}>{tile}</div>
