@@ -412,7 +412,7 @@ export default async function DualPanelBlock() {
               Next 4 Events
             </h2>
             <Link href="/calendar" style={{ fontSize: 13, fontWeight: 500, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0 }}>
-              View all →
+              Calendar →
             </Link>
           </div>
 
