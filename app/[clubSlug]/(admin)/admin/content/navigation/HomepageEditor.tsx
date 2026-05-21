@@ -342,12 +342,12 @@ function SpotlightModalBody({ block, onChange }: { block: ContentBlock; onChange
 }
 
 function DualPanelModalBody({ block, onChange }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void }) {
-  const s = block.dualPanelSettings!
+  const s = block.dualPanelSettings ?? { eventCount: 4 as const }
   return (
     <FieldRow label="Number of events to show">
       <Box sx={{ display: 'flex', gap: 0.75 }}>
         {([3, 4, 5, 6] as const).map(n => (
-          <button key={n} onClick={() => onChange({ dualPanelSettings: { ...s, eventCount: n } })} style={{
+          <button key={n} onClick={() => onChange({ dualPanelSettings: { eventCount: n } })} style={{
             width: 32, height: 30, cursor: 'pointer', borderRadius: 4,
             border: `1px solid ${s.eventCount === n ? 'var(--action-primary)' : 'var(--border-default)'}`,
             background: s.eventCount === n ? 'rgba(30,77,140,0.07)' : 'var(--surface-2)',
