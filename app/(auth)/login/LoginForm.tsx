@@ -29,11 +29,13 @@ export default function LoginForm({
   pendingParam,
   resetParam,
   nextParam,
+  clubSlug,
 }: {
   errorParam?: string
   pendingParam?: string
   resetParam?: string
   nextParam?: string
+  clubSlug?: string
 }) {
   const [loading, setLoading] = useState(false)
 
@@ -76,7 +78,10 @@ export default function LoginForm({
         className="flex flex-col gap-4"
         onSubmit={() => setLoading(true)}
       >
-        {nextParam && <input type="hidden" name="next" value={nextParam} />}
+        {nextParam
+          ? <input type="hidden" name="next" value={nextParam} />
+          : clubSlug && <input type="hidden" name="next" value={`/${clubSlug}`} />
+        }
         <div>
           <label htmlFor="email" style={labelSx}>Email</label>
           <input
@@ -110,14 +115,14 @@ export default function LoginForm({
       </form>
 
       <p className="mt-3 text-center text-sm" style={{ color: '#9E9E9E', fontFamily: 'var(--font-nunito, Nunito, system-ui, sans-serif)' }}>
-        <Link href="/forgot-password" className="hover:underline" style={{ color: 'var(--action-primary)' }}>
+        <Link href={clubSlug ? `/${clubSlug}/forgot-password` : '/forgot-password'} className="hover:underline" style={{ color: 'var(--action-primary)' }}>
           Forgot your password?
         </Link>
       </p>
 
       <p className="mt-6 text-center text-sm" style={{ color: '#9E9E9E', fontFamily: 'var(--font-nunito, Nunito, system-ui, sans-serif)' }}>
         Not a member?{' '}
-        <Link href="/apply" className="font-medium hover:underline" style={{ color: 'var(--action-primary)' }}>
+        <Link href={clubSlug ? `/${clubSlug}/apply` : '/apply'} className="font-medium hover:underline" style={{ color: 'var(--action-primary)' }}>
           Request to join
         </Link>
       </p>

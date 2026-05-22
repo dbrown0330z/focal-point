@@ -15,7 +15,7 @@ export default async function SubmitPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
-  if (!user) redirect('/login')
+  if (!user) redirect(`/${clubSlug}/login`)
 
   // ── Open competitions with their settings + categories ─────────────────────
   const { data: rawComps } = await supabase

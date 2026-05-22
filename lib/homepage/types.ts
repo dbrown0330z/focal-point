@@ -79,11 +79,33 @@ export interface ContentBlock {
  * saved), rather than being appended to the end.
  */
 export function mergeBlocks(saved: ContentBlock[], defaults: ContentBlock[]): ContentBlock[] {
-  const savedIds = new Set(saved.map(b => b.id))
+  const defaultMap = new Map(defaults.map(d => [d.id, d]))
+  const savedIds   = new Set(saved.map(b => b.id))
   const newDefaults = defaults.filter(d => !savedIds.has(d.id))
-  if (newDefaults.length === 0) return saved
 
-  const result = [...saved]
+  // Enrich existing saved blocks with any settings fields that are present in
+  // the default but missing from the saved version (e.g. a new settings object
+  // added after the block was first persisted to the DB).
+  const enriched = saved.map(b => {
+    const def = defaultMap.get(b.id)
+    if (!def) return b
+    const patch: Partial<ContentBlock> = {}
+    if (def.welcomeContent        && !b.welcomeContent)        patch.welcomeContent        = def.welcomeContent
+    if (def.largeImageSettings    && !b.largeImageSettings)    patch.largeImageSettings    = def.largeImageSettings
+    if (def.grid6Settings         && !b.grid6Settings)         patch.grid6Settings         = def.grid6Settings
+    if (def.strip8Settings        && !b.strip8Settings)        patch.strip8Settings        = def.strip8Settings
+    if (def.spotlightSettings     && !b.spotlightSettings)     patch.spotlightSettings     = def.spotlightSettings
+    if (def.eventsSettings        && !b.eventsSettings)        patch.eventsSettings        = def.eventsSettings
+    if (def.customContentSettings && !b.customContentSettings) patch.customContentSettings = def.customContentSettings
+    if (def.affiliationsSettings  && !b.affiliationsSettings)  patch.affiliationsSettings  = def.affiliationsSettings
+    if (def.dualPanelSettings     && !b.dualPanelSettings)     patch.dualPanelSettings     = def.dualPanelSettings
+    if (def.competitionsSettings  && !b.competitionsSettings)  patch.competitionsSettings  = def.competitionsSettings
+    return Object.keys(patch).length > 0 ? { ...b, ...patch } : b
+  })
+
+  if (newDefaults.length === 0) return enriched
+
+  const result = [...enriched]
 
   for (const newBlock of newDefaults) {
     const defaultIdx = defaults.findIndex(d => d.id === newBlock.id)

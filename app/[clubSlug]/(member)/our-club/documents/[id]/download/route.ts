@@ -8,15 +8,16 @@ type DocRow = { file_path: string; file_name: string; mime_type: string | null }
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ clubSlug: string; id: string }> }
 ) {
-  const { id } = await params
+  const { clubSlug, id } = await params
   const supabase = await createClient()
 
   // Auth check — must be active member
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
-  if (!user) return NextResponse.redirect(new URL('/login', process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'))
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  if (!user) return NextResponse.redirect(new URL(`/${clubSlug}/login`, base))
 
   // Fetch the document record
   const { data: doc, error } = await admin

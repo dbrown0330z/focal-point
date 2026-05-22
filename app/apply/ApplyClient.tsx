@@ -43,7 +43,7 @@ function darkInputSx(error = false) {
   }
 }
 
-function ConfirmationScreen({ email, clubName }: { email: string; clubName: string }) {
+function ConfirmationScreen({ email, clubName, clubSlug }: { email: string; clubName: string; clubSlug?: string }) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-md text-center">
@@ -62,7 +62,7 @@ function ConfirmationScreen({ email, clubName }: { email: string; clubName: stri
           A club admin will review your application and you'll receive an email at <strong>{email}</strong> once you've been approved.
         </p>
         <p className="mt-8 text-content-secondary text-sm">
-          <Link href="/" className="font-medium text-action-primary hover:underline">
+          <Link href={clubSlug ? `/${clubSlug}` : '/'} className="font-medium text-action-primary hover:underline">
             View your application status
           </Link>
         </p>
@@ -72,7 +72,7 @@ function ConfirmationScreen({ email, clubName }: { email: string; clubName: stri
 }
 
 
-export default function ApplyClient({ clubName, termsUrl }: { clubName: string; termsUrl: string | null }) {
+export default function ApplyClient({ clubName, termsUrl, clubSlug }: { clubName: string; termsUrl: string | null; clubSlug?: string }) {
   const [submitted, setSubmitted]     = useState(false)
   const [submitting, setSubmitting]   = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
@@ -113,14 +113,14 @@ export default function ApplyClient({ clubName, termsUrl }: { clubName: string; 
     }
   }
 
-  if (submitted) return <ConfirmationScreen email={form.email} clubName={clubName} />
+  if (submitted) return <ConfirmationScreen email={form.email} clubName={clubName} clubSlug={clubSlug} />
 
   return (
     <div className="min-h-screen bg-surface-0">
       <header className="border-b border-border-default bg-surface-2">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
           <Link href="/" className="text-sm font-semibold text-content-primary">{clubName}</Link>
-          <Link href="/login" className="text-sm text-content-secondary hover:text-content-primary transition-colors">Sign in</Link>
+          <Link href={clubSlug ? `/${clubSlug}/login` : '/login'} className="text-sm text-content-secondary hover:text-content-primary transition-colors">Sign in</Link>
         </div>
       </header>
 

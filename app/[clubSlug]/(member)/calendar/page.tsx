@@ -1,16 +1,18 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubSlug } from '@/lib/club-context'
 import CalendarClient from './CalendarClient'
 import type { CalendarEvent } from './actions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function CalendarPage() {
+  const clubSlug = await requireClubSlug()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
-  if (!user) redirect('/login')
+  if (!user) redirect(`/${clubSlug}/login`)
 
   const { data: profile } = await admin
     .from('profiles')

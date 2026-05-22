@@ -1,11 +1,13 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { requireClubSlug } from '@/lib/club-context'
 import UploadForm from '@/components/library/UploadForm'
 
 export default async function UploadPage() {
+  const clubSlug = await requireClubSlug()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) redirect(`/${clubSlug}/login`)
 
   return (
     <div className="max-w-lg">

@@ -18,10 +18,11 @@ export async function createImageRecord(data: {
   const admin = createServiceClient()
   const ctx = await getClubContext()
   const slug = ctx?.clubSlug ?? ''
-  if (!user) redirect('/login')
+  if (!user) redirect(`/${slug}/login`)
 
   const { error } = await admin.from('images').insert({
     owner_id: user.id,
+    club_id:      ctx?.clubId ?? null,
     title:        data.title,
     description:  data.description || null,
     storage_path: data.storage_path,
@@ -37,10 +38,9 @@ export async function createImageRecord(data: {
 export async function deleteImage(imageId: string, storagePath: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
   const ctx = await getClubContext()
   const slug = ctx?.clubSlug ?? ''
+  if (!user) redirect(`/${slug}/login`)
 
   // Delete DB record first — FK restrict will block if image has any submissions
   const { error } = await supabase

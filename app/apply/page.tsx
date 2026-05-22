@@ -1,9 +1,22 @@
-import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { createServiceClient } from '@/lib/supabase/service'
 import ApplyClient from './ApplyClient'
 
 export default async function ApplyPage() {
-  const supabase = await createClient()
-  const { data } = await supabase
+  // Look up the default club and redirect to the club-specific apply page
+  const admin = createServiceClient()
+  const { data: club } = await admin
+    .from('clubs')
+    .select('slug')
+    .limit(1)
+    .single()
+
+  if (club?.slug) {
+    redirect(`/${club.slug}/apply`)
+  }
+
+  // Fallback: no club found — render form with generic data
+  const { data } = await admin
     .from('club_settings')
     .select('club_name, membership_terms_source, membership_terms_content, membership_terms_file_path')
     .single() as {
@@ -17,7 +30,6 @@ export default async function ApplyPage() {
 
   const clubName = data?.club_name ?? 'Our Camera Club'
 
-  // Terms are always available (default template is seeded for every club)
   const hasTerms = Boolean(
     data?.membership_terms_content ||
     (data?.membership_terms_source === 'custom' && data?.membership_terms_file_path)

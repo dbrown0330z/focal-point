@@ -76,11 +76,11 @@ export default async function OurClubLayout({
             {clubName}
           </Link>
           <div className="flex items-center gap-3 text-sm">
-            <Link href="/apply" className="text-content-secondary hover:text-content-primary transition-colors">
+            <Link href={`/${clubSlug}/apply`} className="text-content-secondary hover:text-content-primary transition-colors">
               Join
             </Link>
             <Link
-              href="/login"
+              href={`/${clubSlug}/login`}
               className="rounded-lg px-3 py-1.5 font-medium text-white transition-colors hover:opacity-90"
               style={{ background: 'var(--action-primary)' }}
             >

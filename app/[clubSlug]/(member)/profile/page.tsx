@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubSlug } from '@/lib/club-context'
 import ProfileClient from './ProfileClient'
 
 export const dynamic = 'force-dynamic'
@@ -41,10 +42,11 @@ export type ProfileData = {
 }
 
 export default async function ProfilePage() {
+  const clubSlug = await requireClubSlug()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
-  if (!user) redirect('/login')
+  if (!user) redirect(`/${clubSlug}/login`)
 
   const [{ data: profile }, { data: subsRaw }] = await Promise.all([
     supabase
@@ -67,7 +69,7 @@ export default async function ProfilePage() {
       .eq('status', 'submitted'),
   ])
 
-  if (!profile) redirect('/login')
+  if (!profile) redirect(`/${clubSlug}/login`)
 
   // Process competition history
   // Scores are only returned by RLS for closed/results_published competitions

@@ -9,7 +9,7 @@ export default async function LibraryPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
-  if (!user) redirect('/login')
+  if (!user) redirect(`/${clubSlug}/login`)
 
   const { data: images, error } = await supabase
     .from('images')

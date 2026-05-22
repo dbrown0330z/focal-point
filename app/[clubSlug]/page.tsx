@@ -19,7 +19,7 @@ export default async function ClubHomePage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
+  if (!user) redirect(`/${clubSlug}/login`)
 
   const clubId = await requireClubId()
 
@@ -46,7 +46,7 @@ export default async function ClubHomePage({
       .single(),
   ])
 
-  if (!profile || !membership) redirect('/login')
+  if (!profile || !membership) redirect(`/${clubSlug}/login`)
 
   // Member just approved but hasn't completed onboarding
   if (membership.membership_status === 'approved') redirect('/onboarding/profile')
@@ -91,7 +91,7 @@ export default async function ClubHomePage({
             userId={user.id}
           />
           <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-10">
-            <HomepageRenderer blocks={blocks} clubName={clubName} />
+            <HomepageRenderer blocks={blocks} clubName={clubName} clubId={clubId} />
           </div>
           <AppFooter variant="app" />
         </div>

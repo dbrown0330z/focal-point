@@ -12,7 +12,7 @@ export async function submitImage(formData: FormData) {
   const admin = createServiceClient()
   const ctx = await getClubContext()
   const slug = ctx?.clubSlug ?? ''
-  if (!user) redirect('/login')
+  if (!user) redirect(`/${slug}/login`)
 
   const competitionId = formData.get('competition_id') as string
   const categoryId    = formData.get('category_id') as string
@@ -63,10 +63,9 @@ export async function submitImage(formData: FormData) {
 export async function withdrawSubmission(submissionId: string, competitionId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
   const ctx = await getClubContext()
   const slug = ctx?.clubSlug ?? ''
+  if (!user) redirect(`/${slug}/login`)
 
   await supabase
     .from('submissions')

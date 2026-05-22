@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getClubContext } from '@/lib/club-context'
 import type { Json } from '@/types/database'
 
 async function guardOpenCompetition(supabase: Awaited<ReturnType<typeof createClient>>, competitionId: string, userId: string) {
@@ -31,7 +32,9 @@ export async function submitFromLibrary(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
-  if (!user) redirect('/login')
+  const ctx = await getClubContext()
+  const slug = ctx?.clubSlug ?? ''
+  if (!user) redirect(`/${slug}/login`)
 
   try {
     await guardOpenCompetition(supabase, competitionId, user.id)
@@ -66,8 +69,9 @@ export async function submitUploadedImage(data: {
 }): Promise<{ error: string | null }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
   const admin = createServiceClient()
+  const ctx = await getClubContext()
+  if (!user) redirect(`/${ctx?.clubSlug ?? ''}/login`)
 
   try {
     await guardOpenCompetition(supabase, data.competitionId, user.id)
@@ -77,6 +81,7 @@ export async function submitUploadedImage(data: {
 
   const { data: img, error: imgErr } = await admin.from('images').insert({
     owner_id: user.id,
+    club_id:      ctx?.clubId ?? null,
     title: data.title,
     storage_path: data.storagePath,
     exif_data: data.exifData as Json,
@@ -108,7 +113,8 @@ export async function withdrawFromCompetition(
 ): Promise<{ error: string | null }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const _ctx = await getClubContext()
+  if (!user) redirect(`/${_ctx?.clubSlug ?? ''}/login`)
 
   const { error } = await supabase
     .from('submissions')
@@ -128,7 +134,8 @@ export async function editImageTitleAction(
 ): Promise<{ error: string | null }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const _ctx2 = await getClubContext()
+  if (!user) redirect(`/${_ctx2?.clubSlug ?? ''}/login`)
 
   const { error } = await supabase
     .from('images')
@@ -148,7 +155,8 @@ export async function changeCategoryAction(
 ): Promise<{ error: string | null }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const _ctx3 = await getClubContext()
+  if (!user) redirect(`/${_ctx3?.clubSlug ?? ''}/login`)
 
   const { data: sub } = await supabase
     .from('submissions')

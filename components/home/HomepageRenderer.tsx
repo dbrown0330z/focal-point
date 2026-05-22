@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import HeroSlideshow from './HeroSlideshow'
 import CustomContentNote from './CustomContentNote'
 import { Grid8Gallery, Strip8Gallery, SpotlightImageLightbox, type GalleryImage } from './ImageGallery'
@@ -604,12 +605,17 @@ function AffiliationsBlock({ settings }: { settings: AffiliationsSettings }) {
 export default async function HomepageRenderer({
   blocks,
   clubName,
+  clubId,
 }: {
   blocks:   ContentBlock[]
   clubName: string
+  clubId:   string
 }) {
   const supabaseRaw = await createClient()
   const supabase    = supabaseRaw
+  // Service client for public gallery data — images are club content visible to all visitors,
+  // not subject to the per-member RLS that would hide other members' images.
+  const svcSupabase = createServiceClient()
   const enabled     = blocks.filter(b => b.enabled)
 
   // ── Fetch events if the block is on ──────────────────────────────────────
@@ -663,8 +669,9 @@ export default async function HomepageRenderer({
     const isWinners      = gallerySource === 'competition-winners'
 
     if (isWinners) {
-      // For competition winners: pull top-scored submissions with image + category + score
-      const { data: scoredRows } = await supabase
+      // For competition winners: pull top-scored submissions with image + category + score.
+      // Uses service client so all members' images are visible (gallery is public club content).
+      const { data: scoredRows } = await svcSupabase
         .from('scores')
         .select('score, submissions!inner(image_id, competition_categories(name), competitions(closes_at), images(id, title, storage_path, profiles!images_owner_id_fkey(display_name)))')
         .order('score', { ascending: false })
@@ -701,8 +708,9 @@ export default async function HomepageRenderer({
         if (galleryImages.length >= 6) break
       }
     } else {
-      // Recent uploads or other sources: images with upload date
-      const { data } = await supabase
+      // Recent uploads or other sources: images with upload date.
+      // Uses service client so all members' images are visible (gallery is public club content).
+      const { data } = await svcSupabase
         .from('images')
         .select('id, storage_path, title, created_at, profiles!images_owner_id_fkey(display_name)')
         .order('created_at', { ascending: false })
@@ -727,8 +735,10 @@ export default async function HomepageRenderer({
     const { mode, memberName } = spotlightBlock.spotlightSettings
     const profileSelect = 'id, display_name, avatar_url, bio, experience_level, membership_class, member_number, camera_brands, shooting_interests'
 
+    // Spotlight queries use service client — profiles/images/scores are club content,
+    // not accessible to non-admin members under the current RLS.
     if (mode === 'manual' && memberName?.trim()) {
-      const { data } = await supabase
+      const { data } = await svcSupabase
         .from('profiles')
         .select(profileSelect)
         .ilike('display_name', `%${memberName.trim()}%`)
@@ -737,7 +747,7 @@ export default async function HomepageRenderer({
         .maybeSingle()
       spotlightMember = data as SpotlightMember | null
     } else {
-      const { data } = await supabase
+      const { data } = await svcSupabase
         .from('profiles')
         .select(profileSelect)
         .eq('membership_status', 'active')
@@ -750,7 +760,7 @@ export default async function HomepageRenderer({
 
     if (spotlightMember) {
       // Submissions for this member with category names
-      const { data: memberSubs } = await supabase
+      const { data: memberSubs } = await svcSupabase
         .from('submissions')
         .select('id, category_id, image_id, competition_categories(name)')
         .eq('member_id', spotlightMember.id)
@@ -773,8 +783,8 @@ export default async function HomepageRenderer({
 
       if (subIds.length > 0) {
         const [{ data: allScores }, { data: topScoreRow }] = await Promise.all([
-          supabase.from('scores').select('score').in('submission_id', subIds),
-          supabase.from('scores').select('score, submission_id').in('submission_id', subIds).order('score', { ascending: false }).limit(1).maybeSingle(),
+          svcSupabase.from('scores').select('score').in('submission_id', subIds),
+          svcSupabase.from('scores').select('score, submission_id').in('submission_id', subIds).order('score', { ascending: false }).limit(1).maybeSingle(),
         ])
 
         if (allScores?.length) {
@@ -787,7 +797,7 @@ export default async function HomepageRenderer({
         if (topScoreRow) {
           const bestSub = (memberSubs ?? []).find(s => s.id === topScoreRow.submission_id)
           if (bestSub?.image_id) {
-            const { data: imgRow } = await supabase
+            const { data: imgRow } = await svcSupabase
               .from('images')
               .select('storage_path')
               .eq('id', bestSub.image_id)
@@ -801,7 +811,7 @@ export default async function HomepageRenderer({
 
       // Fall back to most recent library image if no competition image found
       if (!bestImageUrl) {
-        const { data: imgData } = await supabase
+        const { data: imgData } = await svcSupabase
           .from('images')
           .select('storage_path')
           .eq('owner_id', spotlightMember.id)

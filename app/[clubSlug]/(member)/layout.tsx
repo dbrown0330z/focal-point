@@ -17,7 +17,7 @@ export default async function MemberLayout({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
+  if (!user) redirect(`/${clubSlug}/login`)
 
   const clubId = await requireClubId()
 

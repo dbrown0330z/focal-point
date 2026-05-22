@@ -4,12 +4,14 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getClubContext } from '@/lib/club-context'
 
 export async function createPost(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
-  if (!user) redirect('/login')
+  const _ctx = await getClubContext()
+  if (!user) redirect(`/${_ctx?.clubSlug ?? ''}/login`)
 
   const title     = (formData.get('title') as string).trim()
   const body      = (formData.get('body')  as string).trim()

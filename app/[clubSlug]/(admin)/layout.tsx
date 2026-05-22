@@ -18,7 +18,7 @@ export default async function AdminLayout({
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
 
-  if (!user) redirect('/login')
+  if (!user) redirect(`/${clubSlug}/login`)
 
   const clubId = await requireClubId()
 

@@ -22,6 +22,7 @@ export default async function AboutPage() {
   ])
 
   const clubName   = settingsRaw?.club_name ?? 'Our Camera Club'
+  const clubSlug   = ctx?.clubSlug ?? ''
   const html       = pageRaw?.content ?? null
   const isLoggedIn = Boolean(user)
 
@@ -66,7 +67,7 @@ export default async function AboutPage() {
             Membership is open to anyone with a passion for photography.
           </p>
           <Link
-            href="/apply"
+            href={`/${clubSlug}/apply`}
             className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
             style={{ background: 'var(--action-primary)' }}
           >
