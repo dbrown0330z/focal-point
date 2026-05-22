@@ -2,6 +2,11 @@ import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import ApplyClient from './ApplyClient'
 
+// Service client doesn't call cookies(), so Next.js would try to statically
+// prerender this page at build time — force dynamic so the DB redirect runs
+// at request time when env vars are available.
+export const dynamic = 'force-dynamic'
+
 export default async function ApplyPage() {
   // Look up the default club and redirect to the club-specific apply page
   const admin = createServiceClient()
