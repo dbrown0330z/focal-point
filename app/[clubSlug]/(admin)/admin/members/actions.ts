@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getClubContext } from '@/lib/club-context'
 import { sendMemberApproved } from '@/lib/email/send'
 import type { Database } from '@/types/database'
 
@@ -9,6 +10,7 @@ type MembershipStatus = Database['public']['Enums']['membership_status']
 
 export async function setMemberStatus(memberId: string, status: MembershipStatus) {
   const supabase = createServiceClient()
+  const ctx = await getClubContext()
 
   const roleByStatus: Partial<Record<MembershipStatus, 'member' | 'admin' | null>> = {
     active:        'member',
@@ -20,14 +22,29 @@ export async function setMemberStatus(memberId: string, status: MembershipStatus
     paused:        null,
     banned:        null,
   }
+  const newRole = roleByStatus[status] ?? null
 
+  // Update the flat profile (legacy + used by admin area)
   await supabase
     .from('profiles')
     .update({
       membership_status: status,
-      ...(status in roleByStatus ? { role: roleByStatus[status] } : {}),
+      ...(status in roleByStatus ? { role: newRole } : {}),
     })
     .eq('id', memberId)
+
+  // Keep club_memberships in sync — this is what the member-facing directory
+  // and layout guards query.
+  if (ctx?.clubId) {
+    await supabase
+      .from('club_memberships')
+      .update({
+        membership_status: status,
+        ...(status in roleByStatus ? { role: newRole } : {}),
+      })
+      .eq('user_id', memberId)
+      .eq('club_id', ctx.clubId)
+  }
 
   revalidatePath('/admin/members')
 }
@@ -122,10 +139,18 @@ export async function updateMemberName(memberId: string, firstName: string, last
 
 export async function makeAdmin(memberId: string) {
   const supabase = createServiceClient()
+  const ctx = await getClubContext()
   await supabase
     .from('profiles')
     .update({ role: 'admin' })
     .eq('id', memberId)
+  if (ctx?.clubId) {
+    await supabase
+      .from('club_memberships')
+      .update({ role: 'admin' })
+      .eq('user_id', memberId)
+      .eq('club_id', ctx.clubId)
+  }
   revalidatePath('/admin/members')
 }
 
