@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { skillLabel } from '@/lib/profile-options'
 import type {
   PoyEntry,
   AwardLeaderboardEntry,
@@ -68,23 +67,6 @@ function Avatar({
   )
 }
 
-function SkillBadge({ level }: { level: string | null }) {
-  if (!level) return null
-  const colours: Record<string, { bg: string; text: string }> = {
-    beginner:     { bg: 'rgba(0,151,167,0.10)',  text: 'var(--spot-teal)' },
-    intermediate: { bg: 'rgba(108,71,212,0.10)', text: 'var(--spot-purple)' },
-    advanced:     { bg: 'rgba(46,125,50,0.12)',  text: 'var(--status-success-text)' },
-  }
-  const s = colours[level] ?? { bg: 'rgba(90,106,130,0.10)', text: 'var(--text-secondary)' }
-  return (
-    <span
-      className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
-      style={{ background: s.bg, color: s.text }}
-    >
-      {skillLabel(level)}
-    </span>
-  )
-}
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -160,62 +142,39 @@ function SeasonSelector({
   )
 }
 
-// ── Current-user highlight card ────────────────────────────────────────────────
+// ── Current-user standing line ─────────────────────────────────────────────────
 
-function MyPoyCard({
-  profile,
+function MyStandingLine({
   entry,
+  totalMembers,
   clubSlug,
 }: {
-  profile:  CurrentProfile
-  entry:    PoyEntry | null
-  clubSlug: string
+  entry:        PoyEntry | null
+  totalMembers: number
+  clubSlug:     string
 }) {
-  return (
-    <div
-      className="rounded-[10px] border px-5 py-4 mb-6"
-      style={{
-        borderColor:     'rgba(26,111,196,0.30)',
-        backgroundColor: 'rgba(26,111,196,0.05)',
-      }}
-    >
-      <p className="text-[11px] font-bold uppercase tracking-[0.07em] mb-3"
-        style={{ color: 'var(--action-primary)' }}>
-        Your standing
+  if (!entry) {
+    return (
+      <p className="text-[13px] mb-4" style={{ color: 'var(--text-secondary)' }}>
+        You haven&apos;t entered a scored competition this season yet.{' '}
+        <Link href={`/${clubSlug}/competitions`} className="hover:underline" style={{ color: 'var(--action-primary)' }}>
+          Enter a competition
+        </Link>{' '}
+        to appear in the standings.
       </p>
-      {entry ? (
-        <div className="flex items-center gap-3">
-          <Avatar name={profile.displayName} url={profile.avatarUrl} size={40} />
-          <div className="min-w-0">
-            <p className="text-[14px] font-semibold text-content-primary">{profile.displayName}</p>
-            <p className="text-[13px] text-content-secondary mt-0.5">
-              {ordinalSuffix(entry.rank)} place
-              {entry.tied ? '=' : ''}
-              {' · '}
-              {entry.score} pts
-            </p>
-            <div className="flex flex-wrap items-center gap-2 mt-1.5">
-              <SkillBadge level={profile.skillLevel} />
-              {profile.shootingInterests?.slice(0, 2).map(i => (
-                <span key={i}
-                  className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
-                  style={{ background: 'rgba(90,106,130,0.10)', color: 'var(--text-secondary)' }}>
-                  {i}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <p className="text-[13px] text-content-secondary">
-          You haven&apos;t entered a scored competition this season yet.{' '}
-          <Link href={`/${clubSlug}/competitions`} className="text-action-primary hover:underline">
-            Enter a competition
-          </Link>{' '}
-          to appear in the standings.
-        </p>
-      )}
-    </div>
+    )
+  }
+  return (
+    <p className="text-[13px] mb-4" style={{ color: 'var(--text-secondary)' }}>
+      You are in{' '}
+      <strong style={{ color: 'var(--text-primary)' }}>
+        {ordinalSuffix(entry.rank)}{entry.tied ? '=' : ''} place
+      </strong>
+      {' '}out of{' '}
+      <strong style={{ color: 'var(--text-primary)' }}>{totalMembers} member{totalMembers !== 1 ? 's' : ''}</strong>
+      {' '}with{' '}
+      <strong style={{ color: 'var(--text-primary)' }}>{entry.score.toFixed(1)} pts</strong>
+    </p>
   )
 }
 
@@ -268,9 +227,11 @@ const INITIAL_SHOW = 20
 function PoyLeaderboard({
   entries,
   hasCompetitions,
+  categoryNames,
 }: {
   entries:         PoyEntry[]
   hasCompetitions: boolean
+  categoryNames:   string[]
 }) {
   const [showAll, setShowAll] = useState(false)
 
@@ -294,16 +255,26 @@ function PoyLeaderboard({
   const visible  = showAll ? entries : entries.slice(0, INITIAL_SHOW)
   const overflow = entries.length - INITIAL_SHOW
 
+  // Column widths: rank | member | [category cols] | total
+  const catColW = '5rem'
+  const gridCols = `2.5rem 1fr ${categoryNames.map(() => catColW).join(' ')} 5.5rem`
+
   return (
     <>
-      <div className="rounded-[10px] border border-border-default bg-surface-2 overflow-hidden">
+      <div className="rounded-[10px] border border-border-default bg-surface-2 overflow-hidden overflow-x-auto">
         {/* Header row */}
-        <div className="grid gap-3 border-b border-border-subtle px-4 py-2.5"
-          style={{ gridTemplateColumns: '2.5rem 1fr 5rem 7rem' }}>
+        <div
+          className="grid gap-3 border-b border-border-subtle px-4 py-2.5 min-w-0"
+          style={{ gridTemplateColumns: gridCols }}
+        >
           <span className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary text-right">Rank</span>
           <span className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary">Member</span>
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary text-right">Score</span>
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary text-right pr-1">Competitions</span>
+          {categoryNames.map(cat => (
+            <span key={cat} className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary text-right truncate" title={cat}>
+              {cat}
+            </span>
+          ))}
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary text-right pr-1">Total</span>
         </div>
 
         {visible.map((entry, i) => (
@@ -311,8 +282,8 @@ function PoyLeaderboard({
             key={entry.memberId}
             className={`grid gap-3 px-4 py-3 items-center transition-colors hover:bg-surface-1 ${
               i < visible.length - 1 ? 'border-b border-border-subtle' : ''
-            } ${entry.isCurrentUser ? 'bg-[rgba(26,111,196,0.04)]' : ''}`}
-            style={{ gridTemplateColumns: '2.5rem 1fr 5rem 7rem' }}
+            } ${entry.isCurrentUser ? 'bg-[rgba(26,111,196,0.06)]' : ''}`}
+            style={{ gridTemplateColumns: gridCols }}
           >
             {/* Rank */}
             <span className={`text-right text-[14px] font-semibold tabular-nums ${
@@ -327,27 +298,21 @@ function PoyLeaderboard({
             {/* Member */}
             <div className="flex items-center gap-2.5 min-w-0">
               <Avatar name={entry.displayName} url={entry.avatarUrl} size={28} />
-              <div className="min-w-0">
-                <Link
-                  href={`/our-club/members`}
-                  className="text-[13px] font-medium text-content-primary hover:text-action-primary truncate block leading-tight"
-                >
-                  {entry.displayName}
-                </Link>
-                {entry.skillLevel && (
-                  <span className="text-[11px] text-content-tertiary">{skillLabel(entry.skillLevel)}</span>
-                )}
-              </div>
+              <span className="text-[13px] font-medium text-content-primary truncate leading-tight">
+                {entry.displayName}
+              </span>
             </div>
 
-            {/* Score */}
-            <span className="text-right text-[14px] font-semibold tabular-nums text-content-primary">
-              {entry.score.toFixed(1)}
-            </span>
+            {/* Per-category scores */}
+            {categoryNames.map(cat => (
+              <span key={cat} className="text-right text-[13px] tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                {entry.byCategory[cat] != null ? entry.byCategory[cat].toFixed(1) : '—'}
+              </span>
+            ))}
 
-            {/* Competitions */}
-            <span className="text-right text-[13px] text-content-secondary tabular-nums pr-1">
-              {entry.competitionsEntered}
+            {/* Total */}
+            <span className="text-right text-[14px] font-semibold tabular-nums text-content-primary pr-1">
+              {entry.score.toFixed(1)}
             </span>
           </div>
         ))}
@@ -508,10 +473,10 @@ type Tab = 'poy' | 'benchmark' | 'awards'
 export default function StandingsClient({
   currentProfile,
   seasonYear,
-  seasonLabel,
   seasonOptions,
   hasCompetitionsThisSeason,
   poyStandings,
+  categoryNames,
   benchmarkConfigured,
   awardsConfigured,
   awardLeaderboard,
@@ -521,10 +486,10 @@ export default function StandingsClient({
 }: {
   currentProfile:            CurrentProfile | null
   seasonYear:                number
-  seasonLabel:               string
   seasonOptions:             SeasonOption[]
   hasCompetitionsThisSeason: boolean
   poyStandings:              PoyEntry[]
+  categoryNames:             string[]
   benchmarkConfigured:       boolean
   awardsConfigured:          boolean
   awardLeaderboard:          AwardLeaderboardEntry[]
@@ -546,12 +511,10 @@ export default function StandingsClient({
   return (
     <div className="space-y-6">
 
-      {/* Page header */}
-      <div>
+      {/* Page header — title + season selector side by side */}
+      <div className="flex items-center justify-between gap-4">
         <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Standings</h1>
-        <p className="mt-1 text-[13px] text-content-secondary">
-          Club-wide recognition and achievement — {seasonLabel} season
-        </p>
+        <SeasonSelector options={seasonOptions} current={seasonYear} tabParam={tab} />
       </div>
 
       {/* Tabs */}
@@ -573,17 +536,20 @@ export default function StandingsClient({
 
       {/* ── POY tab ──────────────────────────────────────────────────── */}
       {tab === 'poy' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <SectionLabel>Photographer of the Year</SectionLabel>
-            <SeasonSelector options={seasonOptions} current={seasonYear} tabParam="poy" />
-          </div>
-
+        <div className="space-y-4">
           {currentProfile && (
-            <MyPoyCard profile={currentProfile} entry={currentUserPoy} clubSlug={clubSlug} />
+            <MyStandingLine
+              entry={currentUserPoy}
+              totalMembers={poyStandings.length}
+              clubSlug={clubSlug}
+            />
           )}
 
-          <PoyLeaderboard entries={poyStandings} hasCompetitions={hasCompetitionsThisSeason} />
+          <PoyLeaderboard
+            entries={poyStandings}
+            hasCompetitions={hasCompetitionsThisSeason}
+            categoryNames={categoryNames}
+          />
         </div>
       )}
 
@@ -603,11 +569,6 @@ export default function StandingsClient({
       {/* ── Awards tab ───────────────────────────────────────────────── */}
       {tab === 'awards' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <SectionLabel>Awards</SectionLabel>
-            <SeasonSelector options={seasonOptions} current={seasonYear} tabParam="awards" />
-          </div>
-
           {!awardsConfigured ? (
             <NotConfiguredCard feature="Awards" />
           ) : (

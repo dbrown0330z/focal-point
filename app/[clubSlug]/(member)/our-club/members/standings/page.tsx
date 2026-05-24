@@ -25,15 +25,16 @@ function seasonBounds(startMonth: number, startYear: number) {
 // ── Exported types (consumed by StandingsClient) ───────────────────────────────
 
 export type PoyEntry = {
-  rank:               number
-  tied:               boolean   // true = shares rank with at least one other
-  memberId:           string
-  displayName:        string
-  avatarUrl:          string | null
-  skillLevel:         string | null
-  score:              number
+  rank:                number
+  tied:                boolean   // true = shares rank with at least one other
+  memberId:            string
+  displayName:         string
+  avatarUrl:           string | null
+  skillLevel:          string | null
+  score:               number
   competitionsEntered: number
-  isCurrentUser:      boolean
+  byCategory:          Record<string, number>  // category name → score contribution
+  isCurrentUser:       boolean
 }
 
 export type AwardLeaderboardEntry = {
@@ -142,17 +143,33 @@ export default async function StandingsPage({
   let poyStandings:     PoyEntry[]               = []
   let awardLeaderboard: AwardLeaderboardEntry[]  = []
   let recentAwards:     RecentAward[]            = []
+  let categoryNames:    string[]                 = []
+
+  // Top N results per category count toward standings
+  const TOP_PER_CATEGORY = 4
 
   if (compIds.length > 0) {
+    // Category names for this season's competitions (deduped by name across comps)
+    const { data: catsRaw } = await admin
+      .from('competition_categories')
+      .select('id, name, competition_id')
+      .in('competition_id', compIds)
+
+    const catIdToName = new Map<string, string>(
+      (catsRaw ?? []).map(c => [c.id, c.name])
+    )
+    // Stable ordered list of unique category names
+    categoryNames = [...new Set((catsRaw ?? []).map(c => c.name))]
+
     // Submissions + scores for this season's competitions
     const { data: subsRaw } = await admin
       .from('submissions')
-      .select('id, member_id, competition_id, scores(score, award_id)')
+      .select('id, member_id, competition_id, category_id, scores(score, award_id)')
       .in('competition_id', compIds)
       .eq('status', 'submitted')
 
     type ScoreRow = { score: number; award_id: string | null }
-    type SubRow   = { id: string; member_id: string; competition_id: string; scores: ScoreRow[] }
+    type SubRow   = { id: string; member_id: string; competition_id: string; category_id: string; scores: ScoreRow[] }
     const submissions: SubRow[] = subsRaw ?? []
 
     // Member profiles for everyone who submitted
@@ -169,25 +186,52 @@ export default async function StandingsPage({
     )
 
     // ── POY standings ──────────────────────────────────────────────────────────
-    // Score = sum of per-submission averages (one avg per judge panel per image)
-    type MemberAgg = { totalScore: number; comps: Set<string> }
-    const agg = new Map<string, MemberAgg>()
+    // Scoring: for each member, for each category, take the top TOP_PER_CATEGORY
+    // competition scores and sum them. Total = sum across all categories.
+    //
+    // Each submission's score = average of judge scores for that submission.
+
+    // member → category name → list of per-submission averages
+    const memberCatScores = new Map<string, Map<string, number[]>>()
+    const memberComps     = new Map<string, Set<string>>()
 
     for (const sub of submissions) {
       if (!sub.scores?.length) continue
-      const avg = sub.scores.reduce((s, sc) => s + sc.score, 0) / sub.scores.length
-      if (!agg.has(sub.member_id)) agg.set(sub.member_id, { totalScore: 0, comps: new Set() })
-      const m = agg.get(sub.member_id)!
-      m.totalScore += avg
-      m.comps.add(sub.competition_id)
+      const avg     = sub.scores.reduce((s, sc) => s + sc.score, 0) / sub.scores.length
+      const catName = catIdToName.get(sub.category_id) ?? 'Other'
+
+      if (!memberCatScores.has(sub.member_id)) memberCatScores.set(sub.member_id, new Map())
+      const cm = memberCatScores.get(sub.member_id)!
+      if (!cm.has(catName)) cm.set(catName, [])
+      cm.get(catName)!.push(avg)
+
+      if (!memberComps.has(sub.member_id)) memberComps.set(sub.member_id, new Set())
+      memberComps.get(sub.member_id)!.add(sub.competition_id)
     }
 
-    // Sort by score desc, tie-break by fewer competitions (same score with fewer comps = higher efficiency)
+    // Compute per-category contribution (top N) and total score per member
+    type MemberAgg = { totalScore: number; byCategory: Record<string, number> }
+    const agg = new Map<string, MemberAgg>()
+
+    for (const [memberId, catMap] of memberCatScores) {
+      const byCategory: Record<string, number> = {}
+      let totalScore = 0
+      for (const [catName, scores] of catMap) {
+        const top      = [...scores].sort((a, b) => b - a).slice(0, TOP_PER_CATEGORY)
+        const catTotal = Math.round(top.reduce((s, sc) => s + sc, 0) * 10) / 10
+        byCategory[catName] = catTotal
+        totalScore += catTotal
+      }
+      agg.set(memberId, { totalScore: Math.round(totalScore * 10) / 10, byCategory })
+    }
+
+    // Sort by score desc, tie-break by fewer competitions entered
     const sorted = [...agg.entries()]
       .map(([memberId, m]) => ({
         memberId,
-        score:               Math.round(m.totalScore * 10) / 10,
-        competitionsEntered: m.comps.size,
+        score:               m.totalScore,
+        byCategory:          m.byCategory,
+        competitionsEntered: memberComps.get(memberId)?.size ?? 0,
       }))
       .sort((a, b) => b.score - a.score || a.competitionsEntered - b.competitionsEntered)
 
@@ -206,6 +250,7 @@ export default async function StandingsPage({
         avatarUrl:           profile?.avatar_url ?? null,
         skillLevel:          profile?.experience_level ?? null,
         score:               entry.score,
+        byCategory:          entry.byCategory,
         competitionsEntered: entry.competitionsEntered,
         isCurrentUser:       entry.memberId === user.id,
       }
@@ -282,6 +327,7 @@ export default async function StandingsPage({
       seasonOptions={seasonOptions}
       hasCompetitionsThisSeason={compIds.length > 0}
       poyStandings={poyStandings}
+      categoryNames={categoryNames}
       benchmarkConfigured={false}
       awardsConfigured={awardsConfigured}
       awardLeaderboard={awardLeaderboard}
