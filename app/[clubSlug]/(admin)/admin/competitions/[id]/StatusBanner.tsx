@@ -140,10 +140,14 @@ export function StatusBanner({
       <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4 flex items-center justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-content-primary">Judging complete · Ready to publish</p>
-          <p className="text-sm text-content-secondary mt-0.5">Publishing will update scores, awards, benchmark, and POY standings simultaneously.</p>
+          <p className="text-sm text-content-secondary mt-0.5">Results will be visible to members as soon as you publish.</p>
         </div>
-        <button className={`${btnPrimary} shrink-0`}>
-          Publish results →
+        <button
+          disabled={isPending}
+          onClick={() => startTransition(() => transitionStatus(id, 'results_published'))}
+          className={`${btnPrimary} shrink-0`}
+        >
+          {isPending ? 'Publishing…' : 'Publish results →'}
         </button>
       </div>
     )

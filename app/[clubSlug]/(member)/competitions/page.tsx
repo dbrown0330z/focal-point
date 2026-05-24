@@ -16,7 +16,7 @@ export default async function CompetitionsPage() {
   const { data: currentRaw } = await supabase
     .from('competitions')
     .select('id, title, short_title, status, opens_at, closes_at, results_at, submission_limit, competition_categories(id, name), judge_tokens(judge_name)')
-    .in('status', ['open', 'judging'])
+    .in('status', ['open', 'judging', 'judging_on_hold', 'results_pending'])
     .is('archived_at', null)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
@@ -115,11 +115,11 @@ export default async function CompetitionsPage() {
       }))
   })() : []
 
-  // Previous competitions: closed only
+  // Previous competitions: results_published or closed
   const { data: pastRaw } = await supabase
     .from('competitions')
     .select('id, title, status, closes_at, judge_tokens(judge_name)')
-    .eq('status', 'closed')
+    .in('status', ['results_published', 'closed'])
     .is('deleted_at', null)
     .order('closes_at', { ascending: false })
 

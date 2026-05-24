@@ -75,7 +75,7 @@ export default async function CompetitionResultsPage({
   const supabase = await createClient()
   const admin = createServiceClient()
 
-  // Fetch competition (closed only — results aren't visible during judging)
+  // Fetch competition — results visible once published or closed
   const { data: comp } = await supabase
     .from('competitions')
     .select(`
@@ -85,7 +85,7 @@ export default async function CompetitionResultsPage({
       judge_tokens(judge_name)
     `)
     .eq('id', id)
-    .eq('status', 'closed')
+    .in('status', ['results_published', 'closed'])
     .is('deleted_at', null)
     .single()
 
