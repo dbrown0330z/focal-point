@@ -477,6 +477,7 @@ export default function StandingsClient({
   hasCompetitionsThisSeason,
   poyStandings,
   categoryNames,
+  lastUpdatedAt,
   benchmarkConfigured,
   awardsConfigured,
   awardLeaderboard,
@@ -490,6 +491,7 @@ export default function StandingsClient({
   hasCompetitionsThisSeason: boolean
   poyStandings:              PoyEntry[]
   categoryNames:             string[]
+  lastUpdatedAt:             string | null
   benchmarkConfigured:       boolean
   awardsConfigured:          boolean
   awardLeaderboard:          AwardLeaderboardEntry[]
@@ -511,9 +513,17 @@ export default function StandingsClient({
   return (
     <div className="space-y-6">
 
-      {/* Page header — title + season selector side by side */}
+      {/* Page header — title + last updated + season selector */}
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Standings</h1>
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Standings</h1>
+          {lastUpdatedAt && (
+            <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+              Updated{' '}
+              {new Date(lastUpdatedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+          )}
+        </div>
         <SeasonSelector options={seasonOptions} current={seasonYear} tabParam={tab} />
       </div>
 

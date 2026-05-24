@@ -137,6 +137,11 @@ export default async function StandingsPage({
   }
   const competitions: CompRow[] = (compsRaw as CompRow[] | null) ?? []
   const compIds = competitions.map(c => c.id)
+
+  // Last updated = most recent competition close date with published results
+  const lastUpdatedAt = competitions.length > 0
+    ? competitions.reduce((latest, c) => c.closes_at > latest ? c.closes_at : latest, competitions[0].closes_at)
+    : null
   const awardsConfigured = competitions.some(c => c.awards_enabled)
 
   // ── Defaults ─────────────────────────────────────────────────────────────────
@@ -327,6 +332,7 @@ export default async function StandingsPage({
       hasCompetitionsThisSeason={compIds.length > 0}
       poyStandings={poyStandings}
       categoryNames={categoryNames}
+      lastUpdatedAt={lastUpdatedAt}
       benchmarkConfigured={false}
       awardsConfigured={awardsConfigured}
       awardLeaderboard={awardLeaderboard}
