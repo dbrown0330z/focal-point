@@ -92,13 +92,11 @@ export default async function CompetitionResultsIndexPage() {
             <Link
               key={comp.id}
               href={`/${clubSlug}/competitions/results/${comp.id}`}
-              className="group flex items-center justify-between rounded-xl px-5 py-4 transition-colors"
+              className="group flex items-center justify-between rounded-xl px-5 py-4 transition-colors hover:brightness-95"
               style={{
-                background:  'var(--surface-1)',
-                border:      '1px solid var(--border-subtle)',
+                background: 'var(--surface-1)',
+                border:     '1px solid var(--border-default)',
               }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-subtle)')}
             >
               <div className="min-w-0">
                 <p
