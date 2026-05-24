@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireClubSlug } from '@/lib/club-context'
 
@@ -12,7 +11,6 @@ function fmtDate(iso: string | null): string {
 
 export default async function CompetitionResultsIndexPage() {
   const clubSlug = await requireClubSlug()
-  const supabase = await createClient()
   const admin    = createServiceClient()
 
   // Fetch all competitions with published results, newest first

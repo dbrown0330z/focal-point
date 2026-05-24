@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireClubSlug } from '@/lib/club-context'
 import ResultsClient from './ResultsClient'
@@ -72,11 +71,13 @@ export default async function CompetitionResultsPage({
 }) {
   const { id } = await params
   const clubSlug = await requireClubSlug()
-  const supabase = await createClient()
+  // Use service client throughout — results are club-wide public data and the
+  // session client's RLS policies may restrict reading results_published competitions
+  // or other members' submissions/profiles.
   const admin = createServiceClient()
 
   // Fetch competition — results visible once published or closed
-  const { data: comp } = await supabase
+  const { data: comp } = await admin
     .from('competitions')
     .select(`
       id, title, closes_at, results_at,
@@ -92,7 +93,7 @@ export default async function CompetitionResultsPage({
   if (!comp) notFound()
 
   // Fetch all submitted entries for this competition
-  const { data: rawSubs } = await supabase
+  const { data: rawSubs } = await admin
     .from('submissions')
     .select(`
       id, member_id, category_id,
