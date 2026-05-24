@@ -323,7 +323,6 @@ export default async function StandingsPage({
       clubSlug={clubSlug}
       currentProfile={currentProfile}
       seasonYear={seasonYear}
-      seasonLabel={season.label}
       seasonOptions={seasonOptions}
       hasCompetitionsThisSeason={compIds.length > 0}
       poyStandings={poyStandings}
