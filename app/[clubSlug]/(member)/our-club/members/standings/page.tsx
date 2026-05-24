@@ -118,11 +118,11 @@ export default async function StandingsPage({
     shootingInterests: me.shooting_interests ?? null,
   } : null
 
-  // Competitions closed in this season window
+  // Competitions with published results in this season window
   const { data: compsRaw } = await admin
     .from('competitions')
     .select('id, title, awards_enabled, award_types, closes_at')
-    .eq('status', 'closed')
+    .in('status', ['results_published', 'closed'])
     .is('deleted_at', null)
     .gte('closes_at', season.start)
     .lt('closes_at', season.end)
