@@ -9,11 +9,13 @@ export type MemberRow = {
   display_name:       string
   avatar_url:         string | null
   bio:                string | null
-  experience_level:        string | null
+  experience_level:   string | null
   shooting_interests: string[] | null
   camera_brands:      string[] | null
   location:           string | null
   member_since:       string | null
+  member_number:      number | null
+  membership_class:   string | null
 }
 
 export default async function MembersPage() {
@@ -46,7 +48,7 @@ export default async function MembersPage() {
   const { data: profilesRaw } = userIds.length > 0
     ? await admin
         .from('profiles')
-        .select('id, display_name, avatar_url, bio, experience_level, shooting_interests, camera_brands, location, created_at')
+        .select('id, display_name, avatar_url, bio, experience_level, shooting_interests, camera_brands, location, created_at, member_number, membership_class')
         .in('id', userIds)
         .order('display_name')
     : { data: null }
@@ -61,6 +63,8 @@ export default async function MembersPage() {
     camera_brands:      p.camera_brands ?? null,
     location:           p.location ?? null,
     member_since:       p.created_at ?? null,
+    member_number:      p.member_number ?? null,
+    membership_class:   p.membership_class ?? null,
   }))
 
   return (
