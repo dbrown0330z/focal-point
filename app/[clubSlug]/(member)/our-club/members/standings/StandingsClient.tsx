@@ -224,6 +224,11 @@ function MyAwardsCard({
 
 const INITIAL_SHOW = 20
 
+// Rank column is 44px wide; member column starts immediately after.
+// Both are sticky so they stay visible when the score columns scroll.
+const RANK_W   = 44   // px
+const MEMBER_W = 160  // px
+
 function PoyLeaderboard({
   entries,
   hasCompetitions,
@@ -236,6 +241,7 @@ function PoyLeaderboard({
   topPerCategory:  number
 }) {
   const [showAll, setShowAll] = useState(false)
+  const [view,    setView]    = useState<'compact' | 'detailed'>('compact')
 
   if (!hasCompetitions) {
     return (
@@ -247,150 +253,246 @@ function PoyLeaderboard({
   }
 
   if (entries.length === 0) {
-    return (
-      <EmptyCard>No scores recorded yet this season.</EmptyCard>
-    )
+    return <EmptyCard>No scores recorded yet this season.</EmptyCard>
   }
 
   const visible  = showAll ? entries : entries.slice(0, INITIAL_SHOW)
   const overflow = entries.length - INITIAL_SHOW
-
-  const thBase   = 'px-2 py-2 text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap'
-  const tdBase   = 'px-2 py-3 text-[13px] tabular-nums'
   const slots    = Array.from({ length: topPerCategory }, (_, i) => i)
+
+  const thBase = 'px-2 py-2 text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap'
+  const tdBase = 'px-2 py-3 text-[13px] tabular-nums'
+
+  // Sticky-column helpers. Cells need an opaque background so scrolling
+  // content doesn't show through. For highlighted rows we blend the blue
+  // tint into the surface colour.
+  function stickyBg(isCurrentUser: boolean) {
+    // rgba(26,111,196,0.05) blended over #FFFFFF ≈ rgb(244,248,252)
+    return isCurrentUser ? 'rgb(244,248,252)' : 'var(--surface-2)'
+  }
+
+  const stickyRankStyle = (isCurrentUser: boolean): React.CSSProperties => ({
+    position:   'sticky',
+    left:        0,
+    zIndex:      1,
+    background:  stickyBg(isCurrentUser),
+    // hairline shadow to mark the boundary when scrolled
+    boxShadow:  'none',
+  })
+  const stickyMemberStyle = (isCurrentUser: boolean): React.CSSProperties => ({
+    position:   'sticky',
+    left:        RANK_W,
+    zIndex:      1,
+    background:  stickyBg(isCurrentUser),
+    boxShadow:   '2px 0 4px -2px rgba(0,0,0,0.08)',
+    minWidth:    MEMBER_W,
+  })
 
   return (
     <>
+      {/* View toggle */}
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+          {view === 'compact' ? 'Category totals' : `Top ${topPerCategory} scores per category`}
+        </p>
+        <div
+          className="flex overflow-hidden rounded-md border text-[12px] font-medium"
+          style={{ borderColor: 'var(--border-default)' }}
+        >
+          {(['compact', 'detailed'] as const).map((v, i) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className="px-3 py-1.5 transition-colors"
+              style={{
+                background:  view === v ? 'var(--surface-1)' : 'var(--surface-2)',
+                color:       view === v ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                borderLeft:  i > 0 ? '1px solid var(--border-default)' : undefined,
+              }}
+            >
+              {v === 'compact' ? 'Summary' : 'Detail'}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="rounded-[10px] border border-border-default bg-surface-2 overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            {/* Row 1: category group headers */}
-            <tr style={{ borderBottom: '1px solid var(--border-default)' }}>
-              <th
-                className={`${thBase} text-right w-10`}
-                style={{ color: 'var(--text-tertiary)' }}
-                rowSpan={2}
-              >
-                Rank
-              </th>
-              <th
-                className={`${thBase} text-left pl-3`}
-                style={{ color: 'var(--text-tertiary)', minWidth: '9rem' }}
-                rowSpan={2}
-              >
-                Member
-              </th>
-              {categoryNames.map(cat => (
+            {view === 'compact' ? (
+              // ── Compact: one column per category ──────────────────────────
+              <tr style={{ borderBottom: '1px solid var(--border-default)' }}>
                 <th
-                  key={cat}
-                  colSpan={topPerCategory}
-                  className={`${thBase} text-center`}
-                  style={{
-                    color:      'var(--text-secondary)',
-                    borderLeft: '1px solid var(--border-subtle)',
-                  }}
+                  className={`${thBase} text-right`}
+                  style={{ ...stickyRankStyle(false), color: 'var(--text-tertiary)', width: RANK_W }}
                 >
-                  {cat}
+                  Rank
                 </th>
-              ))}
-              <th
-                className={`${thBase} text-right pr-3`}
-                style={{
-                  color:      'var(--text-tertiary)',
-                  borderLeft: '1px solid var(--border-subtle)',
-                }}
-                rowSpan={2}
-              >
-                Total
-              </th>
-            </tr>
-
-            {/* Row 2: slot numbers within each category */}
-            <tr style={{ borderBottom: '1px solid var(--border-default)' }}>
-              {categoryNames.flatMap(cat =>
-                slots.map(i => (
+                <th
+                  className={`${thBase} text-left pl-3`}
+                  style={{ ...stickyMemberStyle(false), color: 'var(--text-tertiary)' }}
+                >
+                  Member
+                </th>
+                {categoryNames.map(cat => (
                   <th
-                    key={`${cat}-${i}`}
-                    className={`${thBase} text-right w-12`}
-                    style={{
-                      color:      'var(--text-tertiary)',
-                      borderLeft: i === 0 ? '1px solid var(--border-subtle)' : undefined,
-                      fontWeight:  400,
-                      letterSpacing: 0,
-                      textTransform: 'none',
-                      fontSize: '10px',
-                    }}
+                    key={cat}
+                    className={`${thBase} text-right`}
+                    style={{ color: 'var(--text-secondary)', borderLeft: '1px solid var(--border-subtle)', minWidth: '5rem' }}
                   >
-                    {i + 1}
+                    {cat}
                   </th>
-                ))
-              )}
-            </tr>
+                ))}
+                <th
+                  className={`${thBase} text-right pr-3`}
+                  style={{ color: 'var(--text-tertiary)', borderLeft: '1px solid var(--border-subtle)' }}
+                >
+                  Total
+                </th>
+              </tr>
+            ) : (
+              // ── Detailed: 4 slots per category, two-row header ────────────
+              <>
+                <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                  <th
+                    className={`${thBase} text-right`}
+                    style={{ ...stickyRankStyle(false), color: 'var(--text-tertiary)', width: RANK_W }}
+                    rowSpan={2}
+                  >
+                    Rank
+                  </th>
+                  <th
+                    className={`${thBase} text-left pl-3`}
+                    style={{ ...stickyMemberStyle(false), color: 'var(--text-tertiary)' }}
+                    rowSpan={2}
+                  >
+                    Member
+                  </th>
+                  {categoryNames.map(cat => (
+                    <th
+                      key={cat}
+                      colSpan={topPerCategory}
+                      className={`${thBase} text-center`}
+                      style={{ color: 'var(--text-secondary)', borderLeft: '1px solid var(--border-subtle)' }}
+                    >
+                      {cat}
+                    </th>
+                  ))}
+                  <th
+                    className={`${thBase} text-right pr-3`}
+                    style={{ color: 'var(--text-tertiary)', borderLeft: '1px solid var(--border-subtle)' }}
+                    rowSpan={2}
+                  >
+                    Total
+                  </th>
+                </tr>
+                <tr style={{ borderBottom: '1px solid var(--border-default)' }}>
+                  {categoryNames.flatMap(cat =>
+                    slots.map(i => (
+                      <th
+                        key={`${cat}-${i}`}
+                        className="px-2 py-1 text-[10px] text-right w-12 whitespace-nowrap"
+                        style={{
+                          color:         'var(--text-tertiary)',
+                          borderLeft:     i === 0 ? '1px solid var(--border-subtle)' : undefined,
+                          fontWeight:     400,
+                          letterSpacing:  0,
+                          textTransform:  'none',
+                        }}
+                      >
+                        {i + 1}
+                      </th>
+                    ))
+                  )}
+                </tr>
+              </>
+            )}
           </thead>
 
           <tbody>
-            {visible.map((entry, i) => (
-              <tr
-                key={entry.memberId}
-                className="transition-colors hover:bg-surface-1"
-                style={{
-                  borderBottom: i < visible.length - 1 ? '1px solid var(--border-subtle)' : undefined,
-                  background:   entry.isCurrentUser ? 'rgba(26,111,196,0.05)' : undefined,
-                }}
-              >
-                {/* Rank */}
-                <td
-                  className={`${tdBase} text-right font-semibold w-10`}
-                  style={{ color: entry.rank <= 3 ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+            {visible.map((entry, i) => {
+              const rowStyle: React.CSSProperties = {
+                borderBottom: i < visible.length - 1 ? '1px solid var(--border-subtle)' : undefined,
+                background:   entry.isCurrentUser ? 'rgba(26,111,196,0.05)' : undefined,
+              }
+              return (
+                <tr
+                  key={entry.memberId}
+                  className="transition-colors hover:bg-surface-1"
+                  style={rowStyle}
                 >
-                  {entry.rank}{entry.tied ? '=' : ''}
-                  {entry.isCurrentUser && (
-                    <span className="ml-0.5 text-[10px]" style={{ color: 'var(--action-primary)' }}>★</span>
-                  )}
-                </td>
+                  {/* Rank — sticky */}
+                  <td
+                    className={`${tdBase} text-right font-semibold`}
+                    style={{ ...stickyRankStyle(entry.isCurrentUser), color: entry.rank <= 3 ? 'var(--text-primary)' : 'var(--text-secondary)', width: RANK_W }}
+                  >
+                    {entry.rank}{entry.tied ? '=' : ''}
+                    {entry.isCurrentUser && (
+                      <span className="ml-0.5 text-[10px]" style={{ color: 'var(--action-primary)' }}>★</span>
+                    )}
+                  </td>
 
-                {/* Member */}
-                <td className={`${tdBase} pl-3`} style={{ minWidth: '9rem' }}>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Avatar name={entry.displayName} url={entry.avatarUrl} size={24} />
-                    <span
-                      className="truncate text-[13px] font-medium"
-                      style={{ color: entry.isCurrentUser ? 'var(--action-primary)' : 'var(--text-primary)' }}
-                    >
-                      {entry.displayName}
-                    </span>
-                  </div>
-                </td>
+                  {/* Member — sticky */}
+                  <td
+                    className={`${tdBase} pl-3`}
+                    style={stickyMemberStyle(entry.isCurrentUser)}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Avatar name={entry.displayName} url={entry.avatarUrl} size={24} />
+                      <span
+                        className="truncate text-[13px] font-medium"
+                        style={{ color: entry.isCurrentUser ? 'var(--action-primary)' : 'var(--text-primary)' }}
+                      >
+                        {entry.displayName}
+                      </span>
+                    </div>
+                  </td>
 
-                {/* Per-category score slots */}
-                {categoryNames.flatMap(cat => {
-                  const scores = entry.byCategory[cat] ?? []
-                  return slots.map(i => (
-                    <td
-                      key={`${cat}-${i}`}
-                      className={`${tdBase} text-right w-12`}
-                      style={{
-                        color:      scores[i] != null ? 'var(--text-primary)' : 'var(--text-disabled)',
-                        borderLeft: i === 0 ? '1px solid var(--border-subtle)' : undefined,
-                      }}
-                    >
-                      {scores[i] != null ? scores[i].toFixed(1) : '—'}
-                    </td>
-                  ))
-                })}
+                  {/* Score cells */}
+                  {view === 'compact'
+                    ? categoryNames.map(cat => {
+                        const scores = entry.byCategory[cat] ?? []
+                        const total  = scores.reduce((a, b) => a + b, 0)
+                        return (
+                          <td
+                            key={cat}
+                            className={`${tdBase} text-right`}
+                            style={{
+                              color:      scores.length > 0 ? 'var(--text-primary)' : 'var(--text-disabled)',
+                              borderLeft: '1px solid var(--border-subtle)',
+                            }}
+                          >
+                            {scores.length > 0 ? total.toFixed(1) : '—'}
+                          </td>
+                        )
+                      })
+                    : categoryNames.flatMap(cat => {
+                        const scores = entry.byCategory[cat] ?? []
+                        return slots.map(i => (
+                          <td
+                            key={`${cat}-${i}`}
+                            className={`${tdBase} text-right w-12`}
+                            style={{
+                              color:      scores[i] != null ? 'var(--text-primary)' : 'var(--text-disabled)',
+                              borderLeft: i === 0 ? '1px solid var(--border-subtle)' : undefined,
+                            }}
+                          >
+                            {scores[i] != null ? scores[i].toFixed(1) : '—'}
+                          </td>
+                        ))
+                      })
+                  }
 
-                {/* Total */}
-                <td
-                  className={`${tdBase} text-right pr-3 font-semibold`}
-                  style={{
-                    color:      'var(--text-primary)',
-                    borderLeft: '1px solid var(--border-subtle)',
-                  }}
-                >
-                  {entry.score.toFixed(1)}
-                </td>
-              </tr>
-            ))}
+                  {/* Total */}
+                  <td
+                    className={`${tdBase} text-right pr-3 font-semibold`}
+                    style={{ color: 'var(--text-primary)', borderLeft: '1px solid var(--border-subtle)' }}
+                  >
+                    {entry.score.toFixed(1)}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
