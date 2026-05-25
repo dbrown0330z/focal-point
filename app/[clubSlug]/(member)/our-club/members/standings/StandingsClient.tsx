@@ -228,10 +228,12 @@ function PoyLeaderboard({
   entries,
   hasCompetitions,
   categoryNames,
+  topPerCategory,
 }: {
   entries:         PoyEntry[]
   hasCompetitions: boolean
   categoryNames:   string[]
+  topPerCategory:  number
 }) {
   const [showAll, setShowAll] = useState(false)
 
@@ -246,79 +248,153 @@ function PoyLeaderboard({
 
   if (entries.length === 0) {
     return (
-      <EmptyCard>
-        No scores recorded yet this season.
-      </EmptyCard>
+      <EmptyCard>No scores recorded yet this season.</EmptyCard>
     )
   }
 
   const visible  = showAll ? entries : entries.slice(0, INITIAL_SHOW)
   const overflow = entries.length - INITIAL_SHOW
 
-  // Column widths: rank | member | [category cols] | total
-  const catColW = '5rem'
-  const gridCols = `2.5rem 1fr ${categoryNames.map(() => catColW).join(' ')} 5.5rem`
+  const thBase   = 'px-2 py-2 text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap'
+  const tdBase   = 'px-2 py-3 text-[13px] tabular-nums'
+  const slots    = Array.from({ length: topPerCategory }, (_, i) => i)
 
   return (
     <>
-      <div className="rounded-[10px] border border-border-default bg-surface-2 overflow-hidden overflow-x-auto">
-        {/* Header row */}
-        <div
-          className="grid gap-3 border-b border-border-subtle px-4 py-2.5 min-w-0"
-          style={{ gridTemplateColumns: gridCols }}
-        >
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary text-right">Rank</span>
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary">Member</span>
-          {categoryNames.map(cat => (
-            <span key={cat} className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary text-right truncate" title={cat}>
-              {cat}
-            </span>
-          ))}
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary text-right pr-1">Total</span>
-        </div>
+      <div className="rounded-[10px] border border-border-default bg-surface-2 overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            {/* Row 1: category group headers */}
+            <tr style={{ borderBottom: '1px solid var(--border-default)' }}>
+              <th
+                className={`${thBase} text-right w-10`}
+                style={{ color: 'var(--text-tertiary)' }}
+                rowSpan={2}
+              >
+                Rank
+              </th>
+              <th
+                className={`${thBase} text-left pl-3`}
+                style={{ color: 'var(--text-tertiary)', minWidth: '9rem' }}
+                rowSpan={2}
+              >
+                Member
+              </th>
+              {categoryNames.map(cat => (
+                <th
+                  key={cat}
+                  colSpan={topPerCategory}
+                  className={`${thBase} text-center`}
+                  style={{
+                    color:      'var(--text-secondary)',
+                    borderLeft: '1px solid var(--border-subtle)',
+                  }}
+                >
+                  {cat}
+                </th>
+              ))}
+              <th
+                className={`${thBase} text-right pr-3`}
+                style={{
+                  color:      'var(--text-tertiary)',
+                  borderLeft: '1px solid var(--border-subtle)',
+                }}
+                rowSpan={2}
+              >
+                Total
+              </th>
+            </tr>
 
-        {visible.map((entry, i) => (
-          <div
-            key={entry.memberId}
-            className={`grid gap-3 px-4 py-3 items-center transition-colors hover:bg-surface-1 ${
-              i < visible.length - 1 ? 'border-b border-border-subtle' : ''
-            } ${entry.isCurrentUser ? 'bg-[rgba(26,111,196,0.06)]' : ''}`}
-            style={{ gridTemplateColumns: gridCols }}
-          >
-            {/* Rank */}
-            <span className={`text-right text-[14px] font-semibold tabular-nums ${
-              entry.rank <= 3 ? 'text-content-primary' : 'text-content-secondary'
-            }`}>
-              {entry.rank}{entry.tied ? '=' : ''}
-              {entry.isCurrentUser && (
-                <span className="ml-1 text-[10px]" style={{ color: 'var(--action-primary)' }}>★</span>
+            {/* Row 2: slot numbers within each category */}
+            <tr style={{ borderBottom: '1px solid var(--border-default)' }}>
+              {categoryNames.flatMap(cat =>
+                slots.map(i => (
+                  <th
+                    key={`${cat}-${i}`}
+                    className={`${thBase} text-right w-12`}
+                    style={{
+                      color:      'var(--text-tertiary)',
+                      borderLeft: i === 0 ? '1px solid var(--border-subtle)' : undefined,
+                      fontWeight:  400,
+                      letterSpacing: 0,
+                      textTransform: 'none',
+                      fontSize: '10px',
+                    }}
+                  >
+                    {i + 1}
+                  </th>
+                ))
               )}
-            </span>
+            </tr>
+          </thead>
 
-            {/* Member */}
-            <div className="flex items-center gap-2.5 min-w-0">
-              <Avatar name={entry.displayName} url={entry.avatarUrl} size={28} />
-              <span className="text-[13px] font-medium text-content-primary truncate leading-tight">
-                {entry.displayName}
-              </span>
-            </div>
+          <tbody>
+            {visible.map((entry, i) => (
+              <tr
+                key={entry.memberId}
+                className="transition-colors hover:bg-surface-1"
+                style={{
+                  borderBottom: i < visible.length - 1 ? '1px solid var(--border-subtle)' : undefined,
+                  background:   entry.isCurrentUser ? 'rgba(26,111,196,0.05)' : undefined,
+                }}
+              >
+                {/* Rank */}
+                <td
+                  className={`${tdBase} text-right font-semibold w-10`}
+                  style={{ color: entry.rank <= 3 ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                >
+                  {entry.rank}{entry.tied ? '=' : ''}
+                  {entry.isCurrentUser && (
+                    <span className="ml-0.5 text-[10px]" style={{ color: 'var(--action-primary)' }}>★</span>
+                  )}
+                </td>
 
-            {/* Per-category scores */}
-            {categoryNames.map(cat => (
-              <span key={cat} className="text-right text-[13px] tabular-nums" style={{ color: 'var(--text-secondary)' }}>
-                {entry.byCategory[cat] != null ? entry.byCategory[cat].toFixed(1) : '—'}
-              </span>
+                {/* Member */}
+                <td className={`${tdBase} pl-3`} style={{ minWidth: '9rem' }}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Avatar name={entry.displayName} url={entry.avatarUrl} size={24} />
+                    <span
+                      className="truncate text-[13px] font-medium"
+                      style={{ color: entry.isCurrentUser ? 'var(--action-primary)' : 'var(--text-primary)' }}
+                    >
+                      {entry.displayName}
+                    </span>
+                  </div>
+                </td>
+
+                {/* Per-category score slots */}
+                {categoryNames.flatMap(cat => {
+                  const scores = entry.byCategory[cat] ?? []
+                  return slots.map(i => (
+                    <td
+                      key={`${cat}-${i}`}
+                      className={`${tdBase} text-right w-12`}
+                      style={{
+                        color:      scores[i] != null ? 'var(--text-primary)' : 'var(--text-disabled)',
+                        borderLeft: i === 0 ? '1px solid var(--border-subtle)' : undefined,
+                      }}
+                    >
+                      {scores[i] != null ? scores[i].toFixed(1) : '—'}
+                    </td>
+                  ))
+                })}
+
+                {/* Total */}
+                <td
+                  className={`${tdBase} text-right pr-3 font-semibold`}
+                  style={{
+                    color:      'var(--text-primary)',
+                    borderLeft: '1px solid var(--border-subtle)',
+                  }}
+                >
+                  {entry.score.toFixed(1)}
+                </td>
+              </tr>
             ))}
-
-            {/* Total */}
-            <span className="text-right text-[14px] font-semibold tabular-nums text-content-primary pr-1">
-              {entry.score.toFixed(1)}
-            </span>
-          </div>
-        ))}
+          </tbody>
+        </table>
       </div>
 
-      {/* Show all / collapse */}
       {overflow > 0 && !showAll && (
         <button
           onClick={() => setShowAll(true)}
@@ -477,6 +553,7 @@ export default function StandingsClient({
   hasCompetitionsThisSeason,
   poyStandings,
   categoryNames,
+  topPerCategory,
   lastUpdatedAt,
   benchmarkConfigured,
   awardsConfigured,
@@ -491,6 +568,7 @@ export default function StandingsClient({
   hasCompetitionsThisSeason: boolean
   poyStandings:              PoyEntry[]
   categoryNames:             string[]
+  topPerCategory:            number
   lastUpdatedAt:             string | null
   benchmarkConfigured:       boolean
   awardsConfigured:          boolean
@@ -559,6 +637,7 @@ export default function StandingsClient({
             entries={poyStandings}
             hasCompetitions={hasCompetitionsThisSeason}
             categoryNames={categoryNames}
+            topPerCategory={topPerCategory}
           />
         </div>
       )}

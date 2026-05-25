@@ -33,7 +33,7 @@ export type PoyEntry = {
   skillLevel:          string | null
   score:               number
   competitionsEntered: number
-  byCategory:          Record<string, number>  // category name → score contribution
+  byCategory:          Record<string, number[]> // category name → individual scores, sorted desc (max TOP_PER_CATEGORY)
   isCurrentUser:       boolean
 }
 
@@ -219,12 +219,12 @@ export default async function StandingsPage({
     const agg = new Map<string, MemberAgg>()
 
     for (const [memberId, catMap] of memberCatScores) {
-      const byCategory: Record<string, number> = {}
+      const byCategory: Record<string, number[]> = {}
       let totalScore = 0
       for (const [catName, scores] of catMap) {
         const top      = [...scores].sort((a, b) => b - a).slice(0, TOP_PER_CATEGORY)
-        const catTotal = Math.round(top.reduce((s, sc) => s + sc, 0) * 10) / 10
-        byCategory[catName] = catTotal
+        const catTotal = top.reduce((s, sc) => s + sc, 0)
+        byCategory[catName] = top.map(s => Math.round(s * 10) / 10)
         totalScore += catTotal
       }
       agg.set(memberId, { totalScore: Math.round(totalScore * 10) / 10, byCategory })
@@ -332,6 +332,7 @@ export default async function StandingsPage({
       hasCompetitionsThisSeason={compIds.length > 0}
       poyStandings={poyStandings}
       categoryNames={categoryNames}
+      topPerCategory={TOP_PER_CATEGORY}
       lastUpdatedAt={lastUpdatedAt}
       benchmarkConfigured={false}
       awardsConfigured={awardsConfigured}
