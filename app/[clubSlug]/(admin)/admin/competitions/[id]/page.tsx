@@ -42,11 +42,10 @@ export default async function CompetitionDetailPage({
 
   if (!competition) notFound()
 
-  // Fetch submission count and per-category breakdown in parallel with members list
+  // Fetch submission count and per-category breakdown in parallel with judge directory
   const [
     { count: submissionCount },
     { data: submissionRows },
-    { data: profiles },
     { data: judgeDirectory },
   ] = await Promise.all([
     admin
@@ -57,11 +56,6 @@ export default async function CompetitionDetailPage({
       .from('submissions')
       .select('category_id')
       .eq('competition_id', id),
-    admin
-      .from('profiles')
-      .select('id, first_name, last_name, email')
-      .in('membership_status', ['active', 'complimentary'])
-      .order('last_name', { ascending: true }),
     admin
       .from('judge_directory')
       .select('id, name, email')
@@ -98,23 +92,12 @@ export default async function CompetitionDetailPage({
     count: catCountMap[c.id] ?? 0,
   }))
 
-  // Merge judge directory (external judges) + active members, deduplicated by email
-  const dirJudges = (judgeDirectory ?? []).map(j => ({
+  // Judge dropdown uses only the judge directory
+  const members = (judgeDirectory ?? []).map(j => ({
     id:    `dir_${j.id}`,
     name:  j.name,
     email: j.email ?? '',
   }))
-  const dirEmails = new Set(dirJudges.map(j => j.email.toLowerCase()))
-  const members = [
-    ...dirJudges,
-    ...(profiles ?? [])
-      .filter(p => !p.email || !dirEmails.has((p.email as string).toLowerCase()))
-      .map(p => ({
-        id:    p.id,
-        name:  [p.first_name, p.last_name].filter(Boolean).join(' ') || '—',
-        email: (p.email as string | null) ?? '',
-      })),
-  ]
 
   return (
     <div className="space-y-8">

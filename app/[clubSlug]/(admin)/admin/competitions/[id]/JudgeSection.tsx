@@ -115,7 +115,7 @@ function AddJudgeForm({
             onChange={e => setSelectedId(e.target.value)}
             displayEmpty
           >
-            <MenuItem value=""><em>Select a judge or member…</em></MenuItem>
+            <MenuItem value=""><em>Select a judge…</em></MenuItem>
             {members.map(m => (
               <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>
             ))}
