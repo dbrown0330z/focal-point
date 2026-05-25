@@ -266,9 +266,8 @@ function PoyLeaderboard({
   // Sticky-column helpers. Cells need an opaque background so scrolling
   // content doesn't show through. For highlighted rows we blend the blue
   // tint into the surface colour.
-  function stickyBg(isCurrentUser: boolean) {
-    // rgba(26,111,196,0.05) blended over #FFFFFF ≈ rgb(244,248,252)
-    return isCurrentUser ? 'rgb(244,248,252)' : 'var(--surface-2)'
+  function stickyBg(_isCurrentUser: boolean) {
+    return 'var(--surface-2)'
   }
 
   const stickyRankStyle = (isCurrentUser: boolean): React.CSSProperties => ({
@@ -413,7 +412,7 @@ function PoyLeaderboard({
             {visible.map((entry, i) => {
               const rowStyle: React.CSSProperties = {
                 borderBottom: i < visible.length - 1 ? '1px solid var(--border-subtle)' : undefined,
-                background:   entry.isCurrentUser ? 'rgba(26,111,196,0.05)' : undefined,
+                background:   undefined,
               }
               return (
                 <tr
