@@ -27,9 +27,12 @@ import {
 } from '@/types/competition'
 
 interface Props {
-  config:     CompetitionConfig
-  onChange:   (c: Partial<CompetitionConfig>) => void
-  onBlocked?: (blocked: boolean) => void
+  config:        CompetitionConfig
+  onChange:      (c: Partial<CompetitionConfig>) => void
+  onBlocked?:    (blocked: boolean) => void
+  /** Edit mode: the preset from the last-saved config. Prevents re-deriving
+   *  recognition toggles on mount when the preset hasn't changed this session. */
+  savedPreset?:  JudgingPreset
 }
 
 interface SectionSharedProps {
@@ -111,7 +114,7 @@ function ToggleRow({ label, isOn, onChange, tag, offDescription }: {
 
 // ─── Main component ────────────────────────────────────────────────────────────
 
-export function StepAwards({ config, onChange, onBlocked }: Props) {
+export function StepAwards({ config, onChange, onBlocked, savedPreset }: Props) {
   const preset = config.judgingPreset
 
   const [defaults,     setDefaults]     = useState<RecognitionDefaults | null>(null)
@@ -121,7 +124,10 @@ export function StepAwards({ config, onChange, onBlocked }: Props) {
 
   const [configureWarning, setConfigureWarning] = useState(false)
   const clubDefaultsTabRef = useRef(false)
-  const lastPresetRef      = useRef<JudgingPreset | null>(null)
+  // Initialise with savedPreset so we skip re-derive on mount when the preset
+  // hasn't changed in this edit session. In creation mode (savedPreset undefined)
+  // null causes the normal derive-on-mount behaviour.
+  const lastPresetRef      = useRef<JudgingPreset | null>(savedPreset ?? null)
   const onChangeRef        = useRef(onChange)
   useEffect(() => { onChangeRef.current = onChange })
 

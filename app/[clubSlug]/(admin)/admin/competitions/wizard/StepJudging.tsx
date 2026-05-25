@@ -27,8 +27,9 @@ import {
 } from '@/types/competition'
 
 interface Props {
-  config: CompetitionConfig
-  onChange: (c: Partial<CompetitionConfig>) => void
+  config:                    CompetitionConfig
+  onChange:                  (c: Partial<CompetitionConfig>) => void
+  showPresetChangeWarning?:  boolean
 }
 
 const PRESETS: {
@@ -90,7 +91,7 @@ const PRESETS: {
   },
 ]
 
-export function StepJudging({ config, onChange }: Props) {
+export function StepJudging({ config, onChange, showPresetChangeWarning }: Props) {
   const preset = config.judgingPreset
 
   const selectPreset = (key: JudgingPreset) => {
@@ -211,6 +212,19 @@ export function StepJudging({ config, onChange }: Props) {
 
         </Box>
       </Box>
+
+      {/* Preset change warning — shown when editing a used template */}
+      {showPresetChangeWarning && (
+        <Box sx={{
+          mt: 1.5, px: 2.5, py: 2, borderRadius: 1.5,
+          bgcolor: t => t.palette.mode === 'dark' ? 'rgba(166,124,0,0.10)' : '#FFFBE6',
+          border: t => `1px solid ${t.palette.mode === 'dark' ? 'rgba(212,168,0,0.30)' : '#F0D060'}`,
+        }}>
+          <Typography sx={{ fontSize: 13, lineHeight: 1.6, color: t => t.palette.mode === 'dark' ? '#FAD84A' : '#6B5000' }}>
+            ⚠ Changing the judging method will affect how new competitions using this template are set up. Existing competitions using this template are unaffected.
+          </Typography>
+        </Box>
+      )}
 
       {/* ── Number of judges ── */}
       <AnimatedReveal show={preset !== 'member-vote' && preset !== 'end-of-year'}>

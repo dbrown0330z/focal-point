@@ -33,3 +33,18 @@ export async function deleteTemplate(id: string) {
   if (error) throw new Error(error.message)
   revalidatePath('/admin/competitions/templates')
 }
+
+export async function duplicateTemplate(id: string) {
+  const supabase = createServiceClient()
+  const { data: original } = await supabase
+    .from('competition_templates')
+    .select('name, config')
+    .eq('id', id)
+    .single()
+  if (!original) throw new Error('Template not found')
+  const { error } = await supabase
+    .from('competition_templates')
+    .insert({ name: `Copy of ${original.name}`, config: original.config })
+  if (error) throw new Error(error.message)
+  revalidatePath('/admin/competitions/templates')
+}

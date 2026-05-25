@@ -2,29 +2,33 @@
 
 import { Box, Typography } from '@mui/material'
 
-const STEPS = ['Basics', 'Entries & Submissions', 'Judging', 'Recognition', 'Review', 'Schedule']
+const DEFAULT_STEPS = ['Basics', 'Entries & Submissions', 'Judging', 'Recognition', 'Review', 'Schedule']
 
 export function StepIndicator({
   currentStep,
   completedSteps,
   onStepClick,
+  steps = DEFAULT_STEPS,
+  allClickable = false,
 }: {
-  currentStep: number
+  currentStep:    number
   completedSteps: number[]
-  onStepClick: (step: number) => void
+  onStepClick:    (step: number) => void
+  steps?:         string[]
+  allClickable?:  boolean
 }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-      {STEPS.map((label, idx) => {
-        const step      = idx + 1
+      {steps.map((label, idx) => {
+        const step        = idx + 1
         const isCurrent   = step === currentStep
         const isCompleted = completedSteps.includes(step)
-        const isClickable = isCompleted || step === currentStep
+        const isClickable = allClickable || isCompleted || isCurrent
 
         return (
           <Box
             key={step}
-            sx={{ display: 'flex', alignItems: 'center', flex: idx < STEPS.length - 1 ? 1 : undefined }}
+            sx={{ display: 'flex', alignItems: 'center', flex: idx < steps.length - 1 ? 1 : undefined }}
           >
             <Box
               component={isClickable && !isCurrent ? 'button' : 'div'}
@@ -90,7 +94,7 @@ export function StepIndicator({
             </Box>
 
             {/* Connector line */}
-            {idx < STEPS.length - 1 && (
+            {idx < steps.length - 1 && (
               <Box
                 sx={{
                   flex: 1,

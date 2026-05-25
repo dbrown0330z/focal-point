@@ -13,16 +13,17 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  Menu,
+  MenuItem,
+  OutlinedInput,
   Snackbar,
   Typography,
 } from '@mui/material'
 import { StepIndicator }  from '../../wizard/StepIndicator'
-import { StepBasics }     from '../../wizard/StepBasics'
 import { StepCategories } from '../../wizard/StepCategories'
 import { StepJudging }    from '../../wizard/StepJudging'
 import { StepAwards }     from '../../wizard/StepAwards'
-import { StepReview }     from '../../wizard/StepReview'
-import { updateTemplate, deleteTemplate } from './actions'
+import { updateTemplate, deleteTemplate, duplicateTemplate } from './actions'
 import { defaultConfig, type CompetitionConfig } from '@/types/competition'
 import EmptyState from '@/components/admin/EmptyState'
 
@@ -34,9 +35,13 @@ type Template = {
   config:     CompetitionConfig
   created_at: string
   updated_at: string
+  usageCount: number
 }
 
-const TOTAL_STEPS = 5  // template flow: Basics, Categories, Judging, Awards, Review
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const EDIT_STEPS       = ['Entries & submissions', 'Judging & scoring', 'Recognition']
+const TOTAL_EDIT_STEPS = 3
 
 const PRESET_LABEL: Record<string, string> = {
   'simple-scored': 'Simple scored',
@@ -46,7 +51,57 @@ const PRESET_LABEL: Record<string, string> = {
   'end-of-year':   'End of year',
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── Small UI pieces ──────────────────────────────────────────────────────────
+
+function UsageWarningBanner({ usageCount }: { usageCount: number }) {
+  return (
+    <Box sx={{
+      px: 2.5, py: 2, borderRadius: 1.5,
+      bgcolor: t => t.palette.mode === 'dark' ? 'rgba(0,151,167,0.10)' : '#F0FAF7',
+      border:  t => `1px solid ${t.palette.mode === 'dark' ? 'rgba(0,151,167,0.30)' : '#9DD9C5'}`,
+    }}>
+      <Typography sx={{ fontSize: 13, lineHeight: 1.6, color: t => t.palette.mode === 'dark' ? '#4ECDE6' : '#0A5742' }}>
+        This template has been used in{' '}
+        <strong>{usageCount} {usageCount === 1 ? 'competition' : 'competitions'}</strong>.{' '}
+        Changes here apply to future competitions only. Existing competitions are unaffected.
+      </Typography>
+    </Box>
+  )
+}
+
+function RecognitionDerivedNote() {
+  return (
+    <Box sx={{
+      mb: 3, px: 2.5, py: 2, borderRadius: 1.5,
+      bgcolor: t => t.palette.mode === 'dark' ? 'rgba(0,151,167,0.08)' : '#F0FAF7',
+      border:  t => `1px solid ${t.palette.mode === 'dark' ? 'rgba(0,151,167,0.25)' : '#BEE3D8'}`,
+    }}>
+      <Typography sx={{ fontSize: 13, lineHeight: 1.6, color: t => t.palette.mode === 'dark' ? '#4ECDE6' : '#0A5742' }}>
+        ℹ Recognition settings have been updated to match your new judging method.
+      </Typography>
+    </Box>
+  )
+}
+
+function PencilIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+    </svg>
+  )
+}
+
+function DotsIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="12" cy="5"  r="2" />
+      <circle cx="12" cy="12" r="2" />
+      <circle cx="12" cy="19" r="2" />
+    </svg>
+  )
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function TemplatesClient({
   templates,
@@ -58,80 +113,124 @@ export default function TemplatesClient({
   clubSlug:        string
 }) {
   const router = useRouter()
+  const [activeCats, setActiveCats] = useState<string[]>(
+    clubCategories.length ? clubCategories : defaultConfig.categories
+  )
 
-  const [activeCats, setActiveCats] = useState<string[]>(clubCategories.length ? clubCategories : defaultConfig.categories)
+  // ── Edit wizard ────────────────────────────────────────────────────────────
+  const [wizardOpen,      setWizardOpen]      = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null)
+  const [step,            setStep]            = useState(1)
+  const [config,          setConfig]          = useState<CompetitionConfig>(defaultConfig)
+  const [savedConfig,     setSavedConfig]     = useState<CompetitionConfig>(defaultConfig)
+  const [completedSteps,  setCompletedSteps]  = useState<number[]>([])
+  const [saving,          setSaving]          = useState(false)
+  const [discardConfirm,  setDiscardConfirm]  = useState(false)
 
-  // Wizard modal state
-  const [wizardOpen,     setWizardOpen]     = useState(false)
-  const [editingId,      setEditingId]      = useState<string | null>(null)
-  const [step,           setStep]           = useState(1)
-  const [config,         setConfig]         = useState<CompetitionConfig>(defaultConfig)
-  const [completedSteps, setCompletedSteps] = useState<number[]>([])
-  const [errors,         setErrors]         = useState<Record<string, string>>({})
-  const [saving,         setSaving]         = useState(false)
+  // ── Inline name editing ────────────────────────────────────────────────────
+  const [nameEditing, setNameEditing] = useState(false)
+  const [nameDraft,   setNameDraft]   = useState('')
 
-  // Delete state
-  const [deleteConfirm,  setDeleteConfirm]  = useState<Template | null>(null)
-  const [deleting,       setDeleting]       = useState(false)
+  // ── Kebab menu ─────────────────────────────────────────────────────────────
+  const [kebabAnchor,   setKebabAnchor]   = useState<{ el: HTMLElement; tpl: Template } | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<Template | null>(null)
+  const [deleting,      setDeleting]      = useState(false)
 
-  // Toast
+  // ── Toast ──────────────────────────────────────────────────────────────────
   const [toast, setToast] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null)
+
+  // ── Derived ───────────────────────────────────────────────────────────────
+  const isDirty = JSON.stringify(config) !== JSON.stringify(savedConfig)
+  // Has the judging preset changed from the template's original saved value?
+  const presetChangedInSession = editingTemplate
+    ? config.judgingPreset !== editingTemplate.config.judgingPreset
+    : false
 
   const updateConfig = useCallback((partial: Partial<CompetitionConfig>) => {
     setConfig(prev => ({ ...prev, ...partial }))
   }, [])
 
-  const validateStep = (s: number): boolean => {
-    const errs: Record<string, string> = {}
-    if (s === 1 && !config.name.trim()) errs.name = 'Template name is required'
-    setErrors(errs)
-    return Object.keys(errs).length === 0
-  }
-
-  const goNext = () => {
-    if (!validateStep(step)) return
-    setCompletedSteps(prev => prev.includes(step) ? prev : [...prev, step])
-    if (step === 3) {
-      const isAwardFocused = config.judgingPreset === 'awards-only' || config.judgingPreset === 'member-vote'
-      setConfig(prev => ({
-        ...prev,
-        awardsEnabled:       isAwardFocused,
-        seasonPointsEnabled: !isAwardFocused,
-      }))
-    }
-    setStep(s => Math.min(s + 1, TOTAL_STEPS))
-  }
-
-  const goBack = () => setStep(s => Math.max(s - 1, 1))
-
-  const goToStep = (s: number) => {
-    if (completedSteps.includes(s) || s === step) setStep(s)
-  }
-
+  // ── Open edit ──────────────────────────────────────────────────────────────
   const openEdit = (tpl: Template) => {
-    setEditingId(tpl.id)
-    setStep(2)
+    setEditingTemplate(tpl)
+    setStep(1)
     setConfig(tpl.config)
-    setCompletedSteps([1, 2, 3, 4]) // steps 1-4 navigable when editing
-    setErrors({})
+    setSavedConfig(tpl.config)
+    setCompletedSteps([])   // checkmarks only for steps saved this session
+    setNameEditing(false)
+    setDiscardConfirm(false)
     setWizardOpen(true)
   }
 
-  const handleSave = async () => {
-    if (!validateStep(step)) return
+  // ── Save helpers ───────────────────────────────────────────────────────────
+  const saveCurrentStep = async (): Promise<boolean> => {
+    if (!editingTemplate) return false
     setSaving(true)
     try {
-      await updateTemplate(editingId!, config.name, config)
-      setToast({ msg: `"${config.name}" updated.`, severity: 'success' })
-      setWizardOpen(false)
-      router.refresh()
+      await updateTemplate(editingTemplate.id, config.name, config)
+      setSavedConfig({ ...config })
+      setCompletedSteps(prev => prev.includes(step) ? prev : [...prev, step])
+      return true
     } catch {
-      setToast({ msg: 'Failed to save template.', severity: 'error' })
+      setToast({ msg: 'Failed to save.', severity: 'error' })
+      return false
     } finally {
       setSaving(false)
     }
   }
 
+  const handleSaveAndContinue = async () => {
+    const ok = await saveCurrentStep()
+    if (ok) setStep(s => Math.min(s + 1, TOTAL_EDIT_STEPS))
+  }
+
+  const handleSaveAndClose = async () => {
+    const ok = await saveCurrentStep()
+    if (!ok) return
+    setToast({ msg: `"${config.name}" updated.`, severity: 'success' })
+    setWizardOpen(false)
+    router.refresh()
+  }
+
+  const goToStep = (s: number) => {
+    if (s === step) return
+    if (isDirty) {
+      // Auto-save current step before jumping — no confirmation, no toast
+      saveCurrentStep().then(() => setStep(s))
+    } else {
+      setStep(s)
+    }
+  }
+
+  // ── Cancel ────────────────────────────────────────────────────────────────
+  const handleCancel = () => {
+    if (isDirty) {
+      setDiscardConfirm(true)
+    } else {
+      setWizardOpen(false)
+    }
+  }
+
+  // ── Inline name save ──────────────────────────────────────────────────────
+  const saveNameChange = async () => {
+    const newName = nameDraft.trim()
+    setNameEditing(false)
+    if (!newName || newName === config.name) return
+    const updatedConfig = { ...config, name: newName }
+    setConfig(updatedConfig)
+    setSaving(true)
+    try {
+      await updateTemplate(editingTemplate!.id, newName, updatedConfig)
+      setSavedConfig(updatedConfig)
+    } catch {
+      setToast({ msg: 'Failed to save name.', severity: 'error' })
+      setConfig(config) // revert on failure
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ── Delete ─────────────────────────────────────────────────────────────────
   const handleDelete = async () => {
     if (!deleteConfirm) return
     setDeleting(true)
@@ -147,13 +246,34 @@ export default function TemplatesClient({
     }
   }
 
+  // ── Duplicate ──────────────────────────────────────────────────────────────
+  const handleDuplicate = async (tpl: Template) => {
+    setKebabAnchor(null)
+    try {
+      await duplicateTemplate(tpl.id)
+      setToast({ msg: `"Copy of ${tpl.name}" created.`, severity: 'success' })
+      router.refresh()
+    } catch {
+      setToast({ msg: 'Failed to duplicate template.', severity: 'error' })
+    }
+  }
+
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* Header */}
-      <Box sx={{ mb: 3 }}>
+      {/* Page header */}
+      <Box sx={{ mb: 3, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
         <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
           Reusable settings for judging rules, awards, and scoring. Templates are saved when you create a competition.
         </Typography>
+        <Button
+          variant="contained"
+          size="small"
+          sx={{ flexShrink: 0 }}
+          onClick={() => router.push(`/${clubSlug}/admin/competitions/new`)}
+        >
+          + New template
+        </Button>
       </Box>
 
       {/* Template list */}
@@ -183,6 +303,7 @@ export default function TemplatesClient({
                   transition: 'background 0.1s',
                 }}
               >
+                {/* Left: icon + info */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
                   <Box sx={{ color: 'text.secondary', flexShrink: 0 }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
@@ -193,7 +314,7 @@ export default function TemplatesClient({
                     <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary' }}>
                       {tpl.name}
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.25 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.75, mt: 0.25 }}>
                       <Chip
                         label={PRESET_LABEL[tpl.config?.judgingPreset ?? ''] ?? tpl.config?.judgingPreset ?? '—'}
                         size="small"
@@ -206,11 +327,17 @@ export default function TemplatesClient({
                         <Chip label="Season points" size="small" sx={{ fontSize: 11, height: 20, fontFamily: 'inherit', bgcolor: 'background.default', color: 'text.secondary' }} />
                       )}
                     </Box>
+                    <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.5 }}>
+                      {tpl.usageCount > 0
+                        ? `Used in ${tpl.usageCount} competition${tpl.usageCount === 1 ? '' : 's'}`
+                        : 'Never used'}
+                    </Typography>
                   </Box>
                 </Box>
 
+                {/* Right: date + buttons */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
-                  <Typography sx={{ fontSize: 12, color: 'text.secondary', mr: 1 }}>
+                  <Typography sx={{ fontSize: 12, color: 'text.secondary', mr: 0.5 }}>
                     Updated {new Date(tpl.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </Typography>
                   <Button
@@ -222,20 +349,21 @@ export default function TemplatesClient({
                   >
                     Edit
                   </Button>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => setDeleteConfirm(tpl)}
+                  <Box
+                    component="button"
+                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => setKebabAnchor({ el: e.currentTarget, tpl })}
                     sx={{
-                      fontSize: 12,
-                      bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(211,47,47,0.12)' : '#FDEEEE',
-                      color: (t) => t.palette.mode === 'dark' ? '#F09595' : '#7A1515',
-                      borderColor: 'rgba(211,47,47,0.3)',
-                      '&:hover': { bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(211,47,47,0.22)' : '#F9D0D0', borderColor: 'rgba(211,47,47,0.5)' },
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: 30, height: 30, borderRadius: 1,
+                      border: '1px solid', borderColor: 'divider',
+                      bgcolor: 'transparent', cursor: 'pointer',
+                      color: 'text.secondary',
+                      '&:hover': { bgcolor: 'action.hover' },
                     }}
+                    aria-label="More options"
                   >
-                    Delete
-                  </Button>
+                    <DotsIcon />
+                  </Box>
                 </Box>
               </Box>
             </Box>
@@ -243,87 +371,208 @@ export default function TemplatesClient({
         </Card>
       )}
 
-      {/* ── Template wizard dialog ── */}
+      {/* Kebab dropdown */}
+      <Menu
+        open={!!kebabAnchor}
+        anchorEl={kebabAnchor?.el ?? undefined}
+        onClose={() => setKebabAnchor(null)}
+        slotProps={{ paper: { sx: { borderRadius: 1.5, minWidth: 200, boxShadow: 3 } } }}
+      >
+        <MenuItem
+          onClick={() => kebabAnchor && handleDuplicate(kebabAnchor.tpl)}
+          sx={{ fontSize: 13 }}
+        >
+          Duplicate
+        </MenuItem>
+        {kebabAnchor?.tpl.usageCount === 0 ? (
+          <MenuItem
+            onClick={() => { setDeleteConfirm(kebabAnchor!.tpl); setKebabAnchor(null) }}
+            sx={{ fontSize: 13, color: 'error.main' }}
+          >
+            Delete
+          </MenuItem>
+        ) : (
+          <MenuItem disabled sx={{ fontSize: 12, whiteSpace: 'normal', lineHeight: 1.5 }}>
+            Templates used in competitions cannot be deleted
+          </MenuItem>
+        )}
+      </Menu>
+
+      {/* ── Edit wizard dialog ────────────────────────────────────────────── */}
       <Dialog
         open={wizardOpen}
-        onClose={() => setWizardOpen(false)}
+        onClose={handleCancel}
         maxWidth={false}
         fullWidth
         slotProps={{ paper: { sx: { borderRadius: 2, height: '94vh', width: '100%', maxWidth: 1000, display: 'flex', flexDirection: 'column' } } }}
       >
-        {/* Header — title + step indicator */}
-        <Box sx={{ px: '30px', pt: '30px', pb: '24px', borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
-            Edit Competition Template
-          </Typography>
-          <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 3 }}>
-            {config.name}
-          </Typography>
-          <StepIndicator currentStep={step} completedSteps={completedSteps} onStepClick={goToStep} />
+        {/* Usage warning banner — sits above the header chrome */}
+        {editingTemplate && editingTemplate.usageCount > 0 && (
+          <Box sx={{ px: '30px', pt: '24px', flexShrink: 0 }}>
+            <UsageWarningBanner usageCount={editingTemplate.usageCount} />
+          </Box>
+        )}
+
+        {/* Header: name + step indicator */}
+        <Box sx={{
+          px: '30px',
+          pt: editingTemplate && editingTemplate.usageCount > 0 ? '16px' : '30px',
+          pb: '24px',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          flexShrink: 0,
+        }}>
+          {/* Inline-editable template name */}
+          {nameEditing ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+              <Typography sx={{ fontSize: 18, fontWeight: 600, color: 'text.secondary', flexShrink: 0 }}>
+                Edit template:
+              </Typography>
+              <OutlinedInput
+                size="small"
+                value={nameDraft}
+                onChange={e => setNameDraft(e.target.value)}
+                onBlur={saveNameChange}
+                onKeyDown={e => {
+                  if (e.key === 'Enter')  { e.preventDefault(); saveNameChange() }
+                  if (e.key === 'Escape') { setNameEditing(false) }
+                }}
+                autoFocus
+                sx={{ fontSize: 15, fontWeight: 600, fontFamily: 'inherit' }}
+              />
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 3 }}>
+              <Typography sx={{ fontSize: 18, fontWeight: 600, color: 'text.primary' }}>
+                Edit template:
+              </Typography>
+              <Box
+                component="button"
+                onClick={() => { setNameDraft(config.name); setNameEditing(true) }}
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 0.75,
+                  border: 'none', bgcolor: 'transparent', cursor: 'pointer',
+                  p: '4px 8px', borderRadius: 1,
+                  '&:hover': { bgcolor: 'action.hover' },
+                  fontFamily: 'inherit',
+                }}
+              >
+                <Typography sx={{ fontSize: 18, fontWeight: 600, color: 'text.primary' }}>
+                  {config.name}
+                </Typography>
+                <Box sx={{ color: 'text.secondary', flexShrink: 0, lineHeight: 0 }}>
+                  <PencilIcon />
+                </Box>
+              </Box>
+            </Box>
+          )}
+
+          <StepIndicator
+            currentStep={step}
+            completedSteps={completedSteps}
+            onStepClick={goToStep}
+            steps={EDIT_STEPS}
+            allClickable
+          />
         </Box>
 
-        {/* Scrollable content */}
+        {/* Scrollable step content */}
         <DialogContent sx={{ flex: 1, overflowY: 'auto', px: '30px', py: '30px' }}>
           {step === 1 && (
-            <StepBasics
+            <StepCategories
               config={config}
               onChange={updateConfig}
-              errors={errors}
-              templates={[]}
-              selectedTemplateId={null}
-              onSelectTemplate={() => {}}
-              competitionType={config.competitionType}
-              onTypeChange={type => updateConfig({ competitionType: type })}
-              onScheduleDirect={() => {}}
-              onReviewSettings={() => {}}
-              onScratchMode={() => {}}
-              clubSlug={clubSlug}
+              clubCategories={activeCats}
+              onAddClubCategory={name => setActiveCats(prev => [...prev, name])}
             />
           )}
-          {step === 2 && <StepCategories config={config} onChange={updateConfig} clubCategories={activeCats} onAddClubCategory={name => setActiveCats(prev => [...prev, name])} />}
-          {step === 3 && <StepJudging    config={config} onChange={updateConfig} />}
-          {step === 4 && <StepAwards     config={config} onChange={updateConfig} />}
-          {step === 5 && (
-            <StepReview
+          {step === 2 && (
+            <StepJudging
               config={config}
-              onEdit={goToStep}
-              saveAsTemplate={false}
-              onSaveAsTemplate={() => {}}
-              templateName={config.name}
-              onTemplateName={name => updateConfig({ name })}
-              selectedTemplateId="editing"
+              onChange={updateConfig}
+              showPresetChangeWarning={
+                !!(editingTemplate &&
+                  editingTemplate.usageCount > 0 &&
+                  config.judgingPreset !== editingTemplate.config.judgingPreset)
+              }
             />
+          )}
+          {step === 3 && (
+            <>
+              {presetChangedInSession && <RecognitionDerivedNote />}
+              <StepAwards
+                config={config}
+                onChange={updateConfig}
+                savedPreset={editingTemplate?.config.judgingPreset}
+              />
+            </>
           )}
         </DialogContent>
 
         {/* Footer */}
-        <Box sx={{ px: '30px', py: '24px', borderTop: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <Box sx={{
+          px: '30px', py: '24px',
+          borderTop: '1px solid', borderColor: 'divider',
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+          gap: 1.5, flexShrink: 0,
+        }}>
           <Button
             variant="outlined"
             color="secondary"
-            onClick={goBack}
-            disabled={step === 1}
+            onClick={handleCancel}
+            disabled={saving}
           >
-            Back
+            Cancel
           </Button>
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
-            <Button variant="outlined" color="secondary" onClick={() => setWizardOpen(false)}>
-              Cancel
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={handleSaveAndClose}
+            disabled={saving}
+          >
+            {saving ? 'Saving…' : 'Save & close'}
+          </Button>
+          {step < TOTAL_EDIT_STEPS && (
+            <Button
+              variant="contained"
+              onClick={handleSaveAndContinue}
+              disabled={saving}
+            >
+              {saving ? 'Saving…' : 'Save & continue →'}
             </Button>
-            {step < TOTAL_STEPS ? (
-              <Button variant="contained" onClick={goNext}>
-                Continue
-              </Button>
-            ) : (
-              <Button variant="contained" onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving…' : 'Save changes'}
-              </Button>
-            )}
-          </Box>
+          )}
         </Box>
       </Dialog>
 
-      {/* ── Delete confirmation dialog ── */}
+      {/* ── Discard confirmation ──────────────────────────────────────────── */}
+      <Dialog
+        open={discardConfirm}
+        onClose={() => setDiscardConfirm(false)}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{ paper: { sx: { borderRadius: 2 } } }}
+      >
+        <DialogTitle sx={{ pb: 0.5 }}>Discard changes to this step?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+            Changes you&apos;ve made to <strong>{EDIT_STEPS[step - 1]}</strong> will not be saved.
+            {completedSteps.length > 0 && ' Changes you saved on previous steps will be kept.'}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button variant="outlined" color="secondary" onClick={() => setDiscardConfirm(false)}>
+            Keep editing
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => { setDiscardConfirm(false); setWizardOpen(false) }}
+          >
+            Discard &amp; exit
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Delete confirmation ───────────────────────────────────────────── */}
       <Dialog
         open={!!deleteConfirm}
         onClose={() => setDeleteConfirm(null)}
@@ -346,10 +595,13 @@ export default function TemplatesClient({
             onClick={handleDelete}
             disabled={deleting}
             sx={{
-              bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(211,47,47,0.12)' : '#FDEEEE',
-              color: (t) => t.palette.mode === 'dark' ? '#F09595' : '#7A1515',
+              bgcolor:     t => t.palette.mode === 'dark' ? 'rgba(211,47,47,0.12)' : '#FDEEEE',
+              color:       t => t.palette.mode === 'dark' ? '#F09595' : '#7A1515',
               borderColor: 'rgba(211,47,47,0.3)',
-              '&:hover': { bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(211,47,47,0.22)' : '#F9D0D0', borderColor: 'rgba(211,47,47,0.5)' },
+              '&:hover': {
+                bgcolor:     t => t.palette.mode === 'dark' ? 'rgba(211,47,47,0.22)' : '#F9D0D0',
+                borderColor: 'rgba(211,47,47,0.5)',
+              },
             }}
           >
             {deleting ? 'Deleting…' : 'Delete template'}
