@@ -1277,6 +1277,9 @@ export type Database = {
           member_number: number
           membership_class: string | null
           membership_status: Database["public"]["Enums"]["membership_status"]
+          perm_comms_manager: boolean
+          perm_competition_manager: boolean
+          perm_event_manager: boolean
           phone: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           shooting_interests: string[]
@@ -1299,6 +1302,9 @@ export type Database = {
           member_number?: number
           membership_class?: string | null
           membership_status?: Database["public"]["Enums"]["membership_status"]
+          perm_comms_manager?: boolean
+          perm_competition_manager?: boolean
+          perm_event_manager?: boolean
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           shooting_interests?: string[]
@@ -1321,6 +1327,9 @@ export type Database = {
           member_number?: number
           membership_class?: string | null
           membership_status?: Database["public"]["Enums"]["membership_status"]
+          perm_comms_manager?: boolean
+          perm_competition_manager?: boolean
+          perm_event_manager?: boolean
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           shooting_interests?: string[]

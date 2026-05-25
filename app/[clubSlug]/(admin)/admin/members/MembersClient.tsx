@@ -4,6 +4,7 @@ import React, { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   Card,
@@ -16,11 +17,13 @@ import {
   Divider,
   FormControlLabel,
   FormHelperText,
+  IconButton,
   InputAdornment,
   MenuItem,
   OutlinedInput,
   Paper,
   Select,
+  SelectChangeEvent,
   Snackbar,
   Stack,
   Switch,
@@ -30,13 +33,32 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import type { Database } from '@/types/database'
 import { TrashBtn } from '@/components/ui/TrashBtn'
-import { setMemberStatus, approveMember, rejectMember, suspendMember, banMember, resignMember, makeAdmin, updateMemberName, deleteMember, setMemberSkillLevel, setMemberClassesEnabled, addMemberClass, renameMemberClass, deleteMemberClass } from './actions'
+import {
+  setMemberStatus,
+  approveMember,
+  rejectMember,
+  suspendMember,
+  banMember,
+  resignMember,
+  makeAdmin,
+  updateMemberName,
+  deleteMember,
+  setMemberSkillLevel,
+  setMemberClassesEnabled,
+  addMemberClass,
+  renameMemberClass,
+  deleteMemberClass,
+  setMemberPermission,
+} from './actions'
 
 type MembershipStatus = Database['public']['Enums']['membership_status']
+type PermissionKey = 'perm_competition_manager' | 'perm_event_manager' | 'perm_comms_manager'
+
 type Profile = {
   id: string
   first_name: string | null
@@ -54,6 +76,11 @@ type Profile = {
   shooting_interests: string[]
   experience_level: string | null
   avatar_url: string | null
+  location: string | null
+  phone: string | null
+  perm_competition_manager: boolean
+  perm_event_manager: boolean
+  perm_comms_manager: boolean
 }
 
 type Filter = 'all' | 'active' | 'pending' | 'expired'
@@ -82,11 +109,73 @@ const STATUS_STYLE: Record<MembershipStatus, { bgcolor: string; color: string }>
   paused:        { bgcolor: 'background.default',  color: 'text.secondary'       },
 }
 
-const ACTIVE_STATUSES:  MembershipStatus[] = ['active', 'complimentary']
-const PENDING_STATUSES: MembershipStatus[] = ['pending', 'approved']
+const ACTIVE_STATUSES:   MembershipStatus[] = ['active', 'complimentary']
+const PENDING_STATUSES:  MembershipStatus[] = ['pending', 'approved']
 const INACTIVE_STATUSES: MembershipStatus[] = ['expired', 'cancelled', 'paused', 'banned']
 
-// ─── Class row ────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getInitials(first: string | null, last: string | null): string {
+  return [(first ?? '').charAt(0), (last ?? '').charAt(0)].filter(Boolean).join('').toUpperCase() || '?'
+}
+
+function formatMemberSince(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+// ─── StatusSelect ─────────────────────────────────────────────────────────────
+
+type StatusAction =
+  | { kind: 'approve' }
+  | { kind: 'reject' }
+  | { kind: 'suspend' }
+  | { kind: 'ban' }
+  | { kind: 'resign' }
+  | { kind: 'setStatus'; status: MembershipStatus }
+
+interface StatusOption {
+  value: string
+  label: string
+  action: StatusAction
+  disabled?: boolean
+}
+
+function getStatusOptions(status: MembershipStatus): StatusOption[] {
+  if (PENDING_STATUSES.includes(status)) {
+    return [
+      { value: '__current__', label: STATUS_LABEL[status], action: { kind: 'setStatus', status }, disabled: true },
+      { value: '__approve__', label: 'Approve',  action: { kind: 'approve' } },
+      { value: '__reject__',  label: 'Reject',   action: { kind: 'reject'  } },
+    ]
+  }
+  if (ACTIVE_STATUSES.includes(status)) {
+    return [
+      { value: '__current__', label: STATUS_LABEL[status],        action: { kind: 'setStatus', status }, disabled: true },
+      { value: '__suspend__', label: 'Suspend…',                   action: { kind: 'suspend' } },
+      { value: '__resign__',  label: 'Mark as resigned…',          action: { kind: 'resign'  } },
+      { value: '__ban__',     label: 'Ban…',                       action: { kind: 'ban'     } },
+      { value: '__expired__', label: 'Set as expired',             action: { kind: 'setStatus', status: 'expired' } },
+    ]
+  }
+  if (status === 'paused') {
+    return [
+      { value: '__current__',   label: 'Suspended',               action: { kind: 'setStatus', status }, disabled: true },
+      { value: '__reinstate__', label: 'Reinstate',               action: { kind: 'setStatus', status: 'active' } },
+      { value: '__resign__',    label: 'Mark as resigned…',       action: { kind: 'resign'  } },
+      { value: '__ban__',       label: 'Ban…',                    action: { kind: 'ban'     } },
+    ]
+  }
+  // inactive
+  const opts: StatusOption[] = [
+    { value: '__current__', label: STATUS_LABEL[status], action: { kind: 'setStatus', status }, disabled: true },
+  ]
+  if (status !== 'banned') {
+    opts.push({ value: '__reinstate__', label: 'Reinstate', action: { kind: 'setStatus', status: 'active' } })
+  }
+  return opts
+}
+
+// ─── ClassRow ─────────────────────────────────────────────────────────────────
 
 function ClassRow({ cls, onRename, onDelete, disabled }: {
   cls:      { id: string; name: string }
@@ -118,45 +207,77 @@ function ClassRow({ cls, onRename, onDelete, disabled }: {
   )
 }
 
-// ─── Member detail panel ──────────────────────────────────────────────────────
+// ─── Detail row helpers ───────────────────────────────────────────────────────
 
-function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
-      <Typography sx={{ fontSize: 13, color: 'text.secondary', flexShrink: 0 }}>{label}</Typography>
-      <Box sx={{ textAlign: 'right' }}>{children}</Box>
+    <Box sx={{ display: 'flex', gap: 2, py: 0.5 }}>
+      <Typography sx={{ fontSize: 13, color: 'text.secondary', flexShrink: 0, minWidth: 100 }}>{label}</Typography>
+      <Typography sx={{ fontSize: 13, color: 'text.primary', wordBreak: 'break-word' }}>{value}</Typography>
     </Box>
   )
 }
 
-function MemberPanel({
-  member,
-  onClose,
-  onChangeStatus,
-  onDelete,
-  memberClasses,
-  memberClassesEnabled,
-}: {
+// ─── Member modal ─────────────────────────────────────────────────────────────
+
+interface MemberModalProps {
   member: Profile
+  open: boolean
   onClose: () => void
-  onChangeStatus: () => void
-  onDelete: (name: string) => void
   memberClasses: { id: string; name: string }[]
   memberClassesEnabled: boolean
-}) {
+  // Status action callbacks — close modal first, then trigger dialog
+  onStatusAction: (action: StatusAction, member: Profile) => void
+  // Delete callback
+  onDeleteSuccess: (name: string) => void
+}
+
+function MemberModal({
+  member,
+  open,
+  onClose,
+  memberClasses,
+  memberClassesEnabled,
+  onStatusAction,
+  onDeleteSuccess,
+}: MemberModalProps) {
   const router = useRouter()
-  const [editing, setEditing]           = useState(false)
-  const [firstName, setFirstName]       = useState(member.first_name ?? '')
-  const [lastName, setLastName]         = useState(member.last_name ?? '')
-  const [saving, setSaving]             = useState(false)
+
+  // Edit name
+  const [editing, setEditing]       = useState(false)
+  const [firstName, setFirstName]   = useState(member.first_name ?? '')
+  const [lastName, setLastName]     = useState(member.last_name ?? '')
+  const [saving, setSaving]         = useState(false)
+
+  // Skill level
+  const [skillLevel, setSkillLevel]   = useState(member.membership_class ?? '')
+  const [savingLevel, setSavingLevel] = useState(false)
+
+  // Delete
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [deleting, setDeleting]         = useState(false)
-  const [skillLevel, setSkillLevel]     = useState(member.membership_class ?? '')
-  const [savingLevel, setSavingLevel]   = useState(false)
+  const [deleting, setDeleting]           = useState(false)
+
+  // Permissions
+  const [permCompetition, setPermCompetition] = useState(member.perm_competition_manager)
+  const [permEvent, setPermEvent]             = useState(member.perm_event_manager)
+  const [permComms, setPermComms]             = useState(member.perm_comms_manager)
+  const [, startPermTransition]               = useTransition()
 
   const fullName = [member.first_name, member.last_name].filter(Boolean).join(' ') || '—'
+  const memberNum = `#${String(member.member_number).padStart(4, '0')}`
 
-  const hasProfileData = member.experience_level || member.camera_brands.length > 0 || member.shooting_interests.length > 0 || member.bio
+  const showPermissions = member.role === 'member' || member.role === 'admin'
+
+  // Reset local state when member changes
+  React.useEffect(() => {
+    setEditing(false)
+    setFirstName(member.first_name ?? '')
+    setLastName(member.last_name ?? '')
+    setSkillLevel(member.membership_class ?? '')
+    setPermCompetition(member.perm_competition_manager)
+    setPermEvent(member.perm_event_manager)
+    setPermComms(member.perm_comms_manager)
+  }, [member])
 
   async function handleSaveName() {
     setSaving(true)
@@ -172,14 +293,6 @@ function MemberPanel({
     setEditing(false)
   }
 
-  async function handleDelete() {
-    setDeleting(true)
-    await deleteMember(member.id)
-    setDeleting(false)
-    setConfirmDelete(false)
-    onDelete(fullName)
-  }
-
   async function handleSkillLevelChange(value: string) {
     setSkillLevel(value)
     setSavingLevel(true)
@@ -188,185 +301,297 @@ function MemberPanel({
     router.refresh()
   }
 
+  function handlePermissionToggle(key: PermissionKey, value: boolean) {
+    if (key === 'perm_competition_manager') setPermCompetition(value)
+    if (key === 'perm_event_manager')       setPermEvent(value)
+    if (key === 'perm_comms_manager')       setPermComms(value)
+    startPermTransition(async () => {
+      await setMemberPermission(member.id, key, value)
+      router.refresh()
+    })
+  }
+
+  async function handleDelete() {
+    setDeleting(true)
+    await deleteMember(member.id)
+    setDeleting(false)
+    setConfirmDelete(false)
+    onDeleteSuccess(fullName)
+    onClose()
+  }
+
+  function handleStatusChange(e: SelectChangeEvent<string>) {
+    const chosen = getStatusOptions(member.membership_status).find(o => o.value === e.target.value)
+    if (!chosen || chosen.disabled) return
+    onStatusAction(chosen.action, member)
+  }
+
+  const statusOptions = getStatusOptions(member.membership_status)
+  const hasProfile = member.experience_level || member.camera_brands.length > 0 ||
+    member.shooting_interests.length > 0 || member.location || member.phone || member.bio
+
   return (
-    <Box
-      sx={{
-        width: 288,
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        borderRadius: 2,
-        border: '1px solid',
-        borderColor: 'divider',
-        bgcolor: 'background.paper',
-      }}
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      slotProps={{ paper: { sx: { borderRadius: 2 } } }}
     >
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 0.75, borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Typography sx={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'text.secondary' }}>
-          Member
-        </Typography>
-        <Button
-          size="small"
-          onClick={onClose}
-          sx={{ minWidth: 0, p: 0.5, color: 'text.secondary' }}
-          aria-label="Close"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </Button>
-      </Box>
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <DialogTitle
+        component="div"
+        sx={{ pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}
+      >
+        {/* Top row: avatar + name + status select + close */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Avatar
+            src={member.avatar_url ?? undefined}
+            sx={{ width: 52, height: 52, fontSize: 18, fontWeight: 700, bgcolor: 'primary.light', color: 'primary.contrastText', flexShrink: 0 }}
+          >
+            {!member.avatar_url && getInitials(member.first_name, member.last_name)}
+          </Avatar>
 
-      <Box sx={{ flex: 1, overflowY: 'auto', px: 2.5, py: 2.5, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ fontSize: 20, fontWeight: 700, color: 'text.primary', lineHeight: 1.2, mb: 0.5 }}>
+              {fullName}
+            </Typography>
 
-        {/* Name + status */}
-        {editing ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <OutlinedInput
+            {/* Status select */}
+            <Select
               size="small"
-              fullWidth
-              placeholder="First name"
-              value={firstName}
-              onChange={e => setFirstName(e.target.value)}
-              autoFocus
-            />
-            <OutlinedInput
-              size="small"
-              fullWidth
-              placeholder="Last name"
-              value={lastName}
-              onChange={e => setLastName(e.target.value)}
-              onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && handleSaveName()}
-            />
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button variant="contained" size="small" onClick={handleSaveName} disabled={saving}>
-                {saving ? 'Saving…' : 'Save'}
-              </Button>
-              <Button variant="outlined" color="secondary" size="small" onClick={handleCancelEdit}>
-                Cancel
-              </Button>
-            </Box>
-          </Box>
-        ) : (
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1, mb: 1 }}>
-              <Typography sx={{ fontSize: 18, fontWeight: 700, color: 'text.primary', lineHeight: 1.2 }}>
-                {fullName}
-              </Typography>
-              <Button
-                size="small"
-                onClick={() => setEditing(true)}
-                sx={{ minWidth: 0, fontSize: 12, color: 'primary.main', p: 0, flexShrink: 0, mt: 0.25 }}
-              >
-                Edit
-              </Button>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip
-                label={STATUS_LABEL[member.membership_status]}
-                size="small"
-                sx={{ fontFamily: 'inherit', fontSize: 12, height: 24, ...STATUS_STYLE[member.membership_status] }}
-              />
-              <Button
-                size="small"
-                onClick={onChangeStatus}
-                sx={{ minWidth: 0, fontSize: 12, color: 'primary.main', p: 0 }}
-              >
-                Change
-              </Button>
-            </Box>
-          </Box>
-        )}
-
-        <Divider />
-
-        {/* Core details */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          <DetailRow label="Member ID">
-            <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
-              #{String(member.member_number).padStart(4, '0')}
-            </Typography>
-          </DetailRow>
-          <DetailRow label="Date joined">
-            <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary' }}>
-              {new Date(member.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-            </Typography>
-          </DetailRow>
-          <DetailRow label="Submissions">
-            <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary' }}>
-              {member.submission_count}
-            </Typography>
-          </DetailRow>
-          {memberClassesEnabled && (
-            <DetailRow label="Skill level">
-              <Select
-                size="small"
-                displayEmpty
-                value={skillLevel}
-                onChange={e => handleSkillLevelChange(e.target.value)}
-                disabled={savingLevel}
-                sx={{ fontSize: 13, minWidth: 120, height: 28, '.MuiSelect-select': { py: '4px' } }}
-              >
-                <MenuItem value="" sx={{ fontSize: 13 }}>
-                  <Typography component="span" sx={{ fontSize: 13, color: 'text.disabled' }}>None</Typography>
+              value="__current__"
+              onChange={handleStatusChange}
+              renderValue={() => (
+                <Chip
+                  label={STATUS_LABEL[member.membership_status]}
+                  size="small"
+                  sx={{
+                    fontFamily: 'inherit',
+                    fontSize: 12,
+                    height: 22,
+                    cursor: 'pointer',
+                    ...STATUS_STYLE[member.membership_status],
+                  }}
+                />
+              )}
+              sx={{
+                '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+                '& .MuiSelect-select': { p: '2px 24px 2px 0 !important' },
+                minWidth: 0,
+                height: 28,
+              }}
+            >
+              {statusOptions.map(opt => (
+                <MenuItem key={opt.value} value={opt.value} disabled={opt.disabled} sx={{ fontSize: 13 }}>
+                  {opt.disabled ? (
+                    <Typography sx={{ fontSize: 13, color: 'text.disabled' }}>{opt.label} (current)</Typography>
+                  ) : opt.label}
                 </MenuItem>
-                {memberClasses.map(cls => (
-                  <MenuItem key={cls.id} value={cls.name} sx={{ fontSize: 13 }}>{cls.name}</MenuItem>
-                ))}
-              </Select>
-            </DetailRow>
-          )}
+              ))}
+            </Select>
+          </Box>
+
+          <Tooltip title="Close">
+            <IconButton onClick={onClose} size="small" sx={{ alignSelf: 'flex-start', mt: 0.5 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </IconButton>
+          </Tooltip>
         </Box>
 
-        {/* Profile details — only when data exists */}
-        {hasProfileData && (
-          <>
-            <Divider />
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              {member.experience_level && (
-                <DetailRow label="Experience">
-                  <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary', textTransform: 'capitalize' }}>
-                    {member.experience_level}
-                  </Typography>
-                </DetailRow>
-              )}
-              {member.camera_brands.length > 0 && (
-                <DetailRow label="Camera">
-                  <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary' }}>
-                    {member.camera_brands.join(', ')}
-                  </Typography>
-                </DetailRow>
-              )}
-              {member.shooting_interests.length > 0 && (
-                <DetailRow label="Interests">
-                  <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary' }}>
-                    {member.shooting_interests.join(', ')}
-                  </Typography>
-                </DetailRow>
-              )}
-              {member.bio && (
-                <Box>
-                  <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 0.5 }}>Bio</Typography>
-                  <Typography sx={{ fontSize: 13, color: 'text.primary', lineHeight: 1.6 }}>
-                    {member.bio}
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          </>
-        )}
+        {/* Subtitle */}
+        <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 1, ml: '68px' }}>
+          {memberNum}
+          {member.email && <> &middot; {member.email}</>}
+          {' '}&middot; Member since {formatMemberSince(member.created_at)}
+        </Typography>
+      </DialogTitle>
 
-        {/* Email button */}
-        {member.email && (
-          <>
-            <Divider />
+      {/* ── Body ─────────────────────────────────────────────────────────── */}
+      <DialogContent sx={{ pt: '24px !important' }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 3 }}>
+
+          {/* Left column — profile info + edit name */}
+          <Box>
+            {editing ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Edit name
+                </Typography>
+                <OutlinedInput
+                  size="small"
+                  fullWidth
+                  placeholder="First name"
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  autoFocus
+                />
+                <OutlinedInput
+                  size="small"
+                  fullWidth
+                  placeholder="Last name"
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && handleSaveName()}
+                />
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button variant="contained" size="small" onClick={handleSaveName} disabled={saving}>
+                    {saving ? 'Saving…' : 'Save'}
+                  </Button>
+                  <Button variant="outlined" color="secondary" size="small" onClick={handleCancelEdit}>
+                    Cancel
+                  </Button>
+                </Box>
+              </Box>
+            ) : hasProfile ? (
+              <Box>
+                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>
+                  Profile
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                  {member.experience_level && (
+                    <InfoRow label="Experience" value={member.experience_level} />
+                  )}
+                  {member.camera_brands.length > 0 && (
+                    <InfoRow label="Camera" value={member.camera_brands.join(', ')} />
+                  )}
+                  {member.shooting_interests.length > 0 && (
+                    <InfoRow label="Interests" value={member.shooting_interests.join(', ')} />
+                  )}
+                  {member.location && (
+                    <InfoRow label="Location" value={member.location} />
+                  )}
+                  {member.phone && (
+                    <InfoRow label="Phone" value={member.phone} />
+                  )}
+                  {member.bio && (
+                    <Box sx={{ py: 0.5 }}>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 0.5 }}>Bio</Typography>
+                      <Typography sx={{ fontSize: 13, color: 'text.primary', lineHeight: 1.6 }}>
+                        {member.bio}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+            ) : (
+              <Typography sx={{ fontSize: 13, color: 'text.secondary', fontStyle: 'italic' }}>
+                No profile information on file.
+              </Typography>
+            )}
+
+            {/* Permissions */}
+            {showPermissions && !editing && (
+              <Box sx={{ mt: hasProfile ? 3 : 0 }}>
+                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>
+                  Permissions
+                </Typography>
+                <Stack spacing={0.5}>
+                  {([
+                    {
+                      key: 'perm_competition_manager' as PermissionKey,
+                      label: 'Competition manager',
+                      description: 'Can create and manage competitions',
+                      value: permCompetition,
+                      setter: setPermCompetition,
+                    },
+                    {
+                      key: 'perm_event_manager' as PermissionKey,
+                      label: 'Event manager',
+                      description: 'Can create and manage calendar events',
+                      value: permEvent,
+                      setter: setPermEvent,
+                    },
+                    {
+                      key: 'perm_comms_manager' as PermissionKey,
+                      label: 'Communications',
+                      description: 'Can send club-wide notifications',
+                      value: permComms,
+                      setter: setPermComms,
+                    },
+                  ] as const).map(perm => (
+                    <Box
+                      key={perm.key}
+                      sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.75 }}
+                    >
+                      <Box>
+                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary' }}>
+                          {perm.label}
+                        </Typography>
+                        <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
+                          {perm.description}
+                        </Typography>
+                      </Box>
+                      <Switch
+                        size="small"
+                        checked={perm.value}
+                        onChange={e => handlePermissionToggle(perm.key, e.target.checked)}
+                      />
+                    </Box>
+                  ))}
+                </Stack>
+              </Box>
+            )}
+          </Box>
+
+          {/* Right column — details + skill level */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+            {/* Details card */}
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5 }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>
+                Details
+              </Typography>
+              <Stack spacing={1.25}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Member ID</Typography>
+                  <Typography sx={{ fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>{memberNum}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Joined</Typography>
+                  <Typography sx={{ fontSize: 13, fontWeight: 500 }}>{formatMemberSince(member.created_at)}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Submissions</Typography>
+                  <Typography sx={{ fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>{member.submission_count}</Typography>
+                </Box>
+                {memberClassesEnabled && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary', flexShrink: 0 }}>Skill level</Typography>
+                    <Select
+                      size="small"
+                      displayEmpty
+                      value={skillLevel}
+                      onChange={e => handleSkillLevelChange(e.target.value)}
+                      disabled={savingLevel}
+                      sx={{ fontSize: 13, minWidth: 110, height: 28, '.MuiSelect-select': { py: '4px' } }}
+                    >
+                      <MenuItem value="" sx={{ fontSize: 13 }}>
+                        <Typography component="span" sx={{ fontSize: 13, color: 'text.disabled' }}>None</Typography>
+                      </MenuItem>
+                      {memberClasses.map(cls => (
+                        <MenuItem key={cls.id} value={cls.name} sx={{ fontSize: 13 }}>{cls.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </Box>
+                )}
+              </Stack>
+            </Paper>
+
+          </Box>
+        </Box>
+      </DialogContent>
+
+      {/* ── Footer actions ────────────────────────────────────────────────── */}
+      <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5, borderTop: '1px solid', borderColor: 'divider', justifyContent: 'space-between' }}>
+        <Box>
+          {member.email && (
             <Button
               variant="outlined"
               color="secondary"
               size="small"
-              fullWidth
               href={`mailto:${member.email}`}
               component="a"
               startIcon={
@@ -375,31 +600,37 @@ function MemberPanel({
                 </svg>
               }
             >
-              Email this member
+              Email member
             </Button>
-          </>
-        )}
+          )}
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+          {!editing && (
+            <Button
+              size="small"
+              onClick={() => setEditing(true)}
+              sx={{ color: 'text.secondary', fontSize: 13 }}
+            >
+              Edit name
+            </Button>
+          )}
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => setConfirmDelete(true)}
+            sx={{
+              bgcolor: '#FDEEEE',
+              color: '#7A1515',
+              borderColor: 'rgba(211,47,47,0.3)',
+              '&:hover': { bgcolor: '#F9D0D0', borderColor: 'rgba(211,47,47,0.5)' },
+            }}
+          >
+            Delete
+          </Button>
+        </Box>
+      </DialogActions>
 
-        {/* Delete */}
-        <Divider />
-        <Button
-          variant="outlined"
-          size="small"
-          fullWidth
-          onClick={() => setConfirmDelete(true)}
-          sx={{
-            bgcolor: '#FDEEEE',
-            color: '#7A1515',
-            borderColor: 'rgba(211,47,47,0.3)',
-            '&:hover': { bgcolor: '#F9D0D0', borderColor: 'rgba(211,47,47,0.5)' },
-          }}
-        >
-          Delete member
-        </Button>
-
-      </Box>
-
-      {/* Delete confirmation dialog */}
+      {/* ── Delete confirmation dialog (nested) ──────────────────────────── */}
       <Dialog
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
@@ -440,7 +671,7 @@ function MemberPanel({
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Dialog>
   )
 }
 
@@ -456,12 +687,11 @@ export default function MembersClient({
   memberClasses: { id: string; name: string }[]
 }) {
   const router = useRouter()
-  const [filter, setFilter]               = useState<Filter>('all')
-  const [search, setSearch]               = useState('')
-  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
-  const [manageMember, setManageMember]   = useState<Profile | null>(null)
-  const [loading, setLoading]             = useState<string | null>(null)
-  const [deleteToast, setDeleteToast]     = useState<string | null>(null)
+  const [filter, setFilter]           = useState<Filter>('all')
+  const [search, setSearch]           = useState('')
+  const [manageMember, setManageMember] = useState<Profile | null>(null)
+  const [loading, setLoading]         = useState<string | null>(null)
+  const [deleteToast, setDeleteToast] = useState<string | null>(null)
 
   // ── Action dialogs ───────────────────────────────────────────────────────
   // Reject
@@ -518,8 +748,6 @@ export default function MembersClient({
     })
   }
 
-  const selectedMember = profiles.find(p => p.id === selectedMemberId) ?? null
-
   // Summary counts
   const totalCount   = profiles.length
   const pendingCount = profiles.filter(p => PENDING_STATUSES.includes(p.membership_status)).length
@@ -547,7 +775,6 @@ export default function MembersClient({
     setRejecting(true)
     await rejectMember(rejectTarget.id, rejectReason.trim())
     setRejectTarget(null); setRejectReason(''); setRejecting(false)
-    setSelectedMemberId(null)
     router.refresh()
   }
 
@@ -556,7 +783,6 @@ export default function MembersClient({
     setSuspending(true)
     await suspendMember(suspendTarget.id, suspendReason.trim())
     setSuspendTarget(null); setSuspendReason(''); setSuspending(false)
-    setManageMember(null)
     router.refresh()
   }
 
@@ -565,7 +791,6 @@ export default function MembersClient({
     setBanning(true)
     await banMember(banTarget.id)
     setBanTarget(null); setBanConfirm(''); setBanning(false); setBanStep(1)
-    setManageMember(null)
     router.refresh()
   }
 
@@ -574,8 +799,46 @@ export default function MembersClient({
     setResigning(true)
     await resignMember(resignTarget.id)
     setResignTarget(null); setResigning(false)
-    setManageMember(null)
     router.refresh()
+  }
+
+  async function handleSetStatus(memberId: string, status: MembershipStatus) {
+    setLoading(memberId)
+    await setMemberStatus(memberId, status)
+    setLoading(null)
+    router.refresh()
+  }
+
+  async function handleApprove(memberId: string) {
+    setLoading(memberId)
+    await approveMember(memberId)
+    setLoading(null)
+    router.refresh()
+  }
+
+  // Called from the MemberModal's status select
+  function handleStatusAction(action: StatusAction, member: Profile) {
+    setManageMember(null)
+    switch (action.kind) {
+      case 'approve':
+        handleApprove(member.id)
+        break
+      case 'reject':
+        setRejectTarget(member)
+        break
+      case 'suspend':
+        setSuspendTarget(member)
+        break
+      case 'ban':
+        setBanTarget(member); setBanStep(1)
+        break
+      case 'resign':
+        setResignTarget(member)
+        break
+      case 'setStatus':
+        handleSetStatus(member.id, action.status)
+        break
+    }
   }
 
   function handleExport() {
@@ -599,30 +862,6 @@ export default function MembersClient({
     a.download = 'members.csv'
     a.click()
     URL.revokeObjectURL(url)
-  }
-
-  async function handleSetStatus(memberId: string, status: MembershipStatus) {
-    setLoading(memberId)
-    await setMemberStatus(memberId, status)
-    setManageMember(null)
-    setLoading(null)
-    router.refresh()
-  }
-
-  async function handleApprove(memberId: string) {
-    setLoading(memberId)
-    await approveMember(memberId)
-    setManageMember(null)
-    setLoading(null)
-    router.refresh()
-  }
-
-  async function handleMakeAdmin(memberId: string) {
-    setLoading(memberId)
-    await makeAdmin(memberId)
-    setManageMember(null)
-    setLoading(null)
-    router.refresh()
   }
 
   const FILTERS: { key: Filter; label: string; count: number }[] = [
@@ -707,218 +946,112 @@ export default function MembersClient({
         </Box>
       </Box>
 
-      {/* Table + side panel */}
-      <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', flex: 1, minWidth: 0 }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                {tableHeaders.map(h => (
-                  <TableCell key={h} sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.default', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-                    {h}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filtered.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={tableHeaders.length} sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
-                    No members found.
-                  </TableCell>
-                </TableRow>
-              )}
-              {filtered.map(profile => (
-                <TableRow
-                  key={profile.id}
-                  hover
-                  selected={profile.id === selectedMemberId}
-                  sx={{ '&:last-child td': { borderBottom: 0 }, cursor: 'default' }}
+      {/* Table */}
+      <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              {tableHeaders.map(h => (
+                <TableCell
+                  key={h}
+                  sx={{
+                    fontSize: 11, fontWeight: 600, color: 'text.secondary',
+                    textTransform: 'uppercase', letterSpacing: '0.05em',
+                    py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider',
+                    bgcolor: 'background.default', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                  }}
                 >
-                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }}>
-                    <Chip
-                      label={STATUS_LABEL[profile.membership_status]}
-                      size="small"
-                      sx={{ fontFamily: 'inherit', fontSize: 11, height: 22, ...STATUS_STYLE[profile.membership_status] }}
-                    />
-                  </TableCell>
-                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit' }}>{profile.first_name || '—'}</TableCell>
-                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit' }}>{profile.last_name || '—'}</TableCell>
-                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }}>
-                    {profile.role === 'admin' ? (
-                      <Chip
-                        label="Admin"
-                        size="small"
-                        sx={{ fontFamily: 'inherit', fontSize: 11, height: 22, bgcolor: 'primary.light', color: 'primary.contrastText', fontWeight: 600 }}
-                      />
-                    ) : profile.role === 'member' ? (
-                      <Typography sx={{ fontSize: 14, color: 'text.secondary', fontFamily: 'inherit' }}>Member</Typography>
-                    ) : (
-                      <Typography sx={{ fontSize: 14, color: 'text.disabled', fontFamily: 'inherit' }}>—</Typography>
-                    )}
-                  </TableCell>
-                  {classesEnabled && (
-                    <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit', color: 'text.secondary' }}>
-                      {profile.membership_class || '—'}
-                    </TableCell>
-                  )}
-                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit', color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
-                    {profile.submission_count}
-                  </TableCell>
-                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit', color: 'text.secondary', whiteSpace: 'nowrap' }}>
-                    {new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                  </TableCell>
-                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }} align="right">
-                    <Typography
-                      component="button"
-                      onClick={() => setSelectedMemberId(profile.id === selectedMemberId ? null : profile.id)}
-                      sx={{ fontSize: 14, fontFamily: 'inherit', color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}
-                    >
-                      Manage
-                    </Typography>
-                  </TableCell>
-                </TableRow>
+                  {h}
+                </TableCell>
               ))}
-            </TableBody>
-          </Table>
-        </Box>
-
-        {selectedMember && (
-          <MemberPanel
-            member={selectedMember}
-            onClose={() => setSelectedMemberId(null)}
-            onChangeStatus={() => setManageMember(selectedMember)}
-            onDelete={(name) => {
-              setSelectedMemberId(null)
-              setDeleteToast(name)
-              router.refresh()
-            }}
-            memberClasses={classes}
-            memberClassesEnabled={classesEnabled}
-          />
-        )}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filtered.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={tableHeaders.length} sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
+                  No members found.
+                </TableCell>
+              </TableRow>
+            )}
+            {filtered.map(profile => (
+              <TableRow
+                key={profile.id}
+                hover
+                sx={{ '&:last-child td': { borderBottom: 0 }, cursor: 'default' }}
+              >
+                <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }}>
+                  <Chip
+                    label={STATUS_LABEL[profile.membership_status]}
+                    size="small"
+                    sx={{ fontFamily: 'inherit', fontSize: 11, height: 22, ...STATUS_STYLE[profile.membership_status] }}
+                  />
+                </TableCell>
+                <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit' }}>{profile.first_name || '—'}</TableCell>
+                <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit' }}>{profile.last_name || '—'}</TableCell>
+                <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }}>
+                  {profile.role === 'admin' ? (
+                    <Chip
+                      label="Admin"
+                      size="small"
+                      sx={{ fontFamily: 'inherit', fontSize: 11, height: 22, bgcolor: 'primary.light', color: 'primary.contrastText', fontWeight: 600 }}
+                    />
+                  ) : profile.role === 'member' ? (
+                    <Typography sx={{ fontSize: 14, color: 'text.secondary', fontFamily: 'inherit' }}>Member</Typography>
+                  ) : (
+                    <Typography sx={{ fontSize: 14, color: 'text.disabled', fontFamily: 'inherit' }}>—</Typography>
+                  )}
+                </TableCell>
+                {classesEnabled && (
+                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit', color: 'text.secondary' }}>
+                    {profile.membership_class || '—'}
+                  </TableCell>
+                )}
+                <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit', color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+                  {profile.submission_count}
+                </TableCell>
+                <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit', color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                  {new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </TableCell>
+                <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }} align="right">
+                  <Typography
+                    component="button"
+                    onClick={() => setManageMember(profile)}
+                    sx={{ fontSize: 14, fontFamily: 'inherit', color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}
+                  >
+                    Manage
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </Box>
 
-      {/* ── Manage member modal ──────────────────────────────────────────── */}
+      {/* ── Member modal ─────────────────────────────────────────────────── */}
+      {manageMember && (
+        <MemberModal
+          member={manageMember}
+          open={!!manageMember}
+          onClose={() => setManageMember(null)}
+          memberClasses={classes}
+          memberClassesEnabled={classesEnabled}
+          onStatusAction={handleStatusAction}
+          onDeleteSuccess={(name) => {
+            setDeleteToast(name)
+            router.refresh()
+          }}
+        />
+      )}
+
+      {/* ── Reject application dialog ─────────────────────────────────────── */}
       <Dialog
-        open={!!manageMember}
-        onClose={() => setManageMember(null)}
+        open={!!rejectTarget}
+        onClose={() => { setRejectTarget(null); setRejectReason('') }}
         maxWidth="xs"
         fullWidth
         slotProps={{ paper: { sx: { borderRadius: 2 } } }}
       >
-        {manageMember && (
-          <>
-            <DialogTitle component="div" sx={{ pb: 0.5 }}>
-              <Typography variant="h3">
-                {manageMember.first_name} {manageMember.last_name}
-              </Typography>
-              <Box sx={{ mt: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="body2" color="text.secondary">
-                  #{String(manageMember.member_number).padStart(4, '0')}
-                </Typography>
-                <Chip
-                  label={STATUS_LABEL[manageMember.membership_status]}
-                  size="small"
-                  sx={{ fontFamily: 'inherit', fontSize: 11, height: 20, ...STATUS_STYLE[manageMember.membership_status] }}
-                />
-              </Box>
-            </DialogTitle>
-
-            <DialogContent sx={{ pt: '16px !important' }}>
-              {/* Pending: approve */}
-              {PENDING_STATUSES.includes(manageMember.membership_status) && (
-                <>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>
-                    Approve
-                  </Typography>
-                  <Button fullWidth variant="contained" color="success" disabled={loading === manageMember.id}
-                    onClick={() => handleApprove(manageMember.id)}
-                    sx={{ mb: 1, justifyContent: 'flex-start', px: 2 }}>
-                    Approve application
-                  </Button>
-                  <Button fullWidth variant="outlined" disabled={loading === manageMember.id}
-                    onClick={() => { setRejectTarget(manageMember); setManageMember(null) }}
-                    sx={{ mb: 2, justifyContent: 'flex-start', px: 2, color: 'error.main', borderColor: 'error.light', '&:hover': { borderColor: 'error.main', bgcolor: 'error.light' } }}>
-                    Reject application
-                  </Button>
-                  <Divider sx={{ mb: 2 }} />
-                </>
-              )}
-
-              {/* Inactive: reinstate */}
-              {INACTIVE_STATUSES.includes(manageMember.membership_status) && manageMember.membership_status !== 'banned' && (
-                <>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>
-                    Reinstate
-                  </Typography>
-                  <Button fullWidth variant="contained" color="success" disabled={loading === manageMember.id}
-                    onClick={() => handleSetStatus(manageMember.id, 'active')}
-                    sx={{ mb: 2, justifyContent: 'flex-start', px: 2 }}>
-                    Reinstate membership
-                  </Button>
-                  <Divider sx={{ mb: 2 }} />
-                </>
-              )}
-
-              {/* Active: make admin + complimentary */}
-              {manageMember.role !== 'admin' && ACTIVE_STATUSES.includes(manageMember.membership_status) && (
-                <>
-                  <Button fullWidth variant="outlined" color="secondary" disabled={loading === manageMember.id}
-                    onClick={() => handleMakeAdmin(manageMember.id)}
-                    sx={{ mb: 1, justifyContent: 'flex-start', px: 2 }}>
-                    Make admin
-                  </Button>
-                  {manageMember.membership_status !== 'complimentary' && (
-                    <Button fullWidth variant="outlined" color="secondary" disabled={loading === manageMember.id}
-                      onClick={() => handleSetStatus(manageMember.id, 'complimentary')}
-                      sx={{ mb: 2, justifyContent: 'flex-start', px: 2 }}>
-                      Grant complimentary membership
-                    </Button>
-                  )}
-                  <Divider sx={{ mb: 2 }} />
-                </>
-              )}
-
-              {/* Status actions for active members */}
-              {(ACTIVE_STATUSES.includes(manageMember.membership_status) || manageMember.membership_status === 'paused') && (
-                <>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>
-                    Restrict access
-                  </Typography>
-                  <Stack spacing={1}>
-                    {manageMember.membership_status !== 'paused' && (
-                      <Button fullWidth variant="outlined" disabled={loading === manageMember.id}
-                        onClick={() => { setSuspendTarget(manageMember); setManageMember(null) }}
-                        sx={{ justifyContent: 'flex-start', px: 2, color: 'warning.dark', borderColor: 'warning.light', '&:hover': { borderColor: 'warning.main', bgcolor: 'warning.light' } }}>
-                        Suspend member
-                      </Button>
-                    )}
-                    <Button fullWidth variant="outlined" disabled={loading === manageMember.id}
-                      onClick={() => { setResignTarget(manageMember); setManageMember(null) }}
-                      sx={{ justifyContent: 'flex-start', px: 2, color: 'text.secondary', borderColor: 'divider' }}>
-                      Mark as resigned
-                    </Button>
-                    <Button fullWidth variant="outlined" disabled={loading === manageMember.id}
-                      onClick={() => { setBanTarget(manageMember); setBanStep(1); setManageMember(null) }}
-                      sx={{ justifyContent: 'flex-start', px: 2, color: 'error.main', borderColor: 'error.light', '&:hover': { borderColor: 'error.main', bgcolor: 'error.light' } }}>
-                      Ban member
-                    </Button>
-                  </Stack>
-                </>
-              )}
-            </DialogContent>
-
-            <DialogActions sx={{ px: 3, pb: 2.5 }}>
-              <Button onClick={() => setManageMember(null)} color="secondary" variant="outlined">Close</Button>
-            </DialogActions>
-          </>
-        )}
-      </Dialog>
-
-      {/* ── Reject application dialog ─────────────────────────────────────── */}
-      <Dialog open={!!rejectTarget} onClose={() => { setRejectTarget(null); setRejectReason('') }}
-        maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: 2 } } }}>
         {rejectTarget && (
           <>
             <DialogTitle sx={{ pb: 0.5 }}>Reject application?</DialogTitle>
@@ -937,11 +1070,24 @@ export default function MembersClient({
               />
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-              <Button variant="outlined" color="secondary" onClick={() => { setRejectTarget(null); setRejectReason('') }} disabled={rejecting}>
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={() => { setRejectTarget(null); setRejectReason('') }}
+                disabled={rejecting}
+              >
                 Cancel
               </Button>
-              <Button variant="outlined" onClick={handleReject} disabled={!rejectReason.trim() || rejecting}
-                sx={{ color: 'error.main', borderColor: 'error.light', '&:hover': { borderColor: 'error.main', bgcolor: 'error.light' }, '&.Mui-disabled': { color: 'text.disabled', borderColor: 'divider' } }}>
+              <Button
+                variant="outlined"
+                onClick={handleReject}
+                disabled={!rejectReason.trim() || rejecting}
+                sx={{
+                  color: 'error.main', borderColor: 'error.light',
+                  '&:hover': { borderColor: 'error.main', bgcolor: 'error.light' },
+                  '&.Mui-disabled': { color: 'text.disabled', borderColor: 'divider' },
+                }}
+              >
                 {rejecting ? 'Rejecting…' : 'Reject application'}
               </Button>
             </DialogActions>
@@ -950,8 +1096,13 @@ export default function MembersClient({
       </Dialog>
 
       {/* ── Suspend member dialog ─────────────────────────────────────────── */}
-      <Dialog open={!!suspendTarget} onClose={() => { setSuspendTarget(null); setSuspendReason('') }}
-        maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: 2 } } }}>
+      <Dialog
+        open={!!suspendTarget}
+        onClose={() => { setSuspendTarget(null); setSuspendReason('') }}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{ paper: { sx: { borderRadius: 2 } } }}
+      >
         {suspendTarget && (
           <>
             <DialogTitle sx={{ pb: 0.5 }}>
@@ -972,11 +1123,24 @@ export default function MembersClient({
               />
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-              <Button variant="outlined" color="secondary" onClick={() => { setSuspendTarget(null); setSuspendReason('') }} disabled={suspending}>
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={() => { setSuspendTarget(null); setSuspendReason('') }}
+                disabled={suspending}
+              >
                 Cancel
               </Button>
-              <Button variant="outlined" onClick={handleSuspend} disabled={!suspendReason.trim() || suspending}
-                sx={{ color: 'warning.dark', borderColor: 'warning.light', '&:hover': { borderColor: 'warning.main', bgcolor: 'warning.light' }, '&.Mui-disabled': { color: 'text.disabled', borderColor: 'divider' } }}>
+              <Button
+                variant="outlined"
+                onClick={handleSuspend}
+                disabled={!suspendReason.trim() || suspending}
+                sx={{
+                  color: 'warning.dark', borderColor: 'warning.light',
+                  '&:hover': { borderColor: 'warning.main', bgcolor: 'warning.light' },
+                  '&.Mui-disabled': { color: 'text.disabled', borderColor: 'divider' },
+                }}
+              >
                 {suspending ? 'Suspending…' : 'Suspend member'}
               </Button>
             </DialogActions>
@@ -985,8 +1149,13 @@ export default function MembersClient({
       </Dialog>
 
       {/* ── Ban member dialog (two-step) ──────────────────────────────────── */}
-      <Dialog open={!!banTarget} onClose={() => { setBanTarget(null); setBanConfirm(''); setBanStep(1) }}
-        maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: 2 } } }}>
+      <Dialog
+        open={!!banTarget}
+        onClose={() => { setBanTarget(null); setBanConfirm(''); setBanStep(1) }}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{ paper: { sx: { borderRadius: 2 } } }}
+      >
         {banTarget && banStep === 1 && (
           <>
             <DialogTitle sx={{ pb: 0.5 }}>Ban {banTarget.first_name}?</DialogTitle>
@@ -997,8 +1166,11 @@ export default function MembersClient({
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
               <Button variant="outlined" color="secondary" onClick={() => { setBanTarget(null); setBanStep(1) }}>Cancel</Button>
-              <Button variant="outlined" onClick={() => setBanStep(2)}
-                sx={{ color: 'error.main', borderColor: 'error.light', '&:hover': { borderColor: 'error.main', bgcolor: 'error.light' } }}>
+              <Button
+                variant="outlined"
+                onClick={() => setBanStep(2)}
+                sx={{ color: 'error.main', borderColor: 'error.light', '&:hover': { borderColor: 'error.main', bgcolor: 'error.light' } }}
+              >
                 Continue →
               </Button>
             </DialogActions>
@@ -1023,11 +1195,20 @@ export default function MembersClient({
               />
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-              <Button variant="outlined" color="secondary" onClick={() => { setBanTarget(null); setBanConfirm(''); setBanStep(1) }} disabled={banning}>
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={() => { setBanTarget(null); setBanConfirm(''); setBanStep(1) }}
+                disabled={banning}
+              >
                 Cancel
               </Button>
-              <Button variant="contained" color="error" onClick={handleBan}
-                disabled={banConfirm.trim().toUpperCase() !== 'BAN' || banning}>
+              <Button
+                variant="contained"
+                color="error"
+                onClick={handleBan}
+                disabled={banConfirm.trim().toUpperCase() !== 'BAN' || banning}
+              >
                 {banning ? 'Banning…' : 'Permanently ban'}
               </Button>
             </DialogActions>
@@ -1036,8 +1217,13 @@ export default function MembersClient({
       </Dialog>
 
       {/* ── Mark as resigned dialog ───────────────────────────────────────── */}
-      <Dialog open={!!resignTarget} onClose={() => setResignTarget(null)}
-        maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: 2 } } }}>
+      <Dialog
+        open={!!resignTarget}
+        onClose={() => setResignTarget(null)}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{ paper: { sx: { borderRadius: 2 } } }}
+      >
         {resignTarget && (
           <>
             <DialogTitle sx={{ pb: 0.5 }}>Mark as resigned?</DialogTitle>
@@ -1050,8 +1236,12 @@ export default function MembersClient({
               <Button variant="outlined" color="secondary" onClick={() => setResignTarget(null)} disabled={resigning}>
                 Cancel
               </Button>
-              <Button variant="outlined" onClick={handleResign} disabled={resigning}
-                sx={{ color: 'text.secondary', borderColor: 'divider' }}>
+              <Button
+                variant="outlined"
+                onClick={handleResign}
+                disabled={resigning}
+                sx={{ color: 'text.secondary', borderColor: 'divider' }}
+              >
                 {resigning ? 'Saving…' : 'Mark as resigned'}
               </Button>
             </DialogActions>
@@ -1131,14 +1321,17 @@ export default function MembersClient({
                   />
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button
-                      variant="contained" size="small"
+                      variant="contained"
+                      size="small"
                       disabled={!newClassName.trim() || classPending}
                       onClick={handleAddClass}
                     >
                       Save
                     </Button>
                     <Button
-                      variant="outlined" color="secondary" size="small"
+                      variant="outlined"
+                      color="secondary"
+                      size="small"
                       disabled={classPending}
                       onClick={() => { setNewClassName(''); setClassAdding(false) }}
                     >
@@ -1148,7 +1341,9 @@ export default function MembersClient({
                 </Box>
               ) : (
                 <Button
-                  variant="outlined" color="secondary" size="small"
+                  variant="outlined"
+                  color="secondary"
+                  size="small"
                   sx={{ mt: 1.5 }}
                   onClick={() => setClassAdding(true)}
                 >

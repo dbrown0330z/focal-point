@@ -152,6 +152,23 @@ export async function resignMember(memberId: string) {
   await setMemberStatus(memberId, 'cancelled')
 }
 
+type PermissionKey = 'perm_competition_manager' | 'perm_event_manager' | 'perm_comms_manager'
+
+export async function setMemberPermission(
+  memberId: string,
+  permission: PermissionKey,
+  enabled: boolean,
+): Promise<{ error?: string }> {
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('profiles')
+    .update({ [permission]: enabled })
+    .eq('id', memberId)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/members')
+  return {}
+}
+
 export async function deleteMember(memberId: string) {
   const supabase = createServiceClient()
 
