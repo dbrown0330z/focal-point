@@ -170,6 +170,33 @@ export async function renameCompetitionDefaultCategory(id: string, name: string)
   return {}
 }
 
+export async function savePoySettings(data: {
+  poy_categories_factor:     boolean
+  poy_separate_per_category: boolean
+  poy_branch_a_counting:     string
+  poy_branch_a_top_n:        number
+  poy_branch_a_exclude_n:    number
+  poy_b1_counting:           string
+  poy_b1_top_n:              number
+  poy_b1_exclude_n:          number
+  poy_b2_counting:           string
+  poy_b2_top_n:              number
+  poy_b2_exclude_n:          number
+  poy_tiebreaker:            string
+  poy_eligibility:           string
+  poy_eligibility_min_dur:   string
+}): Promise<{ error?: string }> {
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('club_settings')
+    .update({ ...data, updated_at: new Date().toISOString() })
+    .neq('id', '00000000-0000-0000-0000-000000000000')
+  if (error) return { error: error.message }
+  revalidatePath('/admin/club-defaults/recognition')
+  revalidatePath('/', 'layout') // standings page reads this config
+  return {}
+}
+
 export async function saveCompetitionDefaults(data: {
   max_entries_per_member:         number
   max_entries_per_category:       number | null

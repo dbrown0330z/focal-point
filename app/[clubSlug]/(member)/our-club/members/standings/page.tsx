@@ -22,18 +22,58 @@ function seasonBounds(startMonth: number, startYear: number) {
   }
 }
 
+// ── Scoring helpers ────────────────────────────────────────────────────────────
+
+/**
+ * Apply a counting method to a set of raw scores.
+ * Returns the contributing scores (already filtered), sorted descending.
+ */
+function applyCountingMethod(
+  scores:   number[],
+  method:   string,
+  topN:     number,
+  excludeN: number,
+): number[] {
+  const sorted = [...scores].sort((a, b) => b - a)
+  if (method === 'top_n')          return sorted.slice(0, Math.max(1, topN))
+  if (method === 'exclude_lowest') return sorted.slice(0, Math.max(0, sorted.length - excludeN))
+  return sorted // 'all'
+}
+
+function round1(n: number) { return Math.round(n * 10) / 10 }
+
 // ── Exported types (consumed by StandingsClient) ───────────────────────────────
+
+export type PoyConfig = {
+  categoriesFactor:     boolean
+  separatePerCategory:  boolean
+  branchACounting:      'all' | 'top_n' | 'exclude_lowest'
+  branchATopN:          number
+  branchAExcludeN:      number
+  b1Counting:           'all' | 'top_n' | 'exclude_lowest'
+  b1TopN:               number
+  b1ExcludeN:           number
+  b2Counting:           'top_n' | 'exclude_lowest'
+  b2TopN:               number
+  b2ExcludeN:           number
+  tiebreaker:           'next_highest' | 'most_images' | 'admin_decision'
+  eligibility:          'active_members' | 'all_members' | 'min_duration'
+  eligibilityMinDur:    '1_month' | '3_months' | '6_months' | '1_year'
+}
 
 export type PoyEntry = {
   rank:                number
-  tied:                boolean   // true = shares rank with at least one other
+  tied:                boolean
   memberId:            string
   displayName:         string
   avatarUrl:           string | null
   skillLevel:          string | null
   score:               number
   competitionsEntered: number
-  byCategory:          Record<string, number[]> // category name → individual scores, sorted desc (max TOP_PER_CATEGORY)
+  // For category-aware methods (branch B2):
+  byCategory:          Record<string, number[]> // category → contributing scores, desc
+  // For overall methods (branch A):
+  allScores:           number[]                 // contributing scores, desc
   isCurrentUser:       boolean
 }
 
@@ -84,12 +124,30 @@ export default async function StandingsPage({
 
   const params = await searchParams
 
-  // Club settings
+  // Club settings (season + POY config)
   const { data: settingsRaw } = await admin
     .from('club_settings')
-    .select('season_start_month')
+    .select('season_start_month, poy_categories_factor, poy_separate_per_category, poy_branch_a_counting, poy_branch_a_top_n, poy_branch_a_exclude_n, poy_b1_counting, poy_b1_top_n, poy_b1_exclude_n, poy_b2_counting, poy_b2_top_n, poy_b2_exclude_n, poy_tiebreaker, poy_eligibility, poy_eligibility_min_dur')
     .single()
+
   const startMonth: number = settingsRaw?.season_start_month ?? 9
+
+  const poyConfig: PoyConfig = {
+    categoriesFactor:    settingsRaw?.poy_categories_factor     ?? false,
+    separatePerCategory: settingsRaw?.poy_separate_per_category ?? false,
+    branchACounting:     (settingsRaw?.poy_branch_a_counting    ?? 'all') as PoyConfig['branchACounting'],
+    branchATopN:         settingsRaw?.poy_branch_a_top_n        ?? 5,
+    branchAExcludeN:     settingsRaw?.poy_branch_a_exclude_n    ?? 1,
+    b1Counting:          (settingsRaw?.poy_b1_counting          ?? 'top_n') as PoyConfig['b1Counting'],
+    b1TopN:              settingsRaw?.poy_b1_top_n              ?? 3,
+    b1ExcludeN:          settingsRaw?.poy_b1_exclude_n          ?? 1,
+    b2Counting:          (settingsRaw?.poy_b2_counting          ?? 'top_n') as PoyConfig['b2Counting'],
+    b2TopN:              settingsRaw?.poy_b2_top_n              ?? 4,
+    b2ExcludeN:          settingsRaw?.poy_b2_exclude_n          ?? 1,
+    tiebreaker:          (settingsRaw?.poy_tiebreaker           ?? 'next_highest') as PoyConfig['tiebreaker'],
+    eligibility:         (settingsRaw?.poy_eligibility          ?? 'active_members') as PoyConfig['eligibility'],
+    eligibilityMinDur:   (settingsRaw?.poy_eligibility_min_dur  ?? '6_months') as PoyConfig['eligibilityMinDur'],
+  }
 
   // Season
   const currentYear = currentSeasonStartYear(startMonth)
@@ -145,13 +203,11 @@ export default async function StandingsPage({
   const awardsConfigured = competitions.some(c => c.awards_enabled)
 
   // ── Defaults ─────────────────────────────────────────────────────────────────
-  let poyStandings:     PoyEntry[]               = []
-  let awardLeaderboard: AwardLeaderboardEntry[]  = []
-  let recentAwards:     RecentAward[]            = []
-  let categoryNames:    string[]                 = []
-
-  // Top N results per category count toward standings
-  const TOP_PER_CATEGORY = 4
+  let poyStandings:           PoyEntry[]                     = []
+  let poyStandingsByCategory: Record<string, PoyEntry[]>    = {}
+  let awardLeaderboard:       AwardLeaderboardEntry[]        = []
+  let recentAwards:           RecentAward[]                  = []
+  let categoryNames:          string[]                       = []
 
   if (compIds.length > 0) {
     // Category names for this season's competitions (deduped by name across comps)
@@ -163,7 +219,6 @@ export default async function StandingsPage({
     const catIdToName = new Map<string, string>(
       (catsRaw ?? []).map(c => [c.id, c.name])
     )
-    // Stable ordered list of unique category names
     categoryNames = [...new Set((catsRaw ?? []).map(c => c.name))]
 
     // Submissions + scores for this season's competitions
@@ -190,12 +245,7 @@ export default async function StandingsPage({
       (profilesRaw ?? []).map((p: ProfileRow) => [p.id, p])
     )
 
-    // ── POY standings ──────────────────────────────────────────────────────────
-    // Scoring: for each member, for each category, take the top TOP_PER_CATEGORY
-    // competition scores and sum them. Total = sum across all categories.
-    //
-    // Each submission's score = average of judge scores for that submission.
-
+    // ── Build per-member, per-category raw score lists ─────────────────────────
     // member → category name → list of per-submission averages
     const memberCatScores = new Map<string, Map<string, number[]>>()
     const memberComps     = new Map<string, Set<string>>()
@@ -214,56 +264,130 @@ export default async function StandingsPage({
       memberComps.get(sub.member_id)!.add(sub.competition_id)
     }
 
-    // Compute per-category contribution (top N) and total score per member
-    type MemberAgg = { totalScore: number; byCategory: Record<string, number[]> }
-    const agg = new Map<string, MemberAgg>()
-
-    for (const [memberId, catMap] of memberCatScores) {
-      const byCategory: Record<string, number[]> = {}
-      let totalScore = 0
-      for (const [catName, scores] of catMap) {
-        const top      = [...scores].sort((a, b) => b - a).slice(0, TOP_PER_CATEGORY)
-        const catTotal = top.reduce((s, sc) => s + sc, 0)
-        byCategory[catName] = top.map(s => Math.round(s * 10) / 10)
-        totalScore += catTotal
-      }
-      agg.set(memberId, { totalScore: Math.round(totalScore * 10) / 10, byCategory })
+    // ── Helper: rank a flat array of {memberId, score, ...} ──────────────────
+    function rankEntries<T extends { score: number; competitionsEntered: number }>(items: T[]): (T & { rank: number; tied: boolean })[] {
+      const sorted = [...items].sort((a, b) => b.score - a.score || a.competitionsEntered - b.competitionsEntered)
+      let rank = 1
+      return sorted.map((entry, i) => {
+        if (i > 0 && entry.score < sorted[i - 1].score) rank = i + 1
+        const prevTied = i > 0 && entry.score === sorted[i - 1].score
+        const nextTied = i < sorted.length - 1 && entry.score === sorted[i + 1].score
+        return { ...entry, rank, tied: prevTied || nextTied }
+      })
     }
 
-    // Sort by score desc, tie-break by fewer competitions entered
-    const sorted = [...agg.entries()]
-      .map(([memberId, m]) => ({
-        memberId,
-        score:               m.totalScore,
-        byCategory:          m.byCategory,
-        competitionsEntered: memberComps.get(memberId)?.size ?? 0,
-      }))
-      .sort((a, b) => b.score - a.score || a.competitionsEntered - b.competitionsEntered)
+    // ── POY standings ──────────────────────────────────────────────────────────
 
-    // Assign ranks (tied entries share rank)
-    let rank = 1
-    poyStandings = sorted.map((entry, i) => {
-      if (i > 0 && entry.score < sorted[i - 1].score) rank = i + 1
-      const prevTied = i > 0 && entry.score === sorted[i - 1].score
-      const nextTied = i < sorted.length - 1 && entry.score === sorted[i + 1].score
-      const profile = profileMap.get(entry.memberId)
-      return {
-        rank,
-        tied:                prevTied || nextTied,
-        memberId:            entry.memberId,
-        displayName:         profile?.display_name ?? 'Unknown',
-        avatarUrl:           profile?.avatar_url ?? null,
-        skillLevel:          profile?.experience_level ?? null,
-        score:               entry.score,
-        byCategory:          entry.byCategory,
-        competitionsEntered: entry.competitionsEntered,
-        isCurrentUser:       entry.memberId === user.id,
+    if (!poyConfig.categoriesFactor) {
+      // ── Branch A: categories do NOT factor in ─────────────────────────────
+      // Combine all scores across categories, apply a single counting method.
+      const agg: { memberId: string; score: number; allScores: number[]; competitionsEntered: number }[] = []
+
+      for (const [memberId, catMap] of memberCatScores) {
+        const allRaw      = [...catMap.values()].flat()
+        const contributing = applyCountingMethod(allRaw, poyConfig.branchACounting, poyConfig.branchATopN, poyConfig.branchAExcludeN)
+        const total       = contributing.reduce((s, v) => s + v, 0)
+        agg.push({
+          memberId,
+          score:               round1(total),
+          allScores:           contributing.map(round1),
+          competitionsEntered: memberComps.get(memberId)?.size ?? 0,
+        })
       }
-    })
+
+      poyStandings = rankEntries(agg).map(entry => {
+        const profile = profileMap.get(entry.memberId)
+        return {
+          rank:                entry.rank,
+          tied:                entry.tied,
+          memberId:            entry.memberId,
+          displayName:         profile?.display_name ?? 'Unknown',
+          avatarUrl:           profile?.avatar_url ?? null,
+          skillLevel:          profile?.experience_level ?? null,
+          score:               entry.score,
+          byCategory:          {},
+          allScores:           entry.allScores,
+          competitionsEntered: entry.competitionsEntered,
+          isCurrentUser:       entry.memberId === user.id,
+        }
+      })
+
+    } else if (poyConfig.separatePerCategory) {
+      // ── Branch B1: separate standings per category ────────────────────────
+      for (const catName of categoryNames) {
+        const catAgg: { memberId: string; score: number; catScores: number[]; competitionsEntered: number }[] = []
+
+        for (const [memberId, catMap] of memberCatScores) {
+          const rawScores = catMap.get(catName)
+          if (!rawScores?.length) continue
+          const contributing = applyCountingMethod(rawScores, poyConfig.b1Counting, poyConfig.b1TopN, poyConfig.b1ExcludeN)
+          const total        = contributing.reduce((s, v) => s + v, 0)
+          catAgg.push({
+            memberId,
+            score:               round1(total),
+            catScores:           contributing.map(round1),
+            competitionsEntered: memberComps.get(memberId)?.size ?? 0,
+          })
+        }
+
+        poyStandingsByCategory[catName] = rankEntries(catAgg).map(entry => {
+          const profile = profileMap.get(entry.memberId)
+          return {
+            rank:                entry.rank,
+            tied:                entry.tied,
+            memberId:            entry.memberId,
+            displayName:         profile?.display_name ?? 'Unknown',
+            avatarUrl:           profile?.avatar_url ?? null,
+            skillLevel:          profile?.experience_level ?? null,
+            score:               entry.score,
+            byCategory:          { [catName]: entry.catScores },
+            allScores:           entry.catScores,
+            competitionsEntered: entry.competitionsEntered,
+            isCurrentUser:       entry.memberId === user.id,
+          }
+        })
+      }
+
+    } else {
+      // ── Branch B2: categories factor in, combined standing ───────────────
+      const agg: { memberId: string; score: number; byCategory: Record<string, number[]>; competitionsEntered: number }[] = []
+
+      for (const [memberId, catMap] of memberCatScores) {
+        const byCategory: Record<string, number[]> = {}
+        let totalScore = 0
+        for (const [catName, scores] of catMap) {
+          const contributing = applyCountingMethod(scores, poyConfig.b2Counting, poyConfig.b2TopN, poyConfig.b2ExcludeN)
+          byCategory[catName] = contributing.map(round1)
+          totalScore += contributing.reduce((s, v) => s + v, 0)
+        }
+        agg.push({
+          memberId,
+          score:               round1(totalScore),
+          byCategory,
+          competitionsEntered: memberComps.get(memberId)?.size ?? 0,
+        })
+      }
+
+      poyStandings = rankEntries(agg).map(entry => {
+        const profile = profileMap.get(entry.memberId)
+        return {
+          rank:                entry.rank,
+          tied:                entry.tied,
+          memberId:            entry.memberId,
+          displayName:         profile?.display_name ?? 'Unknown',
+          avatarUrl:           profile?.avatar_url ?? null,
+          skillLevel:          profile?.experience_level ?? null,
+          score:               entry.score,
+          byCategory:          entry.byCategory,
+          allScores:           [],
+          competitionsEntered: entry.competitionsEntered,
+          isCurrentUser:       entry.memberId === user.id,
+        }
+      })
+    }
 
     // ── Awards ──────────────────────────────────────────────────────────────────
     if (awardsConfigured) {
-      // Build award label map from all competitions' award_types arrays
       const awardLabelMap = new Map<string, string>()
       for (const comp of competitions) {
         for (const tier of (comp.award_types ?? [])) {
@@ -271,7 +395,6 @@ export default async function StandingsPage({
         }
       }
 
-      // Aggregate award counts per member
       const memberAwards = new Map<string, Map<string, number>>()
       type AwardListItem = { sub: SubRow; awardId: string; comp: CompRow }
       const awardList: AwardListItem[] = []
@@ -330,9 +453,10 @@ export default async function StandingsPage({
       seasonYear={seasonYear}
       seasonOptions={seasonOptions}
       hasCompetitionsThisSeason={compIds.length > 0}
+      poyConfig={poyConfig}
       poyStandings={poyStandings}
+      poyStandingsByCategory={poyStandingsByCategory}
       categoryNames={categoryNames}
-      topPerCategory={TOP_PER_CATEGORY}
       lastUpdatedAt={lastUpdatedAt}
       benchmarkConfigured={false}
       awardsConfigured={awardsConfigured}

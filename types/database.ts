@@ -208,6 +208,20 @@ export type Database = {
           membership_terms_reviewed: boolean
           membership_terms_source: string
           membership_terms_updated_at: string | null
+          poy_branch_a_counting: string
+          poy_branch_a_exclude_n: number
+          poy_branch_a_top_n: number
+          poy_b1_counting: string
+          poy_b1_exclude_n: number
+          poy_b1_top_n: number
+          poy_b2_counting: string
+          poy_b2_exclude_n: number
+          poy_b2_top_n: number
+          poy_categories_factor: boolean
+          poy_eligibility: string
+          poy_eligibility_min_dur: string
+          poy_separate_per_category: boolean
+          poy_tiebreaker: string
           season_end_month: number
           season_start_month: number
           timezone: string
@@ -232,6 +246,20 @@ export type Database = {
           membership_terms_reviewed?: boolean
           membership_terms_source?: string
           membership_terms_updated_at?: string | null
+          poy_branch_a_counting?: string
+          poy_branch_a_exclude_n?: number
+          poy_branch_a_top_n?: number
+          poy_b1_counting?: string
+          poy_b1_exclude_n?: number
+          poy_b1_top_n?: number
+          poy_b2_counting?: string
+          poy_b2_exclude_n?: number
+          poy_b2_top_n?: number
+          poy_categories_factor?: boolean
+          poy_eligibility?: string
+          poy_eligibility_min_dur?: string
+          poy_separate_per_category?: boolean
+          poy_tiebreaker?: string
           season_end_month?: number
           season_start_month?: number
           timezone?: string
@@ -256,6 +284,20 @@ export type Database = {
           membership_terms_reviewed?: boolean
           membership_terms_source?: string
           membership_terms_updated_at?: string | null
+          poy_branch_a_counting?: string
+          poy_branch_a_exclude_n?: number
+          poy_branch_a_top_n?: number
+          poy_b1_counting?: string
+          poy_b1_exclude_n?: number
+          poy_b1_top_n?: number
+          poy_b2_counting?: string
+          poy_b2_exclude_n?: number
+          poy_b2_top_n?: number
+          poy_categories_factor?: boolean
+          poy_eligibility?: string
+          poy_eligibility_min_dur?: string
+          poy_separate_per_category?: boolean
+          poy_tiebreaker?: string
           season_end_month?: number
           season_start_month?: number
           timezone?: string

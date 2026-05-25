@@ -38,6 +38,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { TrashBtn } from '@/components/ui/TrashBtn'
 import { useUnsavedChanges } from '@/components/admin/UnsavedChangesProvider'
+import { savePoySettings } from '../actions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ type AwardTier          = { id: string; name: string; color: string }
 type ClassificationBand = { id: string; name: string; color: string; minScore: number | '' }
 type BenchmarkLevel     = { imagesRequired: number; cumulative: boolean }
 
-type Settings = {
+export type PoySettings = {
   poy_categories_factor:     boolean
   poy_separate_per_category: boolean
   poy_branch_a_counting:     'all' | 'top_n' | 'exclude_lowest'
@@ -60,7 +61,10 @@ type Settings = {
   poy_tiebreaker:            'next_highest' | 'most_images' | 'admin_decision'
   poy_eligibility:           'active_members' | 'all_members' | 'min_duration'
   poy_eligibility_min_dur:   '1_month' | '3_months' | '6_months' | '1_year'
-  bench_levels:              Record<string, BenchmarkLevel>
+}
+
+type Settings = PoySettings & {
+  bench_levels: Record<string, BenchmarkLevel>
 }
 
 // ─── Section header ────────────────────────────────────────────────────────────
@@ -277,16 +281,18 @@ const INITIAL: Settings = {
 
 export default function RecognitionClient({
   initial = INITIAL,
+  initialPoy,
   initialTiers = [],
   initialBands = [],
   scoreMax,
 }: {
   initial?:      Settings
+  initialPoy?:   PoySettings
   initialTiers?: AwardTier[]
   initialBands?: ClassificationBand[]
   scoreMax?:     number
 }) {
-  const [s, setS]                   = useState<Settings>(initial)
+  const [s, setS]                   = useState<Settings>(initialPoy ? { ...initial, ...initialPoy } : initial)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
   const [savePending, startSave]    = useTransition()
   const { isDirty, markDirty, markClean, registerSave } = useUnsavedChanges()
@@ -335,10 +341,25 @@ export default function RecognitionClient({
 
   function executeSave() {
     startSave(async () => {
-      // TODO: persist s, tiers, bands to DB
+      const result = await savePoySettings({
+        poy_categories_factor:     s.poy_categories_factor,
+        poy_separate_per_category: s.poy_separate_per_category,
+        poy_branch_a_counting:     s.poy_branch_a_counting,
+        poy_branch_a_top_n:        s.poy_branch_a_top_n,
+        poy_branch_a_exclude_n:    s.poy_branch_a_exclude_n,
+        poy_b1_counting:           s.poy_b1_counting,
+        poy_b1_top_n:              s.poy_b1_top_n,
+        poy_b1_exclude_n:          s.poy_b1_exclude_n,
+        poy_b2_counting:           s.poy_b2_counting,
+        poy_b2_top_n:              s.poy_b2_top_n,
+        poy_b2_exclude_n:          s.poy_b2_exclude_n,
+        poy_tiebreaker:            s.poy_tiebreaker,
+        poy_eligibility:           s.poy_eligibility,
+        poy_eligibility_min_dur:   s.poy_eligibility_min_dur,
+      })
+      if (result.error) { setSaveStatus('error'); return }
       setSaveStatus('saved')
       markClean()
-      // Update initial refs so re-saves don't re-trigger modals
       initialBandsRef.current    = bands
       initialSettingsRef.current = s
     })
