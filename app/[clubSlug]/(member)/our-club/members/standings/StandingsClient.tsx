@@ -747,7 +747,6 @@ export default function StandingsClient({
       {/* ── Benchmark tab ────────────────────────────────────────────── */}
       {tab === 'benchmark' && (
         <div className="space-y-6">
-          <SectionLabel>Benchmark</SectionLabel>
           {benchmarkConfigured ? (
             // Future: show distribution bars + expandable bands
             <EmptyCard>Benchmark data coming soon.</EmptyCard>
