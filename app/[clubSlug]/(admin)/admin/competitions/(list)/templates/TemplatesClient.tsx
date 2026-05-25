@@ -6,17 +6,20 @@ import {
   Alert,
   Box,
   Button,
-  Card,
   Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
-  Menu,
-  MenuItem,
+  IconButton,
   OutlinedInput,
   Snackbar,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import { StepIndicator }  from '../../wizard/StepIndicator'
@@ -25,6 +28,7 @@ import { StepJudging }    from '../../wizard/StepJudging'
 import { StepAwards }     from '../../wizard/StepAwards'
 import { StepReview }     from '../../wizard/StepReview'
 import { saveTemplate, updateTemplate, deleteTemplate, duplicateTemplate } from './actions'
+import { TrashBtn } from '@/components/ui/TrashBtn'
 import { defaultConfig, type CompetitionConfig } from '@/types/competition'
 import EmptyState from '@/components/admin/EmptyState'
 
@@ -95,12 +99,11 @@ function PencilIcon() {
   )
 }
 
-function DotsIcon() {
+function CopyIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-      <circle cx="12" cy="5"  r="2" />
-      <circle cx="12" cy="12" r="2" />
-      <circle cx="12" cy="19" r="2" />
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
     </svg>
   )
 }
@@ -188,8 +191,7 @@ export default function TemplatesClient({
     }
   }
 
-  // ── Kebab menu ─────────────────────────────────────────────────────────────
-  const [kebabAnchor,   setKebabAnchor]   = useState<{ el: HTMLElement; tpl: Template } | null>(null)
+  // ── Delete / duplicate ─────────────────────────────────────────────────────
   const [deleteConfirm, setDeleteConfirm] = useState<Template | null>(null)
   const [deleting,      setDeleting]      = useState(false)
 
@@ -305,7 +307,6 @@ export default function TemplatesClient({
 
   // ── Duplicate ──────────────────────────────────────────────────────────────
   const handleDuplicate = async (tpl: Template) => {
-    setKebabAnchor(null)
     try {
       await duplicateTemplate(tpl.id)
       setToast({ msg: `"Copy of ${tpl.name}" created.`, severity: 'success' })
@@ -345,115 +346,101 @@ export default function TemplatesClient({
           }
         />
       ) : (
-        <Card variant="outlined">
-          {templates.map((tpl, idx) => (
-            <Box key={tpl.id}>
-              {idx > 0 && <Divider />}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  px: 2.5,
-                  py: 2,
-                  '&:hover': { bgcolor: 'action.hover' },
-                  transition: 'background 0.1s',
-                }}
-              >
-                {/* Left: icon + info */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-                  <Box sx={{ color: 'text.secondary', flexShrink: 0 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </Box>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary' }}>
-                      {tpl.name}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.75, mt: 0.25 }}>
-                      <Chip
-                        label={PRESET_LABEL[tpl.config?.judgingPreset ?? ''] ?? tpl.config?.judgingPreset ?? '—'}
-                        size="small"
-                        sx={{ fontSize: 11, height: 20, fontFamily: 'inherit', bgcolor: 'background.default', color: 'text.secondary' }}
-                      />
+        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                {['Template', 'Judging method', 'Features', 'Used in', 'Last updated', '', '', ''].map((h, i) => (
+                  <TableCell key={i} sx={{
+                    fontSize: 11, fontWeight: 600, color: 'text.secondary',
+                    textTransform: 'uppercase', letterSpacing: '0.05em',
+                    py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider',
+                    bgcolor: 'background.default', fontFamily: 'inherit',
+                  }}>
+                    {h}
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {templates.map(tpl => (
+                <TableRow key={tpl.id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
+                  {/* Name */}
+                  <TableCell sx={{ fontSize: 14, py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', fontWeight: 500 }}>
+                    {tpl.name}
+                  </TableCell>
+
+                  {/* Judging method */}
+                  <TableCell sx={{ fontSize: 14, py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', color: 'text.secondary' }}>
+                    {PRESET_LABEL[tpl.config?.judgingPreset ?? ''] ?? tpl.config?.judgingPreset ?? '—'}
+                  </TableCell>
+
+                  {/* Features chips */}
+                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                       {tpl.config?.awardsEnabled && (
                         <Chip label="Awards" size="small" sx={{ fontSize: 11, height: 20, fontFamily: 'inherit', bgcolor: 'background.default', color: 'text.secondary' }} />
                       )}
                       {(tpl.config?.seasonPointsEnabled || tpl.config?.judgingPreset === 'simple-scored' || tpl.config?.judgingPreset === 'salon') && (
-                        <Chip label="Season points" size="small" sx={{ fontSize: 11, height: 20, fontFamily: 'inherit', bgcolor: 'background.default', color: 'text.secondary' }} />
+                        <Chip label="Season pts" size="small" sx={{ fontSize: 11, height: 20, fontFamily: 'inherit', bgcolor: 'background.default', color: 'text.secondary' }} />
+                      )}
+                      {!tpl.config?.awardsEnabled && !(tpl.config?.seasonPointsEnabled || tpl.config?.judgingPreset === 'simple-scored' || tpl.config?.judgingPreset === 'salon') && (
+                        <Typography sx={{ fontSize: 14, color: 'text.disabled' }}>—</Typography>
                       )}
                     </Box>
-                    <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.5 }}>
-                      {tpl.usageCount > 0
-                        ? `Used in ${tpl.usageCount} competition${tpl.usageCount === 1 ? '' : 's'}`
-                        : 'Never used'}
+                  </TableCell>
+
+                  {/* Usage count */}
+                  <TableCell sx={{ fontSize: 14, py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', color: tpl.usageCount > 0 ? 'text.primary' : 'text.disabled' }}>
+                    {tpl.usageCount > 0 ? `${tpl.usageCount} competition${tpl.usageCount === 1 ? '' : 's'}` : '—'}
+                  </TableCell>
+
+                  {/* Last updated */}
+                  <TableCell sx={{ fontSize: 14, py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                    {new Date(tpl.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </TableCell>
+
+                  {/* Edit link */}
+                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', width: 48 }}>
+                    <Typography
+                      component="button"
+                      onClick={() => openEdit(tpl)}
+                      sx={{ fontSize: 14, fontFamily: 'inherit', color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}
+                    >
+                      Edit
                     </Typography>
-                  </Box>
-                </Box>
+                  </TableCell>
 
-                {/* Right: date + buttons */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
-                  <Typography sx={{ fontSize: 12, color: 'text.secondary', mr: 0.5 }}>
-                    Updated {new Date(tpl.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </Typography>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="secondary"
-                    onClick={() => openEdit(tpl)}
-                    sx={{ fontSize: 12 }}
-                  >
-                    Edit
-                  </Button>
-                  <Box
-                    component="button"
-                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => setKebabAnchor({ el: e.currentTarget, tpl })}
-                    sx={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      width: 30, height: 30, borderRadius: 1,
-                      border: '1px solid', borderColor: 'divider',
-                      bgcolor: 'transparent', cursor: 'pointer',
-                      color: 'text.secondary',
-                      '&:hover': { bgcolor: 'action.hover' },
-                    }}
-                    aria-label="More options"
-                  >
-                    <DotsIcon />
-                  </Box>
-                </Box>
-              </Box>
-            </Box>
-          ))}
-        </Card>
+                  {/* Duplicate icon */}
+                  <TableCell sx={{ py: 1.25, px: 1, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', width: 36 }}>
+                    <Tooltip title="Duplicate template">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDuplicate(tpl)}
+                        sx={{ color: 'text.disabled', '&:hover': { color: 'text.primary' } }}
+                      >
+                        <CopyIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+
+                  {/* Delete icon */}
+                  <TableCell sx={{ py: 1.25, px: 1, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', width: 36 }}>
+                    <Tooltip title={tpl.usageCount > 0 ? 'Cannot delete a template used in competitions' : 'Delete template'}>
+                      <span>
+                        <TrashBtn
+                          onClick={() => setDeleteConfirm(tpl)}
+                          disabled={tpl.usageCount > 0}
+                        />
+                      </span>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
       )}
-
-      {/* Kebab dropdown */}
-      <Menu
-        open={!!kebabAnchor}
-        anchorEl={kebabAnchor?.el ?? undefined}
-        onClose={() => setKebabAnchor(null)}
-        slotProps={{ paper: { sx: { borderRadius: 1.5, minWidth: 200, boxShadow: 3 } } }}
-      >
-        <MenuItem
-          onClick={() => kebabAnchor && handleDuplicate(kebabAnchor.tpl)}
-          sx={{ fontSize: 13 }}
-        >
-          Duplicate
-        </MenuItem>
-        {kebabAnchor?.tpl.usageCount === 0 ? (
-          <MenuItem
-            onClick={() => { setDeleteConfirm(kebabAnchor!.tpl); setKebabAnchor(null) }}
-            sx={{ fontSize: 13, color: 'error.main' }}
-          >
-            Delete
-          </MenuItem>
-        ) : (
-          <MenuItem disabled sx={{ fontSize: 12, whiteSpace: 'normal', lineHeight: 1.5 }}>
-            Templates used in competitions cannot be deleted
-          </MenuItem>
-        )}
-      </Menu>
 
       {/* ── Edit wizard dialog ────────────────────────────────────────────── */}
       <Dialog
