@@ -2,7 +2,7 @@
 -- All columns default to the "classic" mode so existing clubs are unaffected.
 
 ALTER TABLE club_settings
-  ADD COLUMN IF NOT EXISTS poy_categories_factor     boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS poy_categories_factor     boolean DEFAULT true,
   ADD COLUMN IF NOT EXISTS poy_separate_per_category boolean DEFAULT false,
   ADD COLUMN IF NOT EXISTS poy_branch_a_counting     text    DEFAULT 'all',
   ADD COLUMN IF NOT EXISTS poy_branch_a_top_n        integer DEFAULT 5,

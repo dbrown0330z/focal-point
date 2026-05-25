@@ -256,7 +256,7 @@ const DEFAULT_BANDS: ClassificationBand[] = [
 ]
 
 const INITIAL: Settings = {
-  poy_categories_factor:     false,
+  poy_categories_factor:     true,
   poy_separate_per_category: false,
   poy_branch_a_counting:     'all',
   poy_branch_a_top_n:        5,

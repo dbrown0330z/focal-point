@@ -132,8 +132,10 @@ export default async function StandingsPage({
 
   const startMonth: number = settingsRaw?.season_start_month ?? 9
 
+  // Defaults intentionally match the previous hardcoded behaviour (Branch B2, top 4 per
+  // category combined) so the table renders correctly even before the migration is run.
   const poyConfig: PoyConfig = {
-    categoriesFactor:    settingsRaw?.poy_categories_factor     ?? false,
+    categoriesFactor:    settingsRaw?.poy_categories_factor     ?? true,
     separatePerCategory: settingsRaw?.poy_separate_per_category ?? false,
     branchACounting:     (settingsRaw?.poy_branch_a_counting    ?? 'all') as PoyConfig['branchACounting'],
     branchATopN:         settingsRaw?.poy_branch_a_top_n        ?? 5,
