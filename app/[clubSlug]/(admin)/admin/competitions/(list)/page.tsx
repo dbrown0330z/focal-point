@@ -48,7 +48,7 @@ export default async function AdminCompetitionsPage() {
     config: t.config as unknown as CompetitionConfig,
   }))
 
-  const [{ data: categoryRows }, { data: competitionDefaults }] = await Promise.all([
+  const [{ data: categoryRows }, { data: competitionDefaults }, { data: clubSettings }] = await Promise.all([
     supabase
       .from('competition_default_categories')
       .select('name')
@@ -56,6 +56,10 @@ export default async function AdminCompetitionsPage() {
     supabase
       .from('competition_defaults')
       .select('*')
+      .single(),
+    supabase
+      .from('club_settings')
+      .select('season_start_month')
       .single(),
   ])
 
@@ -158,6 +162,7 @@ export default async function AdminCompetitionsPage() {
       clubCategories={clubCategories}
       clubDefaults={clubDefaults}
       clubSlug={clubSlug}
+      seasonStartMonth={clubSettings?.season_start_month ?? 1}
     />
   )
 }

@@ -6,7 +6,12 @@ import {
   Box,
   Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   MenuItem,
+  OutlinedInput,
   Paper,
   Select,
   Table,
@@ -18,7 +23,7 @@ import {
 } from '@mui/material'
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents'
 import CreateCompetitionWizard from './CreateCompetitionWizard'
-import { unarchiveCompetition } from '../actions'
+import { unarchiveCompetition, cancelCompetition } from '../actions'
 import type { CompetitionConfig } from '@/types/competition'
 
 type CompetitionStatus = 'draft' | 'open' | 'judging' | 'judging_on_hold' | 'closed' | 'cancelled' | 'results_pending' | 'results_published'
@@ -67,6 +72,38 @@ const STATUS_LABEL: Record<CompetitionStatus, string> = {
 
 type Filter = 'active' | 'archived' | 'cancelled' | 'all'
 
+const CANCELABLE: CompetitionStatus[] = ['draft', 'open', 'judging', 'judging_on_hold']
+
+// ─── Club year utilities ──────────────────────────────────────────────────────
+
+/** Returns e.g. "2024" (calendar year) or "2024–25" (split year) */
+function clubYearLabel(date: Date, startMonth: number): string {
+  const m = date.getMonth() + 1
+  const y = date.getFullYear()
+  if (startMonth === 1) return String(y)
+  const sy = m >= startMonth ? y : y - 1
+  return `${sy}–${String(sy + 1).slice(-2)}`
+}
+
+/** Returns the start and end Date for a given year label */
+function clubYearRange(label: string, startMonth: number): { start: Date; end: Date } {
+  if (startMonth === 1) {
+    const y = parseInt(label)
+    return { start: new Date(y, 0, 1), end: new Date(y + 1, 0, 1) }
+  }
+  const sy = parseInt(label.split('–')[0])
+  return {
+    start: new Date(sy,     startMonth - 1, 1),
+    end:   new Date(sy + 1, startMonth - 1, 1),
+  }
+}
+
+/** Reference date for a competition (first non-null: opens_at → closes_at → judging_at) */
+function compRefDate(c: Competition): Date | null {
+  const d = c.opens_at ?? c.closes_at ?? c.judging_at
+  return d ? new Date(d) : null
+}
+
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -86,61 +123,111 @@ const COL_CELL = {
 }
 
 export default function CompetitionsListClient({
-  meetingLocations = [],
+  meetingLocations   = [],
   competitions,
   templates,
   members,
-  clubCategories = [],
-  clubDefaults = {},
+  clubCategories     = [],
+  clubDefaults       = {},
   clubSlug,
+  seasonStartMonth   = 1,
 }: {
-  competitions:      Competition[]
-  templates:         Template[]
-  members:           { id: string; name: string; email?: string }[]
-  meetingLocations?: string[]
-  clubCategories?:   string[]
-  clubDefaults?:     Partial<CompetitionConfig>
-  clubSlug:          string
+  competitions:        Competition[]
+  templates:           Template[]
+  members:             { id: string; name: string; email?: string }[]
+  meetingLocations?:   string[]
+  clubCategories?:     string[]
+  clubDefaults?:       Partial<CompetitionConfig>
+  clubSlug:            string
+  seasonStartMonth?:   number
 }) {
+  // ── Club year options ──────────────────────────────────────────────────────
+  const currentYearLabel = clubYearLabel(new Date(), seasonStartMonth)
+
+  const yearOptions: string[] = (() => {
+    const labels = new Set<string>()
+    labels.add(currentYearLabel)
+    for (const c of competitions) {
+      const d = compRefDate(c)
+      if (d) labels.add(clubYearLabel(d, seasonStartMonth))
+    }
+    return ['all', ...Array.from(labels).sort((a, b) => b.localeCompare(a))]
+  })()
+
+  // ── Filter state ───────────────────────────────────────────────────────────
   const [filter,     setFilter]     = useState<Filter>('active')
+  const [yearFilter, setYearFilter] = useState<string>(currentYearLabel)
   const [createOpen, setCreateOpen] = useState(false)
   const [,           startTransition] = useTransition()
 
-  const filtered = (() => {
-    if (filter === 'all')       return competitions
-    if (filter === 'archived')  return competitions.filter(c => c.archived_at !== null)
-    if (filter === 'cancelled') return competitions.filter(c => c.status === 'cancelled')
-    // active: not archived, not cancelled
-    return competitions.filter(c => c.archived_at === null && c.status !== 'cancelled')
+  // ── Cancel dialog ──────────────────────────────────────────────────────────
+  const [cancelTarget, setCancelTarget] = useState<Competition | null>(null)
+  const [cancelReason, setCancelReason] = useState('')
+  const [cancelling,   setCancelling]   = useState(false)
+
+  // Filter by club year first, then by status filter
+  const yearFiltered = (() => {
+    if (yearFilter === 'all') return competitions
+    const { start, end } = clubYearRange(yearFilter, seasonStartMonth)
+    return competitions.filter(c => {
+      const d = compRefDate(c)
+      return d && d >= start && d < end
+    })
   })()
 
-  const countActive    = competitions.filter(c => c.archived_at === null && c.status !== 'cancelled').length
-  const countArchived  = competitions.filter(c => c.archived_at !== null).length
-  const countCancelled = competitions.filter(c => c.status === 'cancelled').length
+  const filtered = (() => {
+    if (filter === 'all')       return yearFiltered
+    if (filter === 'archived')  return yearFiltered.filter(c => c.archived_at !== null)
+    if (filter === 'cancelled') return yearFiltered.filter(c => c.status === 'cancelled')
+    return yearFiltered.filter(c => c.archived_at === null && c.status !== 'cancelled')
+  })()
+
+  // Counts based on year-filtered set
+  const countActive    = yearFiltered.filter(c => c.archived_at === null && c.status !== 'cancelled').length
+  const countArchived  = yearFiltered.filter(c => c.archived_at !== null).length
+  const countCancelled = yearFiltered.filter(c => c.status === 'cancelled').length
 
   return (
     <>
       {/* Toolbar */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2.5 }}>
-        <Select
-          size="small"
-          value={filter}
-          onChange={e => setFilter(e.target.value as Filter)}
-          sx={{ fontSize: 13, minWidth: 160, fontFamily: 'inherit' }}
-        >
-          <MenuItem value="active" sx={{ fontSize: 13, fontFamily: 'inherit' }}>
-            Active ({countActive})
-          </MenuItem>
-          <MenuItem value="archived" sx={{ fontSize: 13, fontFamily: 'inherit' }}>
-            Archived ({countArchived})
-          </MenuItem>
-          <MenuItem value="cancelled" sx={{ fontSize: 13, fontFamily: 'inherit' }}>
-            Cancelled ({countCancelled})
-          </MenuItem>
-          <MenuItem value="all" sx={{ fontSize: 13, fontFamily: 'inherit' }}>
-            All ({competitions.length})
-          </MenuItem>
-        </Select>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2.5, gap: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          {/* Year selector */}
+          <Select
+            size="small"
+            value={yearFilter}
+            onChange={e => setYearFilter(e.target.value)}
+            sx={{ fontSize: 13, minWidth: 140, fontFamily: 'inherit' }}
+          >
+            <MenuItem value="all" sx={{ fontSize: 13, fontFamily: 'inherit' }}>All years</MenuItem>
+            {yearOptions.filter(y => y !== 'all').map(y => (
+              <MenuItem key={y} value={y} sx={{ fontSize: 13, fontFamily: 'inherit' }}>
+                {y === currentYearLabel ? `${y} (current)` : y}
+              </MenuItem>
+            ))}
+          </Select>
+
+          {/* Status filter */}
+          <Select
+            size="small"
+            value={filter}
+            onChange={e => setFilter(e.target.value as Filter)}
+            sx={{ fontSize: 13, minWidth: 160, fontFamily: 'inherit' }}
+          >
+            <MenuItem value="active" sx={{ fontSize: 13, fontFamily: 'inherit' }}>
+              Active ({countActive})
+            </MenuItem>
+            <MenuItem value="archived" sx={{ fontSize: 13, fontFamily: 'inherit' }}>
+              Archived ({countArchived})
+            </MenuItem>
+            <MenuItem value="cancelled" sx={{ fontSize: 13, fontFamily: 'inherit' }}>
+              Cancelled ({countCancelled})
+            </MenuItem>
+            <MenuItem value="all" sx={{ fontSize: 13, fontFamily: 'inherit' }}>
+              All ({yearFiltered.length})
+            </MenuItem>
+          </Select>
+        </Box>
 
         {competitions.length > 0 && (
           <Button
@@ -273,37 +360,36 @@ export default function CompetitionsListClient({
                     </TableCell>
 
                     <TableCell sx={{ ...COL_CELL, textAlign: 'right' }}>
-                      {isArchived ? (
-                        <Typography
-                          component="button"
-                          onClick={() => startTransition(() => unarchiveCompetition(comp.id))}
-                          sx={{
-                            fontSize: 13, fontWeight: 400,
-                            color: 'text.secondary',
-                            textDecoration: 'none',
-                            fontFamily: 'inherit',
-                            background: 'none', border: 'none',
-                            cursor: 'pointer', p: 0,
-                            '&:hover': { textDecoration: 'underline' },
-                          }}
-                        >
-                          Unarchive
-                        </Typography>
-                      ) : (
-                        <Typography
-                          component={Link}
-                          href={`/${clubSlug}/admin/competitions/${comp.id}`}
-                          sx={{
-                            fontSize: 14, fontWeight: 400,
-                            color: 'primary.main',
-                            textDecoration: 'none',
-                            fontFamily: 'inherit',
-                            '&:hover': { textDecoration: 'underline' },
-                          }}
-                        >
-                          {isComplete ? 'Details' : 'Edit'}
-                        </Typography>
-                      )}
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1.5 }}>
+                        {isArchived ? (
+                          <Typography
+                            component="button"
+                            onClick={() => startTransition(() => unarchiveCompetition(comp.id))}
+                            sx={{ fontSize: 13, color: 'text.secondary', background: 'none', border: 'none', cursor: 'pointer', p: 0, fontFamily: 'inherit', '&:hover': { textDecoration: 'underline' } }}
+                          >
+                            Unarchive
+                          </Typography>
+                        ) : (
+                          <>
+                            {CANCELABLE.includes(comp.status) && (
+                              <Typography
+                                component="button"
+                                onClick={() => { setCancelTarget(comp); setCancelReason('') }}
+                                sx={{ fontSize: 14, color: 'text.secondary', background: 'none', border: 'none', cursor: 'pointer', p: 0, fontFamily: 'inherit', '&:hover': { textDecoration: 'underline', color: 'error.main' } }}
+                              >
+                                Cancel
+                              </Typography>
+                            )}
+                            <Typography
+                              component={Link}
+                              href={`/${clubSlug}/admin/competitions/${comp.id}`}
+                              sx={{ fontSize: 14, color: 'primary.main', textDecoration: 'none', fontFamily: 'inherit', '&:hover': { textDecoration: 'underline' } }}
+                            >
+                              {isComplete ? 'Details' : 'Edit'}
+                            </Typography>
+                          </>
+                        )}
+                      </Box>
                     </TableCell>
                   </TableRow>
                 )
@@ -323,6 +409,62 @@ export default function CompetitionsListClient({
         clubDefaults={clubDefaults}
         clubSlug={clubSlug}
       />
+
+      {/* Cancel competition dialog */}
+      <Dialog
+        open={!!cancelTarget}
+        onClose={() => !cancelling && setCancelTarget(null)}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{ paper: { sx: { borderRadius: 2 } } }}
+      >
+        <DialogTitle sx={{ pb: 0.5 }}>Cancel competition?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7 }}>
+            <strong>{cancelTarget?.title}</strong> will be marked as cancelled. Members who submitted entries will be notified and their images returned. This cannot be undone.
+          </Typography>
+          <Typography sx={{ fontSize: 12, fontWeight: 600, mb: 0.75, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Reason <span style={{ fontWeight: 400, textTransform: 'none' }}>(sent to members)</span>
+          </Typography>
+          <OutlinedInput
+            fullWidth
+            multiline
+            minRows={2}
+            size="small"
+            placeholder="e.g. Insufficient entries received"
+            value={cancelReason}
+            onChange={e => setCancelReason(e.target.value)}
+            disabled={cancelling}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button variant="outlined" color="secondary" onClick={() => setCancelTarget(null)} disabled={cancelling}>
+            Keep competition
+          </Button>
+          <Button
+            variant="outlined"
+            disabled={cancelling || !cancelReason.trim()}
+            onClick={async () => {
+              if (!cancelTarget || !cancelReason.trim()) return
+              setCancelling(true)
+              try {
+                await cancelCompetition(cancelTarget.id, cancelReason.trim())
+                setCancelTarget(null)
+              } finally {
+                setCancelling(false)
+              }
+            }}
+            sx={{
+              bgcolor: 'error.light', color: 'error.contrastText',
+              borderColor: 'error.main',
+              '&:hover': { bgcolor: 'error.main', color: '#fff' },
+              '&.Mui-disabled': { opacity: 0.5 },
+            }}
+          >
+            {cancelling ? 'Cancelling…' : 'Cancel competition'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   )
 }
