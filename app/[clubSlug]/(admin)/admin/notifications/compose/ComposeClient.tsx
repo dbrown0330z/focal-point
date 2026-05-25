@@ -138,11 +138,11 @@ function DropdownBtn({
 
 export default function ComposeClient({
   members,
-  fromEmail,
+  fromAddress,
   clubName,
 }: {
   members: Member[]
-  fromEmail: string
+  fromAddress: string
   clubName: string
 }) {
   const [toOption, setToOption]         = useState<ToOption>('all_active')
@@ -585,7 +585,7 @@ export default function ComposeClient({
             From
           </Typography>
           <Typography sx={{ fontSize: 13, color: 'text.disabled' }}>
-            {fromEmail}
+            {fromAddress}
           </Typography>
         </Box>
 

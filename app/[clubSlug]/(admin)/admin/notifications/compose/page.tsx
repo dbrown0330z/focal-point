@@ -18,8 +18,13 @@ export default async function ComposePage() {
       .single(),
   ])
 
-  const fromEmail = settings?.from_email?.trim() || ''
   const clubName  = settings?.club_name?.trim() || 'Your Club'
+  const rawFrom   = settings?.from_email?.trim()
+  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'focalpointhq.com'
+  // Show the exact address the action will use, so the admin always sees a value
+  const fromAddress = rawFrom
+    ? `${clubName} <${rawFrom}>`
+    : `${clubName} <notifications@${appDomain}>`
 
-  return <ComposeClient members={members ?? []} fromEmail={fromEmail} clubName={clubName} />
+  return <ComposeClient members={members ?? []} fromAddress={fromAddress} clubName={clubName} />
 }
