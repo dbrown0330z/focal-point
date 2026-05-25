@@ -3,12 +3,17 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getClubContext } from '@/lib/club-context'
+import { sendAdminNewApplication } from '@/lib/email/send'
 
 export interface ApplyData {
-  firstName: string
-  lastName: string
-  email: string
-  password: string
+  firstName:         string
+  lastName:          string
+  email:             string
+  password:          string
+  experienceLevel?:  string
+  shootingInterests: string[]
+  cameraBrands:      string[]
+  bio?:              string
 }
 
 export async function applyForMembership(data: ApplyData): Promise<{ error?: string }> {
@@ -34,17 +39,80 @@ export async function applyForMembership(data: ApplyData): Promise<{ error?: str
 
   if (createErr) return { error: createErr.message }
 
-  // Ensure a club_memberships row exists for this applicant. The DB trigger
-  // should create one, but it isn't always reliable (e.g. if migrations haven't
-  // fully run or the trigger fires after this function returns). Upserting here
-  // guarantees the row is present before the admin tries to activate them.
-  if (newUser?.user?.id && ctx?.clubId) {
+  const userId = newUser?.user?.id
+
+  // Save profile fields captured at signup. The DB trigger creates the profile
+  // row from user_metadata; we upsert here so profile data is always saved
+  // even if the trigger hasn't fired yet.
+  if (userId) {
+    await service.from('profiles').upsert({
+      id:                 userId,
+      first_name:         data.firstName.trim(),
+      last_name:          data.lastName.trim(),
+      display_name:       displayName,
+      experience_level:   data.experienceLevel || null,
+      shooting_interests: data.shootingInterests,
+      camera_brands:      data.cameraBrands,
+      bio:                data.bio?.trim() || null,
+    }, { onConflict: 'id' })
+  }
+
+  // Ensure a club_memberships row exists for this applicant.
+  if (userId && ctx?.clubId) {
     await service
       .from('club_memberships')
       .upsert(
-        { user_id: newUser.user.id, club_id: ctx.clubId, membership_status: 'pending' },
+        { user_id: userId, club_id: ctx.clubId, membership_status: 'pending' },
         { onConflict: 'user_id,club_id' }
       )
+
+    // Notify all club admins of the new application
+    try {
+      const base        = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
+      const reviewUrl   = `${base}/${ctx.clubSlug}/admin/members`
+      const appliedDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+      const clubName    = ctx.clubName
+
+      const { data: adminMemberships } = await service
+        .from('club_memberships')
+        .select('user_id')
+        .eq('club_id', ctx.clubId)
+        .eq('role', 'admin')
+
+      if (adminMemberships && adminMemberships.length > 0) {
+        const adminUserIds = adminMemberships.map(a => a.user_id)
+        const [{ data: adminProfiles }, { data: { users: adminUsers } }] = await Promise.all([
+          service.from('profiles').select('id, first_name, display_name').in('id', adminUserIds),
+          service.auth.admin.listUsers({ perPage: 1000 }),
+        ])
+        const adminEmails: Record<string, string> = {}
+        for (const u of adminUsers) {
+          if (u.email && adminUserIds.includes(u.id)) adminEmails[u.id] = u.email
+        }
+        const profileById: Record<string, { first_name: string | null; display_name: string }> = {}
+        for (const p of adminProfiles ?? []) profileById[p.id] = p
+
+        await Promise.allSettled(
+          adminUserIds.map(adminId => {
+            const email = adminEmails[adminId]
+            if (!email) return Promise.resolve()
+            const p = profileById[adminId]
+            const adminFirstName = p?.first_name || p?.display_name?.split(' ')[0] || 'Admin'
+            return sendAdminNewApplication({
+              adminEmail:     email,
+              adminFirstName,
+              applicantName:  displayName,
+              appliedDate,
+              clubName,
+              reviewUrl,
+            })
+          })
+        )
+      }
+    } catch (err) {
+      // Non-fatal — application is recorded even if notification fails
+      console.error('[apply] failed to notify admins:', err)
+    }
   }
 
   // Sign them in immediately so the root page can show the pending-approval

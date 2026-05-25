@@ -6,6 +6,10 @@ import {
   Box,
   Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   MenuItem,
   OutlinedInput,
@@ -50,15 +54,17 @@ export default function OnboardingProfilePage() {
   const [phone, setPhone]                     = useState('')
   const [bio, setBio]                         = useState('')
   const [submitting, setSubmitting]           = useState(false)
+  const [cancelWarning, setCancelWarning]     = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Pre-fill all fields from data saved at signup
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return
       const { data } = await supabase
         .from('profiles')
-        .select('first_name, last_name')
+        .select('first_name, last_name, experience_level, shooting_interests, camera_brands, bio, avatar_url')
         .eq('id', user.id)
         .single()
       if (data) {
@@ -66,6 +72,11 @@ export default function OnboardingProfilePage() {
         setInitials(
           [(data.first_name?.[0] ?? ''), (data.last_name?.[0] ?? '')].join('').toUpperCase()
         )
+        setExperienceLevel(data.experience_level ?? '')
+        setInterests((data.shooting_interests as string[]) ?? [])
+        setBrands((data.camera_brands as string[]) ?? [])
+        setBio(data.bio ?? '')
+        if (data.avatar_url) setAvatarPreview(data.avatar_url)
       }
     })
   }, [])
@@ -341,7 +352,7 @@ export default function OnboardingProfilePage() {
 
           {/* Actions */}
           <Box sx={{ display: 'flex', gap: 2, pt: 1 }}>
-            <Button variant="outlined" color="secondary" fullWidth onClick={() => logout()}>
+            <Button variant="outlined" color="secondary" fullWidth onClick={() => setCancelWarning(true)}>
               Cancel
             </Button>
             <Button type="submit" variant="contained" fullWidth disabled={submitting}>
@@ -351,6 +362,29 @@ export default function OnboardingProfilePage() {
 
         </Stack>
       </form>
+
+      {/* Cancel / sign-out warning dialog */}
+      <Dialog
+        open={cancelWarning}
+        onClose={() => setCancelWarning(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Leave without saving?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+            Your profile changes will not be saved and you will be signed out.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button variant="outlined" color="secondary" onClick={() => setCancelWarning(false)}>
+            Stay
+          </Button>
+          <Button variant="contained" color="error" onClick={() => logout()}>
+            Sign out
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       </Box>{/* end right column */}
     </Box>

@@ -2,21 +2,138 @@
 // All templates return { subject, html } for use with Resend.
 // Plain-text HTML — no external dependencies required.
 
+// ─── Admin: new membership application ───────────────────────────────────────
+
+export function adminNewApplication(args: {
+  adminFirstName: string
+  applicantName:  string
+  appliedDate:    string
+  clubName:       string
+  reviewUrl:      string
+}): { subject: string; html: string } {
+  return {
+    subject: `New membership application — ${args.applicantName}`,
+    html: base(`
+      <p>Hi ${args.adminFirstName},</p>
+      <p>A new membership application has been submitted for <strong>${args.clubName}</strong>.</p>
+      <table style="margin:18px 0;border-collapse:collapse;font-size:14px">
+        <tr><td style="color:#737373;padding:3px 16px 3px 0">Applicant</td><td>${args.applicantName}</td></tr>
+        <tr><td style="color:#737373;padding:3px 16px 3px 0">Applied</td><td>${args.appliedDate}</td></tr>
+      </table>
+      <a href="${args.reviewUrl}" class="btn">Review application →</a>
+    `),
+  }
+}
+
 // ─── Member: application approved ────────────────────────────────────────────
 
 export function memberApproved(args: {
   firstName:   string
   clubName:    string
-  loginUrl:    string
+  onboardingUrl: string
+  adminEmail?: string
 }): { subject: string; html: string } {
   return {
-    subject: `You're in — welcome to ${args.clubName}`,
+    subject: `Your ${args.clubName} application has been approved`,
     html: base(`
       <p>Hi ${args.firstName},</p>
-      <p>Great news — your application to <strong>${args.clubName}</strong> has been approved.</p>
-      <p>You can now sign in and complete your profile to get started.</p>
-      <a href="${args.loginUrl}" class="btn">Get started →</a>
-      <p style="font-size:13px;color:#737373">If you didn't apply to ${args.clubName} you can safely ignore this email.</p>
+      <p>Your application to join <strong>${args.clubName}</strong> has been approved — welcome.</p>
+      <p>To complete your membership, two quick steps:</p>
+      <ol style="font-size:15px;line-height:1.8;color:#1A1A1A">
+        <li>Finish setting up your profile</li>
+        <li>Pay your annual membership dues</li>
+      </ol>
+      <a href="${args.onboardingUrl}" class="btn">Complete your membership →</a>
+      ${args.adminEmail ? `<p style="font-size:13px;color:#737373">If you have any questions, contact us at <a href="mailto:${args.adminEmail}">${args.adminEmail}</a>.</p>` : ''}
+      <p style="font-size:13px;color:#737373">— ${args.clubName}</p>
+    `),
+  }
+}
+
+// ─── Member: application rejected ────────────────────────────────────────────
+
+export function memberRejected(args: {
+  firstName:   string
+  clubName:    string
+  reason:      string
+  adminEmail?: string
+}): { subject: string; html: string } {
+  return {
+    subject: `Update on your ${args.clubName} application`,
+    html: base(`
+      <p>Hi ${args.firstName},</p>
+      <p>Thank you for your interest in <strong>${args.clubName}</strong>.</p>
+      <p>After reviewing your application, we are unable to approve your membership at this time.</p>
+      <p style="padding:14px 18px;background:#F5F5F5;border-radius:7px;font-size:14px;color:#525252;font-style:italic">${args.reason}</p>
+      ${args.adminEmail ? `<p>If you have questions, contact us at <a href="mailto:${args.adminEmail}">${args.adminEmail}</a>.</p>` : ''}
+      <p style="font-size:13px;color:#737373">— ${args.clubName}</p>
+    `),
+  }
+}
+
+// ─── Member: welcome (payment confirmed / free club activated) ────────────────
+
+export function memberWelcome(args: {
+  firstName:      string
+  clubName:       string
+  interests:      string[]
+  clubUrl:        string
+  adminEmail?:    string
+}): { subject: string; html: string } {
+  const interestLine = args.interests.length > 0
+    ? `<p>We've noted your interest in ${args.interests.slice(0, 2).join(' and ')}. Keep an eye on competitions — categories you'll enjoy come up regularly.</p>`
+    : ''
+  return {
+    subject: `Welcome to ${args.clubName} — you're all set`,
+    html: base(`
+      <p>Hi ${args.firstName},</p>
+      <p>Your membership is confirmed. Welcome to <strong>${args.clubName}</strong>.</p>
+      ${interestLine}
+      <p>Here's how to get started:</p>
+      <ul style="font-size:15px;line-height:2;color:#1A1A1A">
+        <li>Submit your first competition entry</li>
+        <li>Check the calendar for upcoming meetings and events</li>
+        <li>Browse the member directory to connect with other photographers</li>
+      </ul>
+      <a href="${args.clubUrl}" class="btn">Go to your profile →</a>
+      <p style="font-size:13px;color:#737373">— ${args.clubName}</p>
+    `),
+  }
+}
+
+// ─── Admin: new active member ─────────────────────────────────────────────────
+
+export function adminNewActiveMember(args: {
+  adminFirstName:  string
+  memberName:      string
+  clubName:        string
+  memberUrl:       string
+}): { subject: string; html: string } {
+  return {
+    subject: `New active member — ${args.memberName}`,
+    html: base(`
+      <p>Hi ${args.adminFirstName},</p>
+      <p><strong>${args.memberName}</strong> has completed payment and is now an active member of ${args.clubName}.</p>
+      <a href="${args.memberUrl}" class="btn">View member profile →</a>
+    `),
+  }
+}
+
+// ─── Member: membership status changed (suspend / ban) ───────────────────────
+
+export function memberStatusChanged(args: {
+  firstName:  string
+  clubName:   string
+  action:     'suspended' | 'terminated'
+  adminEmail?: string
+}): { subject: string; html: string } {
+  return {
+    subject: `Your ${args.clubName} membership`,
+    html: base(`
+      <p>Hi ${args.firstName},</p>
+      <p>Your <strong>${args.clubName}</strong> membership has been ${args.action}.</p>
+      ${args.adminEmail ? `<p>If you believe this is an error, contact us at <a href="mailto:${args.adminEmail}">${args.adminEmail}</a>.</p>` : ''}
+      <p style="font-size:13px;color:#737373">— ${args.clubName}</p>
     `),
   }
 }

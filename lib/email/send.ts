@@ -1,6 +1,11 @@
 import { getResend, FROM_ADDRESS } from './client'
 import {
+  adminNewApplication,
   memberApproved,
+  memberRejected,
+  memberWelcome,
+  adminNewActiveMember,
+  memberStatusChanged,
   adminReminder7Day,
   adminReminder1Day,
   adminReminderOnOpen,
@@ -12,15 +17,83 @@ import {
   judgeCancellationNotification,
 } from './templates'
 
+// ─── Admin: new application notification ─────────────────────────────────────
+
+export async function sendAdminNewApplication(args: {
+  adminEmail:     string
+  adminFirstName: string
+  applicantName:  string
+  appliedDate:    string
+  clubName:       string
+  reviewUrl:      string
+}) {
+  const { subject, html } = adminNewApplication(args)
+  await getResend().emails.send({ from: FROM_ADDRESS, to: args.adminEmail, subject, html })
+}
+
 // ─── Member: approval notification ───────────────────────────────────────────
 
 export async function sendMemberApproved(args: {
-  memberEmail: string
-  firstName:   string
-  clubName:    string
-  loginUrl:    string
+  memberEmail:   string
+  firstName:     string
+  clubName:      string
+  onboardingUrl: string
+  adminEmail?:   string
 }) {
   const { subject, html } = memberApproved(args)
+  await getResend().emails.send({ from: FROM_ADDRESS, to: args.memberEmail, subject, html })
+}
+
+// ─── Member: rejection notification ──────────────────────────────────────────
+
+export async function sendMemberRejected(args: {
+  memberEmail:  string
+  firstName:    string
+  clubName:     string
+  reason:       string
+  adminEmail?:  string
+}) {
+  const { subject, html } = memberRejected(args)
+  await getResend().emails.send({ from: FROM_ADDRESS, to: args.memberEmail, subject, html })
+}
+
+// ─── Member: welcome (account activated) ─────────────────────────────────────
+
+export async function sendMemberWelcome(args: {
+  memberEmail:  string
+  firstName:    string
+  clubName:     string
+  interests:    string[]
+  clubUrl:      string
+  adminEmail?:  string
+}) {
+  const { subject, html } = memberWelcome(args)
+  await getResend().emails.send({ from: FROM_ADDRESS, to: args.memberEmail, subject, html })
+}
+
+// ─── Admin: new active member notification ────────────────────────────────────
+
+export async function sendAdminNewActiveMember(args: {
+  adminEmail:     string
+  adminFirstName: string
+  memberName:     string
+  clubName:       string
+  memberUrl:      string
+}) {
+  const { subject, html } = adminNewActiveMember(args)
+  await getResend().emails.send({ from: FROM_ADDRESS, to: args.adminEmail, subject, html })
+}
+
+// ─── Member: status changed (suspend/ban) ────────────────────────────────────
+
+export async function sendMemberStatusChanged(args: {
+  memberEmail:  string
+  firstName:    string
+  clubName:     string
+  action:       'suspended' | 'terminated'
+  adminEmail?:  string
+}) {
+  const { subject, html } = memberStatusChanged(args)
   await getResend().emails.send({ from: FROM_ADDRESS, to: args.memberEmail, subject, html })
 }
 

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getClubContext } from '@/lib/club-context'
-import { sendMemberApproved } from '@/lib/email/send'
+import { sendMemberApproved, sendMemberRejected, sendMemberStatusChanged } from '@/lib/email/send'
 import type { Database } from '@/types/database'
 
 type MembershipStatus = Database['public']['Enums']['membership_status']
@@ -52,7 +52,7 @@ export async function setMemberStatus(memberId: string, status: MembershipStatus
 export async function approveMember(memberId: string) {
   await setMemberStatus(memberId, 'approved')
 
-  // Send approval email — fetch member profile + auth email via service client
+  // Send approval email with link to the onboarding wizard
   try {
     const service = createServiceClient()
     const [{ data: profile }, { data: clubSettings }, { data: { user } }] = await Promise.all([
@@ -61,21 +61,95 @@ export async function approveMember(memberId: string) {
       service.auth.admin.getUserById(memberId),
     ])
 
-    const email     = user?.email
-    const firstName = profile?.first_name || profile?.display_name || 'there'
-    const clubName  = clubSettings?.club_name ?? 'the club'
-    const ctx       = await getClubContext()
-    const slug      = ctx?.clubSlug ?? ''
-    const base      = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
-    const loginUrl  = slug ? `${base}/${slug}/login` : `${base}/login`
+    const email          = user?.email
+    const firstName      = profile?.first_name || profile?.display_name || 'there'
+    const clubName       = clubSettings?.club_name ?? 'the club'
+    const base           = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
+    const onboardingUrl  = `${base}/onboarding/profile`
 
     if (email) {
-      await sendMemberApproved({ memberEmail: email, firstName, clubName, loginUrl })
+      await sendMemberApproved({ memberEmail: email, firstName, clubName, onboardingUrl })
     }
   } catch (err) {
     // Non-fatal — approval is complete even if the email fails
     console.error('[approveMember] failed to send approval email:', err)
   }
+}
+
+export async function rejectMember(memberId: string, reason: string) {
+  // Send rejection email before deleting the record
+  try {
+    const service = createServiceClient()
+    const [{ data: profile }, { data: clubSettings }, { data: { user } }] = await Promise.all([
+      service.from('profiles').select('first_name, display_name').eq('id', memberId).single(),
+      service.from('club_settings').select('club_name').single(),
+      service.auth.admin.getUserById(memberId),
+    ])
+
+    const email      = user?.email
+    const firstName  = profile?.first_name || profile?.display_name || 'there'
+    const clubName   = clubSettings?.club_name ?? 'the club'
+    if (email) {
+      await sendMemberRejected({ memberEmail: email, firstName, clubName, reason })
+    }
+  } catch (err) {
+    console.error('[rejectMember] failed to send rejection email:', err)
+  }
+
+  // Delete the applicant's account — they can reapply
+  await deleteMember(memberId)
+}
+
+export async function suspendMember(memberId: string, reason: string) {
+  // Status 'paused' = Suspended in the UI
+  await setMemberStatus(memberId, 'paused')
+
+  // Send notification to member
+  try {
+    const service = createServiceClient()
+    const [{ data: profile }, { data: clubSettings }, { data: { user } }] = await Promise.all([
+      service.from('profiles').select('first_name, display_name').eq('id', memberId).single(),
+      service.from('club_settings').select('club_name').single(),
+      service.auth.admin.getUserById(memberId),
+    ])
+    const email      = user?.email
+    const firstName  = profile?.first_name || profile?.display_name || 'there'
+    const clubName   = clubSettings?.club_name ?? 'the club'
+    if (email) {
+      await sendMemberStatusChanged({ memberEmail: email, firstName, clubName, action: 'suspended' })
+    }
+    // Store reason as an internal note (non-fatal if this fails)
+    console.info(`[suspendMember] ${memberId} suspended. Reason: ${reason}`)
+  } catch (err) {
+    console.error('[suspendMember] failed to send notification:', err)
+  }
+}
+
+export async function banMember(memberId: string) {
+  await setMemberStatus(memberId, 'banned')
+
+  // Send termination notification to member
+  try {
+    const service = createServiceClient()
+    const [{ data: profile }, { data: clubSettings }, { data: { user } }] = await Promise.all([
+      service.from('profiles').select('first_name, display_name').eq('id', memberId).single(),
+      service.from('club_settings').select('club_name').single(),
+      service.auth.admin.getUserById(memberId),
+    ])
+    const email      = user?.email
+    const firstName  = profile?.first_name || profile?.display_name || 'there'
+    const clubName   = clubSettings?.club_name ?? 'the club'
+    if (email) {
+      await sendMemberStatusChanged({ memberEmail: email, firstName, clubName, action: 'terminated' })
+    }
+  } catch (err) {
+    console.error('[banMember] failed to send notification:', err)
+  }
+}
+
+export async function resignMember(memberId: string) {
+  // Status 'cancelled' = Resigned in the UI
+  await setMemberStatus(memberId, 'cancelled')
 }
 
 export async function deleteMember(memberId: string) {

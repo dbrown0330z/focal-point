@@ -34,7 +34,7 @@ import {
 } from '@mui/material'
 import type { Database } from '@/types/database'
 import { TrashBtn } from '@/components/ui/TrashBtn'
-import { setMemberStatus, approveMember, makeAdmin, updateMemberName, deleteMember, setMemberSkillLevel, setMemberClassesEnabled, addMemberClass, renameMemberClass, deleteMemberClass } from './actions'
+import { setMemberStatus, approveMember, rejectMember, suspendMember, banMember, resignMember, makeAdmin, updateMemberName, deleteMember, setMemberSkillLevel, setMemberClassesEnabled, addMemberClass, renameMemberClass, deleteMemberClass } from './actions'
 
 type MembershipStatus = Database['public']['Enums']['membership_status']
 type Profile = {
@@ -62,45 +62,29 @@ type Filter = 'all' | 'active' | 'pending' | 'expired'
 
 const STATUS_LABEL: Record<MembershipStatus, string> = {
   pending:       'Pending',
-  approved:      'Awaiting onboarding',
+  approved:      'Awaiting payment',
   active:        'Active',
   expired:       'Expired',
-  paused:        'Paused',
+  paused:        'Suspended',
   complimentary: 'Complimentary',
   banned:        'Banned',
-  cancelled:     'Cancelled',
+  cancelled:     'Resigned',
 }
 
 const STATUS_STYLE: Record<MembershipStatus, { bgcolor: string; color: string }> = {
-  active:        { bgcolor: 'success.light',      color: 'success.contrastText'  },
-  complimentary: { bgcolor: 'success.light',      color: 'success.contrastText'  },
-  pending:       { bgcolor: 'warning.light',      color: 'warning.contrastText'  },
-  approved:      { bgcolor: 'warning.light',      color: 'warning.contrastText'  },
+  active:        { bgcolor: 'success.light',       color: 'success.contrastText' },
+  complimentary: { bgcolor: 'success.light',       color: 'success.contrastText' },
+  pending:       { bgcolor: 'warning.light',       color: 'warning.contrastText' },
+  approved:      { bgcolor: 'warning.light',       color: 'warning.contrastText' },
   banned:        { bgcolor: 'error.light',         color: 'error.contrastText'   },
-  cancelled:     { bgcolor: 'error.light',         color: 'error.contrastText'   },
-  expired:       { bgcolor: 'background.default', color: 'text.secondary'        },
-  paused:        { bgcolor: 'background.default', color: 'text.secondary'        },
+  cancelled:     { bgcolor: 'background.default',  color: 'text.secondary'       },
+  expired:       { bgcolor: 'background.default',  color: 'text.secondary'       },
+  paused:        { bgcolor: 'background.default',  color: 'text.secondary'       },
 }
 
 const ACTIVE_STATUSES:  MembershipStatus[] = ['active', 'complimentary']
 const PENDING_STATUSES: MembershipStatus[] = ['pending', 'approved']
-const EXPIRED_STATUSES: MembershipStatus[] = ['expired', 'cancelled', 'paused', 'banned']
-
-// ─── Manage modal actions ─────────────────────────────────────────────────────
-
-type ModalAction = {
-  label: string
-  status: MembershipStatus
-  color: 'error' | 'warning' | 'success' | 'secondary'
-  description: string
-}
-
-const MANAGE_ACTIONS: ModalAction[] = [
-  { label: 'Complimentary', status: 'complimentary', color: 'success',   description: 'Grant free membership access.' },
-  { label: 'Pause',         status: 'paused',        color: 'warning',   description: 'Temporarily suspend access.' },
-  { label: 'Cancel',        status: 'cancelled',     color: 'secondary', description: 'Cancel membership.' },
-  { label: 'Ban',           status: 'banned',        color: 'error',     description: 'Permanently ban this member.' },
-]
+const INACTIVE_STATUSES: MembershipStatus[] = ['expired', 'cancelled', 'paused', 'banned']
 
 // ─── Class row ────────────────────────────────────────────────────────────────
 
@@ -479,6 +463,24 @@ export default function MembersClient({
   const [loading, setLoading]             = useState<string | null>(null)
   const [deleteToast, setDeleteToast]     = useState<string | null>(null)
 
+  // ── Action dialogs ───────────────────────────────────────────────────────
+  // Reject
+  const [rejectTarget, setRejectTarget]   = useState<Profile | null>(null)
+  const [rejectReason, setRejectReason]   = useState('')
+  const [rejecting, setRejecting]         = useState(false)
+  // Suspend
+  const [suspendTarget, setSuspendTarget] = useState<Profile | null>(null)
+  const [suspendReason, setSuspendReason] = useState('')
+  const [suspending, setSuspending]       = useState(false)
+  // Ban — two-step
+  const [banTarget, setBanTarget]         = useState<Profile | null>(null)
+  const [banStep, setBanStep]             = useState<1 | 2>(1)
+  const [banConfirm, setBanConfirm]       = useState('')
+  const [banning, setBanning]             = useState(false)
+  // Resign
+  const [resignTarget, setResignTarget]   = useState<Profile | null>(null)
+  const [resigning, setResigning]         = useState(false)
+
   // ── Member classifications ───────────────────────────────────────────────
   const [classesEnabled, setClassesEnabled] = useState(memberClassesEnabled)
   const [classes, setClasses]               = useState(memberClasses)
@@ -528,7 +530,7 @@ export default function MembersClient({
     .filter(p => {
       if (filter === 'active')  return ACTIVE_STATUSES.includes(p.membership_status)
       if (filter === 'pending') return PENDING_STATUSES.includes(p.membership_status)
-      if (filter === 'expired') return EXPIRED_STATUSES.includes(p.membership_status)
+      if (filter === 'expired') return INACTIVE_STATUSES.includes(p.membership_status)
       return true
     })
     .filter(p => {
@@ -539,6 +541,42 @@ export default function MembersClient({
         p.last_name?.toLowerCase().includes(q)
       )
     })
+
+  async function handleReject() {
+    if (!rejectTarget || !rejectReason.trim()) return
+    setRejecting(true)
+    await rejectMember(rejectTarget.id, rejectReason.trim())
+    setRejectTarget(null); setRejectReason(''); setRejecting(false)
+    setSelectedMemberId(null)
+    router.refresh()
+  }
+
+  async function handleSuspend() {
+    if (!suspendTarget || !suspendReason.trim()) return
+    setSuspending(true)
+    await suspendMember(suspendTarget.id, suspendReason.trim())
+    setSuspendTarget(null); setSuspendReason(''); setSuspending(false)
+    setManageMember(null)
+    router.refresh()
+  }
+
+  async function handleBan() {
+    if (!banTarget || banConfirm.trim().toUpperCase() !== 'BAN') return
+    setBanning(true)
+    await banMember(banTarget.id)
+    setBanTarget(null); setBanConfirm(''); setBanning(false); setBanStep(1)
+    setManageMember(null)
+    router.refresh()
+  }
+
+  async function handleResign() {
+    if (!resignTarget) return
+    setResigning(true)
+    await resignMember(resignTarget.id)
+    setResignTarget(null); setResigning(false)
+    setManageMember(null)
+    router.refresh()
+  }
 
   function handleExport() {
     const headers = ['Status', 'First name', 'Last name', 'Member ID', 'Date joined', 'Class', 'Submissions']
@@ -591,7 +629,7 @@ export default function MembersClient({
     { key: 'all',     label: 'All',     count: totalCount   },
     { key: 'active',  label: 'Active',  count: activeCount  },
     { key: 'pending', label: 'Pending', count: pendingCount },
-    { key: 'expired', label: 'Expired', count: profiles.filter(p => EXPIRED_STATUSES.includes(p.membership_status)).length },
+    { key: 'expired', label: 'Expired', count: profiles.filter(p => INACTIVE_STATUSES.includes(p.membership_status)).length },
   ]
 
   const tableHeaders = [
@@ -761,7 +799,7 @@ export default function MembersClient({
         )}
       </Box>
 
-      {/* Status change modal */}
+      {/* ── Manage member modal ──────────────────────────────────────────── */}
       <Dialog
         open={!!manageMember}
         onClose={() => setManageMember(null)}
@@ -788,6 +826,7 @@ export default function MembersClient({
             </DialogTitle>
 
             <DialogContent sx={{ pt: '16px !important' }}>
+              {/* Pending: approve */}
               {PENDING_STATUSES.includes(manageMember.membership_status) && (
                 <>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>
@@ -795,59 +834,226 @@ export default function MembersClient({
                   </Typography>
                   <Button fullWidth variant="contained" color="success" disabled={loading === manageMember.id}
                     onClick={() => handleApprove(manageMember.id)}
-                    sx={{ mb: 2, justifyContent: 'flex-start', px: 2 }}>
+                    sx={{ mb: 1, justifyContent: 'flex-start', px: 2 }}>
                     Approve application
+                  </Button>
+                  <Button fullWidth variant="outlined" disabled={loading === manageMember.id}
+                    onClick={() => { setRejectTarget(manageMember); setManageMember(null) }}
+                    sx={{ mb: 2, justifyContent: 'flex-start', px: 2, color: 'error.main', borderColor: 'error.light', '&:hover': { borderColor: 'error.main', bgcolor: 'error.light' } }}>
+                    Reject application
                   </Button>
                   <Divider sx={{ mb: 2 }} />
                 </>
               )}
 
-              {EXPIRED_STATUSES.includes(manageMember.membership_status) && (
+              {/* Inactive: reinstate */}
+              {INACTIVE_STATUSES.includes(manageMember.membership_status) && manageMember.membership_status !== 'banned' && (
                 <>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>
-                    Reactivate
+                    Reinstate
                   </Typography>
                   <Button fullWidth variant="contained" color="success" disabled={loading === manageMember.id}
                     onClick={() => handleSetStatus(manageMember.id, 'active')}
                     sx={{ mb: 2, justifyContent: 'flex-start', px: 2 }}>
-                    Reactivate membership
+                    Reinstate membership
                   </Button>
                   <Divider sx={{ mb: 2 }} />
                 </>
               )}
 
+              {/* Active: make admin + complimentary */}
               {manageMember.role !== 'admin' && ACTIVE_STATUSES.includes(manageMember.membership_status) && (
                 <>
                   <Button fullWidth variant="outlined" color="secondary" disabled={loading === manageMember.id}
                     onClick={() => handleMakeAdmin(manageMember.id)}
-                    sx={{ mb: 2, justifyContent: 'flex-start', px: 2 }}>
+                    sx={{ mb: 1, justifyContent: 'flex-start', px: 2 }}>
                     Make admin
                   </Button>
+                  {manageMember.membership_status !== 'complimentary' && (
+                    <Button fullWidth variant="outlined" color="secondary" disabled={loading === manageMember.id}
+                      onClick={() => handleSetStatus(manageMember.id, 'complimentary')}
+                      sx={{ mb: 2, justifyContent: 'flex-start', px: 2 }}>
+                      Grant complimentary membership
+                    </Button>
+                  )}
                   <Divider sx={{ mb: 2 }} />
                 </>
               )}
 
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>
-                Change status
-              </Typography>
-              <Stack spacing={1}>
-                {MANAGE_ACTIONS.filter(a => a.status !== manageMember.membership_status).map(action => (
-                  <Box key={action.status}>
-                    <Button fullWidth variant="outlined" color={action.color} disabled={loading === manageMember.id}
-                      onClick={() => handleSetStatus(manageMember.id, action.status)}
-                      sx={{ justifyContent: 'space-between', px: 2, textAlign: 'left' }}>
-                      <span>{action.label}</span>
-                      <Typography component="span" variant="body2" sx={{ opacity: 0.7, fontWeight: 400, fontSize: 11 }}>
-                        {action.description}
-                      </Typography>
+              {/* Status actions for active members */}
+              {(ACTIVE_STATUSES.includes(manageMember.membership_status) || manageMember.membership_status === 'paused') && (
+                <>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>
+                    Restrict access
+                  </Typography>
+                  <Stack spacing={1}>
+                    {manageMember.membership_status !== 'paused' && (
+                      <Button fullWidth variant="outlined" disabled={loading === manageMember.id}
+                        onClick={() => { setSuspendTarget(manageMember); setManageMember(null) }}
+                        sx={{ justifyContent: 'flex-start', px: 2, color: 'warning.dark', borderColor: 'warning.light', '&:hover': { borderColor: 'warning.main', bgcolor: 'warning.light' } }}>
+                        Suspend member
+                      </Button>
+                    )}
+                    <Button fullWidth variant="outlined" disabled={loading === manageMember.id}
+                      onClick={() => { setResignTarget(manageMember); setManageMember(null) }}
+                      sx={{ justifyContent: 'flex-start', px: 2, color: 'text.secondary', borderColor: 'divider' }}>
+                      Mark as resigned
                     </Button>
-                  </Box>
-                ))}
-              </Stack>
+                    <Button fullWidth variant="outlined" disabled={loading === manageMember.id}
+                      onClick={() => { setBanTarget(manageMember); setBanStep(1); setManageMember(null) }}
+                      sx={{ justifyContent: 'flex-start', px: 2, color: 'error.main', borderColor: 'error.light', '&:hover': { borderColor: 'error.main', bgcolor: 'error.light' } }}>
+                      Ban member
+                    </Button>
+                  </Stack>
+                </>
+              )}
             </DialogContent>
 
             <DialogActions sx={{ px: 3, pb: 2.5 }}>
               <Button onClick={() => setManageMember(null)} color="secondary" variant="outlined">Close</Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      {/* ── Reject application dialog ─────────────────────────────────────── */}
+      <Dialog open={!!rejectTarget} onClose={() => { setRejectTarget(null); setRejectReason('') }}
+        maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: 2 } } }}>
+        {rejectTarget && (
+          <>
+            <DialogTitle sx={{ pb: 0.5 }}>Reject application?</DialogTitle>
+            <DialogContent>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7 }}>
+                Rejecting will remove <strong>{[rejectTarget.first_name, rejectTarget.last_name].filter(Boolean).join(' ')}</strong>'s application and send them a notification email with your reason.
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 0.75, fontWeight: 500 }}>
+                Reason <Typography component="span" variant="body2" color="text.secondary">(required — included in email to applicant)</Typography>
+              </Typography>
+              <OutlinedInput
+                fullWidth multiline rows={3} autoFocus
+                value={rejectReason}
+                onChange={e => setRejectReason(e.target.value)}
+                placeholder="e.g. We are not accepting new members at this time."
+              />
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+              <Button variant="outlined" color="secondary" onClick={() => { setRejectTarget(null); setRejectReason('') }} disabled={rejecting}>
+                Cancel
+              </Button>
+              <Button variant="outlined" onClick={handleReject} disabled={!rejectReason.trim() || rejecting}
+                sx={{ color: 'error.main', borderColor: 'error.light', '&:hover': { borderColor: 'error.main', bgcolor: 'error.light' }, '&.Mui-disabled': { color: 'text.disabled', borderColor: 'divider' } }}>
+                {rejecting ? 'Rejecting…' : 'Reject application'}
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      {/* ── Suspend member dialog ─────────────────────────────────────────── */}
+      <Dialog open={!!suspendTarget} onClose={() => { setSuspendTarget(null); setSuspendReason('') }}
+        maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: 2 } } }}>
+        {suspendTarget && (
+          <>
+            <DialogTitle sx={{ pb: 0.5 }}>
+              Suspend {suspendTarget.first_name}?
+            </DialogTitle>
+            <DialogContent>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7 }}>
+                This will immediately revoke their access. You can reinstate them at any time.
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 0.75, fontWeight: 500 }}>
+                Reason <Typography component="span" variant="body2" color="text.secondary">(required — stored on record, not sent to member)</Typography>
+              </Typography>
+              <OutlinedInput
+                fullWidth multiline rows={3} autoFocus
+                value={suspendReason}
+                onChange={e => setSuspendReason(e.target.value)}
+                placeholder="Internal reason for suspension…"
+              />
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+              <Button variant="outlined" color="secondary" onClick={() => { setSuspendTarget(null); setSuspendReason('') }} disabled={suspending}>
+                Cancel
+              </Button>
+              <Button variant="outlined" onClick={handleSuspend} disabled={!suspendReason.trim() || suspending}
+                sx={{ color: 'warning.dark', borderColor: 'warning.light', '&:hover': { borderColor: 'warning.main', bgcolor: 'warning.light' }, '&.Mui-disabled': { color: 'text.disabled', borderColor: 'divider' } }}>
+                {suspending ? 'Suspending…' : 'Suspend member'}
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      {/* ── Ban member dialog (two-step) ──────────────────────────────────── */}
+      <Dialog open={!!banTarget} onClose={() => { setBanTarget(null); setBanConfirm(''); setBanStep(1) }}
+        maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: 2 } } }}>
+        {banTarget && banStep === 1 && (
+          <>
+            <DialogTitle sx={{ pb: 0.5 }}>Ban {banTarget.first_name}?</DialogTitle>
+            <DialogContent>
+              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+                Banning is permanent. They will lose access immediately and cannot reapply.
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+              <Button variant="outlined" color="secondary" onClick={() => { setBanTarget(null); setBanStep(1) }}>Cancel</Button>
+              <Button variant="outlined" onClick={() => setBanStep(2)}
+                sx={{ color: 'error.main', borderColor: 'error.light', '&:hover': { borderColor: 'error.main', bgcolor: 'error.light' } }}>
+                Continue →
+              </Button>
+            </DialogActions>
+          </>
+        )}
+        {banTarget && banStep === 2 && (
+          <>
+            <DialogTitle sx={{ pb: 0.5 }}>Are you sure you want to ban {banTarget.first_name}?</DialogTitle>
+            <DialogContent>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7 }}>
+                This cannot be undone.
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 0.75, fontWeight: 500 }}>
+                Type <strong>BAN</strong> to confirm:
+              </Typography>
+              <OutlinedInput
+                fullWidth autoFocus
+                value={banConfirm}
+                onChange={e => setBanConfirm(e.target.value)}
+                placeholder="BAN"
+                inputProps={{ style: { letterSpacing: '0.1em', fontWeight: 700 } }}
+              />
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+              <Button variant="outlined" color="secondary" onClick={() => { setBanTarget(null); setBanConfirm(''); setBanStep(1) }} disabled={banning}>
+                Cancel
+              </Button>
+              <Button variant="contained" color="error" onClick={handleBan}
+                disabled={banConfirm.trim().toUpperCase() !== 'BAN' || banning}>
+                {banning ? 'Banning…' : 'Permanently ban'}
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      {/* ── Mark as resigned dialog ───────────────────────────────────────── */}
+      <Dialog open={!!resignTarget} onClose={() => setResignTarget(null)}
+        maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: 2 } } }}>
+        {resignTarget && (
+          <>
+            <DialogTitle sx={{ pb: 0.5 }}>Mark as resigned?</DialogTitle>
+            <DialogContent>
+              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+                <strong>{[resignTarget.first_name, resignTarget.last_name].filter(Boolean).join(' ')}</strong>'s membership will be marked as resigned and their access removed.
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+              <Button variant="outlined" color="secondary" onClick={() => setResignTarget(null)} disabled={resigning}>
+                Cancel
+              </Button>
+              <Button variant="outlined" onClick={handleResign} disabled={resigning}
+                sx={{ color: 'text.secondary', borderColor: 'divider' }}>
+                {resigning ? 'Saving…' : 'Mark as resigned'}
+              </Button>
             </DialogActions>
           </>
         )}
