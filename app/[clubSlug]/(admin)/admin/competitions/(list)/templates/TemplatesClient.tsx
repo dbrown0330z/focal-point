@@ -110,7 +110,7 @@ export default function TemplatesClient({
 
   const openEdit = (tpl: Template) => {
     setEditingId(tpl.id)
-    setStep(1)
+    setStep(2)
     setConfig(tpl.config)
     setCompletedSteps([1, 2, 3, 4]) // steps 1-4 navigable when editing
     setErrors({})
@@ -253,8 +253,11 @@ export default function TemplatesClient({
       >
         {/* Header — title + step indicator */}
         <Box sx={{ px: '30px', pt: '30px', pb: '24px', borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 600, color: 'text.primary', mb: 3 }}>
+          <Typography sx={{ fontSize: 18, fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
             Edit Competition Template
+          </Typography>
+          <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 3 }}>
+            {config.name}
           </Typography>
           <StepIndicator currentStep={step} completedSteps={completedSteps} onStepClick={goToStep} />
         </Box>
