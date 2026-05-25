@@ -11,7 +11,6 @@ import {
   DialogContent,
   DialogTitle,
   FormLabel,
-  IconButton,
   MenuItem,
   OutlinedInput,
   Paper,
@@ -26,8 +25,8 @@ import {
   Typography,
 } from '@mui/material'
 import DescriptionIcon from '@mui/icons-material/Description'
-import DeleteIcon from '@mui/icons-material/Delete'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
+import { TrashBtn } from '@/components/ui/TrashBtn'
 import { createClient } from '@/lib/supabase/client'
 import type { AdminDocumentRow, CategoryRow } from './page'
 
@@ -208,84 +207,68 @@ export default function AdminDocumentsClient({
           </Button>
         </Paper>
       ) : (
-        <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
+        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
           <Table size="small">
             <TableHead>
-              <TableRow sx={{ bgcolor: 'var(--surface-1)' }}>
-                <TableCell sx={{ fontWeight: 600, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
-                  Title
-                </TableCell>
-                <TableCell sx={{ fontWeight: 600, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
-                  Category
-                </TableCell>
-                <TableCell sx={{ fontWeight: 600, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
-                  Visibility
-                </TableCell>
-                <TableCell sx={{ fontWeight: 600, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
-                  Size
-                </TableCell>
-                <TableCell sx={{ fontWeight: 600, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
-                  Uploaded
-                </TableCell>
-                <TableCell align="right" />
+              <TableRow>
+                {['Title', 'Category', 'Visibility', 'Size', 'Uploaded', ''].map((h, i) => (
+                  <TableCell key={i} align={i === 5 ? 'right' : 'left'} sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.default', fontFamily: 'inherit' }}>
+                    {h}
+                  </TableCell>
+                ))}
               </TableRow>
             </TableHead>
             <TableBody>
               {documents.map(doc => (
-                <TableRow key={doc.id} hover>
-                  <TableCell>
-                    <Typography sx={{ fontSize: '14px', fontWeight: 500, color: 'text.primary' }}>
+                <TableRow key={doc.id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
+                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }}>
+                    <Typography sx={{ fontSize: 14, fontWeight: 500, color: 'text.primary' }}>
                       {doc.title}
                     </Typography>
                     {doc.description && (
-                      <Typography sx={{ fontSize: '12px', color: 'text.secondary', mt: 0.25 }}>
+                      <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.25 }}>
                         {doc.description}
                       </Typography>
                     )}
-                    <Typography sx={{ fontSize: '11px', color: 'text.disabled', mt: 0.25 }}>
+                    <Typography sx={{ fontSize: 11, color: 'text.disabled', mt: 0.25 }}>
                       {doc.file_name}
                     </Typography>
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }}>
                     {doc.category ? (
                       <Chip label={doc.category.name} size="small" variant="outlined" />
                     ) : (
-                      <Typography sx={{ fontSize: '12px', color: 'text.disabled' }}>—</Typography>
+                      <Typography sx={{ fontSize: 14, color: 'text.disabled' }}>—</Typography>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }}>
                     <Chip
                       label={doc.visibility === 'members' ? 'Members' : 'Public'}
                       size="small"
-                      color={doc.visibility === 'public' ? 'success' : 'default'}
+                      sx={doc.visibility === 'public'
+                        ? { bgcolor: 'success.light', color: 'success.contrastText', fontFamily: 'inherit', fontSize: 11 }
+                        : { bgcolor: 'background.default', color: 'text.secondary', fontFamily: 'inherit', fontSize: 11 }
+                      }
                     />
                   </TableCell>
-                  <TableCell>
-                    <Typography sx={{ fontSize: '13px', color: 'text.secondary' }}>
-                      {formatBytes(doc.file_size)}
-                    </Typography>
+                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, color: 'text.secondary', fontFamily: 'inherit' }}>
+                    {formatBytes(doc.file_size)}
                   </TableCell>
-                  <TableCell>
-                    <Typography sx={{ fontSize: '13px', color: 'text.secondary' }}>
-                      {formatDate(doc.uploaded_at)}
-                    </Typography>
+                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, color: 'text.secondary', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                    {formatDate(doc.uploaded_at)}
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell align="right" sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', width: 48 }}>
                     <Tooltip title="Delete document">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => setDeleteId(doc.id)}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
+                      <span>
+                        <TrashBtn onClick={() => setDeleteId(doc.id)} />
+                      </span>
                     </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </Paper>
+        </Box>
       )}
 
       {/* Upload dialog */}

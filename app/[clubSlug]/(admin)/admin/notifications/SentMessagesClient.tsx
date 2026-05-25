@@ -14,6 +14,19 @@ import {
 } from '@mui/material'
 import EmailIcon from '@mui/icons-material/Email'
 
+const COL_HEAD = {
+  fontSize: 11, fontWeight: 600, color: 'text.secondary',
+  textTransform: 'uppercase' as const, letterSpacing: '0.05em',
+  py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider',
+  bgcolor: 'background.default', fontFamily: 'inherit',
+}
+
+const COL_CELL = {
+  fontSize: 14, py: 1.25, px: 2,
+  borderBottom: '1px solid', borderColor: 'divider',
+  fontFamily: 'inherit',
+}
+
 export type SentMessage = {
   id: string
   subject: string
@@ -44,44 +57,35 @@ export default function SentMessagesClient({ messages, clubSlug }: { messages: S
           </Button>
         </Paper>
       ) : (
-        <Paper variant="outlined">
-          <Table>
+        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+          <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
-                  Subject
-                </TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
-                  Sent To
-                </TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
-                  Date Sent
-                </TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
-                  Sent By
-                </TableCell>
+                {['Subject', 'Sent To', 'Date Sent', 'Sent By'].map(h => (
+                  <TableCell key={h} sx={COL_HEAD}>{h}</TableCell>
+                ))}
               </TableRow>
             </TableHead>
             <TableBody>
-              {messages.map(msg => (
-                <TableRow key={msg.id} hover>
-                  <TableCell sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary' }}>
+              {messages.map((msg, i) => (
+                <TableRow key={msg.id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
+                  <TableCell sx={{ ...COL_CELL, fontWeight: 500, color: 'text.primary' }}>
                     {msg.subject}
                   </TableCell>
-                  <TableCell sx={{ fontSize: 13, color: 'text.secondary' }}>
+                  <TableCell sx={{ ...COL_CELL, color: 'text.secondary' }}>
                     {msg.sent_to}
                   </TableCell>
-                  <TableCell sx={{ fontSize: 13, color: 'text.secondary' }}>
+                  <TableCell sx={{ ...COL_CELL, color: 'text.secondary', whiteSpace: 'nowrap' }}>
                     {new Date(msg.sent_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
                   </TableCell>
-                  <TableCell sx={{ fontSize: 13, color: 'text.secondary' }}>
+                  <TableCell sx={{ ...COL_CELL, color: 'text.secondary' }}>
                     {msg.sent_by}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </Paper>
+        </Box>
       )}
     </Box>
   )

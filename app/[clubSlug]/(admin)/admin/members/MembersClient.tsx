@@ -72,14 +72,14 @@ const STATUS_LABEL: Record<MembershipStatus, string> = {
 }
 
 const STATUS_STYLE: Record<MembershipStatus, { bgcolor: string; color: string }> = {
-  active:        { bgcolor: '#EDFAF0', color: '#174A1A' },
-  complimentary: { bgcolor: '#EDFAF0', color: '#174A1A' },
-  pending:       { bgcolor: '#FFFBE6', color: '#6B5000' },
-  approved:      { bgcolor: '#FFFBE6', color: '#6B5000' },
-  banned:        { bgcolor: '#FDEEEE', color: '#7A1515' },
-  cancelled:     { bgcolor: '#FDEEEE', color: '#7A1515' },
-  expired:       { bgcolor: '#EDF0F5', color: '#3E5066' },
-  paused:        { bgcolor: '#EDF0F5', color: '#3E5066' },
+  active:        { bgcolor: 'success.light',      color: 'success.contrastText'  },
+  complimentary: { bgcolor: 'success.light',      color: 'success.contrastText'  },
+  pending:       { bgcolor: 'warning.light',      color: 'warning.contrastText'  },
+  approved:      { bgcolor: 'warning.light',      color: 'warning.contrastText'  },
+  banned:        { bgcolor: 'error.light',         color: 'error.contrastText'   },
+  cancelled:     { bgcolor: 'error.light',         color: 'error.contrastText'   },
+  expired:       { bgcolor: 'background.default', color: 'text.secondary'        },
+  paused:        { bgcolor: 'background.default', color: 'text.secondary'        },
 }
 
 const ACTIVE_STATUSES:  MembershipStatus[] = ['active', 'complimentary']
@@ -626,38 +626,18 @@ export default function MembersClient({
 
       {/* Filters + search */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Box sx={{ display: 'inline-flex', border: '1.5px solid', borderColor: 'divider', borderRadius: '6px', overflow: 'hidden' }}>
-          {FILTERS.map((f, i) => (
-            <Button
-              key={f.key}
-              size="small"
-              onClick={() => setFilter(f.key)}
-              disableElevation
-              sx={{
-                borderRadius: 0,
-                borderRight: i < FILTERS.length - 1 ? '1px solid' : 'none',
-                borderColor: 'divider',
-                px: 2,
-                minWidth: 0,
-                fontWeight: filter === f.key ? 600 : 400,
-                bgcolor: filter === f.key ? '#1E4D8C' : 'transparent',
-                color: filter === f.key ? '#fff' : 'text.secondary',
-                '&:hover': { bgcolor: filter === f.key ? '#163A6B' : 'action.hover' },
-              }}
-            >
-              {f.label}
-              <Box component="span" sx={{
-                ml: 1, px: 0.75, py: 0.1,
-                borderRadius: '10px',
-                bgcolor: filter === f.key ? 'rgba(255,255,255,0.20)' : '#EDF0F5',
-                color: filter === f.key ? '#fff' : '#4A5E72',
-                fontSize: 11, fontWeight: 600,
-              }}>
-                {f.count}
-              </Box>
-            </Button>
+        <Select
+          size="small"
+          value={filter}
+          onChange={e => setFilter(e.target.value as Filter)}
+          sx={{ fontSize: 13, minWidth: 180, fontFamily: 'inherit' }}
+        >
+          {FILTERS.map(f => (
+            <MenuItem key={f.key} value={f.key} sx={{ fontSize: 13, fontFamily: 'inherit' }}>
+              {f.label} ({f.count})
+            </MenuItem>
           ))}
-        </Box>
+        </Select>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <OutlinedInput
             size="small"
@@ -691,12 +671,12 @@ export default function MembersClient({
 
       {/* Table + side panel */}
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-        <Card variant="outlined" sx={{ flex: 1, minWidth: 0 }}>
+        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', flex: 1, minWidth: 0 }}>
           <Table size="small">
             <TableHead>
-              <TableRow sx={{ bgcolor: 'action.hover' }}>
+              <TableRow>
                 {tableHeaders.map(h => (
-                  <TableCell key={h} sx={{ fontWeight: 600, fontSize: 11, py: 1.25, color: 'text.secondary', whiteSpace: 'nowrap', fontFamily: 'inherit', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <TableCell key={h} sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.default', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
                     {h}
                   </TableCell>
                 ))}
@@ -715,23 +695,23 @@ export default function MembersClient({
                   key={profile.id}
                   hover
                   selected={profile.id === selectedMemberId}
-                  sx={{ '&:last-child td': { border: 0 }, cursor: 'default' }}
+                  sx={{ '&:last-child td': { borderBottom: 0 }, cursor: 'default' }}
                 >
-                  <TableCell sx={{ py: 1.25, fontFamily: 'inherit' }}>
+                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }}>
                     <Chip
                       label={STATUS_LABEL[profile.membership_status]}
                       size="small"
                       sx={{ fontFamily: 'inherit', fontSize: 11, height: 22, ...STATUS_STYLE[profile.membership_status] }}
                     />
                   </TableCell>
-                  <TableCell sx={{ py: 1.25, fontSize: 14, fontFamily: 'inherit' }}>{profile.first_name || '—'}</TableCell>
-                  <TableCell sx={{ py: 1.25, fontSize: 14, fontFamily: 'inherit' }}>{profile.last_name || '—'}</TableCell>
-                  <TableCell sx={{ py: 1.25, fontFamily: 'inherit' }}>
+                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit' }}>{profile.first_name || '—'}</TableCell>
+                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit' }}>{profile.last_name || '—'}</TableCell>
+                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }}>
                     {profile.role === 'admin' ? (
                       <Chip
                         label="Admin"
                         size="small"
-                        sx={{ fontFamily: 'inherit', fontSize: 11, height: 22, bgcolor: '#EDF0F5', color: '#1E4D8C', fontWeight: 600 }}
+                        sx={{ fontFamily: 'inherit', fontSize: 11, height: 22, bgcolor: 'primary.light', color: 'primary.contrastText', fontWeight: 600 }}
                       />
                     ) : profile.role === 'member' ? (
                       <Typography sx={{ fontSize: 14, color: 'text.secondary', fontFamily: 'inherit' }}>Member</Typography>
@@ -740,31 +720,30 @@ export default function MembersClient({
                     )}
                   </TableCell>
                   {classesEnabled && (
-                    <TableCell sx={{ py: 1.25, fontSize: 14, fontFamily: 'inherit', color: 'text.secondary' }}>
+                    <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit', color: 'text.secondary' }}>
                       {profile.membership_class || '—'}
                     </TableCell>
                   )}
-                  <TableCell sx={{ py: 1.25, fontSize: 14, fontFamily: 'inherit', color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit', color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
                     {profile.submission_count}
                   </TableCell>
-                  <TableCell sx={{ py: 1.25, fontSize: 14, fontFamily: 'inherit', color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit', color: 'text.secondary', whiteSpace: 'nowrap' }}>
                     {new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                   </TableCell>
-                  <TableCell sx={{ py: 1.25, fontFamily: 'inherit' }} align="right">
-                    <button
+                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }} align="right">
+                    <Typography
+                      component="button"
                       onClick={() => setSelectedMemberId(profile.id === selectedMemberId ? null : profile.id)}
-                      style={{ fontSize: 14, fontFamily: 'inherit', color: '#1A6FC4', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'none' }}
-                      onMouseOver={e => (e.currentTarget.style.textDecoration = 'underline')}
-                      onMouseOut={e => (e.currentTarget.style.textDecoration = 'none')}
+                      sx={{ fontSize: 14, fontFamily: 'inherit', color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}
                     >
                       Manage
-                    </button>
+                    </Typography>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </Card>
+        </Box>
 
         {selectedMember && (
           <MemberPanel

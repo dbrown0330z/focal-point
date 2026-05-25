@@ -8,12 +8,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Paper,
   Stack,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   TextField,
@@ -23,15 +23,30 @@ import {
 import GavelIcon from '@mui/icons-material/Gavel'
 import { TrashBtn } from '@/components/ui/TrashBtn'
 import { saveJudge, deleteJudge } from './actions'
-import type { JudgeRow } from './actions'
+import type { JudgeWithCount } from './page'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const COL_HEAD = {
+  fontSize: 11, fontWeight: 600, color: 'text.secondary',
+  textTransform: 'uppercase' as const, letterSpacing: '0.05em',
+  py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider',
+  bgcolor: 'background.default', fontFamily: 'inherit',
+}
+
+const COL_CELL = {
+  fontSize: 14, py: 1.25, px: 2,
+  borderBottom: '1px solid', borderColor: 'divider',
+  fontFamily: 'inherit',
+}
+
+// ─── Judge modal (add / edit) ─────────────────────────────────────────────────
 
 function JudgeModal({ open, onClose, onSaved, editJudge }: {
   open:       boolean
   onClose:    () => void
-  onSaved:    (judge: JudgeRow) => void
-  editJudge?: JudgeRow | null
+  onSaved:    (judge: JudgeWithCount) => void
+  editJudge?: JudgeWithCount | null
 }) {
   const isEdit = !!editJudge
 
@@ -91,7 +106,7 @@ function JudgeModal({ open, onClose, onSaved, editJudge }: {
           phone:      phone.trim() || null,
           website:    website.trim() || null,
         })
-        onSaved(saved)
+        onSaved({ ...saved, competitionCount: editJudge?.competitionCount ?? 0 })
         handleClose()
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Save failed')
@@ -186,6 +201,8 @@ function JudgeModal({ open, onClose, onSaved, editJudge }: {
   )
 }
 
+// ─── Delete confirm ───────────────────────────────────────────────────────────
+
 function DeleteConfirmDialog({ open, onClose, onConfirm }: {
   open:      boolean
   onClose:   () => void
@@ -211,14 +228,88 @@ function DeleteConfirmDialog({ open, onClose, onConfirm }: {
   )
 }
 
-export default function JudgesClient({ judges: initial }: { judges: JudgeRow[] }) {
-  const [judges,    setJudges]    = useState<JudgeRow[]>(initial)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editJudge, setEditJudge] = useState<JudgeRow | null>(null)
-  const [deleteId,  setDeleteId]  = useState<string | null>(null)
-  const [pending,   start]        = useTransition()
+// ─── Details modal ────────────────────────────────────────────────────────────
 
-  function handleSaved(judge: JudgeRow) {
+function JudgeDetailsModal({ judge, onClose, onEdit }: {
+  judge:   JudgeWithCount
+  onClose: () => void
+  onEdit:  () => void
+}) {
+  return (
+    <Dialog open onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ fontWeight: 700 }}>
+        {judge.first_name} {judge.last_name}
+      </DialogTitle>
+      <DialogContent>
+        <Stack spacing={2} sx={{ pt: 0.5 }}>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Email</Typography>
+              <Typography sx={{ fontSize: 13, color: 'text.primary', fontWeight: 500 }}>
+                {judge.email}
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Phone</Typography>
+              <Typography sx={{ fontSize: 13, color: judge.phone ? 'text.primary' : 'text.disabled', fontWeight: judge.phone ? 500 : 400 }}>
+                {judge.phone ?? '—'}
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Website</Typography>
+              {judge.website ? (
+                <Typography
+                  component="a"
+                  href={judge.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ fontSize: 13, color: 'primary.main', fontWeight: 500, wordBreak: 'break-all', textAlign: 'right' }}
+                >
+                  {judge.website.replace(/^https?:\/\//, '')}
+                </Typography>
+              ) : (
+                <Typography sx={{ fontSize: 13, color: 'text.disabled' }}>—</Typography>
+              )}
+            </Box>
+
+            <Divider />
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Competitions judged</Typography>
+              <Typography sx={{ fontSize: 13, color: 'text.primary', fontWeight: 500 }}>
+                {judge.competitionCount}
+              </Typography>
+            </Box>
+          </Box>
+
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2.5 }}>
+        <Button onClick={onEdit} variant="outlined" color="secondary" size="small">
+          Edit
+        </Button>
+        <Button onClick={onClose} variant="contained" size="small">
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export default function JudgesClient({ judges: initial }: { judges: JudgeWithCount[] }) {
+  const [judges,      setJudges]      = useState<JudgeWithCount[]>(initial)
+  const [modalOpen,   setModalOpen]   = useState(false)
+  const [editJudge,   setEditJudge]   = useState<JudgeWithCount | null>(null)
+  const [detailJudge, setDetailJudge] = useState<JudgeWithCount | null>(null)
+  const [deleteId,    setDeleteId]    = useState<string | null>(null)
+  const [pending,     start]          = useTransition()
+
+  function handleSaved(judge: JudgeWithCount) {
     setJudges(prev => {
       const exists = prev.some(j => j.id === judge.id)
       return exists
@@ -239,8 +330,9 @@ export default function JudgesClient({ judges: initial }: { judges: JudgeRow[] }
     })
   }
 
-  function openEdit(judge: JudgeRow) {
+  function openEdit(judge: JudgeWithCount) {
     setEditJudge(judge)
+    setDetailJudge(null)
     setModalOpen(true)
   }
 
@@ -277,46 +369,43 @@ export default function JudgesClient({ judges: initial }: { judges: JudgeRow[] }
           </Button>
         </Paper>
       ) : (
-        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
           <Table size="small">
             <TableHead>
-              <TableRow sx={{ bgcolor: 'action.hover' }}>
-                {['First name', 'Last name', 'Email', 'Phone', 'Website', '', ''].map((h, i) => (
-                  <TableCell key={i} sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', py: 1.25, fontFamily: 'inherit', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
-                    {h}
-                  </TableCell>
+              <TableRow>
+                {['Name', 'Email', 'Phone', 'Competitions judged', '', ''].map((h, i) => (
+                  <TableCell key={i} sx={COL_HEAD}>{h}</TableCell>
                 ))}
               </TableRow>
             </TableHead>
             <TableBody>
               {judges.map(judge => (
-                <TableRow key={judge.id} hover>
-                  <TableCell sx={{ fontSize: 14, py: 1.25, fontFamily: 'inherit' }}>{judge.first_name}</TableCell>
-                  <TableCell sx={{ fontSize: 14, py: 1.25, fontFamily: 'inherit', fontWeight: 500 }}>{judge.last_name}</TableCell>
-                  <TableCell sx={{ fontSize: 14, py: 1.25, fontFamily: 'inherit', color: 'text.secondary' }}>{judge.email}</TableCell>
-                  <TableCell sx={{ fontSize: 14, py: 1.25, fontFamily: 'inherit', color: judge.phone ? 'text.primary' : 'text.disabled' }}>
+                <TableRow key={judge.id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
+                  <TableCell sx={{ ...COL_CELL, fontWeight: 500 }}>
+                    {judge.first_name} {judge.last_name}
+                  </TableCell>
+                  <TableCell sx={{ ...COL_CELL, color: 'text.secondary' }}>
+                    {judge.email}
+                  </TableCell>
+                  <TableCell sx={{ ...COL_CELL, color: judge.phone ? 'text.primary' : 'text.disabled' }}>
                     {judge.phone ?? '—'}
                   </TableCell>
-                  <TableCell sx={{ fontSize: 14, py: 1.25, fontFamily: 'inherit', color: 'text.secondary', maxWidth: 160 }}>
-                    {judge.website
-                      ? <a href={judge.website} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{judge.website.replace(/^https?:\/\//, '')}</a>
-                      : <span style={{ color: '#aaa' }}>—</span>
-                    }
+                  <TableCell sx={{ ...COL_CELL, color: 'text.secondary' }}>
+                    {judge.competitionCount > 0 ? judge.competitionCount : '—'}
                   </TableCell>
-                  <TableCell sx={{ py: 1.25, width: 60 }}>
-                    <Button
-                      size="small" variant="text"
-                      onClick={() => openEdit(judge)}
-                      disabled={pending}
-                      sx={{ fontSize: 13, fontFamily: 'inherit', minWidth: 0, p: '2px 8px' }}
+                  <TableCell sx={{ ...COL_CELL, width: 70 }}>
+                    <Typography
+                      component="button"
+                      onClick={() => setDetailJudge(judge)}
+                      sx={{ fontSize: 14, fontFamily: 'inherit', color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}
                     >
-                      Edit
-                    </Button>
+                      Details
+                    </Typography>
                   </TableCell>
-                  <TableCell sx={{ py: 1.25, width: 40 }}>
+                  <TableCell sx={{ ...COL_CELL, width: 40 }}>
                     <Tooltip title="Remove judge">
                       <span>
-                        <TrashBtn onClick={() => setDeleteId(judge.id)} />
+                        <TrashBtn onClick={() => setDeleteId(judge.id)} disabled={pending} />
                       </span>
                     </Tooltip>
                   </TableCell>
@@ -324,7 +413,7 @@ export default function JudgesClient({ judges: initial }: { judges: JudgeRow[] }
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </Box>
       )}
 
       <JudgeModal
@@ -339,6 +428,14 @@ export default function JudgesClient({ judges: initial }: { judges: JudgeRow[] }
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
       />
+
+      {detailJudge && (
+        <JudgeDetailsModal
+          judge={detailJudge}
+          onClose={() => setDetailJudge(null)}
+          onEdit={() => openEdit(detailJudge)}
+        />
+      )}
     </>
   )
 }
