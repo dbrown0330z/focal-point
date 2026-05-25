@@ -215,7 +215,7 @@ export default async function StandingsPage({
     }
 
     // Compute per-category contribution (top N) and total score per member
-    type MemberAgg = { totalScore: number; byCategory: Record<string, number> }
+    type MemberAgg = { totalScore: number; byCategory: Record<string, number[]> }
     const agg = new Map<string, MemberAgg>()
 
     for (const [memberId, catMap] of memberCatScores) {
