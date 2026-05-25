@@ -64,7 +64,10 @@ export async function approveMember(memberId: string) {
     const email     = user?.email
     const firstName = profile?.first_name || profile?.display_name || 'there'
     const clubName  = clubSettings?.club_name ?? 'the club'
-    const loginUrl  = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'}/login`
+    const ctx       = await getClubContext()
+    const slug      = ctx?.clubSlug ?? ''
+    const base      = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
+    const loginUrl  = slug ? `${base}/${slug}/login` : `${base}/login`
 
     if (email) {
       await sendMemberApproved({ memberEmail: email, firstName, clubName, loginUrl })

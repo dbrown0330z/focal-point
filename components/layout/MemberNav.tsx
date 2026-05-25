@@ -200,17 +200,19 @@ export default function MemberNav({
   email,
   role,
   avatarUrl,
-  customPages = [],
-  customTabs  = [],
+  customPages   = [],
+  customTabs    = [],
+  pendingCount  = 0,
 }: {
-  clubSlug:     string
-  clubName:     string
-  displayName:  string
-  email:        string
-  role:         string | null
-  avatarUrl:    string | null
-  customPages?: NavCustomPage[]
-  customTabs?:  NavCustomTab[]
+  clubSlug:      string
+  clubName:      string
+  displayName:   string
+  email:         string
+  role:          string | null
+  avatarUrl:     string | null
+  customPages?:  NavCustomPage[]
+  customTabs?:   NavCustomTab[]
+  pendingCount?: number
 }) {
   const base     = `/${clubSlug}`
   const pathname = usePathname()
@@ -340,8 +342,20 @@ export default function MemberNav({
 
         </nav>
 
-        {/* Right: avatar + dropdown */}
-        <div className="flex justify-end">
+        {/* Right: pending badge (admin only) + avatar + dropdown */}
+        <div className="flex items-center justify-end gap-2">
+          {role === 'admin' && pendingCount > 0 && (
+            <Link
+              href={`/${clubSlug}/admin/members`}
+              className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors"
+              style={{ background: 'rgba(166,124,0,0.12)', color: 'var(--status-warning)', border: '1px solid rgba(166,124,0,0.25)' }}
+            >
+              <svg className="h-3 w-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+              </svg>
+              {pendingCount} pending
+            </Link>
+          )}
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => setProfileOpen(o => !o)}
@@ -407,7 +421,7 @@ export default function MemberNav({
               </div>
             )}
           </div>
-        </div>
+        </div> {/* end flex justify-end */}
 
       </div>
     </header>

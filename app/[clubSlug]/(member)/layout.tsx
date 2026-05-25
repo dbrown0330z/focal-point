@@ -30,6 +30,7 @@ export default async function MemberLayout({
     { data: clubSettings },
     { data: customPages },
     { data: customTabs },
+    { count: pendingCount },
   ] = await Promise.all([
     admin
       .from('club_memberships')
@@ -59,6 +60,12 @@ export default async function MemberLayout({
       .select('id, name, slug, sort_order')
       .eq('club_id', clubId)
       .order('sort_order'),
+    // Pending count — only used when rendering for an admin
+    admin
+      .from('club_memberships')
+      .select('*', { count: 'exact', head: true })
+      .eq('club_id', clubId)
+      .eq('membership_status', 'pending'),
   ])
 
   if (membership?.membership_status !== 'active') redirect(`/${clubSlug}`)
@@ -75,6 +82,7 @@ export default async function MemberLayout({
           avatarUrl={(profile as { avatar_url: string | null } | null)?.avatar_url ?? null}
           customPages={customPages ?? []}
           customTabs={customTabs ?? []}
+          pendingCount={pendingCount ?? 0}
         />
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
           {children}

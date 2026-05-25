@@ -27,7 +27,7 @@ export default async function ClubHomePage({
   // Auth is already verified above via supabase.auth.getUser().
   const admin = createServiceClient()
 
-  const [{ data: membership }, { data: profile }, { data: clubSettings }] = await Promise.all([
+  const [{ data: membership }, { data: profile }, { data: clubSettings }, { count: pendingCount }] = await Promise.all([
     admin
       .from('club_memberships')
       .select('role, membership_status')
@@ -44,6 +44,11 @@ export default async function ClubHomePage({
       .select('club_name, homepage_blocks')
       .eq('club_id', clubId)
       .single(),
+    admin
+      .from('club_memberships')
+      .select('*', { count: 'exact', head: true })
+      .eq('club_id', clubId)
+      .eq('membership_status', 'pending'),
   ])
 
   if (!profile || !membership) redirect(`/${clubSlug}/login`)
@@ -85,6 +90,7 @@ export default async function ClubHomePage({
             avatarUrl={(profile as { avatar_url: string | null }).avatar_url ?? null}
             customPages={customPages ?? []}
             customTabs={customTabs ?? []}
+            pendingCount={pendingCount ?? 0}
           />
           <WelcomeHeader
             firstName={(profile as { first_name: string | null }).first_name || profile.display_name.split(' ')[0]}
