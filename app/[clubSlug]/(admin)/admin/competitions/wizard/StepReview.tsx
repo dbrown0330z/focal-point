@@ -5,13 +5,16 @@ import { Box, Button, Checkbox, Collapse, FormControlLabel, OutlinedInput, Typog
 import { CLUB_DEFAULTS, CompetitionConfig } from '@/types/competition'
 
 interface Props {
-  config:             CompetitionConfig
-  onEdit:             (step: number) => void
-  saveAsTemplate:     boolean
-  onSaveAsTemplate:   (v: boolean) => void
-  templateName:       string
-  onTemplateName:     (v: string) => void
-  selectedTemplateId: string | null
+  config:               CompetitionConfig
+  onEdit:               (step: number) => void
+  saveAsTemplate:       boolean
+  onSaveAsTemplate:     (v: boolean) => void
+  templateName:         string
+  onTemplateName:       (v: string) => void
+  selectedTemplateId:   string | null
+  /** When true, always shows the name input without the "Save as template?" checkbox.
+   *  Used in the dedicated create-template wizard where saving is always the intent. */
+  hideTemplateCheckbox?: boolean
 }
 
 // ─── Shared icon ──────────────────────────────────────────────────────────────
@@ -100,7 +103,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 export function StepReview({
   config, onEdit,
   saveAsTemplate, onSaveAsTemplate, templateName, onTemplateName,
-  selectedTemplateId,
+  selectedTemplateId, hideTemplateCheckbox,
 }: Props) {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const preset               = config.judgingPreset
@@ -336,29 +339,50 @@ export function StepReview({
         </Collapse>
       </Box>
 
-      {/* ── Save as template (scratch mode only) ── */}
+      {/* ── Save as template ── */}
       {selectedTemplateId === null && (
         <Box sx={{ border: '1px solid', borderColor: 'primary.main', borderRadius: 2, bgcolor: 'rgba(30,77,140,0.03)', p: 2.5 }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 0.5 }}>Save as a template?</Typography>
-          <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: 2, lineHeight: 1.5 }}>
-            Templates let you reuse this configuration for future competitions without re-entering all the settings.
-          </Typography>
-          <FormControlLabel
-            control={<Checkbox size="small" checked={saveAsTemplate} onChange={e => onSaveAsTemplate(e.target.checked)} />}
-            label={<Typography sx={{ fontSize: 13 }}>Save these settings as a reusable template</Typography>}
-            sx={{ ml: 0, mb: saveAsTemplate ? 1.5 : 0 }}
-          />
-          {saveAsTemplate && (
+          {hideTemplateCheckbox ? (
+            /* Template-create mode: name is always required, no checkbox */
             <Box>
-              <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'text.secondary', mb: 0.75 }}>Template name</Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 0.5 }}>Name this template</Typography>
+              <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: 2, lineHeight: 1.5 }}>
+                Give this template a name so you can find and reuse it later.
+              </Typography>
               <OutlinedInput
                 size="small"
+                autoFocus
                 value={templateName}
                 onChange={e => onTemplateName(e.target.value)}
                 placeholder="e.g. Monthly Scored Competition"
                 sx={{ width: 360 }}
               />
             </Box>
+          ) : (
+            /* Competition-create mode: optional, behind a checkbox */
+            <>
+              <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 0.5 }}>Save as a template?</Typography>
+              <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: 2, lineHeight: 1.5 }}>
+                Templates let you reuse this configuration for future competitions without re-entering all the settings.
+              </Typography>
+              <FormControlLabel
+                control={<Checkbox size="small" checked={saveAsTemplate} onChange={e => onSaveAsTemplate(e.target.checked)} />}
+                label={<Typography sx={{ fontSize: 13 }}>Save these settings as a reusable template</Typography>}
+                sx={{ ml: 0, mb: saveAsTemplate ? 1.5 : 0 }}
+              />
+              {saveAsTemplate && (
+                <Box>
+                  <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'text.secondary', mb: 0.75 }}>Template name</Typography>
+                  <OutlinedInput
+                    size="small"
+                    value={templateName}
+                    onChange={e => onTemplateName(e.target.value)}
+                    placeholder="e.g. Monthly Scored Competition"
+                    sx={{ width: 360 }}
+                  />
+                </Box>
+              )}
+            </>
           )}
         </Box>
       )}
