@@ -90,6 +90,7 @@ type Profile = {
   pref_show_in_directory: boolean
   submission_count_this_year: number
   competitions_this_year: number
+  submission_categories: Record<string, number>
 }
 
 type Filter = 'all' | 'active' | 'pending' | 'expired'
@@ -108,14 +109,14 @@ const STATUS_LABEL: Record<MembershipStatus, string> = {
 }
 
 const STATUS_STYLE: Record<MembershipStatus, { bgcolor: string; color: string }> = {
-  active:        { bgcolor: 'success.light',       color: 'success.contrastText' },
-  complimentary: { bgcolor: 'success.light',       color: 'success.contrastText' },
-  pending:       { bgcolor: 'warning.light',       color: 'warning.contrastText' },
-  approved:      { bgcolor: 'warning.light',       color: 'warning.contrastText' },
-  banned:        { bgcolor: 'error.light',         color: 'error.contrastText'   },
-  cancelled:     { bgcolor: 'background.default',  color: 'text.secondary'       },
-  expired:       { bgcolor: 'background.default',  color: 'text.secondary'       },
-  paused:        { bgcolor: 'background.default',  color: 'text.secondary'       },
+  active:        { bgcolor: '#EDFAF0', color: '#174A1A' },
+  complimentary: { bgcolor: '#EDFAF0', color: '#174A1A' },
+  pending:       { bgcolor: '#FFFBE6', color: '#6B5000' },
+  approved:      { bgcolor: '#FFFBE6', color: '#6B5000' },
+  banned:        { bgcolor: '#FDEEEE', color: '#7A1515' },
+  cancelled:     { bgcolor: 'rgba(0,0,0,0.06)', color: '#5A6C82' },
+  expired:       { bgcolor: 'rgba(0,0,0,0.06)', color: '#5A6C82' },
+  paused:        { bgcolor: 'rgba(0,0,0,0.06)', color: '#5A6C82' },
 }
 
 const ACTIVE_STATUSES:   MembershipStatus[] = ['active', 'complimentary']
@@ -247,13 +248,14 @@ function ExperienceBadge({ level }: { level: string }) {
   const dots = level.toLowerCase().includes('beginner') || level.toLowerCase().includes('novice') ? 1
     : level.toLowerCase().includes('intermediate') ? 2 : 3
   return (
-    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 0.875, py: 0.5, border: '1px solid rgba(166,124,0,0.25)', borderRadius: 9999, bgcolor: 'rgba(166,124,0,0.07)' }}>
-      <Box sx={{ display: 'flex', gap: '3px', px: 0.75, py: '3px', bgcolor: 'rgba(166,124,0,0.12)', borderRadius: 9999 }}>
+    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1, py: 0.5, justifySelf: 'start',
+      border: '1px solid rgba(166,124,0,0.40)', borderRadius: 9999, bgcolor: '#FFFBE6' }}>
+      <Box sx={{ display: 'flex', gap: '3px' }}>
         {[1, 2, 3].map(d => (
-          <Box key={d} sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: d <= dots ? '#7B6000' : 'rgba(123,96,0,0.22)' }} />
+          <Box key={d} sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: d <= dots ? '#A67C00' : 'rgba(166,124,0,0.20)' }} />
         ))}
       </Box>
-      <Typography component="span" sx={{ fontSize: 12, fontWeight: 600, color: '#7B6000' }}>{level}</Typography>
+      <Typography component="span" sx={{ fontSize: 12, fontWeight: 600, color: '#6B5000' }}>{level}</Typography>
     </Box>
   )
 }
@@ -268,6 +270,64 @@ function IconTile({ children, active = false }: { children: React.ReactNode; act
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       {children}
+    </Box>
+  )
+}
+
+// ─── Submission donut chart ───────────────────────────────────────────────────
+
+const DONUT_COLORS = ['#1E4D8C', '#0097A7', '#6C47D4', '#E65100', '#00796B', '#AD1457', '#7B6B38']
+
+function SubmissionDonut({ categories }: { categories: Record<string, number> }) {
+  const entries = Object.entries(categories).filter(([, v]) => v > 0)
+    .sort(([, a], [, b]) => b - a)
+  if (entries.length === 0) return null
+
+  const total = entries.reduce((sum, [, v]) => sum + v, 0)
+  const cx = 36, cy = 36, r = 27, sw = 10
+
+  let cumAngle = -Math.PI / 2
+  const segments = entries.map(([name, count], i) => {
+    const slice = (count / total) * 2 * Math.PI
+    if (entries.length === 1) return { name, count, color: DONUT_COLORS[0], path: null }
+    const x1 = cx + r * Math.cos(cumAngle)
+    const y1 = cy + r * Math.sin(cumAngle)
+    cumAngle += slice
+    const x2 = cx + r * Math.cos(cumAngle)
+    const y2 = cy + r * Math.sin(cumAngle)
+    return {
+      name, count, color: DONUT_COLORS[i % DONUT_COLORS.length],
+      path: `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${slice > Math.PI ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`,
+    }
+  })
+
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 2, mb: 0.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+      <Box sx={{ flexShrink: 0 }}>
+        <svg width="72" height="72" viewBox="0 0 72 72">
+          {entries.length === 1 ? (
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke={DONUT_COLORS[0]} strokeWidth={sw} />
+          ) : (
+            segments.map((s, i) => s.path && (
+              <path key={i} d={s.path} fill="none" stroke={s.color} strokeWidth={sw} />
+            ))
+          )}
+          <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle"
+            fontSize="13" fontWeight="700" fill="#131F2E">{total}</text>
+        </svg>
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography sx={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'text.secondary', mb: 0.75 }}>
+          Submissions by category
+        </Typography>
+        {segments.map((s, i) => (
+          <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.4 }}>
+            <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: s.color, flexShrink: 0 }} />
+            <Typography sx={{ fontSize: 12, color: 'text.secondary', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</Typography>
+            <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.primary', ml: 0.5 }}>{s.count}</Typography>
+          </Box>
+        ))}
+      </Box>
     </Box>
   )
 }
@@ -311,16 +371,19 @@ function MemberModal({
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting]           = useState(false)
 
-  // Permissions (staged locally — saved only on "Save changes")
+  // Permissions + status — staged locally, only written on "Save changes"
   const [permCompetition, setPermCompetition] = useState(member.perm_competition_manager)
   const [permEvent, setPermEvent]             = useState(member.perm_event_manager)
   const [permComms, setPermComms]             = useState(member.perm_comms_manager)
+  const [pendingStatus, setPendingStatus]     = useState<MembershipStatus | null>(null)
 
+  const effectiveStatus = pendingStatus ?? member.membership_status
   const allPermsOn      = permCompetition && permEvent && permComms
   const isAdminRole     = member.role === 'admin'
   const permsChanged    = permCompetition !== member.perm_competition_manager
                        || permEvent       !== member.perm_event_manager
                        || permComms       !== member.perm_comms_manager
+  const hasUnsaved      = editing || permsChanged || pendingStatus !== null
   const fullName      = [member.first_name, member.last_name].filter(Boolean).join(' ') || '—'
   const memberNum     = `#${String(member.member_number).padStart(4, '0')}`
   const showPermissions = member.role === 'member' || member.role === 'admin'
@@ -335,6 +398,7 @@ function MemberModal({
     setPermCompetition(member.perm_competition_manager)
     setPermEvent(member.perm_event_manager)
     setPermComms(member.perm_comms_manager)
+    setPendingStatus(null)
   }, [member])
 
   async function handleSaveName() {
@@ -378,7 +442,12 @@ function MemberModal({
   function handleStatusChange(e: SelectChangeEvent<string>) {
     const chosen = getStatusOptions(member.membership_status).find(o => o.value === e.target.value)
     if (!chosen || chosen.disabled) return
-    onStatusAction(chosen.action, member)
+    // Simple status change → stage it; dialog-based actions fire immediately (they have their own confirmation)
+    if (chosen.action.kind === 'setStatus') {
+      setPendingStatus(chosen.action.status === member.membership_status ? null : chosen.action.status)
+    } else {
+      onStatusAction(chosen.action, member)
+    }
   }
 
   async function handleFooterSave() {
@@ -387,6 +456,9 @@ function MemberModal({
 
     // Flush name edit
     if (editing) saves.push(updateMemberName(member.id, firstName, lastName))
+
+    // Flush staged status change
+    if (pendingStatus) saves.push(setMemberStatus(member.id, pendingStatus))
 
     // Flush permission changes
     if (permsChanged) {
@@ -421,6 +493,7 @@ function MemberModal({
     setPermCompetition(member.perm_competition_manager)
     setPermEvent(member.perm_event_manager)
     setPermComms(member.perm_comms_manager)
+    setPendingStatus(null)
     onClose()
   }
 
@@ -517,8 +590,8 @@ function MemberModal({
                 {/* Status select — inline with name */}
                 <Select size="small" value="__current__" onChange={handleStatusChange}
                   renderValue={() => (
-                    <Chip label={STATUS_LABEL[member.membership_status]} size="small"
-                      sx={{ fontFamily: 'inherit', fontSize: 12, height: 22, cursor: 'pointer', ...STATUS_STYLE[member.membership_status] }} />
+                    <Chip label={STATUS_LABEL[effectiveStatus]} size="small"
+                      sx={{ fontFamily: 'inherit', fontSize: 14, fontWeight: 600, height: 24, cursor: 'pointer', ...STATUS_STYLE[effectiveStatus] }} />
                   )}
                   sx={{ '& .MuiOutlinedInput-notchedOutline': { border: 'none' }, '& .MuiSelect-select': { p: '2px 24px 2px 0 !important' }, minWidth: 0, height: 28 }}
                 >
@@ -532,26 +605,15 @@ function MemberModal({
             )}
 
             {/* Meta row: joined · id · location */}
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', color: 'text.secondary' }}>
-              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" style={{ opacity: 0.55 }}>
-                  <rect x="2" y="3" width="12" height="11" rx="1.5"/><path strokeLinecap="round" d="M2 6h12M5.5 1.5v3M10.5 1.5v3"/>
-                </svg>
-                <Typography sx={{ fontSize: 13 }}>Member since&nbsp;<strong style={{ color: '#131F2E', fontWeight: 600 }}>{formatMemberSince(member.created_at)}</strong></Typography>
-              </Box>
-              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" style={{ opacity: 0.55 }}>
-                  <path strokeLinecap="round" d="M8 8a3 3 0 100-6 3 3 0 000 6zM2 14a6 6 0 0112 0"/>
-                </svg>
-                <Typography sx={{ fontSize: 13, fontFamily: 'var(--font-code, monospace)', color: 'text.primary' }}>{memberNum}</Typography>
-              </Box>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px' }}>
+              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                Member since {formatMemberSince(member.created_at)}
+              </Typography>
+              <Typography sx={{ fontSize: 13, color: 'text.secondary', fontFamily: 'var(--font-code, monospace)' }}>
+                {memberNum}
+              </Typography>
               {member.location && (
-                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" style={{ opacity: 0.55 }}>
-                    <path d="M8 14.5S2 10.5 2 6.5a6 6 0 0112 0C14 10.5 8 14.5 8 14.5z"/><circle cx="8" cy="6.5" r="2"/>
-                  </svg>
-                  <Typography sx={{ fontSize: 13 }}>{member.location}</Typography>
-                </Box>
+                <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{member.location}</Typography>
               )}
             </Box>
           </Box>
@@ -592,6 +654,9 @@ function MemberModal({
 
           {/* ── Left column ──────────────────────────────────────────────── */}
           <Box sx={{ pl: '30px', pr: '40px', py: '30px', borderRight: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 3 }}>
+
+            {/* Submission breakdown donut */}
+            <SubmissionDonut categories={member.submission_categories} />
 
             {/* Contact */}
             <Box>
@@ -689,18 +754,18 @@ function MemberModal({
                     sx={{
                       display: 'flex', alignItems: 'center', gap: 1.5, p: 1.75,
                       border: '1px solid',
-                      borderColor: allPermsOn ? 'rgba(212,168,0,0.35)' : 'rgba(212,168,0,0.18)',
+                      borderColor: allPermsOn ? 'rgba(166,124,0,0.50)' : 'rgba(166,124,0,0.28)',
                       borderRadius: 1.5,
-                      bgcolor: allPermsOn ? 'rgba(212,168,0,0.07)' : 'rgba(212,168,0,0.03)',
+                      bgcolor: allPermsOn ? '#FFFBE6' : 'rgba(166,124,0,0.04)',
                       cursor: 'pointer', transition: 'all 0.2s',
-                      '&:hover': { borderColor: 'rgba(212,168,0,0.45)', bgcolor: 'rgba(212,168,0,0.09)' },
+                      '&:hover': { borderColor: 'rgba(166,124,0,0.60)', bgcolor: '#FFFBE6' },
                       mb: 0.5,
                     }}
                   >
                     <Box sx={{ flex: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                         <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary' }}>Admin</Typography>
-                        <Box sx={{ px: 0.875, py: 0.25, borderRadius: 9999, bgcolor: 'rgba(212,168,0,0.12)', border: '1px solid rgba(212,168,0,0.28)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#7B6000' }}>
+                        <Box sx={{ px: 0.875, py: 0.25, borderRadius: 9999, bgcolor: 'rgba(166,124,0,0.15)', border: '1px solid rgba(166,124,0,0.40)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#6B5000' }}>
                           Full access
                         </Box>
                       </Box>
@@ -774,11 +839,11 @@ function MemberModal({
                     <Box sx={{
                       display: 'inline-flex', alignItems: 'center', gap: 0.5,
                       px: 0.875, py: 0.375, borderRadius: 9999, border: '1px solid', flexShrink: 0,
-                      bgcolor:     pref.value ? 'rgba(46,125,50,0.10)' : 'rgba(0,0,0,0.03)',
-                      borderColor: pref.value ? 'rgba(46,125,50,0.25)' : 'divider',
+                      bgcolor:     pref.value ? '#EDFAF0' : 'rgba(0,0,0,0.04)',
+                      borderColor: pref.value ? 'rgba(46,125,50,0.40)' : '#B0BACA',
                     }}>
-                      <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: pref.value ? '#22c55e' : '#B0BACA' }} />
-                      <Typography sx={{ fontSize: 11, fontWeight: 600, color: pref.value ? '#174A1A' : 'text.disabled' }}>
+                      <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: pref.value ? '#2E7D32' : '#B0BACA' }} />
+                      <Typography sx={{ fontSize: 11, fontWeight: 600, color: pref.value ? '#174A1A' : '#7E8EA3' }}>
                         {pref.value ? 'On' : 'Off'}
                       </Typography>
                     </Box>
@@ -806,7 +871,7 @@ function MemberModal({
           Delete member
         </Button>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-          {(editing || permsChanged) && (
+          {hasUnsaved && (
             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, mr: 0.5 }}>
               <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: '#D4A800' }} />
               <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>Unsaved changes</Typography>

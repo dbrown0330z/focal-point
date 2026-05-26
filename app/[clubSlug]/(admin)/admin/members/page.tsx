@@ -14,6 +14,7 @@ export default async function MembersPage() {
     { data: profiles },
     { data: submissions },
     { data: submissionsThisYear },
+    { data: submissionsWithCategories },
     { data: clubSettings },
     { data: { users } },
     { data: memberClasses },
@@ -23,7 +24,10 @@ export default async function MembersPage() {
       .select('id, first_name, last_name, display_name, member_number, membership_status, membership_class, role, created_at, bio, camera_brands, shooting_interests, experience_level, avatar_url, location, phone')
       .order('member_number', { ascending: true }),
     admin.from('submissions').select('member_id'),
-    admin.from('submissions').select('member_id, competition_id').gte('created_at', yearStart).lt('created_at', nextYearStart),
+    // Fix: submissions uses submitted_at, not created_at
+    admin.from('submissions').select('member_id, competition_id').gte('submitted_at', yearStart).lt('submitted_at', nextYearStart),
+    // Category breakdown for the donut chart (all-time)
+    admin.from('submissions').select('member_id, competition_categories(name)'),
     admin.from('club_settings').select('member_classes_enabled').single(),
     admin.auth.admin.listUsers({ perPage: 1000 }),
     admin.from('member_classes').select('id, name').order('sort_order').order('created_at'),
@@ -50,11 +54,20 @@ export default async function MembersPage() {
     }
   }
 
+  // Category breakdown per member (all-time, for donut chart)
+  const categoryBreakdown: Record<string, Record<string, number>> = {}
+  for (const s of submissionsWithCategories ?? []) {
+    const catName = (s.competition_categories as { name: string } | null)?.name ?? 'Uncategorized'
+    if (!categoryBreakdown[s.member_id]) categoryBreakdown[s.member_id] = {}
+    categoryBreakdown[s.member_id][catName] = (categoryBreakdown[s.member_id][catName] ?? 0) + 1
+  }
+
   const profilesWithCounts = (profiles ?? []).map(p => ({
     ...p,
     submission_count:           submissionCounts[p.id] ?? 0,
     submission_count_this_year: submissionCountsThisYear[p.id] ?? 0,
     competitions_this_year:     competitionSetsThisYear[p.id]?.size ?? 0,
+    submission_categories:      categoryBreakdown[p.id] ?? {},
     email:                      emailById[p.id] ?? null,
     // Permission columns added by migration 20260525000001 — default false until migration runs
     perm_competition_manager:   (p as { perm_competition_manager?: boolean }).perm_competition_manager ?? false,
