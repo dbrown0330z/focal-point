@@ -38,6 +38,7 @@ import {
 } from '@mui/material'
 import type { Database } from '@/types/database'
 import { TrashBtn } from '@/components/ui/TrashBtn'
+import { skillLabel } from '@/lib/profile-options'
 import {
   setMemberStatus,
   approveMember,
@@ -109,14 +110,14 @@ const STATUS_LABEL: Record<MembershipStatus, string> = {
 }
 
 const STATUS_STYLE: Record<MembershipStatus, { bgcolor: string; color: string }> = {
-  active:        { bgcolor: '#EDFAF0', color: '#174A1A' },
-  complimentary: { bgcolor: '#EDFAF0', color: '#174A1A' },
-  pending:       { bgcolor: '#FFFBE6', color: '#6B5000' },
-  approved:      { bgcolor: '#FFFBE6', color: '#6B5000' },
-  banned:        { bgcolor: '#FDEEEE', color: '#7A1515' },
-  cancelled:     { bgcolor: 'rgba(0,0,0,0.06)', color: '#5A6C82' },
-  expired:       { bgcolor: 'rgba(0,0,0,0.06)', color: '#5A6C82' },
-  paused:        { bgcolor: 'rgba(0,0,0,0.06)', color: '#5A6C82' },
+  active:        { bgcolor: 'success.light',      color: 'success.contrastText' },
+  complimentary: { bgcolor: 'success.light',      color: 'success.contrastText' },
+  pending:       { bgcolor: 'warning.light',      color: 'warning.contrastText' },
+  approved:      { bgcolor: 'warning.light',      color: 'warning.contrastText' },
+  banned:        { bgcolor: 'error.light',        color: 'error.contrastText'   },
+  cancelled:     { bgcolor: 'background.default', color: 'text.secondary'       },
+  expired:       { bgcolor: 'background.default', color: 'text.secondary'       },
+  paused:        { bgcolor: 'background.default', color: 'text.secondary'       },
 }
 
 const ACTIVE_STATUSES:   MembershipStatus[] = ['active', 'complimentary']
@@ -244,18 +245,22 @@ function SectionHead({ title, accent, hint }: { title: string; accent?: string; 
   )
 }
 
+const SKILL_COLOURS: Record<string, { bg: string; text: string }> = {
+  beginner:     { bg: 'rgba(0,151,167,0.10)',  text: '#0097A7' },
+  intermediate: { bg: 'rgba(108,71,212,0.10)', text: '#6C47D4' },
+  advanced:     { bg: 'rgba(46,125,50,0.12)',  text: '#174A1A' },
+}
+
 function ExperienceBadge({ level }: { level: string }) {
-  const dots = level.toLowerCase().includes('beginner') || level.toLowerCase().includes('novice') ? 1
-    : level.toLowerCase().includes('intermediate') ? 2 : 3
+  const style = SKILL_COLOURS[level.toLowerCase()] ?? { bg: 'rgba(90,106,130,0.10)', text: '#5A6C82' }
   return (
-    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1, py: 0.5, justifySelf: 'start',
-      border: '1px solid rgba(166,124,0,0.40)', borderRadius: 9999, bgcolor: '#FFFBE6' }}>
-      <Box sx={{ display: 'flex', gap: '3px' }}>
-        {[1, 2, 3].map(d => (
-          <Box key={d} sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: d <= dots ? '#A67C00' : 'rgba(166,124,0,0.20)' }} />
-        ))}
-      </Box>
-      <Typography component="span" sx={{ fontSize: 12, fontWeight: 600, color: '#6B5000' }}>{level}</Typography>
+    <Box component="span" sx={{
+      display: 'inline-flex', alignItems: 'center', justifySelf: 'start',
+      borderRadius: 9999, px: 1.25, py: 0.375,
+      bgcolor: style.bg, color: style.text,
+      fontSize: 12, fontWeight: 500, lineHeight: 1.5,
+    }}>
+      {skillLabel(level) ?? level}
     </Box>
   )
 }
@@ -591,7 +596,7 @@ function MemberModal({
                 <Select size="small" value="__current__" onChange={handleStatusChange}
                   renderValue={() => (
                     <Chip label={STATUS_LABEL[effectiveStatus]} size="small"
-                      sx={{ fontFamily: 'inherit', fontSize: 14, fontWeight: 600, height: 24, cursor: 'pointer', ...STATUS_STYLE[effectiveStatus] }} />
+                      sx={{ fontFamily: 'inherit', fontSize: 16, fontWeight: 600, height: 26, cursor: 'pointer', ...STATUS_STYLE[effectiveStatus] }} />
                   )}
                   sx={{ '& .MuiOutlinedInput-notchedOutline': { border: 'none' }, '& .MuiSelect-select': { p: '2px 24px 2px 0 !important' }, minWidth: 0, height: 28 }}
                 >
@@ -836,16 +841,15 @@ function MemberModal({
                       {pref.icon}
                       <Typography sx={{ fontSize: 12.5 }}>{pref.label}</Typography>
                     </Box>
-                    <Box sx={{
-                      display: 'inline-flex', alignItems: 'center', gap: 0.5,
-                      px: 0.875, py: 0.375, borderRadius: 9999, border: '1px solid', flexShrink: 0,
-                      bgcolor:     pref.value ? '#EDFAF0' : 'rgba(0,0,0,0.04)',
-                      borderColor: pref.value ? 'rgba(46,125,50,0.40)' : '#B0BACA',
+                    <Box component="span" sx={{
+                      display: 'inline-flex', alignItems: 'center', flexShrink: 0,
+                      borderRadius: 9999, px: 1.25, py: 0.375,
+                      bgcolor:    pref.value ? '#EDFAF0' : 'rgba(0,0,0,0.04)',
+                      color:      pref.value ? '#174A1A' : '#7E8EA3',
+                      fontSize: 11, fontWeight: 700,
+                      textTransform: 'uppercase', letterSpacing: '0.03em',
                     }}>
-                      <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: pref.value ? '#2E7D32' : '#B0BACA' }} />
-                      <Typography sx={{ fontSize: 11, fontWeight: 600, color: pref.value ? '#174A1A' : '#7E8EA3' }}>
-                        {pref.value ? 'On' : 'Off'}
-                      </Typography>
+                      {pref.value ? 'On' : 'Off'}
                     </Box>
                   </Box>
                 ))}
