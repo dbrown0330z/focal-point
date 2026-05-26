@@ -39,9 +39,12 @@ export default async function MembersPage() {
     email:                    emailById[p.id] ?? null,
     // Permission columns added by migration 20260525000001 — default false
     // until the migration has been applied to this environment.
-    perm_competition_manager: (p as { perm_competition_manager?: boolean }).perm_competition_manager ?? false,
-    perm_event_manager:       (p as { perm_event_manager?: boolean }).perm_event_manager ?? false,
-    perm_comms_manager:       (p as { perm_comms_manager?: boolean }).perm_comms_manager ?? false,
+    perm_competition_manager:  (p as { perm_competition_manager?: boolean }).perm_competition_manager ?? false,
+    perm_event_manager:        (p as { perm_event_manager?: boolean }).perm_event_manager ?? false,
+    perm_comms_manager:        (p as { perm_comms_manager?: boolean }).perm_comms_manager ?? false,
+    // Preference columns added by migration 20260525000002 — default true until migration runs
+    pref_competition_reminders: (p as { pref_competition_reminders?: boolean }).pref_competition_reminders ?? true,
+    pref_results_notifications: (p as { pref_results_notifications?: boolean }).pref_results_notifications ?? true,
   }))
 
   return (

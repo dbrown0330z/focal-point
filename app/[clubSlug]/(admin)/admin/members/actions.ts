@@ -153,6 +153,7 @@ export async function resignMember(memberId: string) {
 }
 
 type PermissionKey = 'perm_competition_manager' | 'perm_event_manager' | 'perm_comms_manager'
+type PreferenceKey = 'pref_competition_reminders' | 'pref_results_notifications'
 
 export async function setMemberPermission(
   memberId: string,
@@ -304,6 +305,21 @@ export async function deleteMemberClass(id: string): Promise<{ error?: string }>
     .from('member_classes')
     .delete()
     .eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/members')
+  return {}
+}
+
+export async function setMemberPreference(
+  memberId: string,
+  preference: PreferenceKey,
+  enabled: boolean,
+): Promise<{ error?: string }> {
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('profiles')
+    .update({ [preference]: enabled })
+    .eq('id', memberId)
   if (error) return { error: error.message }
   revalidatePath('/admin/members')
   return {}

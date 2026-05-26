@@ -54,10 +54,12 @@ import {
   renameMemberClass,
   deleteMemberClass,
   setMemberPermission,
+  setMemberPreference,
 } from './actions'
 
 type MembershipStatus = Database['public']['Enums']['membership_status']
 type PermissionKey = 'perm_competition_manager' | 'perm_event_manager' | 'perm_comms_manager'
+type PreferenceKey = 'pref_competition_reminders' | 'pref_results_notifications'
 
 type Profile = {
   id: string
@@ -81,6 +83,8 @@ type Profile = {
   perm_competition_manager: boolean
   perm_event_manager: boolean
   perm_comms_manager: boolean
+  pref_competition_reminders: boolean
+  pref_results_notifications: boolean
 }
 
 type Filter = 'all' | 'active' | 'pending' | 'expired'
@@ -263,6 +267,11 @@ function MemberModal({
   const [permComms, setPermComms]             = useState(member.perm_comms_manager)
   const [, startPermTransition]               = useTransition()
 
+  // Preferences
+  const [prefCompReminders, setPrefCompReminders] = useState(member.pref_competition_reminders)
+  const [prefResultsNotifs, setPrefResultsNotifs] = useState(member.pref_results_notifications)
+  const [, startPrefTransition]                   = useTransition()
+
   const fullName = [member.first_name, member.last_name].filter(Boolean).join(' ') || '—'
   const memberNum = `#${String(member.member_number).padStart(4, '0')}`
 
@@ -277,6 +286,8 @@ function MemberModal({
     setPermCompetition(member.perm_competition_manager)
     setPermEvent(member.perm_event_manager)
     setPermComms(member.perm_comms_manager)
+    setPrefCompReminders(member.pref_competition_reminders)
+    setPrefResultsNotifs(member.pref_results_notifications)
   }, [member])
 
   async function handleSaveName() {
@@ -311,6 +322,15 @@ function MemberModal({
     })
   }
 
+  function handlePreferenceToggle(key: PreferenceKey, value: boolean) {
+    if (key === 'pref_competition_reminders') setPrefCompReminders(value)
+    if (key === 'pref_results_notifications') setPrefResultsNotifs(value)
+    startPrefTransition(async () => {
+      await setMemberPreference(member.id, key, value)
+      router.refresh()
+    })
+  }
+
   async function handleDelete() {
     setDeleting(true)
     await deleteMember(member.id)
@@ -334,7 +354,7 @@ function MemberModal({
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="md"
+      maxWidth="lg"
       fullWidth
       slotProps={{ paper: { sx: { borderRadius: 2 } } }}
     >
@@ -403,21 +423,151 @@ function MemberModal({
 
         {/* Subtitle */}
         <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 1, ml: '68px' }}>
-          {memberNum}
-          {member.email && <> &middot; {member.email}</>}
-          {' '}&middot; Member since {formatMemberSince(member.created_at)}
+          {memberNum} &middot; Member since {formatMemberSince(member.created_at)}
         </Typography>
       </DialogTitle>
 
       {/* ── Body ─────────────────────────────────────────────────────────── */}
       <DialogContent sx={{ pt: '24px !important' }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 3 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 3 }}>
 
-          {/* Left column — profile info + edit name */}
-          <Box>
-            {editing ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
-                <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {/* Left column — contact, permissions, preferences */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+
+            {/* Email */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: member.phone ? 1 : 2 }}>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 0.5 }}>Email</Typography>
+                <Typography sx={{ fontSize: 13, color: 'text.primary', wordBreak: 'break-all' }}>
+                  {member.email ?? <span style={{ color: 'var(--text-hint, #A8A8A8)', fontStyle: 'italic' }}>Not on file</span>}
+                </Typography>
+              </Box>
+              {member.email && (
+                <Tooltip title="Send email">
+                  <IconButton
+                    size="small"
+                    component="a"
+                    href={`mailto:${member.email}`}
+                    sx={{ ml: 1, flexShrink: 0, color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                  >
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
+
+            {/* Phone */}
+            {member.phone && (
+              <Box sx={{ mb: 2 }}>
+                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 0.5 }}>Phone</Typography>
+                <Typography sx={{ fontSize: 13, color: 'text.primary' }}>{member.phone}</Typography>
+              </Box>
+            )}
+
+            <Divider sx={{ mb: 2 }} />
+
+            {/* Permissions */}
+            {showPermissions && (
+              <>
+                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>
+                  Permissions
+                </Typography>
+                <Stack spacing={0.25} sx={{ mb: 2 }}>
+                  {([
+                    {
+                      key: 'perm_competition_manager' as PermissionKey,
+                      label: 'Competition manager',
+                      description: 'Can create and manage competitions',
+                      value: permCompetition,
+                    },
+                    {
+                      key: 'perm_event_manager' as PermissionKey,
+                      label: 'Event manager',
+                      description: 'Can create and manage calendar events',
+                      value: permEvent,
+                    },
+                    {
+                      key: 'perm_comms_manager' as PermissionKey,
+                      label: 'Communications',
+                      description: 'Can send club-wide notifications',
+                      value: permComms,
+                    },
+                  ] as const).map(perm => (
+                    <Box
+                      key={perm.key}
+                      sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.5 }}
+                    >
+                      <Box>
+                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary' }}>
+                          {perm.label}
+                        </Typography>
+                        <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
+                          {perm.description}
+                        </Typography>
+                      </Box>
+                      <Switch
+                        size="small"
+                        checked={perm.value}
+                        onChange={e => handlePermissionToggle(perm.key, e.target.checked)}
+                      />
+                    </Box>
+                  ))}
+                </Stack>
+              </>
+            )}
+
+            <Divider sx={{ mb: 2 }} />
+
+            {/* Preferences */}
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>
+              Member preferences
+            </Typography>
+            <Stack spacing={0.25}>
+              {([
+                {
+                  key: 'pref_competition_reminders' as PreferenceKey,
+                  label: 'Competition reminders',
+                  description: 'Email reminders before a competition closes',
+                  value: prefCompReminders,
+                },
+                {
+                  key: 'pref_results_notifications' as PreferenceKey,
+                  label: 'Results notifications',
+                  description: 'Email when competition results are published',
+                  value: prefResultsNotifs,
+                },
+              ] as const).map(pref => (
+                <Box
+                  key={pref.key}
+                  sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.5 }}
+                >
+                  <Box>
+                    <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary' }}>
+                      {pref.label}
+                    </Typography>
+                    <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
+                      {pref.description}
+                    </Typography>
+                  </Box>
+                  <Switch
+                    size="small"
+                    checked={pref.value}
+                    onChange={e => handlePreferenceToggle(pref.key, e.target.checked)}
+                  />
+                </Box>
+              ))}
+            </Stack>
+          </Box>
+
+          {/* Right column — profile info + details card */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+
+            {/* Edit name form */}
+            {editing && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Edit name
                 </Typography>
                 <OutlinedInput
@@ -445,99 +595,44 @@ function MemberModal({
                   </Button>
                 </Box>
               </Box>
-            ) : hasProfile ? (
-              <Box>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>
-                  Profile
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                  {member.experience_level && (
-                    <InfoRow label="Experience" value={member.experience_level} />
-                  )}
-                  {member.camera_brands.length > 0 && (
-                    <InfoRow label="Camera" value={member.camera_brands.join(', ')} />
-                  )}
-                  {member.shooting_interests.length > 0 && (
-                    <InfoRow label="Interests" value={member.shooting_interests.join(', ')} />
-                  )}
-                  {member.location && (
-                    <InfoRow label="Location" value={member.location} />
-                  )}
-                  {member.phone && (
-                    <InfoRow label="Phone" value={member.phone} />
-                  )}
-                  {member.bio && (
-                    <Box sx={{ py: 0.5 }}>
-                      <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 0.5 }}>Bio</Typography>
-                      <Typography sx={{ fontSize: 13, color: 'text.primary', lineHeight: 1.6 }}>
-                        {member.bio}
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-              </Box>
-            ) : (
-              <Typography sx={{ fontSize: 13, color: 'text.secondary', fontStyle: 'italic' }}>
-                No profile information on file.
-              </Typography>
             )}
 
-            {/* Permissions */}
-            {showPermissions && !editing && (
-              <Box sx={{ mt: hasProfile ? 3 : 0 }}>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>
-                  Permissions
-                </Typography>
-                <Stack spacing={0.5}>
-                  {([
-                    {
-                      key: 'perm_competition_manager' as PermissionKey,
-                      label: 'Competition manager',
-                      description: 'Can create and manage competitions',
-                      value: permCompetition,
-                      setter: setPermCompetition,
-                    },
-                    {
-                      key: 'perm_event_manager' as PermissionKey,
-                      label: 'Event manager',
-                      description: 'Can create and manage calendar events',
-                      value: permEvent,
-                      setter: setPermEvent,
-                    },
-                    {
-                      key: 'perm_comms_manager' as PermissionKey,
-                      label: 'Communications',
-                      description: 'Can send club-wide notifications',
-                      value: permComms,
-                      setter: setPermComms,
-                    },
-                  ] as const).map(perm => (
-                    <Box
-                      key={perm.key}
-                      sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.75 }}
-                    >
-                      <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary' }}>
-                          {perm.label}
-                        </Typography>
-                        <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
-                          {perm.description}
+            {/* Profile info */}
+            {!editing && (
+              hasProfile ? (
+                <Box>
+                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>
+                    Profile
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                    {member.experience_level && (
+                      <InfoRow label="Experience" value={member.experience_level} />
+                    )}
+                    {member.camera_brands.length > 0 && (
+                      <InfoRow label="Camera" value={member.camera_brands.join(', ')} />
+                    )}
+                    {member.shooting_interests.length > 0 && (
+                      <InfoRow label="Interests" value={member.shooting_interests.join(', ')} />
+                    )}
+                    {member.location && (
+                      <InfoRow label="Location" value={member.location} />
+                    )}
+                    {member.bio && (
+                      <Box sx={{ py: 0.5 }}>
+                        <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 0.5 }}>Bio</Typography>
+                        <Typography sx={{ fontSize: 13, color: 'text.primary', lineHeight: 1.6 }}>
+                          {member.bio}
                         </Typography>
                       </Box>
-                      <Switch
-                        size="small"
-                        checked={perm.value}
-                        onChange={e => handlePermissionToggle(perm.key, e.target.checked)}
-                      />
-                    </Box>
-                  ))}
-                </Stack>
-              </Box>
+                    )}
+                  </Box>
+                </Box>
+              ) : (
+                <Typography sx={{ fontSize: 13, color: 'text.secondary', fontStyle: 'italic' }}>
+                  No profile information on file.
+                </Typography>
+              )
             )}
-          </Box>
-
-          {/* Right column — details + skill level */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 
             {/* Details card */}
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5 }}>
@@ -585,25 +680,7 @@ function MemberModal({
       </DialogContent>
 
       {/* ── Footer actions ────────────────────────────────────────────────── */}
-      <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5, borderTop: '1px solid', borderColor: 'divider', justifyContent: 'space-between' }}>
-        <Box>
-          {member.email && (
-            <Button
-              variant="outlined"
-              color="secondary"
-              size="small"
-              href={`mailto:${member.email}`}
-              component="a"
-              startIcon={
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              }
-            >
-              Email member
-            </Button>
-          )}
-        </Box>
+      <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5, borderTop: '1px solid', borderColor: 'divider', justifyContent: 'flex-end' }}>
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
           {!editing && (
             <Button
@@ -816,9 +893,9 @@ export default function MembersClient({
     router.refresh()
   }
 
-  // Called from the MemberModal's status select
+  // Called from the MemberModal's status select — do NOT close modal here;
+  // the secondary dialog renders on top and the modal stays open behind it.
   function handleStatusAction(action: StatusAction, member: Profile) {
-    setManageMember(null)
     switch (action.kind) {
       case 'approve':
         handleApprove(member.id)
@@ -1056,8 +1133,11 @@ export default function MembersClient({
           <>
             <DialogTitle sx={{ pb: 0.5 }}>Reject application?</DialogTitle>
             <DialogContent>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, lineHeight: 1.7 }}>
                 Rejecting will remove <strong>{[rejectTarget.first_name, rejectTarget.last_name].filter(Boolean).join(' ')}</strong>'s application and send them a notification email with your reason.
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2, lineHeight: 1.7, color: 'error.dark', fontStyle: 'italic' }}>
+                This permanently removes their account. They can reapply with a new account if they wish.
               </Typography>
               <Typography variant="body2" sx={{ mb: 0.75, fontWeight: 500 }}>
                 Reason <Typography component="span" variant="body2" color="text.secondary">(required — included in email to applicant)</Typography>
@@ -1109,8 +1189,11 @@ export default function MembersClient({
               Suspend {suspendTarget.first_name}?
             </DialogTitle>
             <DialogContent>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7 }}>
-                This will immediately revoke their access. You can reinstate them at any time.
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, lineHeight: 1.7 }}>
+                This will immediately revoke their access to the club platform.
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2, lineHeight: 1.7, color: 'success.dark', fontStyle: 'italic' }}>
+                This can be reversed — you can reinstate them at any time from the status dropdown.
               </Typography>
               <Typography variant="body2" sx={{ mb: 0.75, fontWeight: 500 }}>
                 Reason <Typography component="span" variant="body2" color="text.secondary">(required — stored on record, not sent to member)</Typography>
@@ -1160,8 +1243,11 @@ export default function MembersClient({
           <>
             <DialogTitle sx={{ pb: 0.5 }}>Ban {banTarget.first_name}?</DialogTitle>
             <DialogContent>
-              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
-                Banning is permanent. They will lose access immediately and cannot reapply.
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, lineHeight: 1.7 }}>
+                Banning immediately revokes their access. They will not be able to reapply.
+              </Typography>
+              <Typography variant="body2" sx={{ lineHeight: 1.7, color: 'error.dark', fontStyle: 'italic' }}>
+                This action is permanent and cannot be reversed.
               </Typography>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
@@ -1228,8 +1314,11 @@ export default function MembersClient({
           <>
             <DialogTitle sx={{ pb: 0.5 }}>Mark as resigned?</DialogTitle>
             <DialogContent>
-              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, lineHeight: 1.7 }}>
                 <strong>{[resignTarget.first_name, resignTarget.last_name].filter(Boolean).join(' ')}</strong>'s membership will be marked as resigned and their access removed.
+              </Typography>
+              <Typography variant="body2" sx={{ lineHeight: 1.7, color: 'success.dark', fontStyle: 'italic' }}>
+                This can be reversed — reinstate their membership at any time from the status dropdown.
               </Typography>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>

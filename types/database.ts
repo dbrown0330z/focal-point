@@ -1281,6 +1281,8 @@ export type Database = {
           perm_competition_manager: boolean
           perm_event_manager: boolean
           phone: string | null
+          pref_competition_reminders: boolean
+          pref_results_notifications: boolean
           role: Database["public"]["Enums"]["user_role"] | null
           shooting_interests: string[]
         }
@@ -1306,6 +1308,8 @@ export type Database = {
           perm_competition_manager?: boolean
           perm_event_manager?: boolean
           phone?: string | null
+          pref_competition_reminders?: boolean
+          pref_results_notifications?: boolean
           role?: Database["public"]["Enums"]["user_role"] | null
           shooting_interests?: string[]
         }
@@ -1331,6 +1335,8 @@ export type Database = {
           perm_competition_manager?: boolean
           perm_event_manager?: boolean
           phone?: string | null
+          pref_competition_reminders?: boolean
+          pref_results_notifications?: boolean
           role?: Database["public"]["Enums"]["user_role"] | null
           shooting_interests?: string[]
         }
