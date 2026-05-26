@@ -379,17 +379,27 @@ function MemberModal({
   const [deleting, setDeleting]           = useState(false)
 
   // Permissions + status — staged locally, only written on "Save changes"
-  const [permCompetition, setPermCompetition] = useState(member.perm_competition_manager)
-  const [permEvent, setPermEvent]             = useState(member.perm_event_manager)
-  const [permComms, setPermComms]             = useState(member.perm_comms_manager)
+  // If the member already has role='admin', treat all three perm bits as ON
+  // regardless of what's stored — admins predating the perm columns won't
+  // have those bits set but the toggle should still reflect their access level.
+  const isAdminRole = member.role === 'admin'
+  const initPerm = (bit: boolean) => bit || isAdminRole
+
+  const [permCompetition, setPermCompetition] = useState(() => initPerm(member.perm_competition_manager))
+  const [permEvent, setPermEvent]             = useState(() => initPerm(member.perm_event_manager))
+  const [permComms, setPermComms]             = useState(() => initPerm(member.perm_comms_manager))
   const [pendingStatus, setPendingStatus]     = useState<MembershipStatus | null>(null)
 
   const effectiveStatus = pendingStatus ?? member.membership_status
   const allPermsOn      = permCompetition && permEvent && permComms
-  const isAdminRole     = member.role === 'admin'
-  const permsChanged    = permCompetition !== member.perm_competition_manager
-                       || permEvent       !== member.perm_event_manager
-                       || permComms       !== member.perm_comms_manager
+  // Use the same "effective original" values so opening an admin member doesn't
+  // immediately show the unsaved indicator
+  const origCompetition = initPerm(member.perm_competition_manager)
+  const origEvent       = initPerm(member.perm_event_manager)
+  const origComms       = initPerm(member.perm_comms_manager)
+  const permsChanged    = permCompetition !== origCompetition
+                       || permEvent       !== origEvent
+                       || permComms       !== origComms
   const hasUnsaved      = editing || permsChanged || pendingStatus !== null
   const fullName      = [member.first_name, member.last_name].filter(Boolean).join(' ') || '—'
   const memberNum     = `#${String(member.member_number).padStart(4, '0')}`
@@ -402,11 +412,11 @@ function MemberModal({
     setFirstName(member.first_name ?? '')
     setLastName(member.last_name ?? '')
     setSkillLevel(member.membership_class ?? '')
-    setPermCompetition(member.perm_competition_manager)
-    setPermEvent(member.perm_event_manager)
-    setPermComms(member.perm_comms_manager)
+    setPermCompetition(initPerm(member.perm_competition_manager))
+    setPermEvent(initPerm(member.perm_event_manager))
+    setPermComms(initPerm(member.perm_comms_manager))
     setPendingStatus(null)
-  }, [member])
+  }, [member]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSaveName() {
     setSaving(true)
@@ -497,9 +507,9 @@ function MemberModal({
     setFirstName(member.first_name ?? '')
     setLastName(member.last_name ?? '')
     setEditing(false)
-    setPermCompetition(member.perm_competition_manager)
-    setPermEvent(member.perm_event_manager)
-    setPermComms(member.perm_comms_manager)
+    setPermCompetition(initPerm(member.perm_competition_manager))
+    setPermEvent(initPerm(member.perm_event_manager))
+    setPermComms(initPerm(member.perm_comms_manager))
     setPendingStatus(null)
     onClose()
   }
