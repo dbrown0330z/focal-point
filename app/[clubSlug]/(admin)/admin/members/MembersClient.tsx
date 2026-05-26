@@ -591,7 +591,7 @@ function MemberModal({
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: 0 }}>
 
           {/* ── Left column ──────────────────────────────────────────────── */}
-          <Box sx={{ px: 3, py: 3, borderRight: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Box sx={{ pl: 3, pr: 4, py: 3, borderRight: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 3 }}>
 
             {/* Contact */}
             <Box>
@@ -673,23 +673,10 @@ function MemberModal({
               </Box>
             )}
 
-            {/* Admin notes */}
-            <Box>
-              <SectionHead title="Notes" accent="· admin only" />
-              <Box sx={{
-                px: 1.75, py: 1.5, border: '1px dashed', borderColor: '#B0BACA',
-                borderRadius: 1.25, color: 'text.secondary', fontSize: 13,
-                fontStyle: 'italic', bgcolor: 'rgba(0,0,0,0.005)',
-                cursor: 'pointer', transition: 'border-color 0.15s',
-                '&:hover': { borderColor: 'text.secondary' },
-              }}>
-                No notes yet. Click to add an admin note for this member.
-              </Box>
-            </Box>
           </Box>
 
           {/* ── Right column ─────────────────────────────────────────────── */}
-          <Box sx={{ px: 3, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Box sx={{ pl: 4, pr: 3, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
 
             {/* Permissions */}
             {showPermissions && (
