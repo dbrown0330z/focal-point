@@ -54,12 +54,10 @@ import {
   renameMemberClass,
   deleteMemberClass,
   setMemberPermission,
-  setMemberPreference,
 } from './actions'
 
 type MembershipStatus = Database['public']['Enums']['membership_status']
 type PermissionKey = 'perm_competition_manager' | 'perm_event_manager' | 'perm_comms_manager'
-type PreferenceKey = 'pref_competition_reminders' | 'pref_results_notifications'
 
 type Profile = {
   id: string
@@ -85,6 +83,10 @@ type Profile = {
   perm_comms_manager: boolean
   pref_competition_reminders: boolean
   pref_results_notifications: boolean
+  pref_club_newsletter: boolean
+  pref_public_profile: boolean
+  pref_show_scores_publicly: boolean
+  submission_count_this_year: number
 }
 
 type Filter = 'all' | 'active' | 'pending' | 'expired'
@@ -247,11 +249,11 @@ function MemberModal({
 }: MemberModalProps) {
   const router = useRouter()
 
-  // Edit name
-  const [editing, setEditing]       = useState(false)
-  const [firstName, setFirstName]   = useState(member.first_name ?? '')
-  const [lastName, setLastName]     = useState(member.last_name ?? '')
-  const [saving, setSaving]         = useState(false)
+  // Edit name (inline in header)
+  const [editing, setEditing]     = useState(false)
+  const [firstName, setFirstName] = useState(member.first_name ?? '')
+  const [lastName, setLastName]   = useState(member.last_name ?? '')
+  const [saving, setSaving]       = useState(false)
 
   // Skill level
   const [skillLevel, setSkillLevel]   = useState(member.membership_class ?? '')
@@ -267,14 +269,8 @@ function MemberModal({
   const [permComms, setPermComms]             = useState(member.perm_comms_manager)
   const [, startPermTransition]               = useTransition()
 
-  // Preferences
-  const [prefCompReminders, setPrefCompReminders] = useState(member.pref_competition_reminders)
-  const [prefResultsNotifs, setPrefResultsNotifs] = useState(member.pref_results_notifications)
-  const [, startPrefTransition]                   = useTransition()
-
-  const fullName = [member.first_name, member.last_name].filter(Boolean).join(' ') || '—'
+  const fullName  = [member.first_name, member.last_name].filter(Boolean).join(' ') || '—'
   const memberNum = `#${String(member.member_number).padStart(4, '0')}`
-
   const showPermissions = member.role === 'member' || member.role === 'admin'
 
   // Reset local state when member changes
@@ -286,8 +282,6 @@ function MemberModal({
     setPermCompetition(member.perm_competition_manager)
     setPermEvent(member.perm_event_manager)
     setPermComms(member.perm_comms_manager)
-    setPrefCompReminders(member.pref_competition_reminders)
-    setPrefResultsNotifs(member.pref_results_notifications)
   }, [member])
 
   async function handleSaveName() {
@@ -296,12 +290,6 @@ function MemberModal({
     setSaving(false)
     setEditing(false)
     router.refresh()
-  }
-
-  function handleCancelEdit() {
-    setFirstName(member.first_name ?? '')
-    setLastName(member.last_name ?? '')
-    setEditing(false)
   }
 
   async function handleSkillLevelChange(value: string) {
@@ -322,15 +310,6 @@ function MemberModal({
     })
   }
 
-  function handlePreferenceToggle(key: PreferenceKey, value: boolean) {
-    if (key === 'pref_competition_reminders') setPrefCompReminders(value)
-    if (key === 'pref_results_notifications') setPrefResultsNotifs(value)
-    startPrefTransition(async () => {
-      await setMemberPreference(member.id, key, value)
-      router.refresh()
-    })
-  }
-
   async function handleDelete() {
     setDeleting(true)
     await deleteMember(member.id)
@@ -346,9 +325,33 @@ function MemberModal({
     onStatusAction(chosen.action, member)
   }
 
+  // Footer Save: commit name edit if active, then close
+  async function handleFooterSave() {
+    if (editing) await handleSaveName()
+    onClose()
+  }
+
+  // Footer Cancel: discard name edit if active, then close
+  function handleFooterCancel() {
+    if (editing) {
+      setFirstName(member.first_name ?? '')
+      setLastName(member.last_name ?? '')
+      setEditing(false)
+    }
+    onClose()
+  }
+
   const statusOptions = getStatusOptions(member.membership_status)
-  const hasProfile = member.experience_level || member.camera_brands.length > 0 ||
-    member.shooting_interests.length > 0 || member.location || member.phone || member.bio
+  const hasProfile = !!(member.experience_level || member.camera_brands.length > 0 ||
+    member.shooting_interests.length > 0 || member.location || member.bio)
+
+  const PREFERENCES = [
+    { key: 'pref_competition_reminders', label: 'Competition reminders',  value: member.pref_competition_reminders },
+    { key: 'pref_results_notifications', label: 'Results notifications',   value: member.pref_results_notifications },
+    { key: 'pref_club_newsletter',       label: 'Club newsletter',          value: member.pref_club_newsletter       },
+    { key: 'pref_public_profile',        label: 'Public profile',           value: member.pref_public_profile        },
+    { key: 'pref_show_scores_publicly',  label: 'Show scores publicly',     value: member.pref_show_scores_publicly  },
+  ]
 
   return (
     <Dialog
@@ -363,7 +366,6 @@ function MemberModal({
         component="div"
         sx={{ pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}
       >
-        {/* Top row: avatar + name + status select + close */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Avatar
             src={member.avatar_url ?? undefined}
@@ -373,9 +375,49 @@ function MemberModal({
           </Avatar>
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontSize: 20, fontWeight: 700, color: 'text.primary', lineHeight: 1.2, mb: 0.5 }}>
-              {fullName}
-            </Typography>
+            {/* Name — pencil edit icon on hover */}
+            {editing ? (
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 0.5, flexWrap: 'wrap' }}>
+                <OutlinedInput
+                  size="small"
+                  placeholder="First name"
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  autoFocus
+                  sx={{ width: 140, '& .MuiInputBase-input': { fontSize: 14 } }}
+                />
+                <OutlinedInput
+                  size="small"
+                  placeholder="Last name"
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') handleFooterSave() }}
+                  sx={{ width: 140, '& .MuiInputBase-input': { fontSize: 14 } }}
+                />
+                <Typography sx={{ fontSize: 12, color: 'text.secondary', fontStyle: 'italic' }}>
+                  Click Save to confirm
+                </Typography>
+              </Box>
+            ) : (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25, '&:hover .edit-name-btn': { opacity: 1 } }}>
+                <Typography sx={{ fontSize: 20, fontWeight: 700, color: 'text.primary', lineHeight: 1.2 }}>
+                  {fullName}
+                </Typography>
+                <Tooltip title="Edit name">
+                  <IconButton
+                    className="edit-name-btn"
+                    size="small"
+                    onClick={() => setEditing(true)}
+                    sx={{ opacity: 0, transition: 'opacity 0.15s', p: 0.5, color: 'text.secondary' }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            )}
 
             {/* Status select */}
             <Select
@@ -386,20 +428,13 @@ function MemberModal({
                 <Chip
                   label={STATUS_LABEL[member.membership_status]}
                   size="small"
-                  sx={{
-                    fontFamily: 'inherit',
-                    fontSize: 12,
-                    height: 22,
-                    cursor: 'pointer',
-                    ...STATUS_STYLE[member.membership_status],
-                  }}
+                  sx={{ fontFamily: 'inherit', fontSize: 12, height: 22, cursor: 'pointer', ...STATUS_STYLE[member.membership_status] }}
                 />
               )}
               sx={{
                 '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
                 '& .MuiSelect-select': { p: '2px 24px 2px 0 !important' },
-                minWidth: 0,
-                height: 28,
+                minWidth: 0, height: 28,
               }}
             >
               {statusOptions.map(opt => (
@@ -421,7 +456,6 @@ function MemberModal({
           </Tooltip>
         </Box>
 
-        {/* Subtitle */}
         <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 1, ml: '68px' }}>
           {memberNum} &middot; Member since {formatMemberSince(member.created_at)}
         </Typography>
@@ -429,46 +463,55 @@ function MemberModal({
 
       {/* ── Body ─────────────────────────────────────────────────────────── */}
       <DialogContent sx={{ pt: '24px !important' }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 3 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
 
-          {/* Left column — contact, permissions, preferences */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {/* ── Left column — contact, permissions, preferences ───────────── */}
+          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
 
             {/* Email */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: member.phone ? 1 : 2 }}>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 0.5 }}>Email</Typography>
-                <Typography sx={{ fontSize: 13, color: 'text.primary', wordBreak: 'break-all' }}>
-                  {member.email ?? <span style={{ color: 'var(--text-hint, #A8A8A8)', fontStyle: 'italic' }}>Not on file</span>}
-                </Typography>
-              </Box>
-              {member.email && (
-                <Tooltip title="Send email">
-                  <IconButton
+            <Box sx={{ mb: member.phone ? 1.5 : 2 }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 0.75 }}>
+                Email
+              </Typography>
+              {member.email ? (
+                <>
+                  <Typography sx={{ fontSize: 13, color: 'text.primary', mb: 1, wordBreak: 'break-all' }}>
+                    {member.email}
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    color="secondary"
                     size="small"
                     component="a"
                     href={`mailto:${member.email}`}
-                    sx={{ ml: 1, flexShrink: 0, color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                    fullWidth
+                    startIcon={
+                      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    }
                   >
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </IconButton>
-                </Tooltip>
+                    Send email
+                  </Button>
+                </>
+              ) : (
+                <Typography sx={{ fontSize: 13, color: 'text.secondary', fontStyle: 'italic' }}>Not on file</Typography>
               )}
             </Box>
 
             {/* Phone */}
             {member.phone && (
               <Box sx={{ mb: 2 }}>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 0.5 }}>Phone</Typography>
+                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 0.5 }}>
+                  Phone
+                </Typography>
                 <Typography sx={{ fontSize: 13, color: 'text.primary' }}>{member.phone}</Typography>
               </Box>
             )}
 
             <Divider sx={{ mb: 2 }} />
 
-            {/* Permissions */}
+            {/* Permissions (admin-controlled, editable) */}
             {showPermissions && (
               <>
                 <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>
@@ -476,238 +519,159 @@ function MemberModal({
                 </Typography>
                 <Stack spacing={0.25} sx={{ mb: 2 }}>
                   {([
-                    {
-                      key: 'perm_competition_manager' as PermissionKey,
-                      label: 'Competition manager',
-                      description: 'Can create and manage competitions',
-                      value: permCompetition,
-                    },
-                    {
-                      key: 'perm_event_manager' as PermissionKey,
-                      label: 'Event manager',
-                      description: 'Can create and manage calendar events',
-                      value: permEvent,
-                    },
-                    {
-                      key: 'perm_comms_manager' as PermissionKey,
-                      label: 'Communications',
-                      description: 'Can send club-wide notifications',
-                      value: permComms,
-                    },
+                    { key: 'perm_competition_manager' as PermissionKey, label: 'Competition manager', description: 'Can create and manage competitions',       value: permCompetition },
+                    { key: 'perm_event_manager'       as PermissionKey, label: 'Event manager',       description: 'Can create and manage calendar events',   value: permEvent       },
+                    { key: 'perm_comms_manager'       as PermissionKey, label: 'Communications',      description: 'Can send club-wide notifications',         value: permComms       },
                   ] as const).map(perm => (
-                    <Box
-                      key={perm.key}
-                      sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.5 }}
-                    >
+                    <Box key={perm.key} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.5 }}>
                       <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary' }}>
-                          {perm.label}
-                        </Typography>
-                        <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
-                          {perm.description}
-                        </Typography>
+                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary' }}>{perm.label}</Typography>
+                        <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{perm.description}</Typography>
                       </Box>
-                      <Switch
-                        size="small"
-                        checked={perm.value}
-                        onChange={e => handlePermissionToggle(perm.key, e.target.checked)}
-                      />
+                      <Switch size="small" checked={perm.value} onChange={e => handlePermissionToggle(perm.key, e.target.checked)} />
                     </Box>
                   ))}
                 </Stack>
+                <Divider sx={{ mb: 2 }} />
               </>
             )}
 
-            <Divider sx={{ mb: 2 }} />
-
-            {/* Preferences */}
+            {/* Preferences (member-controlled, read-only here) */}
             <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>
               Member preferences
             </Typography>
-            <Stack spacing={0.25}>
-              {([
-                {
-                  key: 'pref_competition_reminders' as PreferenceKey,
-                  label: 'Competition reminders',
-                  description: 'Email reminders before a competition closes',
-                  value: prefCompReminders,
-                },
-                {
-                  key: 'pref_results_notifications' as PreferenceKey,
-                  label: 'Results notifications',
-                  description: 'Email when competition results are published',
-                  value: prefResultsNotifs,
-                },
-              ] as const).map(pref => (
-                <Box
-                  key={pref.key}
-                  sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.5 }}
-                >
-                  <Box>
-                    <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary' }}>
-                      {pref.label}
-                    </Typography>
-                    <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
-                      {pref.description}
-                    </Typography>
-                  </Box>
-                  <Switch
+            <Typography sx={{ fontSize: 11, color: 'text.secondary', mb: 1.5, fontStyle: 'italic' }}>
+              Set by the member in their profile
+            </Typography>
+            <Stack spacing={0.5}>
+              {PREFERENCES.map(pref => (
+                <Box key={pref.key} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.25 }}>
+                  <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{pref.label}</Typography>
+                  <Chip
+                    label={pref.value ? 'On' : 'Off'}
                     size="small"
-                    checked={pref.value}
-                    onChange={e => handlePreferenceToggle(pref.key, e.target.checked)}
+                    sx={{
+                      fontSize: 11, height: 20, fontWeight: 600,
+                      bgcolor: pref.value ? '#EDFAF0' : 'background.default',
+                      color:   pref.value ? '#174A1A' : 'text.disabled',
+                    }}
                   />
                 </Box>
               ))}
             </Stack>
+
+            {/* Skill level */}
+            {memberClassesEnabled && (
+              <>
+                <Divider sx={{ my: 2 }} />
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Skill level</Typography>
+                  <Select
+                    size="small"
+                    displayEmpty
+                    value={skillLevel}
+                    onChange={e => handleSkillLevelChange(e.target.value)}
+                    disabled={savingLevel}
+                    sx={{ fontSize: 13, minWidth: 120, height: 28, '.MuiSelect-select': { py: '4px' } }}
+                  >
+                    <MenuItem value="" sx={{ fontSize: 13 }}>
+                      <Typography component="span" sx={{ fontSize: 13, color: 'text.disabled' }}>None</Typography>
+                    </MenuItem>
+                    {memberClasses.map(cls => (
+                      <MenuItem key={cls.id} value={cls.name} sx={{ fontSize: 13 }}>{cls.name}</MenuItem>
+                    ))}
+                  </Select>
+                </Box>
+              </>
+            )}
           </Box>
 
-          {/* Right column — profile info + details card */}
+          {/* ── Right column — submissions snapshot + profile ─────────────── */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
-            {/* Edit name form */}
-            {editing && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Edit name
+            {/* Submissions snapshot */}
+            <Box
+              sx={{
+                display: 'flex',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1.5,
+                overflow: 'hidden',
+              }}
+            >
+              <Box sx={{ flex: 1, px: 3, py: 2, textAlign: 'center' }}>
+                <Typography sx={{ fontSize: 30, fontWeight: 700, lineHeight: 1, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
+                  {member.submission_count_this_year}
                 </Typography>
-                <OutlinedInput
-                  size="small"
-                  fullWidth
-                  placeholder="First name"
-                  value={firstName}
-                  onChange={e => setFirstName(e.target.value)}
-                  autoFocus
-                />
-                <OutlinedInput
-                  size="small"
-                  fullWidth
-                  placeholder="Last name"
-                  value={lastName}
-                  onChange={e => setLastName(e.target.value)}
-                  onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && handleSaveName()}
-                />
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button variant="contained" size="small" onClick={handleSaveName} disabled={saving}>
-                    {saving ? 'Saving…' : 'Save'}
-                  </Button>
-                  <Button variant="outlined" color="secondary" size="small" onClick={handleCancelEdit}>
-                    Cancel
-                  </Button>
-                </Box>
+                <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.75, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
+                  This year
+                </Typography>
               </Box>
-            )}
+              <Divider orientation="vertical" flexItem />
+              <Box sx={{ flex: 1, px: 3, py: 2, textAlign: 'center' }}>
+                <Typography sx={{ fontSize: 30, fontWeight: 700, lineHeight: 1, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
+                  {member.submission_count}
+                </Typography>
+                <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.75, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
+                  All time
+                </Typography>
+              </Box>
+            </Box>
 
             {/* Profile info */}
-            {!editing && (
-              hasProfile ? (
-                <Box>
-                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>
-                    Profile
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                    {member.experience_level && (
-                      <InfoRow label="Experience" value={member.experience_level} />
-                    )}
-                    {member.camera_brands.length > 0 && (
-                      <InfoRow label="Camera" value={member.camera_brands.join(', ')} />
-                    )}
-                    {member.shooting_interests.length > 0 && (
-                      <InfoRow label="Interests" value={member.shooting_interests.join(', ')} />
-                    )}
-                    {member.location && (
-                      <InfoRow label="Location" value={member.location} />
-                    )}
-                    {member.bio && (
-                      <Box sx={{ py: 0.5 }}>
-                        <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 0.5 }}>Bio</Typography>
-                        <Typography sx={{ fontSize: 13, color: 'text.primary', lineHeight: 1.6 }}>
-                          {member.bio}
-                        </Typography>
-                      </Box>
-                    )}
-                  </Box>
-                </Box>
-              ) : (
-                <Typography sx={{ fontSize: 13, color: 'text.secondary', fontStyle: 'italic' }}>
-                  No profile information on file.
+            {hasProfile ? (
+              <Box>
+                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>
+                  Profile
                 </Typography>
-              )
-            )}
-
-            {/* Details card */}
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5 }}>
-              <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>
-                Details
+                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                  {member.experience_level && <InfoRow label="Experience" value={member.experience_level} />}
+                  {member.camera_brands.length > 0 && <InfoRow label="Camera" value={member.camera_brands.join(', ')} />}
+                  {member.shooting_interests.length > 0 && <InfoRow label="Interests" value={member.shooting_interests.join(', ')} />}
+                  {member.location && <InfoRow label="Location" value={member.location} />}
+                  {member.bio && (
+                    <Box sx={{ py: 0.5 }}>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 0.5 }}>Bio</Typography>
+                      <Typography sx={{ fontSize: 13, color: 'text.primary', lineHeight: 1.6 }}>{member.bio}</Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+            ) : (
+              <Typography sx={{ fontSize: 13, color: 'text.secondary', fontStyle: 'italic' }}>
+                No profile information on file.
               </Typography>
-              <Stack spacing={1.25}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Member ID</Typography>
-                  <Typography sx={{ fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>{memberNum}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Joined</Typography>
-                  <Typography sx={{ fontSize: 13, fontWeight: 500 }}>{formatMemberSince(member.created_at)}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Submissions</Typography>
-                  <Typography sx={{ fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>{member.submission_count}</Typography>
-                </Box>
-                {memberClassesEnabled && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
-                    <Typography sx={{ fontSize: 13, color: 'text.secondary', flexShrink: 0 }}>Skill level</Typography>
-                    <Select
-                      size="small"
-                      displayEmpty
-                      value={skillLevel}
-                      onChange={e => handleSkillLevelChange(e.target.value)}
-                      disabled={savingLevel}
-                      sx={{ fontSize: 13, minWidth: 110, height: 28, '.MuiSelect-select': { py: '4px' } }}
-                    >
-                      <MenuItem value="" sx={{ fontSize: 13 }}>
-                        <Typography component="span" sx={{ fontSize: 13, color: 'text.disabled' }}>None</Typography>
-                      </MenuItem>
-                      {memberClasses.map(cls => (
-                        <MenuItem key={cls.id} value={cls.name} sx={{ fontSize: 13 }}>{cls.name}</MenuItem>
-                      ))}
-                    </Select>
-                  </Box>
-                )}
-              </Stack>
-            </Paper>
-
+            )}
           </Box>
         </Box>
       </DialogContent>
 
-      {/* ── Footer actions ────────────────────────────────────────────────── */}
-      <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5, borderTop: '1px solid', borderColor: 'divider', justifyContent: 'flex-end' }}>
-        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-          {!editing && (
-            <Button
-              size="small"
-              onClick={() => setEditing(true)}
-              sx={{ color: 'text.secondary', fontSize: 13 }}
-            >
-              Edit name
-            </Button>
-          )}
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => setConfirmDelete(true)}
-            sx={{
-              bgcolor: '#FDEEEE',
-              color: '#7A1515',
-              borderColor: 'rgba(211,47,47,0.3)',
-              '&:hover': { bgcolor: '#F9D0D0', borderColor: 'rgba(211,47,47,0.5)' },
-            }}
-          >
-            Delete
+      {/* ── Footer ───────────────────────────────────────────────────────── */}
+      <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5, borderTop: '1px solid', borderColor: 'divider', justifyContent: 'space-between' }}>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => setConfirmDelete(true)}
+          sx={{
+            bgcolor: '#FDEEEE',
+            color: '#7A1515',
+            borderColor: 'rgba(211,47,47,0.3)',
+            '&:hover': { bgcolor: '#F9D0D0', borderColor: 'rgba(211,47,47,0.5)' },
+          }}
+        >
+          Delete
+        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="outlined" color="secondary" size="small" onClick={handleFooterCancel}>
+            Cancel
+          </Button>
+          <Button variant="contained" size="small" onClick={handleFooterSave} disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
           </Button>
         </Box>
       </DialogActions>
 
-      {/* ── Delete confirmation dialog (nested) ──────────────────────────── */}
+      {/* ── Delete confirmation ───────────────────────────────────────────── */}
       <Dialog
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
@@ -725,12 +689,7 @@ function MemberModal({
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button
-            variant="outlined"
-            color="secondary"
-            onClick={() => setConfirmDelete(false)}
-            disabled={deleting}
-          >
+          <Button variant="outlined" color="secondary" onClick={() => setConfirmDelete(false)} disabled={deleting}>
             Cancel
           </Button>
           <Button
@@ -738,9 +697,7 @@ function MemberModal({
             onClick={handleDelete}
             disabled={deleting}
             sx={{
-              bgcolor: '#FDEEEE',
-              color: '#7A1515',
-              borderColor: 'rgba(211,47,47,0.3)',
+              bgcolor: '#FDEEEE', color: '#7A1515', borderColor: 'rgba(211,47,47,0.3)',
               '&:hover': { bgcolor: '#F9D0D0', borderColor: 'rgba(211,47,47,0.5)' },
             }}
           >

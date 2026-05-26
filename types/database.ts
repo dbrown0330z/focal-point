@@ -1281,8 +1281,11 @@ export type Database = {
           perm_competition_manager: boolean
           perm_event_manager: boolean
           phone: string | null
+          pref_club_newsletter: boolean
           pref_competition_reminders: boolean
+          pref_public_profile: boolean
           pref_results_notifications: boolean
+          pref_show_scores_publicly: boolean
           role: Database["public"]["Enums"]["user_role"] | null
           shooting_interests: string[]
         }
@@ -1308,8 +1311,11 @@ export type Database = {
           perm_competition_manager?: boolean
           perm_event_manager?: boolean
           phone?: string | null
+          pref_club_newsletter?: boolean
           pref_competition_reminders?: boolean
+          pref_public_profile?: boolean
           pref_results_notifications?: boolean
+          pref_show_scores_publicly?: boolean
           role?: Database["public"]["Enums"]["user_role"] | null
           shooting_interests?: string[]
         }
@@ -1335,8 +1341,11 @@ export type Database = {
           perm_competition_manager?: boolean
           perm_event_manager?: boolean
           phone?: string | null
+          pref_club_newsletter?: boolean
           pref_competition_reminders?: boolean
+          pref_public_profile?: boolean
           pref_results_notifications?: boolean
+          pref_show_scores_publicly?: boolean
           role?: Database["public"]["Enums"]["user_role"] | null
           shooting_interests?: string[]
         }
