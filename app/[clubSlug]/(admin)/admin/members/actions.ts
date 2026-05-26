@@ -12,7 +12,20 @@ export async function setMemberStatus(memberId: string, status: MembershipStatus
   const supabase = createServiceClient()
   const ctx = await getClubContext()
 
-  const roleByStatus: Partial<Record<MembershipStatus, 'member' | 'admin' | null>> = {
+  // Read the member's current role so we never accidentally strip admin access
+  // when only changing membership status. Admin role must be removed explicitly
+  // via removeAdminRole / makeAdmin — not as a side-effect of a status change.
+  const { data: current } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', memberId)
+    .single()
+
+  const currentRole = current?.role ?? null
+  const isAdmin = currentRole === 'admin'
+
+  // Only set role for non-admin members; for active/complimentary set to 'member'
+  const roleByStatus: Partial<Record<MembershipStatus, 'member' | null>> = {
     active:        'member',
     complimentary: 'member',
     pending:       null,
@@ -22,15 +35,13 @@ export async function setMemberStatus(memberId: string, status: MembershipStatus
     paused:        null,
     banned:        null,
   }
-  const newRole = roleByStatus[status] ?? null
+  // Preserve existing admin role; for regular members derive role from status
+  const newRole = isAdmin ? currentRole : (roleByStatus[status] ?? null)
 
   // Update the flat profile (legacy + used by admin area)
   await supabase
     .from('profiles')
-    .update({
-      membership_status: status,
-      ...(status in roleByStatus ? { role: newRole } : {}),
-    })
+    .update({ membership_status: status, role: newRole })
     .eq('id', memberId)
 
   // Keep club_memberships in sync — this is what the member-facing directory
@@ -38,10 +49,7 @@ export async function setMemberStatus(memberId: string, status: MembershipStatus
   if (ctx?.clubId) {
     await supabase
       .from('club_memberships')
-      .update({
-        membership_status: status,
-        ...(status in roleByStatus ? { role: newRole } : {}),
-      })
+      .update({ membership_status: status, role: newRole })
       .eq('user_id', memberId)
       .eq('club_id', ctx.clubId)
   }

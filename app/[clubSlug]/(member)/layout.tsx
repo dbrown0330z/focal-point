@@ -68,7 +68,8 @@ export default async function MemberLayout({
       .eq('membership_status', 'pending'),
   ])
 
-  if (membership?.membership_status !== 'active') redirect(`/${clubSlug}`)
+  const ALLOWED_STATUSES = ['active', 'complimentary']
+  if (!ALLOWED_STATUSES.includes(membership?.membership_status ?? '')) redirect(`/${clubSlug}`)
 
   return (
     <MemberThemeProvider>
