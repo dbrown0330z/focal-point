@@ -463,7 +463,7 @@ function MemberModal({
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <DialogTitle
         component="div"
-        sx={{ px: 3, pt: 2.5, pb: 2, borderBottom: '1px solid', borderColor: 'divider' }}
+        sx={{ px: '30px', pt: '24px', pb: '20px', borderBottom: '1px solid', borderColor: 'divider' }}
       >
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2.5 }}>
 
@@ -574,7 +574,7 @@ function MemberModal({
           { label: 'Submissions · this year',  value: member.submission_count_this_year, sub: 'images submitted' },
           { label: 'Submissions · all time',   value: member.submission_count, sub: 'total' },
         ].map((s, i) => (
-          <Box key={i} sx={{ px: 3, py: 2.25, borderRight: i < 2 ? '1px solid' : 'none', borderColor: 'divider' }}>
+          <Box key={i} sx={{ px: '30px', py: '18px', borderRight: i < 2 ? '1px solid' : 'none', borderColor: 'divider' }}>
             <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.75 }}>
               {s.label}
             </Typography>
@@ -591,7 +591,7 @@ function MemberModal({
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: 0 }}>
 
           {/* ── Left column ──────────────────────────────────────────────── */}
-          <Box sx={{ pl: 3, pr: 5, py: 3.5, borderRight: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Box sx={{ pl: '30px', pr: '40px', py: '30px', borderRight: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 3 }}>
 
             {/* Contact */}
             <Box>
@@ -676,7 +676,7 @@ function MemberModal({
           </Box>
 
           {/* ── Right column ─────────────────────────────────────────────── */}
-          <Box sx={{ pl: 5, pr: 3, py: 3.5, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Box sx={{ pl: '40px', pr: '30px', py: '30px', display: 'flex', flexDirection: 'column', gap: 3 }}>
 
             {/* Permissions */}
             {showPermissions && (
@@ -792,7 +792,7 @@ function MemberModal({
       </DialogContent>
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <DialogActions sx={{ px: 3, py: 2.25, borderTop: '1px solid', borderColor: 'divider', justifyContent: 'space-between', bgcolor: 'rgba(0,0,0,0.015)' }}>
+      <DialogActions sx={{ px: '30px', py: '20px', borderTop: '1px solid', borderColor: 'divider', justifyContent: 'space-between', bgcolor: 'rgba(0,0,0,0.015)' }}>
         <Button
           onClick={() => setConfirmDelete(true)}
           sx={{
