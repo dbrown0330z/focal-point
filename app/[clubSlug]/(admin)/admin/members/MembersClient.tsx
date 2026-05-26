@@ -591,7 +591,7 @@ function MemberModal({
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: 0 }}>
 
           {/* ── Left column ──────────────────────────────────────────────── */}
-          <Box sx={{ pl: 3, pr: 4, py: 3, borderRight: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Box sx={{ pl: 3, pr: 5, py: 3.5, borderRight: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 3 }}>
 
             {/* Contact */}
             <Box>
@@ -676,7 +676,7 @@ function MemberModal({
           </Box>
 
           {/* ── Right column ─────────────────────────────────────────────── */}
-          <Box sx={{ pl: 4, pr: 3, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Box sx={{ pl: 5, pr: 3, py: 3.5, display: 'flex', flexDirection: 'column', gap: 3 }}>
 
             {/* Permissions */}
             {showPermissions && (
