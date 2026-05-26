@@ -245,10 +245,11 @@ function SectionHead({ title, accent, hint }: { title: string; accent?: string; 
   )
 }
 
-const SKILL_COLOURS: Record<string, { bg: string; text: string }> = {
+// advanced text uses a MUI token via sx — see ExperienceBadge
+const SKILL_COLOURS: Record<string, { bg: string; text: string; muiColor?: string }> = {
   beginner:     { bg: 'rgba(0,151,167,0.10)',  text: '#0097A7' },
   intermediate: { bg: 'rgba(108,71,212,0.10)', text: '#6C47D4' },
-  advanced:     { bg: 'rgba(46,125,50,0.12)',  text: '#174A1A' },
+  advanced:     { bg: 'rgba(46,125,50,0.12)',  text: '', muiColor: 'success.contrastText' },
 }
 
 function ExperienceBadge({ level }: { level: string }) {
@@ -257,7 +258,8 @@ function ExperienceBadge({ level }: { level: string }) {
     <Box component="span" sx={{
       display: 'inline-flex', alignItems: 'center', justifySelf: 'start',
       borderRadius: 9999, px: 1.25, py: 0.375,
-      bgcolor: style.bg, color: style.text,
+      bgcolor: style.bg,
+      color: style.muiColor ?? style.text,
       fontSize: 12, fontWeight: 500, lineHeight: 1.5,
     }}>
       {skillLabel(level) ?? level}
@@ -318,7 +320,7 @@ function SubmissionDonut({ categories }: { categories: Record<string, number> })
             ))
           )}
           <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle"
-            fontSize="13" fontWeight="700" fill="#131F2E">{total}</text>
+            fontSize="13" fontWeight="700" fill="currentColor">{total}</text>
         </svg>
       </Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -761,16 +763,16 @@ function MemberModal({
                       border: '1px solid',
                       borderColor: allPermsOn ? 'rgba(166,124,0,0.50)' : 'rgba(166,124,0,0.28)',
                       borderRadius: 1.5,
-                      bgcolor: allPermsOn ? '#FFFBE6' : 'rgba(166,124,0,0.04)',
+                      bgcolor: allPermsOn ? 'warning.light' : 'rgba(166,124,0,0.04)',
                       cursor: 'pointer', transition: 'all 0.2s',
-                      '&:hover': { borderColor: 'rgba(166,124,0,0.60)', bgcolor: '#FFFBE6' },
+                      '&:hover': { borderColor: 'rgba(166,124,0,0.60)', bgcolor: 'warning.light' },
                       mb: 0.5,
                     }}
                   >
                     <Box sx={{ flex: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                         <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary' }}>Admin</Typography>
-                        <Box sx={{ px: 0.875, py: 0.25, borderRadius: 9999, bgcolor: 'rgba(166,124,0,0.15)', border: '1px solid rgba(166,124,0,0.40)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#6B5000' }}>
+                        <Box sx={{ px: 0.875, py: 0.25, borderRadius: 9999, bgcolor: 'rgba(166,124,0,0.15)', border: '1px solid rgba(166,124,0,0.40)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'warning.contrastText' }}>
                           Full access
                         </Box>
                       </Box>
@@ -844,8 +846,8 @@ function MemberModal({
                     <Box component="span" sx={{
                       display: 'inline-flex', alignItems: 'center', flexShrink: 0,
                       borderRadius: 9999, px: 1.25, py: 0.375,
-                      bgcolor:    pref.value ? '#EDFAF0' : 'rgba(0,0,0,0.04)',
-                      color:      pref.value ? '#174A1A' : '#7E8EA3',
+                      bgcolor:    pref.value ? 'success.light' : 'rgba(0,0,0,0.04)',
+                      color:      pref.value ? 'success.contrastText' : 'text.secondary',
                       fontSize: 11, fontWeight: 700,
                       textTransform: 'uppercase', letterSpacing: '0.03em',
                     }}>
@@ -1357,7 +1359,7 @@ export default function MembersClient({
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, lineHeight: 1.7 }}>
                 This will immediately revoke their access to the club platform.
               </Typography>
-              <Typography variant="body2" sx={{ mb: 2, lineHeight: 1.7, color: 'success.dark', fontStyle: 'italic' }}>
+              <Typography variant="body2" sx={{ mb: 2, lineHeight: 1.7, color: 'success.contrastText', fontStyle: 'italic' }}>
                 This can be reversed — you can reinstate them at any time from the status dropdown.
               </Typography>
               <Typography variant="body2" sx={{ mb: 0.75, fontWeight: 500 }}>
@@ -1384,7 +1386,7 @@ export default function MembersClient({
                 onClick={handleSuspend}
                 disabled={!suspendReason.trim() || suspending}
                 sx={{
-                  color: 'warning.dark', borderColor: 'warning.light',
+                  color: 'warning.contrastText', borderColor: 'warning.main',
                   '&:hover': { borderColor: 'warning.main', bgcolor: 'warning.light' },
                   '&.Mui-disabled': { color: 'text.disabled', borderColor: 'divider' },
                 }}
@@ -1411,7 +1413,7 @@ export default function MembersClient({
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, lineHeight: 1.7 }}>
                 Banning immediately revokes their access. They will not be able to reapply.
               </Typography>
-              <Typography variant="body2" sx={{ lineHeight: 1.7, color: 'error.dark', fontStyle: 'italic' }}>
+              <Typography variant="body2" sx={{ lineHeight: 1.7, color: 'error.contrastText', fontStyle: 'italic' }}>
                 This action is permanent and cannot be reversed.
               </Typography>
             </DialogContent>
@@ -1420,7 +1422,7 @@ export default function MembersClient({
               <Button
                 variant="outlined"
                 onClick={() => setBanStep(2)}
-                sx={{ color: 'error.main', borderColor: 'error.light', '&:hover': { borderColor: 'error.main', bgcolor: 'error.light' } }}
+                sx={{ color: 'error.contrastText', borderColor: 'error.main', '&:hover': { borderColor: 'error.main', bgcolor: 'error.light' } }}
               >
                 Continue →
               </Button>
@@ -1482,7 +1484,7 @@ export default function MembersClient({
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, lineHeight: 1.7 }}>
                 <strong>{[resignTarget.first_name, resignTarget.last_name].filter(Boolean).join(' ')}</strong>'s membership will be marked as resigned and their access removed.
               </Typography>
-              <Typography variant="body2" sx={{ lineHeight: 1.7, color: 'success.dark', fontStyle: 'italic' }}>
+              <Typography variant="body2" sx={{ lineHeight: 1.7, color: 'success.contrastText', fontStyle: 'italic' }}>
                 This can be reversed — reinstate their membership at any time from the status dropdown.
               </Typography>
             </DialogContent>
