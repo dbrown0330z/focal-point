@@ -54,6 +54,7 @@ import {
   renameMemberClass,
   deleteMemberClass,
   setMemberPermission,
+  removeAdminRole,
 } from './actions'
 
 type MembershipStatus = Database['public']['Enums']['membership_status']
@@ -86,7 +87,9 @@ type Profile = {
   pref_club_newsletter: boolean
   pref_public_profile: boolean
   pref_show_scores_publicly: boolean
+  pref_show_in_directory: boolean
   submission_count_this_year: number
+  competitions_this_year: number
 }
 
 type Filter = 'all' | 'active' | 'pending' | 'expired'
@@ -224,6 +227,51 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   )
 }
 
+function SectionHead({ title, accent, hint }: { title: string; accent?: string; hint?: string }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+      <Typography sx={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'text.secondary' }}>
+        {title}
+        {accent && (
+          <Typography component="span" sx={{ fontWeight: 500, textTransform: 'none', letterSpacing: 'normal', color: 'text.disabled' }}>
+            {' '}{accent}
+          </Typography>
+        )}
+      </Typography>
+      {hint && <Typography sx={{ fontSize: 11, color: 'text.secondary', fontStyle: 'italic' }}>{hint}</Typography>}
+    </Box>
+  )
+}
+
+function ExperienceBadge({ level }: { level: string }) {
+  const dots = level.toLowerCase().includes('beginner') || level.toLowerCase().includes('novice') ? 1
+    : level.toLowerCase().includes('intermediate') ? 2 : 3
+  return (
+    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 0.875, py: 0.5, border: '1px solid rgba(166,124,0,0.25)', borderRadius: 9999, bgcolor: 'rgba(166,124,0,0.07)' }}>
+      <Box sx={{ display: 'flex', gap: '3px', px: 0.75, py: '3px', bgcolor: 'rgba(166,124,0,0.12)', borderRadius: 9999 }}>
+        {[1, 2, 3].map(d => (
+          <Box key={d} sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: d <= dots ? '#7B6000' : 'rgba(123,96,0,0.22)' }} />
+        ))}
+      </Box>
+      <Typography component="span" sx={{ fontSize: 12, fontWeight: 600, color: '#7B6000' }}>{level}</Typography>
+    </Box>
+  )
+}
+
+// Icon-tile helper for contact / permission rows
+function IconTile({ children, active = false }: { children: React.ReactNode; active?: boolean }) {
+  return (
+    <Box sx={{
+      width: 34, height: 34, borderRadius: 1.25, flexShrink: 0,
+      bgcolor: active ? 'rgba(30,77,140,0.10)' : 'rgba(0,0,0,0.04)',
+      color:   active ? '#1E4D8C' : '#7E8EA3',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      {children}
+    </Box>
+  )
+}
+
 // ─── Member modal ─────────────────────────────────────────────────────────────
 
 interface MemberModalProps {
@@ -263,17 +311,20 @@ function MemberModal({
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting]           = useState(false)
 
-  // Permissions
+  // Permissions (local state for optimistic UI + cascade)
   const [permCompetition, setPermCompetition] = useState(member.perm_competition_manager)
   const [permEvent, setPermEvent]             = useState(member.perm_event_manager)
   const [permComms, setPermComms]             = useState(member.perm_comms_manager)
   const [, startPermTransition]               = useTransition()
 
-  const fullName  = [member.first_name, member.last_name].filter(Boolean).join(' ') || '—'
-  const memberNum = `#${String(member.member_number).padStart(4, '0')}`
+  const allPermsOn    = permCompetition && permEvent && permComms
+  const isAdminRole   = member.role === 'admin'
+  const fullName      = [member.first_name, member.last_name].filter(Boolean).join(' ') || '—'
+  const memberNum     = `#${String(member.member_number).padStart(4, '0')}`
   const showPermissions = member.role === 'member' || member.role === 'admin'
+  const enabledCount  = [permCompetition, permEvent, permComms].filter(Boolean).length
 
-  // Reset local state when member changes
+  // Reset when member changes
   React.useEffect(() => {
     setEditing(false)
     setFirstName(member.first_name ?? '')
@@ -301,11 +352,35 @@ function MemberModal({
   }
 
   function handlePermissionToggle(key: PermissionKey, value: boolean) {
+    const next = {
+      perm_competition_manager: key === 'perm_competition_manager' ? value : permCompetition,
+      perm_event_manager:       key === 'perm_event_manager'       ? value : permEvent,
+      perm_comms_manager:       key === 'perm_comms_manager'       ? value : permComms,
+    }
     if (key === 'perm_competition_manager') setPermCompetition(value)
     if (key === 'perm_event_manager')       setPermEvent(value)
     if (key === 'perm_comms_manager')       setPermComms(value)
     startPermTransition(async () => {
       await setMemberPermission(member.id, key, value)
+      // Cascade: all on → make admin; any off → remove admin role
+      const nowAllOn = next.perm_competition_manager && next.perm_event_manager && next.perm_comms_manager
+      if (nowAllOn && !isAdminRole) await makeAdmin(member.id)
+      if (!nowAllOn && isAdminRole) await removeAdminRole(member.id)
+      router.refresh()
+    })
+  }
+
+  function handleAdminToggle(enabled: boolean) {
+    setPermCompetition(enabled)
+    setPermEvent(enabled)
+    setPermComms(enabled)
+    startPermTransition(async () => {
+      await Promise.all([
+        setMemberPermission(member.id, 'perm_competition_manager', enabled),
+        setMemberPermission(member.id, 'perm_event_manager', enabled),
+        setMemberPermission(member.id, 'perm_comms_manager', enabled),
+        enabled ? makeAdmin(member.id) : removeAdminRole(member.id),
+      ])
       router.refresh()
     })
   }
@@ -325,13 +400,11 @@ function MemberModal({
     onStatusAction(chosen.action, member)
   }
 
-  // Footer Save: commit name edit if active, then close
   async function handleFooterSave() {
     if (editing) await handleSaveName()
     onClose()
   }
 
-  // Footer Cancel: discard name edit if active, then close
   function handleFooterCancel() {
     if (editing) {
       setFirstName(member.first_name ?? '')
@@ -342,16 +415,32 @@ function MemberModal({
   }
 
   const statusOptions = getStatusOptions(member.membership_status)
-  const hasProfile = !!(member.experience_level || member.camera_brands.length > 0 ||
-    member.shooting_interests.length > 0 || member.location || member.bio)
+  const hasProfile    = !!(member.experience_level || member.camera_brands.length ||
+    member.shooting_interests.length || member.location || member.bio)
 
   const PREFERENCES = [
-    { key: 'pref_competition_reminders', label: 'Competition reminders',  value: member.pref_competition_reminders },
-    { key: 'pref_results_notifications', label: 'Results notifications',   value: member.pref_results_notifications },
-    { key: 'pref_club_newsletter',       label: 'Club newsletter',          value: member.pref_club_newsletter       },
-    { key: 'pref_public_profile',        label: 'Public profile',           value: member.pref_public_profile        },
-    { key: 'pref_show_scores_publicly',  label: 'Show scores publicly',     value: member.pref_show_scores_publicly  },
+    { key: 'pref_competition_reminders', label: 'Competition reminders', value: member.pref_competition_reminders,
+      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M3 13.5l-.5-1.5C2 10.5 4 9 4 7a4 4 0 118 0c0 2 2 3.5 1.5 5l-.5 1.5H3z" strokeLinecap="round"/><path d="M6.5 13.5a1.5 1.5 0 003 0" strokeLinecap="round"/></svg> },
+    { key: 'pref_results_notifications', label: 'Results notifications', value: member.pref_results_notifications,
+      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M2 4h12M2 8h12M2 12h8" strokeLinecap="round"/></svg> },
+    { key: 'pref_club_newsletter',       label: 'Club newsletter',       value: member.pref_club_newsletter,
+      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="2" y="3.5" width="12" height="9" rx="1.5"/><path d="M2 4l6 4 6-4"/></svg> },
+    { key: 'pref_public_profile',        label: 'Public profile',        value: member.pref_public_profile,
+      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="8" cy="8" r="6"/><path d="M2.5 8h11M8 2.5c2 1.7 2 9.3 0 11M8 2.5c-2 1.7-2 9.3 0 11"/></svg> },
+    { key: 'pref_show_scores_publicly',  label: 'Show scores publicly',  value: member.pref_show_scores_publicly,
+      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 13V10M6 13V7M10 13V4M14 13V8" strokeLinecap="round"/></svg> },
+    { key: 'pref_show_in_directory',     label: 'Show in directory',     value: member.pref_show_in_directory,
+      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="6" cy="6" r="2"/><path d="M2 13a4 4 0 018 0M11 4a2 2 0 010 4M10 13a4 4 0 014-4" strokeLinecap="round"/></svg> },
   ]
+
+  const PERM_ROWS = [
+    { key: 'perm_competition_manager' as PermissionKey, label: 'Competition manager', desc: 'Can create and manage competitions', value: permCompetition,
+      icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M8 2l1.5 3.5L13 6l-2.5 2.5.5 3.5L8 10.5 5 12l.5-3.5L3 6l3.5-.5L8 2z" strokeLinejoin="round"/></svg> },
+    { key: 'perm_event_manager'       as PermissionKey, label: 'Event manager',       desc: 'Can create and manage calendar events', value: permEvent,
+      icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6h12M5.5 1.5v3M10.5 1.5v3" strokeLinecap="round"/></svg> },
+    { key: 'perm_comms_manager'       as PermissionKey, label: 'Communications',      desc: 'Can send club-wide notifications',   value: permComms,
+      icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M14 2H2v9h5l1 3 1-3h5V2z" strokeLinejoin="round"/></svg> },
+  ] as const
 
   return (
     <Dialog
@@ -359,221 +448,311 @@ function MemberModal({
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      slotProps={{ paper: { sx: { borderRadius: 2 } } }}
+      slotProps={{ paper: { sx: { borderRadius: 2, overflow: 'hidden' } } }}
     >
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <DialogTitle
         component="div"
-        sx={{ pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}
+        sx={{ px: 3, pt: 2.5, pb: 2, borderBottom: '1px solid', borderColor: 'divider' }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar
-            src={member.avatar_url ?? undefined}
-            sx={{ width: 52, height: 52, fontSize: 18, fontWeight: 700, bgcolor: 'primary.light', color: 'primary.contrastText', flexShrink: 0 }}
-          >
-            {!member.avatar_url && getInitials(member.first_name, member.last_name)}
-          </Avatar>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2.5 }}>
 
+          {/* Avatar + status dot */}
+          <Box sx={{ position: 'relative', flexShrink: 0 }}>
+            <Avatar
+              src={member.avatar_url ?? undefined}
+              sx={{ width: 72, height: 72, fontSize: 26, fontWeight: 700, bgcolor: 'primary.light', color: 'primary.contrastText' }}
+            >
+              {!member.avatar_url && getInitials(member.first_name, member.last_name)}
+            </Avatar>
+            {ACTIVE_STATUSES.includes(member.membership_status) && (
+              <Box sx={{
+                position: 'absolute', bottom: 2, right: 2,
+                width: 14, height: 14, borderRadius: '50%',
+                bgcolor: '#22c55e',
+                border: '2.5px solid #fff',
+                boxShadow: '0 0 0 1px rgba(34,197,94,0.35)',
+              }} />
+            )}
+          </Box>
+
+          {/* Identity */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            {/* Name — pencil edit icon on hover */}
+            {/* Name row */}
             {editing ? (
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 0.5, flexWrap: 'wrap' }}>
-                <OutlinedInput
-                  size="small"
-                  placeholder="First name"
-                  value={firstName}
-                  onChange={e => setFirstName(e.target.value)}
-                  autoFocus
-                  sx={{ width: 140, '& .MuiInputBase-input': { fontSize: 14 } }}
-                />
-                <OutlinedInput
-                  size="small"
-                  placeholder="Last name"
-                  value={lastName}
-                  onChange={e => setLastName(e.target.value)}
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 0.75, flexWrap: 'wrap' }}>
+                <OutlinedInput size="small" placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} autoFocus
+                  sx={{ width: 136, '& .MuiInputBase-input': { fontSize: 14 } }} />
+                <OutlinedInput size="small" placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)}
                   onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') handleFooterSave() }}
-                  sx={{ width: 140, '& .MuiInputBase-input': { fontSize: 14 } }}
-                />
-                <Typography sx={{ fontSize: 12, color: 'text.secondary', fontStyle: 'italic' }}>
-                  Click Save to confirm
-                </Typography>
+                  sx={{ width: 136, '& .MuiInputBase-input': { fontSize: 14 } }} />
+                <Typography sx={{ fontSize: 11.5, color: 'text.secondary', fontStyle: 'italic' }}>Click Save to confirm</Typography>
               </Box>
             ) : (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25, '&:hover .edit-name-btn': { opacity: 1 } }}>
-                <Typography sx={{ fontSize: 20, fontWeight: 700, color: 'text.primary', lineHeight: 1.2 }}>
-                  {fullName}
-                </Typography>
-                <Tooltip title="Edit name">
-                  <IconButton
-                    className="edit-name-btn"
-                    size="small"
-                    onClick={() => setEditing(true)}
-                    sx={{ opacity: 0, transition: 'opacity 0.15s', p: 0.5, color: 'text.secondary' }}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                  </IconButton>
-                </Tooltip>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.75, flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, '&:hover .edit-name-btn': { opacity: 1 } }}>
+                  <Typography sx={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: 'text.primary', lineHeight: 1.15 }}>
+                    {fullName}
+                  </Typography>
+                  <Tooltip title="Edit name">
+                    <IconButton className="edit-name-btn" size="small" onClick={() => setEditing(true)}
+                      sx={{ opacity: 0, transition: 'opacity 0.15s', p: 0.5, color: 'text.secondary' }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+                {/* Status select — inline with name */}
+                <Select size="small" value="__current__" onChange={handleStatusChange}
+                  renderValue={() => (
+                    <Chip label={STATUS_LABEL[member.membership_status]} size="small"
+                      sx={{ fontFamily: 'inherit', fontSize: 12, height: 22, cursor: 'pointer', ...STATUS_STYLE[member.membership_status] }} />
+                  )}
+                  sx={{ '& .MuiOutlinedInput-notchedOutline': { border: 'none' }, '& .MuiSelect-select': { p: '2px 24px 2px 0 !important' }, minWidth: 0, height: 28 }}
+                >
+                  {statusOptions.map(opt => (
+                    <MenuItem key={opt.value} value={opt.value} disabled={opt.disabled} sx={{ fontSize: 13 }}>
+                      {opt.disabled ? <Typography sx={{ fontSize: 13, color: 'text.disabled' }}>{opt.label} (current)</Typography> : opt.label}
+                    </MenuItem>
+                  ))}
+                </Select>
               </Box>
             )}
 
-            {/* Status select */}
-            <Select
-              size="small"
-              value="__current__"
-              onChange={handleStatusChange}
-              renderValue={() => (
-                <Chip
-                  label={STATUS_LABEL[member.membership_status]}
-                  size="small"
-                  sx={{ fontFamily: 'inherit', fontSize: 12, height: 22, cursor: 'pointer', ...STATUS_STYLE[member.membership_status] }}
-                />
+            {/* Meta row: joined · id · location */}
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', color: 'text.secondary' }}>
+              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" style={{ opacity: 0.55 }}>
+                  <rect x="2" y="3" width="12" height="11" rx="1.5"/><path strokeLinecap="round" d="M2 6h12M5.5 1.5v3M10.5 1.5v3"/>
+                </svg>
+                <Typography sx={{ fontSize: 13 }}>Member since&nbsp;<strong style={{ color: '#131F2E', fontWeight: 600 }}>{formatMemberSince(member.created_at)}</strong></Typography>
+              </Box>
+              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" style={{ opacity: 0.55 }}>
+                  <path strokeLinecap="round" d="M8 8a3 3 0 100-6 3 3 0 000 6zM2 14a6 6 0 0112 0"/>
+                </svg>
+                <Typography sx={{ fontSize: 13, fontFamily: 'var(--font-code, monospace)', color: 'text.primary' }}>{memberNum}</Typography>
+              </Box>
+              {member.location && (
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" style={{ opacity: 0.55 }}>
+                    <path d="M8 14.5S2 10.5 2 6.5a6 6 0 0112 0C14 10.5 8 14.5 8 14.5z"/><circle cx="8" cy="6.5" r="2"/>
+                  </svg>
+                  <Typography sx={{ fontSize: 13 }}>{member.location}</Typography>
+                </Box>
               )}
-              sx={{
-                '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                '& .MuiSelect-select': { p: '2px 24px 2px 0 !important' },
-                minWidth: 0, height: 28,
-              }}
-            >
-              {statusOptions.map(opt => (
-                <MenuItem key={opt.value} value={opt.value} disabled={opt.disabled} sx={{ fontSize: 13 }}>
-                  {opt.disabled ? (
-                    <Typography sx={{ fontSize: 13, color: 'text.disabled' }}>{opt.label} (current)</Typography>
-                  ) : opt.label}
-                </MenuItem>
-              ))}
-            </Select>
+            </Box>
           </Box>
 
+          {/* Close */}
           <Tooltip title="Close">
-            <IconButton onClick={onClose} size="small" sx={{ alignSelf: 'flex-start', mt: 0.5 }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <IconButton onClick={onClose} size="small" sx={{ mt: 0.25, bgcolor: 'rgba(0,0,0,0.03)', border: '1px solid', borderColor: 'divider', borderRadius: 1.25 }}>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" style={{ width: 14, height: 14 }}>
+                <path strokeLinecap="round" d="M3.5 3.5l9 9M12.5 3.5l-9 9"/>
               </svg>
             </IconButton>
           </Tooltip>
         </Box>
-
-        <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 1, ml: '68px' }}>
-          {memberNum} &middot; Member since {formatMemberSince(member.created_at)}
-        </Typography>
       </DialogTitle>
 
+      {/* ── Stats strip ───────────────────────────────────────────────────── */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: '1px solid', borderColor: 'divider' }}>
+        {[
+          { label: 'Competitions · this year', value: member.competitions_this_year, sub: 'entered' },
+          { label: 'Submissions · this year',  value: member.submission_count_this_year, sub: 'images submitted' },
+          { label: 'Submissions · all time',   value: member.submission_count, sub: 'total' },
+        ].map((s, i) => (
+          <Box key={i} sx={{ px: 3, py: 2.25, borderRight: i < 2 ? '1px solid' : 'none', borderColor: 'divider' }}>
+            <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.75 }}>
+              {s.label}
+            </Typography>
+            <Typography sx={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
+              {s.value}
+            </Typography>
+            <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.5 }}>{s.sub}</Typography>
+          </Box>
+        ))}
+      </Box>
+
       {/* ── Body ─────────────────────────────────────────────────────────── */}
-      <DialogContent sx={{ pt: '24px !important' }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+      <DialogContent sx={{ p: '0 !important' }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: 0 }}>
 
-          {/* ── Left column — contact, permissions, preferences ───────────── */}
-          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+          {/* ── Left column ──────────────────────────────────────────────── */}
+          <Box sx={{ px: 3, py: 3, borderRight: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 3 }}>
 
-            {/* Email */}
-            <Box sx={{ mb: member.phone ? 1.5 : 2 }}>
-              <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 0.75 }}>
-                Email
-              </Typography>
-              {member.email ? (
-                <>
-                  <Typography sx={{ fontSize: 13, color: 'text.primary', mb: 1, wordBreak: 'break-all' }}>
-                    {member.email}
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    size="small"
-                    component="a"
-                    href={`mailto:${member.email}`}
-                    fullWidth
-                    startIcon={
-                      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                    }
-                  >
+            {/* Contact */}
+            <Box>
+              <SectionHead title="Contact" />
+              {/* Email card */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.75, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, bgcolor: 'rgba(0,0,0,0.01)' }}>
+                <IconTile active={!!member.email}>
+                  <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="2.5" y="4.5" width="15" height="11" rx="1.5"/><path d="M3 5l7 5 7-5"/>
+                  </svg>
+                </IconTile>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography sx={{ fontSize: 10, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Email</Typography>
+                  {member.email ? (
+                    <Typography sx={{ fontSize: 13.5, color: 'text.primary', fontFamily: 'var(--font-code, monospace)', wordBreak: 'break-all' }}>{member.email}</Typography>
+                  ) : (
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary', fontStyle: 'italic' }}>Not on file</Typography>
+                  )}
+                </Box>
+                {member.email && (
+                  <Button variant="outlined" color="secondary" size="small" component="a" href={`mailto:${member.email}`} sx={{ flexShrink: 0 }}
+                    startIcon={<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M2 4l6 4 6-4M2 4v8h12V4H2z"/></svg>}>
                     Send email
                   </Button>
-                </>
-              ) : (
-                <Typography sx={{ fontSize: 13, color: 'text.secondary', fontStyle: 'italic' }}>Not on file</Typography>
+                )}
+              </Box>
+              {/* Phone card */}
+              {member.phone && (
+                <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1.5, p: 1.75, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, bgcolor: 'rgba(0,0,0,0.01)' }}>
+                  <IconTile active>
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3">
+                      <path strokeLinecap="round" d="M4.5 2h3l1 3-2 1a8 8 0 003.5 3.5l1-2 3 1v3a1 1 0 01-1 1A11 11 0 013.5 3a1 1 0 011-1z"/>
+                    </svg>
+                  </IconTile>
+                  <Box>
+                    <Typography sx={{ fontSize: 10, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Phone</Typography>
+                    <Typography sx={{ fontSize: 13.5, color: 'text.primary', fontFamily: 'var(--font-code, monospace)' }}>{member.phone}</Typography>
+                  </Box>
+                </Box>
               )}
             </Box>
 
-            {/* Phone */}
-            {member.phone && (
-              <Box sx={{ mb: 2 }}>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 0.5 }}>
-                  Phone
-                </Typography>
-                <Typography sx={{ fontSize: 13, color: 'text.primary' }}>{member.phone}</Typography>
+            {/* Photography Profile */}
+            {hasProfile && (
+              <Box>
+                <SectionHead title="Photography Profile" hint="Self-reported" />
+                <Box sx={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '10px 14px', alignItems: 'center' }}>
+                  {member.experience_level && (
+                    <>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Experience</Typography>
+                      <ExperienceBadge level={member.experience_level} />
+                    </>
+                  )}
+                  {member.camera_brands.length > 0 && (
+                    <>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Camera</Typography>
+                      <Typography sx={{ fontSize: 13, color: 'text.primary' }}>{member.camera_brands.join(', ')}</Typography>
+                    </>
+                  )}
+                  {member.shooting_interests.length > 0 && (
+                    <>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary', alignSelf: 'start', pt: 0.5 }}>Interests</Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                        {member.shooting_interests.map(t => (
+                          <Box key={t} sx={{ px: 1.25, py: 0.5, border: '1px solid', borderColor: 'divider', borderRadius: 9999, fontSize: 12, fontWeight: 500, color: 'text.secondary', bgcolor: 'rgba(0,0,0,0.02)' }}>
+                            {t}
+                          </Box>
+                        ))}
+                      </Box>
+                    </>
+                  )}
+                  {member.bio && (
+                    <>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary', alignSelf: 'start', pt: 0.25 }}>Bio</Typography>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.55 }}>{member.bio}</Typography>
+                    </>
+                  )}
+                </Box>
               </Box>
             )}
 
-            <Divider sx={{ mb: 2 }} />
+            {/* Admin notes */}
+            <Box>
+              <SectionHead title="Notes" accent="· admin only" />
+              <Box sx={{
+                px: 1.75, py: 1.5, border: '1px dashed', borderColor: '#B0BACA',
+                borderRadius: 1.25, color: 'text.secondary', fontSize: 13,
+                fontStyle: 'italic', bgcolor: 'rgba(0,0,0,0.005)',
+                cursor: 'pointer', transition: 'border-color 0.15s',
+                '&:hover': { borderColor: 'text.secondary' },
+              }}>
+                No notes yet. Click to add an admin note for this member.
+              </Box>
+            </Box>
+          </Box>
 
-            {/* Permissions (admin-controlled, editable) */}
+          {/* ── Right column ─────────────────────────────────────────────── */}
+          <Box sx={{ px: 3, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+
+            {/* Permissions */}
             {showPermissions && (
-              <>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>
-                  Permissions
-                </Typography>
-                <Stack spacing={0.25} sx={{ mb: 2 }}>
-                  {([
-                    { key: 'perm_competition_manager' as PermissionKey, label: 'Competition manager', description: 'Can create and manage competitions',       value: permCompetition },
-                    { key: 'perm_event_manager'       as PermissionKey, label: 'Event manager',       description: 'Can create and manage calendar events',   value: permEvent       },
-                    { key: 'perm_comms_manager'       as PermissionKey, label: 'Communications',      description: 'Can send club-wide notifications',         value: permComms       },
-                  ] as const).map(perm => (
-                    <Box key={perm.key} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.5 }}>
-                      <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary' }}>{perm.label}</Typography>
-                        <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{perm.description}</Typography>
+              <Box>
+                <SectionHead title="Permissions" accent="· admin-controlled" hint={`${enabledCount} of 3 enabled`} />
+                <Stack spacing={1}>
+                  {/* Admin master row */}
+                  <Box
+                    onClick={() => handleAdminToggle(!allPermsOn)}
+                    sx={{
+                      display: 'flex', alignItems: 'center', gap: 1.5, p: 1.75,
+                      border: '1px solid',
+                      borderColor: allPermsOn ? 'rgba(212,168,0,0.35)' : 'rgba(212,168,0,0.18)',
+                      borderRadius: 1.5,
+                      bgcolor: allPermsOn ? 'rgba(212,168,0,0.07)' : 'rgba(212,168,0,0.03)',
+                      cursor: 'pointer', transition: 'all 0.2s',
+                      '&:hover': { borderColor: 'rgba(212,168,0,0.45)', bgcolor: 'rgba(212,168,0,0.09)' },
+                      mb: 0.5,
+                    }}
+                  >
+                    <Box sx={{ flex: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary' }}>Admin</Typography>
+                        <Box sx={{ px: 0.875, py: 0.25, borderRadius: 9999, bgcolor: 'rgba(212,168,0,0.12)', border: '1px solid rgba(212,168,0,0.28)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#7B6000' }}>
+                          Full access
+                        </Box>
                       </Box>
-                      <Switch size="small" checked={perm.value} onChange={e => handlePermissionToggle(perm.key, e.target.checked)} />
+                      <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.25 }}>Grants all permissions below</Typography>
+                    </Box>
+                    <Switch size="small" checked={allPermsOn}
+                      onChange={e => { e.stopPropagation(); handleAdminToggle(e.target.checked) }}
+                      sx={{ '& .MuiSwitch-track': { bgcolor: allPermsOn ? '#D4A800 !important' : undefined } }}
+                    />
+                  </Box>
+
+                  {/* Child permission rows */}
+                  {PERM_ROWS.map(perm => (
+                    <Box
+                      key={perm.key}
+                      onClick={() => handlePermissionToggle(perm.key, !perm.value)}
+                      sx={{
+                        display: 'flex', alignItems: 'center', gap: 1.5, p: 1.75,
+                        border: '1px solid',
+                        borderColor: perm.value ? 'rgba(30,77,140,0.22)' : 'divider',
+                        borderRadius: 1.5,
+                        bgcolor: perm.value ? 'rgba(30,77,140,0.04)' : 'rgba(0,0,0,0.01)',
+                        cursor: 'pointer', transition: 'all 0.2s',
+                        '&:hover': { borderColor: perm.value ? 'rgba(30,77,140,0.35)' : '#B0BACA', bgcolor: perm.value ? 'rgba(30,77,140,0.07)' : 'rgba(0,0,0,0.025)' },
+                      }}
+                    >
+                      <IconTile active={perm.value}>{perm.icon}</IconTile>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary' }}>{perm.label}</Typography>
+                        <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.25 }}>{perm.desc}</Typography>
+                      </Box>
+                      <Switch size="small" checked={perm.value}
+                        onChange={e => { e.stopPropagation(); handlePermissionToggle(perm.key, e.target.checked) }}
+                        onClick={e => e.stopPropagation()}
+                      />
                     </Box>
                   ))}
                 </Stack>
-                <Divider sx={{ mb: 2 }} />
-              </>
+              </Box>
             )}
-
-            {/* Preferences (member-controlled, read-only here) */}
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>
-              Member preferences
-            </Typography>
-            <Typography sx={{ fontSize: 11, color: 'text.secondary', mb: 1.5, fontStyle: 'italic' }}>
-              Set by the member in their profile
-            </Typography>
-            <Stack spacing={0.5}>
-              {PREFERENCES.map(pref => (
-                <Box key={pref.key} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.25 }}>
-                  <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{pref.label}</Typography>
-                  <Chip
-                    label={pref.value ? 'On' : 'Off'}
-                    size="small"
-                    sx={{
-                      fontSize: 11, height: 20, fontWeight: 600,
-                      bgcolor: pref.value ? '#EDFAF0' : 'background.default',
-                      color:   pref.value ? '#174A1A' : 'text.disabled',
-                    }}
-                  />
-                </Box>
-              ))}
-            </Stack>
 
             {/* Skill level */}
             {memberClassesEnabled && (
-              <>
-                <Divider sx={{ my: 2 }} />
+              <Box>
+                <SectionHead title="Skill level" />
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Skill level</Typography>
-                  <Select
-                    size="small"
-                    displayEmpty
-                    value={skillLevel}
-                    onChange={e => handleSkillLevelChange(e.target.value)}
-                    disabled={savingLevel}
-                    sx={{ fontSize: 13, minWidth: 120, height: 28, '.MuiSelect-select': { py: '4px' } }}
-                  >
+                  <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Classification</Typography>
+                  <Select size="small" displayEmpty value={skillLevel} onChange={e => handleSkillLevelChange(e.target.value)} disabled={savingLevel}
+                    sx={{ fontSize: 13, minWidth: 130, height: 30, '.MuiSelect-select': { py: '4px' } }}>
                     <MenuItem value="" sx={{ fontSize: 13 }}>
                       <Typography component="span" sx={{ fontSize: 13, color: 'text.disabled' }}>None</Typography>
                     </MenuItem>
@@ -582,125 +761,88 @@ function MemberModal({
                     ))}
                   </Select>
                 </Box>
-              </>
-            )}
-          </Box>
-
-          {/* ── Right column — submissions snapshot + profile ─────────────── */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-
-            {/* Submissions snapshot */}
-            <Box
-              sx={{
-                display: 'flex',
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 1.5,
-                overflow: 'hidden',
-              }}
-            >
-              <Box sx={{ flex: 1, px: 3, py: 2, textAlign: 'center' }}>
-                <Typography sx={{ fontSize: 30, fontWeight: 700, lineHeight: 1, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
-                  {member.submission_count_this_year}
-                </Typography>
-                <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.75, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
-                  This year
-                </Typography>
               </Box>
-              <Divider orientation="vertical" flexItem />
-              <Box sx={{ flex: 1, px: 3, py: 2, textAlign: 'center' }}>
-                <Typography sx={{ fontSize: 30, fontWeight: 700, lineHeight: 1, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
-                  {member.submission_count}
-                </Typography>
-                <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.75, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
-                  All time
-                </Typography>
+            )}
+
+            {/* Member Preferences */}
+            <Box>
+              <SectionHead title="Member preferences" hint="Set by the member" />
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+                {PREFERENCES.map(pref => (
+                  <Box key={pref.key} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1.5, py: 1.25, border: '1px solid', borderColor: 'divider', borderRadius: 1.25, bgcolor: 'rgba(0,0,0,0.01)' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: 'text.secondary' }}>
+                      {pref.icon}
+                      <Typography sx={{ fontSize: 12.5 }}>{pref.label}</Typography>
+                    </Box>
+                    <Box sx={{
+                      display: 'inline-flex', alignItems: 'center', gap: 0.5,
+                      px: 0.875, py: 0.375, borderRadius: 9999, border: '1px solid', flexShrink: 0,
+                      bgcolor:     pref.value ? 'rgba(46,125,50,0.10)' : 'rgba(0,0,0,0.03)',
+                      borderColor: pref.value ? 'rgba(46,125,50,0.25)' : 'divider',
+                    }}>
+                      <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: pref.value ? '#22c55e' : '#B0BACA' }} />
+                      <Typography sx={{ fontSize: 11, fontWeight: 600, color: pref.value ? '#174A1A' : 'text.disabled' }}>
+                        {pref.value ? 'On' : 'Off'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))}
               </Box>
             </Box>
 
-            {/* Profile info */}
-            {hasProfile ? (
-              <Box>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>
-                  Profile
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                  {member.experience_level && <InfoRow label="Experience" value={member.experience_level} />}
-                  {member.camera_brands.length > 0 && <InfoRow label="Camera" value={member.camera_brands.join(', ')} />}
-                  {member.shooting_interests.length > 0 && <InfoRow label="Interests" value={member.shooting_interests.join(', ')} />}
-                  {member.location && <InfoRow label="Location" value={member.location} />}
-                  {member.bio && (
-                    <Box sx={{ py: 0.5 }}>
-                      <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 0.5 }}>Bio</Typography>
-                      <Typography sx={{ fontSize: 13, color: 'text.primary', lineHeight: 1.6 }}>{member.bio}</Typography>
-                    </Box>
-                  )}
-                </Box>
-              </Box>
-            ) : (
-              <Typography sx={{ fontSize: 13, color: 'text.secondary', fontStyle: 'italic' }}>
-                No profile information on file.
-              </Typography>
-            )}
           </Box>
         </Box>
       </DialogContent>
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5, borderTop: '1px solid', borderColor: 'divider', justifyContent: 'space-between' }}>
+      <DialogActions sx={{ px: 3, py: 2.25, borderTop: '1px solid', borderColor: 'divider', justifyContent: 'space-between', bgcolor: 'rgba(0,0,0,0.015)' }}>
         <Button
-          variant="outlined"
-          size="small"
           onClick={() => setConfirmDelete(true)}
           sx={{
-            bgcolor: '#FDEEEE',
-            color: '#7A1515',
-            borderColor: 'rgba(211,47,47,0.3)',
-            '&:hover': { bgcolor: '#F9D0D0', borderColor: 'rgba(211,47,47,0.5)' },
+            fontSize: 13.5, fontWeight: 600, px: 2, py: 1.125,
+            bgcolor: 'rgba(244,63,94,0.07)', color: '#9B1B30',
+            border: '1px solid rgba(244,63,94,0.25)', borderRadius: 1.25,
+            '&:hover': { bgcolor: 'rgba(244,63,94,0.12)', borderColor: 'rgba(244,63,94,0.4)' },
           }}
+          startIcon={<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path strokeLinecap="round" d="M3 4h10M6 4V2.5h4V4M5 4l.5 9.5h5L11 4M6.5 6.5v5M9.5 6.5v5"/></svg>}
         >
-          Delete
+          Delete member
         </Button>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" color="secondary" size="small" onClick={handleFooterCancel}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+          {editing && (
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, mr: 0.5 }}>
+              <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: '#D4A800' }} />
+              <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>Unsaved changes</Typography>
+            </Box>
+          )}
+          <Button variant="outlined" color="secondary" onClick={handleFooterCancel}
+            sx={{ fontSize: 13.5, fontWeight: 600, px: 2, py: 1.125, borderRadius: 1.25 }}>
             Cancel
           </Button>
-          <Button variant="contained" size="small" onClick={handleFooterSave} disabled={saving}>
-            {saving ? 'Saving…' : 'Save'}
+          <Button variant="contained" onClick={handleFooterSave} disabled={saving}
+            sx={{ fontSize: 13.5, fontWeight: 600, px: 2, py: 1.125, borderRadius: 1.25,
+              boxShadow: '0 3px 10px rgba(30,77,140,0.3)' }}>
+            {saving ? 'Saving…' : 'Save changes'}
           </Button>
         </Box>
       </DialogActions>
 
       {/* ── Delete confirmation ───────────────────────────────────────────── */}
-      <Dialog
-        open={confirmDelete}
-        onClose={() => setConfirmDelete(false)}
-        maxWidth="xs"
-        fullWidth
-        slotProps={{ paper: { sx: { borderRadius: 2 } } }}
-      >
+      <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)} maxWidth="xs" fullWidth
+        slotProps={{ paper: { sx: { borderRadius: 2 } } }}>
         <DialogTitle sx={{ pb: 0.5 }}>Delete member?</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
             <strong>{fullName}</strong>'s account, personal details, and any images not linked to a competition will be permanently deleted.
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5, lineHeight: 1.7 }}>
-            Images submitted to competitions are retained and displayed as "Deleted member" to preserve the club's competition history. This cannot be undone.
+            Images submitted to competitions are retained as "Deleted member" to preserve competition history. This cannot be undone.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button variant="outlined" color="secondary" onClick={() => setConfirmDelete(false)} disabled={deleting}>
-            Cancel
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={handleDelete}
-            disabled={deleting}
-            sx={{
-              bgcolor: '#FDEEEE', color: '#7A1515', borderColor: 'rgba(211,47,47,0.3)',
-              '&:hover': { bgcolor: '#F9D0D0', borderColor: 'rgba(211,47,47,0.5)' },
-            }}
-          >
+          <Button variant="outlined" color="secondary" onClick={() => setConfirmDelete(false)} disabled={deleting}>Cancel</Button>
+          <Button variant="outlined" onClick={handleDelete} disabled={deleting}
+            sx={{ bgcolor: '#FDEEEE', color: '#7A1515', borderColor: 'rgba(211,47,47,0.3)', '&:hover': { bgcolor: '#F9D0D0', borderColor: 'rgba(211,47,47,0.5)' } }}>
             {deleting ? 'Deleting…' : 'Delete member'}
           </Button>
         </DialogActions>

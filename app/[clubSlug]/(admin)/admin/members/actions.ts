@@ -232,6 +232,23 @@ export async function updateMemberName(memberId: string, firstName: string, last
   revalidatePath('/', 'layout')   // nav bar + home page pick up the new display_name
 }
 
+export async function removeAdminRole(memberId: string) {
+  const supabase = createServiceClient()
+  const ctx = await getClubContext()
+  await supabase
+    .from('profiles')
+    .update({ role: 'member' })
+    .eq('id', memberId)
+  if (ctx?.clubId) {
+    await supabase
+      .from('club_memberships')
+      .update({ role: 'member' })
+      .eq('user_id', memberId)
+      .eq('club_id', ctx.clubId)
+  }
+  revalidatePath('/admin/members')
+}
+
 export async function makeAdmin(memberId: string) {
   const supabase = createServiceClient()
   const ctx = await getClubContext()
