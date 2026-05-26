@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useTransition } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Alert,
@@ -311,20 +311,22 @@ function MemberModal({
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting]           = useState(false)
 
-  // Permissions (local state for optimistic UI + cascade)
+  // Permissions (staged locally — saved only on "Save changes")
   const [permCompetition, setPermCompetition] = useState(member.perm_competition_manager)
   const [permEvent, setPermEvent]             = useState(member.perm_event_manager)
   const [permComms, setPermComms]             = useState(member.perm_comms_manager)
-  const [, startPermTransition]               = useTransition()
 
-  const allPermsOn    = permCompetition && permEvent && permComms
-  const isAdminRole   = member.role === 'admin'
+  const allPermsOn      = permCompetition && permEvent && permComms
+  const isAdminRole     = member.role === 'admin'
+  const permsChanged    = permCompetition !== member.perm_competition_manager
+                       || permEvent       !== member.perm_event_manager
+                       || permComms       !== member.perm_comms_manager
   const fullName      = [member.first_name, member.last_name].filter(Boolean).join(' ') || '—'
   const memberNum     = `#${String(member.member_number).padStart(4, '0')}`
   const showPermissions = member.role === 'member' || member.role === 'admin'
   const enabledCount  = [permCompetition, permEvent, permComms].filter(Boolean).length
 
-  // Reset when member changes
+  // Reset all staged state when a different member is opened
   React.useEffect(() => {
     setEditing(false)
     setFirstName(member.first_name ?? '')
@@ -351,38 +353,17 @@ function MemberModal({
     router.refresh()
   }
 
+  // Permission toggles are local-only — changes are staged and only written on Save
   function handlePermissionToggle(key: PermissionKey, value: boolean) {
-    const next = {
-      perm_competition_manager: key === 'perm_competition_manager' ? value : permCompetition,
-      perm_event_manager:       key === 'perm_event_manager'       ? value : permEvent,
-      perm_comms_manager:       key === 'perm_comms_manager'       ? value : permComms,
-    }
     if (key === 'perm_competition_manager') setPermCompetition(value)
     if (key === 'perm_event_manager')       setPermEvent(value)
     if (key === 'perm_comms_manager')       setPermComms(value)
-    startPermTransition(async () => {
-      await setMemberPermission(member.id, key, value)
-      // Cascade: all on → make admin; any off → remove admin role
-      const nowAllOn = next.perm_competition_manager && next.perm_event_manager && next.perm_comms_manager
-      if (nowAllOn && !isAdminRole) await makeAdmin(member.id)
-      if (!nowAllOn && isAdminRole) await removeAdminRole(member.id)
-      router.refresh()
-    })
   }
 
   function handleAdminToggle(enabled: boolean) {
     setPermCompetition(enabled)
     setPermEvent(enabled)
     setPermComms(enabled)
-    startPermTransition(async () => {
-      await Promise.all([
-        setMemberPermission(member.id, 'perm_competition_manager', enabled),
-        setMemberPermission(member.id, 'perm_event_manager', enabled),
-        setMemberPermission(member.id, 'perm_comms_manager', enabled),
-        enabled ? makeAdmin(member.id) : removeAdminRole(member.id),
-      ])
-      router.refresh()
-    })
   }
 
   async function handleDelete() {
@@ -401,16 +382,45 @@ function MemberModal({
   }
 
   async function handleFooterSave() {
-    if (editing) await handleSaveName()
+    setSaving(true)
+    const saves: Promise<unknown>[] = []
+
+    // Flush name edit
+    if (editing) saves.push(updateMemberName(member.id, firstName, lastName))
+
+    // Flush permission changes
+    if (permsChanged) {
+      if (permCompetition !== member.perm_competition_manager)
+        saves.push(setMemberPermission(member.id, 'perm_competition_manager', permCompetition))
+      if (permEvent !== member.perm_event_manager)
+        saves.push(setMemberPermission(member.id, 'perm_event_manager', permEvent))
+      if (permComms !== member.perm_comms_manager)
+        saves.push(setMemberPermission(member.id, 'perm_comms_manager', permComms))
+
+      // Cascade role: all three on → admin; any off → back to member
+      const willBeAdmin = permCompetition && permEvent && permComms
+      if (willBeAdmin && !isAdminRole)  saves.push(makeAdmin(member.id))
+      if (!willBeAdmin && isAdminRole)  saves.push(removeAdminRole(member.id))
+    }
+
+    if (saves.length) {
+      await Promise.all(saves)
+      router.refresh()
+    }
+
+    setSaving(false)
+    setEditing(false)
     onClose()
   }
 
   function handleFooterCancel() {
-    if (editing) {
-      setFirstName(member.first_name ?? '')
-      setLastName(member.last_name ?? '')
-      setEditing(false)
-    }
+    // Revert any staged changes
+    setFirstName(member.first_name ?? '')
+    setLastName(member.last_name ?? '')
+    setEditing(false)
+    setPermCompetition(member.perm_competition_manager)
+    setPermEvent(member.perm_event_manager)
+    setPermComms(member.perm_comms_manager)
     onClose()
   }
 
@@ -809,7 +819,7 @@ function MemberModal({
           Delete member
         </Button>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-          {editing && (
+          {(editing || permsChanged) && (
             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, mr: 0.5 }}>
               <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: '#D4A800' }} />
               <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>Unsaved changes</Typography>
