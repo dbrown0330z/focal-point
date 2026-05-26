@@ -15,7 +15,7 @@ export default async function MembersPage() {
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, first_name, last_name, display_name, member_number, membership_status, membership_class, role, created_at, bio, camera_brands, shooting_interests, experience_level, avatar_url, location, phone, perm_competition_manager, perm_event_manager, perm_comms_manager')
+      .select('id, first_name, last_name, display_name, member_number, membership_status, membership_class, role, created_at, bio, camera_brands, shooting_interests, experience_level, avatar_url, location, phone')
       .order('member_number', { ascending: true }),
     admin.from('submissions').select('member_id'),
     admin.from('club_settings').select('member_classes_enabled').single(),
@@ -35,8 +35,13 @@ export default async function MembersPage() {
 
   const profilesWithCounts = (profiles ?? []).map(p => ({
     ...p,
-    submission_count: submissionCounts[p.id] ?? 0,
-    email: emailById[p.id] ?? null,
+    submission_count:         submissionCounts[p.id] ?? 0,
+    email:                    emailById[p.id] ?? null,
+    // Permission columns added by migration 20260525000001 — default false
+    // until the migration has been applied to this environment.
+    perm_competition_manager: (p as { perm_competition_manager?: boolean }).perm_competition_manager ?? false,
+    perm_event_manager:       (p as { perm_event_manager?: boolean }).perm_event_manager ?? false,
+    perm_comms_manager:       (p as { perm_comms_manager?: boolean }).perm_comms_manager ?? false,
   }))
 
   return (
