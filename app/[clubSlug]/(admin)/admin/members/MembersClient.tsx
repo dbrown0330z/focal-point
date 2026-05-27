@@ -56,6 +56,7 @@ import {
   deleteMemberClass,
   setMemberPermission,
   removeAdminRole,
+  sendPasswordReset,
 } from './actions'
 
 type MembershipStatus = Database['public']['Enums']['membership_status']
@@ -281,6 +282,30 @@ function IconTile({ children, active = false }: { children: React.ReactNode; act
   )
 }
 
+// ─── PrefGrid — read-only preference row list ─────────────────────────────────
+
+function PrefGrid({ prefs }: { prefs: { key: string; label: string; value: boolean }[] }) {
+  return (
+    <Stack spacing={0.75}>
+      {prefs.map(pref => (
+        <Box key={pref.key} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1.5, py: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1.25, bgcolor: 'rgba(0,0,0,0.01)' }}>
+          <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{pref.label}</Typography>
+          <Box component="span" sx={{
+            display: 'inline-flex', alignItems: 'center', flexShrink: 0,
+            borderRadius: 9999, px: 1.25, py: 0.375,
+            bgcolor: pref.value ? 'success.light' : 'rgba(0,0,0,0.04)',
+            color:   pref.value ? 'success.contrastText' : 'text.secondary',
+            fontSize: 11, fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '0.03em',
+          }}>
+            {pref.value ? 'On' : 'Off'}
+          </Box>
+        </Box>
+      ))}
+    </Stack>
+  )
+}
+
 // ─── Submission donut chart ───────────────────────────────────────────────────
 
 const DONUT_COLORS = ['#1E4D8C', '#0097A7', '#6C47D4', '#E65100', '#00796B', '#AD1457', '#7B6B38']
@@ -288,10 +313,13 @@ const DONUT_COLORS = ['#1E4D8C', '#0097A7', '#6C47D4', '#E65100', '#00796B', '#A
 function SubmissionDonut({ categories }: { categories: Record<string, number> }) {
   const entries = Object.entries(categories).filter(([, v]) => v > 0)
     .sort(([, a], [, b]) => b - a)
-  if (entries.length === 0) return null
+
+  if (entries.length === 0) {
+    return <Typography sx={{ fontSize: 24, fontWeight: 700, color: 'text.disabled', lineHeight: 1, mt: 0.5 }}>—</Typography>
+  }
 
   const total = entries.reduce((sum, [, v]) => sum + v, 0)
-  const cx = 36, cy = 36, r = 27, sw = 10
+  const cx = 26, cy = 26, r = 19, sw = 7
 
   let cumAngle = -Math.PI / 2
   const segments = entries.map(([name, count], i) => {
@@ -309,9 +337,9 @@ function SubmissionDonut({ categories }: { categories: Record<string, number> })
   })
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 2, mb: 0.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
       <Box sx={{ flexShrink: 0 }}>
-        <svg width="72" height="72" viewBox="0 0 72 72">
+        <svg width="52" height="52" viewBox="0 0 52 52">
           {entries.length === 1 ? (
             <circle cx={cx} cy={cy} r={r} fill="none" stroke={DONUT_COLORS[0]} strokeWidth={sw} />
           ) : (
@@ -320,20 +348,20 @@ function SubmissionDonut({ categories }: { categories: Record<string, number> })
             ))
           )}
           <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle"
-            fontSize="13" fontWeight="700" fill="currentColor">{total}</text>
+            fontSize="10" fontWeight="700" fill="currentColor">{total}</text>
         </svg>
       </Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography sx={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'text.secondary', mb: 0.75 }}>
-          Submissions by category
-        </Typography>
-        {segments.map((s, i) => (
-          <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.4 }}>
-            <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: s.color, flexShrink: 0 }} />
-            <Typography sx={{ fontSize: 12, color: 'text.secondary', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</Typography>
-            <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.primary', ml: 0.5 }}>{s.count}</Typography>
+        {segments.slice(0, 4).map((s, i) => (
+          <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.3 }}>
+            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: s.color, flexShrink: 0 }} />
+            <Typography sx={{ fontSize: 11.5, color: 'text.secondary', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</Typography>
+            <Typography sx={{ fontSize: 11.5, fontWeight: 600, color: 'text.primary', ml: 0.5 }}>{s.count}</Typography>
           </Box>
         ))}
+        {segments.length > 4 && (
+          <Typography sx={{ fontSize: 11, color: 'text.disabled', mt: 0.25 }}>+{segments.length - 4} more</Typography>
+        )}
       </Box>
     </Box>
   )
@@ -389,22 +417,26 @@ function MemberModal({
   const [permEvent, setPermEvent]             = useState(() => initPerm(member.perm_event_manager))
   const [permComms, setPermComms]             = useState(() => initPerm(member.perm_comms_manager))
   const [pendingStatus, setPendingStatus]     = useState<MembershipStatus | null>(null)
+  const [pendingRole, setPendingRole]         = useState<'admin' | 'member' | null>(null)
+  const [resetSending, setResetSending]       = useState(false)
+  const [resetSent, setResetSent]             = useState(false)
 
   const effectiveStatus = pendingStatus ?? member.membership_status
-  const allPermsOn      = permCompetition && permEvent && permComms
+  const savedRole: 'admin' | 'member' = member.role === 'admin' ? 'admin' : 'member'
+  const effectiveRole: 'admin' | 'member' = pendingRole ?? savedRole
   // Use the same "effective original" values so opening an admin member doesn't
   // immediately show the unsaved indicator
   const origCompetition = initPerm(member.perm_competition_manager)
   const origEvent       = initPerm(member.perm_event_manager)
   const origComms       = initPerm(member.perm_comms_manager)
-  const permsChanged    = permCompetition !== origCompetition
-                       || permEvent       !== origEvent
-                       || permComms       !== origComms
-  const hasUnsaved      = editing || permsChanged || pendingStatus !== null
-  const fullName      = [member.first_name, member.last_name].filter(Boolean).join(' ') || '—'
-  const memberNum     = `#${String(member.member_number).padStart(4, '0')}`
+  const permsChanged    = effectiveRole === 'member' && (
+                            permCompetition !== origCompetition ||
+                            permEvent       !== origEvent       ||
+                            permComms       !== origComms)
+  const hasUnsaved      = editing || permsChanged || pendingStatus !== null || pendingRole !== null
+  const fullName        = [member.first_name, member.last_name].filter(Boolean).join(' ') || '—'
+  const memberNum       = `#${String(member.member_number).padStart(4, '0')}`
   const showPermissions = member.role === 'member' || member.role === 'admin'
-  const enabledCount  = [permCompetition, permEvent, permComms].filter(Boolean).length
 
   // Reset all staged state when a different member is opened
   React.useEffect(() => {
@@ -416,6 +448,8 @@ function MemberModal({
     setPermEvent(initPerm(member.perm_event_manager))
     setPermComms(initPerm(member.perm_comms_manager))
     setPendingStatus(null)
+    setPendingRole(null)
+    setResetSent(false)
   }, [member]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSaveName() {
@@ -441,10 +475,15 @@ function MemberModal({
     if (key === 'perm_comms_manager')       setPermComms(value)
   }
 
-  function handleAdminToggle(enabled: boolean) {
-    setPermCompetition(enabled)
-    setPermEvent(enabled)
-    setPermComms(enabled)
+  function handleRoleSelect(role: 'admin' | 'member') {
+    setPendingRole(role === savedRole ? null : role)
+  }
+
+  async function handleSendPasswordReset() {
+    setResetSending(true)
+    await sendPasswordReset(member.id)
+    setResetSending(false)
+    setResetSent(true)
   }
 
   async function handleDelete() {
@@ -477,19 +516,20 @@ function MemberModal({
     // Flush staged status change
     if (pendingStatus) saves.push(setMemberStatus(member.id, pendingStatus))
 
-    // Flush permission changes
-    if (permsChanged) {
+    // Flush role change (Admin ↔ Member segmented control)
+    if (pendingRole !== null) {
+      if (pendingRole === 'admin' && !isAdminRole) saves.push(makeAdmin(member.id))
+      if (pendingRole === 'member' && isAdminRole) saves.push(removeAdminRole(member.id))
+    }
+
+    // Flush individual permission changes (only relevant when role stays as member)
+    if (permsChanged && effectiveRole === 'member') {
       if (permCompetition !== member.perm_competition_manager)
         saves.push(setMemberPermission(member.id, 'perm_competition_manager', permCompetition))
       if (permEvent !== member.perm_event_manager)
         saves.push(setMemberPermission(member.id, 'perm_event_manager', permEvent))
       if (permComms !== member.perm_comms_manager)
         saves.push(setMemberPermission(member.id, 'perm_comms_manager', permComms))
-
-      // Cascade role: all three on → admin; any off → back to member
-      const willBeAdmin = permCompetition && permEvent && permComms
-      if (willBeAdmin && !isAdminRole)  saves.push(makeAdmin(member.id))
-      if (!willBeAdmin && isAdminRole)  saves.push(removeAdminRole(member.id))
     }
 
     if (saves.length) {
@@ -511,6 +551,7 @@ function MemberModal({
     setPermEvent(initPerm(member.perm_event_manager))
     setPermComms(initPerm(member.perm_comms_manager))
     setPendingStatus(null)
+    setPendingRole(null)
     onClose()
   }
 
@@ -518,27 +559,12 @@ function MemberModal({
   const hasProfile    = !!(member.experience_level || member.camera_brands.length ||
     member.shooting_interests.length || member.location || member.bio)
 
-  const PREFERENCES = [
-    { key: 'pref_competition_reminders', label: 'Competition reminders', value: member.pref_competition_reminders,
-      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M3 13.5l-.5-1.5C2 10.5 4 9 4 7a4 4 0 118 0c0 2 2 3.5 1.5 5l-.5 1.5H3z" strokeLinecap="round"/><path d="M6.5 13.5a1.5 1.5 0 003 0" strokeLinecap="round"/></svg> },
-    { key: 'pref_results_notifications', label: 'Results notifications', value: member.pref_results_notifications,
-      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M2 4h12M2 8h12M2 12h8" strokeLinecap="round"/></svg> },
-    { key: 'pref_club_newsletter',       label: 'Club newsletter',       value: member.pref_club_newsletter,
-      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="2" y="3.5" width="12" height="9" rx="1.5"/><path d="M2 4l6 4 6-4"/></svg> },
-    { key: 'pref_public_profile',        label: 'Public profile',        value: member.pref_public_profile,
-      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="8" cy="8" r="6"/><path d="M2.5 8h11M8 2.5c2 1.7 2 9.3 0 11M8 2.5c-2 1.7-2 9.3 0 11"/></svg> },
-    { key: 'pref_show_scores_publicly',  label: 'Show scores publicly',  value: member.pref_show_scores_publicly,
-      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 13V10M6 13V7M10 13V4M14 13V8" strokeLinecap="round"/></svg> },
-    { key: 'pref_show_in_directory',     label: 'Show in directory',     value: member.pref_show_in_directory,
-      icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="6" cy="6" r="2"/><path d="M2 13a4 4 0 018 0M11 4a2 2 0 010 4M10 13a4 4 0 014-4" strokeLinecap="round"/></svg> },
-  ]
-
   const PERM_ROWS = [
-    { key: 'perm_competition_manager' as PermissionKey, label: 'Competition manager', desc: 'Can create and manage competitions', value: permCompetition,
-      icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M8 2l1.5 3.5L13 6l-2.5 2.5.5 3.5L8 10.5 5 12l.5-3.5L3 6l3.5-.5L8 2z" strokeLinejoin="round"/></svg> },
-    { key: 'perm_event_manager'       as PermissionKey, label: 'Event manager',       desc: 'Can create and manage calendar events', value: permEvent,
+    { key: 'perm_event_manager'       as PermissionKey, label: 'Event Manager',        desc: 'Create and edit events from the calendar page', value: permEvent,
       icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6h12M5.5 1.5v3M10.5 1.5v3" strokeLinecap="round"/></svg> },
-    { key: 'perm_comms_manager'       as PermissionKey, label: 'Communications',      desc: 'Can send club-wide notifications',   value: permComms,
+    { key: 'perm_competition_manager' as PermissionKey, label: 'Competition Manager', desc: 'Create, edit and manage competitions from the admin area', value: permCompetition,
+      icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M8 2l1.5 3.5L13 6l-2.5 2.5.5 3.5L8 10.5 5 12l.5-3.5L3 6l3.5-.5L8 2z" strokeLinejoin="round"/></svg> },
+    { key: 'perm_comms_manager'       as PermissionKey, label: 'Communication Manager', desc: 'Send messages to club members from the admin area', value: permComms,
       icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M14 2H2v9h5l1 3 1-3h5V2z" strokeLinejoin="round"/></svg> },
   ] as const
 
@@ -546,7 +572,7 @@ function MemberModal({
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="lg"
+      maxWidth="xl"
       fullWidth
       slotProps={{ paper: { sx: { borderRadius: 2, overflow: 'hidden' } } }}
     >
@@ -647,13 +673,13 @@ function MemberModal({
       </DialogTitle>
 
       {/* ── Stats strip ───────────────────────────────────────────────────── */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: '1px solid', borderColor: 'divider' }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.4fr', borderBottom: '1px solid', borderColor: 'divider' }}>
         {[
           { label: 'Competitions · this year', value: member.competitions_this_year, sub: 'entered' },
           { label: 'Submissions · this year',  value: member.submission_count_this_year, sub: 'images submitted' },
           { label: 'Submissions · all time',   value: member.submission_count, sub: 'total' },
         ].map((s, i) => (
-          <Box key={i} sx={{ px: '30px', py: '18px', borderRight: i < 2 ? '1px solid' : 'none', borderColor: 'divider' }}>
+          <Box key={i} sx={{ px: '24px', py: '16px', borderRight: '1px solid', borderColor: 'divider' }}>
             <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.75 }}>
               {s.label}
             </Typography>
@@ -663,6 +689,13 @@ function MemberModal({
             <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.5 }}>{s.sub}</Typography>
           </Box>
         ))}
+        {/* Category donut */}
+        <Box sx={{ px: '24px', py: '16px' }}>
+          <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
+            Submissions by category
+          </Typography>
+          <SubmissionDonut categories={member.submission_categories} />
+        </Box>
       </Box>
 
       {/* ── Body ─────────────────────────────────────────────────────────── */}
@@ -672,54 +705,122 @@ function MemberModal({
           {/* ── Left column ──────────────────────────────────────────────── */}
           <Box sx={{ pl: '30px', pr: '40px', py: '30px', borderRight: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 3 }}>
 
-            {/* Submission breakdown donut */}
-            <SubmissionDonut categories={member.submission_categories} />
-
-            {/* Contact */}
+            {/* Login */}
             <Box>
-              <SectionHead title="Contact" />
-              {/* Email card */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.75, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, bgcolor: 'rgba(0,0,0,0.01)' }}>
-                <IconTile active={!!member.email}>
-                  <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="2.5" y="4.5" width="15" height="11" rx="1.5"/><path d="M3 5l7 5 7-5"/>
-                  </svg>
-                </IconTile>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontSize: 10, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Email</Typography>
-                  {member.email ? (
-                    <Typography sx={{ fontSize: 13.5, color: 'text.primary', fontFamily: 'var(--font-code, monospace)', wordBreak: 'break-all' }}>{member.email}</Typography>
-                  ) : (
-                    <Typography sx={{ fontSize: 13, color: 'text.secondary', fontStyle: 'italic' }}>Not on file</Typography>
+              <SectionHead title="Login" />
+              <Stack spacing={1}>
+                {/* Email row */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, bgcolor: 'rgba(0,0,0,0.01)' }}>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontSize: 10, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Username / Email</Typography>
+                    {member.email ? (
+                      <Typography sx={{ fontSize: 13, color: 'text.primary', fontFamily: 'var(--font-code, monospace)', wordBreak: 'break-all', mt: 0.25 }}>{member.email}</Typography>
+                    ) : (
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary', fontStyle: 'italic', mt: 0.25 }}>Not on file</Typography>
+                    )}
+                  </Box>
+                  {member.email && (
+                    <Button variant="outlined" color="secondary" size="small" component="a" href={`mailto:${member.email}`} sx={{ flexShrink: 0, fontSize: 12 }}
+                      startIcon={<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M2 4l6 4 6-4M2 4v8h12V4H2z"/></svg>}>
+                      Send email
+                    </Button>
                   )}
                 </Box>
-                {member.email && (
-                  <Button variant="outlined" color="secondary" size="small" component="a" href={`mailto:${member.email}`} sx={{ flexShrink: 0 }}
-                    startIcon={<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M2 4l6 4 6-4M2 4v8h12V4H2z"/></svg>}>
-                    Send email
-                  </Button>
-                )}
-              </Box>
-              {/* Phone card */}
-              {member.phone && (
-                <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1.5, p: 1.75, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, bgcolor: 'rgba(0,0,0,0.01)' }}>
-                  <IconTile active>
-                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3">
-                      <path strokeLinecap="round" d="M4.5 2h3l1 3-2 1a8 8 0 003.5 3.5l1-2 3 1v3a1 1 0 01-1 1A11 11 0 013.5 3a1 1 0 011-1z"/>
-                    </svg>
-                  </IconTile>
-                  <Box>
-                    <Typography sx={{ fontSize: 10, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Phone</Typography>
-                    <Typography sx={{ fontSize: 13.5, color: 'text.primary', fontFamily: 'var(--font-code, monospace)' }}>{member.phone}</Typography>
+                {/* Password row */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, bgcolor: 'rgba(0,0,0,0.01)' }}>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontSize: 10, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Password</Typography>
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.25 }}>
+                      {resetSent ? 'Reset email sent ✓' : '••••••••••••'}
+                    </Typography>
                   </Box>
+                  <Button variant="outlined" color="secondary" size="small"
+                    onClick={handleSendPasswordReset}
+                    disabled={resetSending || resetSent || !member.email}
+                    sx={{ flexShrink: 0, fontSize: 12 }}>
+                    {resetSending ? 'Sending…' : resetSent ? 'Sent' : 'Send reset email'}
+                  </Button>
                 </Box>
-              )}
+              </Stack>
             </Box>
 
-            {/* Photography Profile */}
-            {hasProfile && (
+            {/* Permissions */}
+            {showPermissions && (
               <Box>
-                <SectionHead title="Photography Profile" hint="Self-reported" />
+                <SectionHead title="Permissions" accent="· admin-controlled" />
+
+                {/* Admin / Member segmented control */}
+                <Box sx={{ display: 'inline-flex', border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden', mb: 1.5 }}>
+                  {(['admin', 'member'] as const).map(role => (
+                    <Box
+                      key={role}
+                      component="button"
+                      onClick={() => handleRoleSelect(role)}
+                      sx={{
+                        px: 2.5, py: 0.875, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        border: 'none', fontFamily: 'inherit',
+                        bgcolor: effectiveRole === role ? 'primary.main' : 'transparent',
+                        color: effectiveRole === role ? 'primary.contrastText' : 'text.secondary',
+                        transition: 'all 0.15s',
+                        '&:hover': effectiveRole !== role ? { bgcolor: 'rgba(0,0,0,0.04)' } : {},
+                      }}
+                    >
+                      {role.charAt(0).toUpperCase() + role.slice(1)}
+                    </Box>
+                  ))}
+                </Box>
+
+                {effectiveRole === 'admin' ? (
+                  <Box sx={{ p: 1.75, border: '1px solid', borderColor: 'rgba(166,124,0,0.35)', borderRadius: 1.5, bgcolor: 'rgba(166,124,0,0.04)' }}>
+                    <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: 'text.primary', mb: 0.25 }}>Full admin access</Typography>
+                    <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>
+                      User has full access to all admin features. No additional permissions required.
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Stack spacing={1}>
+                    <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mb: 0.25 }}>
+                      User has access to the member portal. Select optional admin permissions:
+                    </Typography>
+                    {PERM_ROWS.map(perm => (
+                      <Box
+                        key={perm.key}
+                        onClick={() => handlePermissionToggle(perm.key, !perm.value)}
+                        sx={{
+                          display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5,
+                          border: '1px solid',
+                          borderColor: perm.value ? 'rgba(30,77,140,0.22)' : 'divider',
+                          borderRadius: 1.5,
+                          bgcolor: perm.value ? 'rgba(30,77,140,0.04)' : 'rgba(0,0,0,0.01)',
+                          cursor: 'pointer', transition: 'all 0.2s',
+                          '&:hover': { borderColor: perm.value ? 'rgba(30,77,140,0.35)' : '#B0BACA', bgcolor: perm.value ? 'rgba(30,77,140,0.07)' : 'rgba(0,0,0,0.025)' },
+                        }}
+                      >
+                        <IconTile active={perm.value}>{perm.icon}</IconTile>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: 'text.primary' }}>{perm.label}</Typography>
+                          <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.25 }}>{perm.desc}</Typography>
+                        </Box>
+                        <Switch size="small" checked={perm.value}
+                          onChange={e => { e.stopPropagation(); handlePermissionToggle(perm.key, e.target.checked) }}
+                          onClick={e => e.stopPropagation()}
+                        />
+                      </Box>
+                    ))}
+                  </Stack>
+                )}
+              </Box>
+            )}
+
+          </Box>
+
+          {/* ── Right column ─────────────────────────────────────────────── */}
+          <Box sx={{ pl: '40px', pr: '30px', py: '30px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+
+            {/* Profile */}
+            <Box>
+              <SectionHead title="Profile" hint="Self-reported" />
+              {hasProfile ? (
                 <Box sx={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '10px 14px', alignItems: 'center' }}>
                   {member.experience_level && (
                     <>
@@ -751,121 +852,60 @@ function MemberModal({
                       <Typography sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.55 }}>{member.bio}</Typography>
                     </>
                   )}
+                  {memberClassesEnabled && (
+                    <>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Level</Typography>
+                      <Select size="small" displayEmpty value={skillLevel} onChange={e => handleSkillLevelChange(e.target.value)} disabled={savingLevel}
+                        sx={{ fontSize: 13, minWidth: 130, height: 30, '.MuiSelect-select': { py: '4px' } }}>
+                        <MenuItem value="" sx={{ fontSize: 13 }}>
+                          <Typography component="span" sx={{ fontSize: 13, color: 'text.disabled' }}>None</Typography>
+                        </MenuItem>
+                        {memberClasses.map(cls => (
+                          <MenuItem key={cls.id} value={cls.name} sx={{ fontSize: 13 }}>{cls.name}</MenuItem>
+                        ))}
+                      </Select>
+                    </>
+                  )}
                 </Box>
-              </Box>
-            )}
-
-          </Box>
-
-          {/* ── Right column ─────────────────────────────────────────────── */}
-          <Box sx={{ pl: '40px', pr: '30px', py: '30px', display: 'flex', flexDirection: 'column', gap: 3 }}>
-
-            {/* Permissions */}
-            {showPermissions && (
-              <Box>
-                <SectionHead title="Permissions" accent="· admin-controlled" hint={`${enabledCount} of 3 enabled`} />
-                <Stack spacing={1}>
-                  {/* Admin master row */}
-                  <Box
-                    onClick={() => handleAdminToggle(!allPermsOn)}
-                    sx={{
-                      display: 'flex', alignItems: 'center', gap: 1.5, p: 1.75,
-                      border: '1px solid',
-                      borderColor: allPermsOn ? 'rgba(166,124,0,0.50)' : 'rgba(166,124,0,0.28)',
-                      borderRadius: 1.5,
-                      bgcolor: allPermsOn ? 'warning.light' : 'rgba(166,124,0,0.04)',
-                      cursor: 'pointer', transition: 'all 0.2s',
-                      '&:hover': { borderColor: 'rgba(166,124,0,0.60)', bgcolor: 'warning.light' },
-                      mb: 0.5,
-                    }}
-                  >
-                    <Box sx={{ flex: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                        <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary' }}>Admin</Typography>
-                        <Box sx={{ px: 0.875, py: 0.25, borderRadius: 9999, bgcolor: 'rgba(166,124,0,0.15)', border: '1px solid rgba(166,124,0,0.40)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'warning.contrastText' }}>
-                          Full access
-                        </Box>
-                      </Box>
-                      <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.25 }}>Grants all permissions below</Typography>
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography sx={{ fontSize: 13, color: 'text.disabled', fontStyle: 'italic' }}>No profile information provided.</Typography>
+                  {memberClassesEnabled && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Level</Typography>
+                      <Select size="small" displayEmpty value={skillLevel} onChange={e => handleSkillLevelChange(e.target.value)} disabled={savingLevel}
+                        sx={{ fontSize: 13, minWidth: 130, height: 30, '.MuiSelect-select': { py: '4px' } }}>
+                        <MenuItem value="" sx={{ fontSize: 13 }}>
+                          <Typography component="span" sx={{ fontSize: 13, color: 'text.disabled' }}>None</Typography>
+                        </MenuItem>
+                        {memberClasses.map(cls => (
+                          <MenuItem key={cls.id} value={cls.name} sx={{ fontSize: 13 }}>{cls.name}</MenuItem>
+                        ))}
+                      </Select>
                     </Box>
-                    <Switch size="small" checked={allPermsOn}
-                      onChange={e => { e.stopPropagation(); handleAdminToggle(e.target.checked) }}
-                      sx={{ '& .MuiSwitch-track': { bgcolor: allPermsOn ? '#D4A800 !important' : undefined } }}
-                    />
-                  </Box>
-
-                  {/* Child permission rows */}
-                  {PERM_ROWS.map(perm => (
-                    <Box
-                      key={perm.key}
-                      onClick={() => handlePermissionToggle(perm.key, !perm.value)}
-                      sx={{
-                        display: 'flex', alignItems: 'center', gap: 1.5, p: 1.75,
-                        border: '1px solid',
-                        borderColor: perm.value ? 'rgba(30,77,140,0.22)' : 'divider',
-                        borderRadius: 1.5,
-                        bgcolor: perm.value ? 'rgba(30,77,140,0.04)' : 'rgba(0,0,0,0.01)',
-                        cursor: 'pointer', transition: 'all 0.2s',
-                        '&:hover': { borderColor: perm.value ? 'rgba(30,77,140,0.35)' : '#B0BACA', bgcolor: perm.value ? 'rgba(30,77,140,0.07)' : 'rgba(0,0,0,0.025)' },
-                      }}
-                    >
-                      <IconTile active={perm.value}>{perm.icon}</IconTile>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary' }}>{perm.label}</Typography>
-                        <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.25 }}>{perm.desc}</Typography>
-                      </Box>
-                      <Switch size="small" checked={perm.value}
-                        onChange={e => { e.stopPropagation(); handlePermissionToggle(perm.key, e.target.checked) }}
-                        onClick={e => e.stopPropagation()}
-                      />
-                    </Box>
-                  ))}
-                </Stack>
-              </Box>
-            )}
-
-            {/* Skill level */}
-            {memberClassesEnabled && (
-              <Box>
-                <SectionHead title="Skill level" />
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Classification</Typography>
-                  <Select size="small" displayEmpty value={skillLevel} onChange={e => handleSkillLevelChange(e.target.value)} disabled={savingLevel}
-                    sx={{ fontSize: 13, minWidth: 130, height: 30, '.MuiSelect-select': { py: '4px' } }}>
-                    <MenuItem value="" sx={{ fontSize: 13 }}>
-                      <Typography component="span" sx={{ fontSize: 13, color: 'text.disabled' }}>None</Typography>
-                    </MenuItem>
-                    {memberClasses.map(cls => (
-                      <MenuItem key={cls.id} value={cls.name} sx={{ fontSize: 13 }}>{cls.name}</MenuItem>
-                    ))}
-                  </Select>
+                  )}
                 </Box>
-              </Box>
-            )}
+              )}
+            </Box>
 
-            {/* Member Preferences */}
+            {/* Communications preferences */}
             <Box>
-              <SectionHead title="Member preferences" hint="Set by the member" />
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
-                {PREFERENCES.map(pref => (
-                  <Box key={pref.key} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1.5, py: 1.25, border: '1px solid', borderColor: 'divider', borderRadius: 1.25, bgcolor: 'rgba(0,0,0,0.01)' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: 'text.secondary' }}>
-                      {pref.icon}
-                      <Typography sx={{ fontSize: 12.5 }}>{pref.label}</Typography>
-                    </Box>
-                    <Box component="span" sx={{
-                      display: 'inline-flex', alignItems: 'center', flexShrink: 0,
-                      borderRadius: 9999, px: 1.25, py: 0.375,
-                      bgcolor:    pref.value ? 'success.light' : 'rgba(0,0,0,0.04)',
-                      color:      pref.value ? 'success.contrastText' : 'text.secondary',
-                      fontSize: 11, fontWeight: 700,
-                      textTransform: 'uppercase', letterSpacing: '0.03em',
-                    }}>
-                      {pref.value ? 'On' : 'Off'}
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
+              <SectionHead title="Communications" hint="Set by member" />
+              <PrefGrid prefs={[
+                { key: 'pref_competition_reminders', label: 'Competition reminders', value: member.pref_competition_reminders },
+                { key: 'pref_club_newsletter',       label: 'Club newsletter',       value: member.pref_club_newsletter       },
+                { key: 'pref_results_notifications', label: 'Results notifications', value: member.pref_results_notifications },
+              ]} />
+            </Box>
+
+            {/* Privacy preferences */}
+            <Box>
+              <SectionHead title="Privacy" hint="Set by member" />
+              <PrefGrid prefs={[
+                { key: 'pref_show_scores_publicly', label: 'Show scores publicly', value: member.pref_show_scores_publicly },
+                { key: 'pref_public_profile',       label: 'Public profile',       value: member.pref_public_profile       },
+                { key: 'pref_show_in_directory',    label: 'Show in directory',    value: member.pref_show_in_directory    },
+              ]} />
             </Box>
 
           </Box>

@@ -335,6 +335,19 @@ export async function deleteMemberClass(id: string): Promise<{ error?: string }>
   return {}
 }
 
+export async function sendPasswordReset(memberId: string): Promise<{ error?: string }> {
+  const service = createServiceClient()
+  const { data: { user }, error: userError } = await service.auth.admin.getUserById(memberId)
+  if (userError || !user?.email) return { error: userError?.message ?? 'No email on file' }
+
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
+  const { error } = await service.auth.resetPasswordForEmail(user.email, {
+    redirectTo: `${base}/auth/callback`,
+  })
+  if (error) return { error: error.message }
+  return {}
+}
+
 export async function setMemberPreference(
   memberId: string,
   preference: PreferenceKey,
