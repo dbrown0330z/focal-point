@@ -335,6 +335,15 @@ export async function deleteMemberClass(id: string): Promise<{ error?: string }>
   return {}
 }
 
+export async function updateMemberEmail(memberId: string, newEmail: string): Promise<{ error?: string }> {
+  const supabase = createServiceClient()
+  // Update the canonical email in Supabase Auth (admin API — no verification required)
+  const { error } = await supabase.auth.admin.updateUserById(memberId, { email: newEmail })
+  if (error) return { error: error.message }
+  revalidatePath('/admin/members')
+  return {}
+}
+
 export async function sendPasswordReset(memberId: string): Promise<{ error?: string }> {
   const service = createServiceClient()
   const { data: { user }, error: userError } = await service.auth.admin.getUserById(memberId)

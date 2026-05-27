@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import {
   Alert,
   Avatar,
@@ -57,6 +57,7 @@ import {
   setMemberPermission,
   removeAdminRole,
   sendPasswordReset,
+  updateMemberEmail,
 } from './actions'
 
 type MembershipStatus = Database['public']['Enums']['membership_status']
@@ -93,6 +94,9 @@ type Profile = {
   submission_count_this_year: number
   competitions_this_year: number
   submission_categories: Record<string, number>
+  avg_score: number | null
+  highest_score: number | null
+  lowest_score: number | null
 }
 
 type Filter = 'all' | 'active' | 'pending' | 'expired'
@@ -398,6 +402,9 @@ interface MemberModalProps {
   onClose: () => void
   memberClasses: { id: string; name: string }[]
   memberClassesEnabled: boolean
+  totalCompetitionsThisYear: number
+  totalPossibleImagesThisYear: number
+  clubSlug: string
   // Status action callbacks — close modal first, then trigger dialog
   onStatusAction: (action: StatusAction, member: Profile) => void
   // Delete callback
@@ -410,6 +417,9 @@ function MemberModal({
   onClose,
   memberClasses,
   memberClassesEnabled,
+  totalCompetitionsThisYear,
+  totalPossibleImagesThisYear,
+  clubSlug,
   onStatusAction,
   onDeleteSuccess,
 }: MemberModalProps) {
@@ -420,6 +430,12 @@ function MemberModal({
   const [firstName, setFirstName] = useState(member.first_name ?? '')
   const [lastName, setLastName]   = useState(member.last_name ?? '')
   const [saving, setSaving]       = useState(false)
+
+  // Edit email
+  const [editingEmail, setEditingEmail] = useState(false)
+  const [newEmail, setNewEmail]         = useState(member.email ?? '')
+  const [emailSaving, setEmailSaving]   = useState(false)
+  const [emailError, setEmailError]     = useState<string | null>(null)
 
   // Skill level
   const [skillLevel, setSkillLevel]   = useState(member.membership_class ?? '')
@@ -473,7 +489,22 @@ function MemberModal({
     setPendingStatus(null)
     setPendingRole(null)
     setResetSent(false)
+    setEditingEmail(false)
+    setNewEmail(member.email ?? '')
+    setEmailError(null)
   }, [member]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleEmailSave() {
+    const trimmed = newEmail.trim().toLowerCase()
+    if (!trimmed || trimmed === member.email) { setEditingEmail(false); return }
+    setEmailSaving(true)
+    setEmailError(null)
+    const { error } = await updateMemberEmail(member.id, trimmed)
+    setEmailSaving(false)
+    if (error) { setEmailError(error); return }
+    setEditingEmail(false)
+    router.refresh()
+  }
 
   async function handleSaveName() {
     setSaving(true)
@@ -699,51 +730,85 @@ function MemberModal({
       {(() => {
         const eng = getEngagement(member.competitions_this_year)
         return (
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1.1fr 0.65fr 1.55fr', borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr', borderBottom: '1px solid', borderColor: 'divider' }}>
 
-            {/* Cell 1: Engagement + this-year counts */}
-            <Box sx={{ px: '24px', py: '16px', borderRight: '1px solid', borderColor: 'divider' }}>
+            {/* Cell 1: Engagement */}
+            <Box sx={{ px: '24px', py: '18px', borderRight: '1px solid', borderColor: 'divider' }}>
               <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
                 Engagement
               </Typography>
-              <Box component="span" sx={{
-                display: 'inline-flex', alignItems: 'center', gap: 0.75,
-                px: 1.25, py: 0.5, borderRadius: 9999, mb: 1.5,
-                bgcolor: eng.bgcolor, color: eng.color,
-                fontSize: 12, fontWeight: 700,
-              }}>
-                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: eng.dot, flexShrink: 0 }} />
+              {/* "High / Medium / Low" as large bold colored text */}
+              <Typography sx={{ fontSize: 32, fontWeight: 800, lineHeight: 1, color: eng.dot, mb: 1.25, letterSpacing: '-0.02em' }}>
                 {eng.label}
+              </Typography>
+              {/* X of Y counts */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.375 }}>
+                <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                  <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.competitions_this_year}</Typography>
+                  {totalCompetitionsThisYear > 0 && (
+                    <Typography component="span" sx={{ color: 'text.secondary' }}> of {totalCompetitionsThisYear}</Typography>
+                  )}{' '}competitions
+                </Typography>
+                <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                  <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.submission_count_this_year}</Typography>
+                  {totalPossibleImagesThisYear > 0 && (
+                    <Typography component="span" sx={{ color: 'text.secondary' }}> of {totalPossibleImagesThisYear}</Typography>
+                  )}{' '}images
+                </Typography>
               </Box>
-              <Box sx={{ display: 'flex', gap: 2.5 }}>
-                <Box>
-                  <Typography sx={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>{member.competitions_this_year}</Typography>
-                  <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.4 }}>competitions</Typography>
-                </Box>
-                <Box>
-                  <Typography sx={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>{member.submission_count_this_year}</Typography>
-                  <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.4 }}>submissions</Typography>
-                </Box>
-              </Box>
-              <Typography sx={{ fontSize: 10, fontWeight: 600, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.06em', mt: 0.75 }}>This year</Typography>
             </Box>
 
-            {/* Cell 2: All-time */}
-            <Box sx={{ px: '24px', py: '16px', borderRight: '1px solid', borderColor: 'divider' }}>
-              <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.75 }}>
-                All time
+            {/* Cell 2: Avg Score */}
+            <Box sx={{ px: '24px', py: '18px', borderRight: '1px solid', borderColor: 'divider' }}>
+              <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
+                Avg Score
               </Typography>
-              <Typography sx={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
-                {member.submission_count}
-              </Typography>
-              <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.5 }}>submissions</Typography>
+              {member.avg_score !== null ? (
+                <>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1.25 }}>
+                    <Typography sx={{ fontSize: 32, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em', color: 'text.primary' }}>
+                      {member.avg_score}
+                    </Typography>
+                    <Box sx={{ pt: 0.25 }}>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                        <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.highest_score}</Typography> highest
+                      </Typography>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                        <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.lowest_score}</Typography> lowest
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography
+                    component="a"
+                    href={`/${clubSlug}/competitions`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                  >
+                    Competition results →
+                  </Typography>
+                </>
+              ) : (
+                <Typography sx={{ fontSize: 13, color: 'text.disabled', fontStyle: 'italic', mt: 0.5 }}>No scores yet</Typography>
+              )}
             </Box>
 
             {/* Cell 3: Submissions by category donut */}
-            <Box sx={{ px: '24px', py: '16px' }}>
-              <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
-                Submissions by category
-              </Typography>
+            <Box sx={{ px: '24px', py: '18px' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Submissions by category
+                </Typography>
+                <Typography
+                  component="a"
+                  href={`/${clubSlug}/library`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ fontSize: 11.5, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' }, flexShrink: 0, ml: 1 }}
+                >
+                  Image library →
+                </Typography>
+              </Box>
               <SubmissionDonut categories={member.submission_categories} />
             </Box>
 
@@ -762,20 +827,54 @@ function MemberModal({
             <SectionCard title="Login">
               <Stack spacing={1}>
                 {/* Email row */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.25, border: '1px solid', borderColor: 'divider', borderRadius: 1.25, bgcolor: 'rgba(0,0,0,0.01)' }}>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontSize: 10, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Username / Email</Typography>
-                    {member.email ? (
-                      <Typography sx={{ fontSize: 13, color: 'text.primary', fontFamily: 'var(--font-code, monospace)', wordBreak: 'break-all', mt: 0.25 }}>{member.email}</Typography>
-                    ) : (
-                      <Typography sx={{ fontSize: 13, color: 'text.secondary', fontStyle: 'italic', mt: 0.25 }}>Not on file</Typography>
-                    )}
-                  </Box>
-                  {member.email && (
-                    <Button variant="outlined" color="secondary" size="small" component="a" href={`mailto:${member.email}`} sx={{ flexShrink: 0, fontSize: 12 }}
-                      startIcon={<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M2 4l6 4 6-4M2 4v8h12V4H2z"/></svg>}>
-                      Send email
-                    </Button>
+                <Box sx={{ p: 1.25, border: '1px solid', borderColor: editingEmail ? 'primary.main' : 'divider', borderRadius: 1.25, bgcolor: 'rgba(0,0,0,0.01)', transition: 'border-color 0.15s' }}>
+                  <Typography sx={{ fontSize: 10, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.5 }}>Username / Email</Typography>
+                  {editingEmail ? (
+                    <Box>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                        <TextField
+                          size="small" autoFocus fullWidth
+                          value={newEmail}
+                          onChange={e => { setNewEmail(e.target.value); setEmailError(null) }}
+                          onKeyDown={e => { if (e.key === 'Enter') handleEmailSave(); if (e.key === 'Escape') { setEditingEmail(false); setNewEmail(member.email ?? '') } }}
+                          placeholder="new@email.com"
+                          error={!!emailError}
+                          sx={{ '& .MuiInputBase-input': { fontSize: 13, fontFamily: 'var(--font-code, monospace)' } }}
+                        />
+                        <Button variant="contained" size="small" onClick={handleEmailSave} disabled={emailSaving} sx={{ flexShrink: 0, fontSize: 12 }}>
+                          {emailSaving ? 'Saving…' : 'Save'}
+                        </Button>
+                        <Button variant="outlined" color="secondary" size="small" onClick={() => { setEditingEmail(false); setNewEmail(member.email ?? ''); setEmailError(null) }} disabled={emailSaving} sx={{ flexShrink: 0, fontSize: 12 }}>
+                          Cancel
+                        </Button>
+                      </Box>
+                      {emailError && <Typography sx={{ fontSize: 11.5, color: 'error.main', mt: 0.75 }}>{emailError}</Typography>}
+                    </Box>
+                  ) : (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography sx={{ fontSize: 13, color: member.email ? 'text.primary' : 'text.secondary', fontFamily: 'var(--font-code, monospace)', wordBreak: 'break-all', flex: 1, fontStyle: member.email ? 'normal' : 'italic' }}>
+                        {member.email ?? 'Not on file'}
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 0.75, flexShrink: 0 }}>
+                        <Tooltip title="Edit email">
+                          <IconButton size="small" onClick={() => { setEditingEmail(true); setNewEmail(member.email ?? '') }}
+                            sx={{ p: 0.5, color: 'text.secondary', '&:hover': { color: 'text.primary' } }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                          </IconButton>
+                        </Tooltip>
+                        {member.email && (
+                          <Tooltip title="Send email">
+                            <IconButton size="small" component="a" href={`mailto:${member.email}`}
+                              sx={{ p: 0.5, color: 'text.secondary', '&:hover': { color: 'text.primary' } }}>
+                              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M2 4l6 4 6-4M2 4v8h12V4H2z"/></svg>
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Box>
+                    </Box>
                   )}
                 </Box>
                 {/* Password row */}
@@ -1015,12 +1114,18 @@ export default function MembersClient({
   profiles,
   memberClassesEnabled,
   memberClasses,
+  totalCompetitionsThisYear,
+  totalPossibleImagesThisYear,
 }: {
   profiles: Profile[]
   memberClassesEnabled: boolean
   memberClasses: { id: string; name: string }[]
+  totalCompetitionsThisYear: number
+  totalPossibleImagesThisYear: number
 }) {
   const router = useRouter()
+  const params = useParams()
+  const clubSlug = params.clubSlug as string
   const [filter, setFilter]           = useState<Filter>('all')
   const [search, setSearch]           = useState('')
   const [manageMember, setManageMember] = useState<Profile | null>(null)
@@ -1370,6 +1475,9 @@ export default function MembersClient({
           onClose={() => setManageMember(null)}
           memberClasses={classes}
           memberClassesEnabled={classesEnabled}
+          totalCompetitionsThisYear={totalCompetitionsThisYear}
+          totalPossibleImagesThisYear={totalPossibleImagesThisYear}
+          clubSlug={clubSlug}
           onStatusAction={handleStatusAction}
           onDeleteSuccess={(name) => {
             setDeleteToast(name)
