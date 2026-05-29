@@ -585,7 +585,7 @@ function MemberModal({
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <DialogTitle
         component="div"
-        sx={{ px: '30px', pt: '24px', pb: '20px', borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.default' }}
+        sx={{ px: '30px', pt: '24px', pb: '20px', borderBottom: '2px solid', borderColor: 'divider', bgcolor: 'background.default' }}
       >
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2.5 }}>
 
@@ -653,7 +653,7 @@ function MemberModal({
               </Box>
             )}
 
-            {/* Meta row: joined · id · class */}
+            {/* Meta row: joined · id · class · view profile */}
             <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 0' }}>
               {[
                 <Typography key="since" sx={{ fontSize: 13, color: 'text.secondary' }}>Member since {formatMemberSince(member.created_at)}</Typography>,
@@ -665,6 +665,15 @@ function MemberModal({
                     <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'text.primary' }}>{member.membership_class}</Typography>
                   </React.Fragment>
                 ) : null,
+                <React.Fragment key="profile-link">
+                  <Typography sx={{ fontSize: 13, color: 'text.disabled', mx: 1.25 }}>|</Typography>
+                  <Typography component="a"
+                    href={`/${clubSlug}/our-club/members`}
+                    target="_blank" rel="noopener noreferrer"
+                    sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                    View member profile
+                  </Typography>
+                </React.Fragment>,
               ]}
             </Box>
           </Box>
@@ -726,17 +735,9 @@ function MemberModal({
 
                 {/* Cell 2: Avg Score */}
                 <Box sx={{ px: '20px', py: '16px', borderRight: '1px solid', borderColor: 'divider' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.875 }}>
-                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                      Avg Score
-                    </Typography>
-                    {member.avg_score !== null && (
-                      <Typography component="a" href={`/${clubSlug}/competitions`} target="_blank" rel="noopener noreferrer"
-                        sx={{ fontSize: 11.5, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' }, flexShrink: 0, ml: 1 }}>
-                        Competition results →
-                      </Typography>
-                    )}
-                  </Box>
+                  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.875 }}>
+                    Avg Score
+                  </Typography>
                   {member.avg_score !== null ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                       <Typography sx={{ fontSize: 32, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em', color: 'text.primary' }}>
@@ -758,15 +759,9 @@ function MemberModal({
 
                 {/* Cell 3: Submissions by category */}
                 <Box sx={{ px: '20px', py: '16px' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.875 }}>
-                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                      Submissions by category
-                    </Typography>
-                    <Typography component="a" href={`/${clubSlug}/library`} target="_blank" rel="noopener noreferrer"
-                      sx={{ fontSize: 11.5, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' }, flexShrink: 0, ml: 1 }}>
-                      Image library →
-                    </Typography>
-                  </Box>
+                  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.875 }}>
+                    Submissions by category
+                  </Typography>
                   <SubmissionDonut categories={member.submission_categories} />
                 </Box>
 
@@ -779,7 +774,7 @@ function MemberModal({
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', p: '20px 22px', gap: '24px', minHeight: 0 }}>
 
           {/* ── Left column ──────────────────────────────────────────────── */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
             {/* Login Credentials */}
             <Section title="Login Credentials">
@@ -887,17 +882,17 @@ function MemberModal({
                           <Box key={perm.key}
                             onClick={() => handlePermissionToggle(perm.key, !perm.value)}
                             sx={{
-                              display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1,
+                              display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, py: 1,
                               bgcolor: 'background.paper', borderRadius: 1.25, cursor: 'pointer',
                               '&:hover': { bgcolor: 'rgba(0,0,0,0.03)' },
                             }}>
-                            <Box sx={{ flex: 1 }}>
-                              <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: 'text.primary' }}>{perm.label}</Typography>
-                              <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.125 }}>{perm.desc}</Typography>
-                            </Box>
                             <Switch size="small" checked={perm.value}
                               onChange={e => { e.stopPropagation(); handlePermissionToggle(perm.key, e.target.checked) }}
                               onClick={e => e.stopPropagation()} />
+                            <Box sx={{ flex: 1, opacity: perm.value ? 1 : 0.45, transition: 'opacity 0.15s' }}>
+                              <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: 'text.primary' }}>{perm.label}</Typography>
+                              <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.125 }}>{perm.desc}</Typography>
+                            </Box>
                           </Box>
                         ))}
                       </Box>
