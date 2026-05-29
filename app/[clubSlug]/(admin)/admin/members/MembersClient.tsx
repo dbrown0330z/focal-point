@@ -690,7 +690,7 @@ function MemberModal({
           return (
             <Box sx={{ mx: '22px', mt: '20px', mb: 0, border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', bgcolor: 'background.paper' }}>
               {/* Year header */}
-              <Box sx={{ py: 0.875, textAlign: 'center', borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'rgba(0,0,0,0.02)' }}>
+              <Box sx={{ py: 0.875, textAlign: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
                 <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                   Activity · {clubYearLabel}
                 </Typography>
@@ -703,48 +703,52 @@ function MemberModal({
                   <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.875 }}>
                     Engagement
                   </Typography>
-                  <Typography sx={{ fontSize: 32, fontWeight: 800, lineHeight: 1, color: eng.dot, mb: 1, letterSpacing: '-0.02em' }}>
-                    {eng.label}
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                    <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-                      <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.competitions_this_year}</Typography>
-                      {totalCompetitionsThisYear > 0 && <Typography component="span"> of {totalCompetitionsThisYear}</Typography>}
-                      {' '}competitions
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                    <Typography sx={{ fontSize: 32, fontWeight: 800, lineHeight: 1, color: eng.dot, letterSpacing: '-0.02em' }}>
+                      {eng.label}
                     </Typography>
-                    <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-                      <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.submission_count_this_year}</Typography>
-                      {totalPossibleImagesThisYear > 0 && <Typography component="span"> of {totalPossibleImagesThisYear}</Typography>}
-                      {' '}images
-                    </Typography>
+                    <Box sx={{ pt: 0.375 }}>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                        <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.competitions_this_year}</Typography>
+                        {totalCompetitionsThisYear > 0 && <Typography component="span"> of {totalCompetitionsThisYear}</Typography>}
+                        {' '}competitions
+                      </Typography>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                        <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.submission_count_this_year}</Typography>
+                        {totalPossibleImagesThisYear > 0 && <Typography component="span"> of {totalPossibleImagesThisYear}</Typography>}
+                        {' '}images
+                      </Typography>
+                    </Box>
                   </Box>
                 </Box>
 
                 {/* Cell 2: Avg Score */}
                 <Box sx={{ px: '20px', py: '16px', borderRight: '1px solid', borderColor: 'divider' }}>
-                  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.875 }}>
-                    Avg Score
-                  </Typography>
-                  {member.avg_score !== null ? (
-                    <>
-                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1 }}>
-                        <Typography sx={{ fontSize: 32, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em', color: 'text.primary' }}>
-                          {member.avg_score}
-                        </Typography>
-                        <Box sx={{ pt: 0.375 }}>
-                          <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-                            <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.highest_score}</Typography> highest
-                          </Typography>
-                          <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-                            <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.lowest_score}</Typography> lowest
-                          </Typography>
-                        </Box>
-                      </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.875 }}>
+                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                      Avg Score
+                    </Typography>
+                    {member.avg_score !== null && (
                       <Typography component="a" href={`/${clubSlug}/competitions`} target="_blank" rel="noopener noreferrer"
-                        sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                        sx={{ fontSize: 11.5, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' }, flexShrink: 0, ml: 1 }}>
                         Competition results →
                       </Typography>
-                    </>
+                    )}
+                  </Box>
+                  {member.avg_score !== null ? (
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                      <Typography sx={{ fontSize: 32, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em', color: 'text.primary' }}>
+                        {member.avg_score}
+                      </Typography>
+                      <Box sx={{ pt: 0.375 }}>
+                        <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                          <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.highest_score}</Typography> highest
+                        </Typography>
+                        <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                          <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.lowest_score}</Typography> lowest
+                        </Typography>
+                      </Box>
+                    </Box>
                   ) : (
                     <Typography sx={{ fontSize: 13, color: 'text.disabled', fontStyle: 'italic', mt: 0.5 }}>No scores yet</Typography>
                   )}
@@ -770,10 +774,10 @@ function MemberModal({
         })()}
 
         {/* Two-column content area */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', p: '20px 22px', gap: '16px', minHeight: 0 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', p: '20px 22px', gap: '24px', minHeight: 0 }}>
 
           {/* ── Left column ──────────────────────────────────────────────── */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
             {/* Login Credentials */}
             <Section title="Login Credentials">
@@ -876,7 +880,7 @@ function MemberModal({
                     </Box>
                     {/* Sub-permissions — only visible when Member is selected */}
                     {effectiveRole === 'member' && (
-                      <Box sx={{ px: 2, pb: 1.5, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                      <Box sx={{ pl: '50px', pr: 2, pb: 1.5, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                         {PERM_ROWS.map(perm => (
                           <Box key={perm.key}
                             onClick={() => handlePermissionToggle(perm.key, !perm.value)}
