@@ -223,83 +223,56 @@ function ClassRow({ cls, onRename, onDelete, disabled }: {
   )
 }
 
-// ─── Detail row helpers ───────────────────────────────────────────────────────
+// ─── Layout / content helpers ─────────────────────────────────────────────────
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+// Section panel — white background tile, large heading, no border outline
+function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <Box sx={{ display: 'flex', gap: 2, py: 0.5 }}>
-      <Typography sx={{ fontSize: 13, color: 'text.secondary', flexShrink: 0, minWidth: 100 }}>{label}</Typography>
-      <Typography sx={{ fontSize: 13, color: 'text.primary', wordBreak: 'break-word' }}>{value}</Typography>
-    </Box>
-  )
-}
-
-// Section card — visually groups a major modal section with a labelled header bar
-function SectionCard({ title, children, hint }: { title: string; children: React.ReactNode; hint?: string }) {
-  return (
-    <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, overflow: 'hidden' }}>
-      <Box sx={{
-        px: 2, py: 1.25,
-        bgcolor: 'rgba(0,0,0,0.025)',
-        borderBottom: '1px solid', borderColor: 'divider',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <Typography sx={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'text.primary' }}>
+    <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px' }}>
+      <Box sx={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 1.5, mb: 2 }}>
+        <Typography sx={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', color: 'text.primary', lineHeight: 1.2 }}>
           {title}
         </Typography>
-        {hint && <Typography sx={{ fontSize: 11, color: 'text.secondary', fontStyle: 'italic' }}>{hint}</Typography>}
+        {subtitle && (
+          <Typography sx={{ fontSize: 12, color: 'text.secondary', fontStyle: 'italic' }}>{subtitle}</Typography>
+        )}
       </Box>
-      <Box sx={{ p: 2 }}>
-        {children}
-      </Box>
+      {children}
     </Box>
   )
 }
 
-// Sub-section head used inside SectionCard
-function SubHead({ title, note }: { title: string; note?: string }) {
+// Bold sub-section label used inside Section (Personal Info, Communications, etc.)
+function SubHead({ title }: { title: string }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-      <Typography sx={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'text.secondary' }}>
-        {title}
+    <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'text.primary', mt: 0.5, mb: 0.875 }}>
+      {title}
+    </Typography>
+  )
+}
+
+// Single preference line rendered as "Label — Yes / No"
+function PrefLine({ label, value }: { label: string; value: boolean }) {
+  return (
+    <Typography sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.7 }}>
+      {label}
+      <Typography component="span" sx={{ fontWeight: 600, color: value ? 'success.main' : 'text.disabled', ml: 0.5 }}>
+        — {value ? 'Yes' : 'No'}
       </Typography>
-      {note && <Typography sx={{ fontSize: 11, color: 'text.disabled', fontStyle: 'italic' }}>{note}</Typography>}
-    </Box>
+    </Typography>
   )
 }
 
-// advanced text uses a MUI token via sx — see ExperienceBadge
-const SKILL_COLOURS: Record<string, { bg: string; text: string; muiColor?: string }> = {
-  beginner:     { bg: 'rgba(0,151,167,0.10)',  text: '#0097A7' },
-  intermediate: { bg: 'rgba(108,71,212,0.10)', text: '#6C47D4' },
-  advanced:     { bg: 'rgba(46,125,50,0.12)',  text: '', muiColor: 'success.contrastText' },
-}
-
-function ExperienceBadge({ level }: { level: string }) {
-  const style = SKILL_COLOURS[level.toLowerCase()] ?? { bg: 'rgba(90,106,130,0.10)', text: '#5A6C82' }
-  return (
-    <Box component="span" sx={{
-      display: 'inline-flex', alignItems: 'center', justifySelf: 'start',
-      borderRadius: 9999, px: 1.25, py: 0.375,
-      bgcolor: style.bg,
-      color: style.muiColor ?? style.text,
-      fontSize: 12, fontWeight: 500, lineHeight: 1.5,
-    }}>
-      {skillLabel(level) ?? level}
-    </Box>
-  )
-}
-
-// Icon-tile helper for contact / permission rows
-function IconTile({ children, active = false }: { children: React.ReactNode; active?: boolean }) {
+// Radio circle used in the Admin / Member role selector
+function RadioCircle({ selected }: { selected: boolean }) {
   return (
     <Box sx={{
-      width: 34, height: 34, borderRadius: 1.25, flexShrink: 0,
-      bgcolor: active ? 'rgba(30,77,140,0.10)' : 'rgba(0,0,0,0.04)',
-      color:   active ? '#1E4D8C' : '#7E8EA3',
+      width: 22, height: 22, borderRadius: '50%', flexShrink: 0, mt: 0.3,
+      border: '2.5px solid', borderColor: selected ? 'primary.main' : '#B0BACA',
+      bgcolor: selected ? 'primary.main' : 'transparent',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
-      {children}
+      {selected && <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#fff' }} />}
     </Box>
   )
 }
@@ -312,29 +285,6 @@ function getEngagement(competitionsThisYear: number) {
   return                                { label: 'Low',    bgcolor: 'error.light',   color: 'error.contrastText',   dot: 'error.main'   } as const
 }
 
-// ─── PrefGrid — read-only preference row list ─────────────────────────────────
-
-function PrefGrid({ prefs }: { prefs: { key: string; label: string; value: boolean }[] }) {
-  return (
-    <Stack spacing={0.75}>
-      {prefs.map(pref => (
-        <Box key={pref.key} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1.5, py: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1.25, bgcolor: 'rgba(0,0,0,0.01)' }}>
-          <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{pref.label}</Typography>
-          <Box component="span" sx={{
-            display: 'inline-flex', alignItems: 'center', flexShrink: 0,
-            borderRadius: 9999, px: 1.25, py: 0.375,
-            bgcolor: pref.value ? 'success.light' : 'rgba(0,0,0,0.04)',
-            color:   pref.value ? 'success.contrastText' : 'text.secondary',
-            fontSize: 11, fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '0.03em',
-          }}>
-            {pref.value ? 'On' : 'Off'}
-          </Box>
-        </Box>
-      ))}
-    </Stack>
-  )
-}
 
 // ─── Submission donut chart ───────────────────────────────────────────────────
 
@@ -701,17 +651,19 @@ function MemberModal({
               </Box>
             )}
 
-            {/* Meta row: joined · id · location */}
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px' }}>
-              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-                Member since {formatMemberSince(member.created_at)}
-              </Typography>
-              <Typography sx={{ fontSize: 13, color: 'text.secondary', fontFamily: 'var(--font-code, monospace)' }}>
-                {memberNum}
-              </Typography>
-              {member.location && (
-                <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{member.location}</Typography>
-              )}
+            {/* Meta row: joined · id · class */}
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 0' }}>
+              {[
+                <Typography key="since" sx={{ fontSize: 13, color: 'text.secondary' }}>Member since {formatMemberSince(member.created_at)}</Typography>,
+                <Typography key="sep1" sx={{ fontSize: 13, color: 'text.disabled', mx: 1.25 }}>|</Typography>,
+                <Typography key="num" sx={{ fontSize: 13, color: 'text.secondary', fontFamily: 'var(--font-code, monospace)' }}>{memberNum}</Typography>,
+                member.membership_class ? (
+                  <React.Fragment key="class">
+                    <Typography sx={{ fontSize: 13, color: 'text.disabled', mx: 1.25 }}>|</Typography>
+                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'text.primary' }}>{member.membership_class}</Typography>
+                  </React.Fragment>
+                ) : null,
+              ]}
             </Box>
           </Box>
 
@@ -726,293 +678,284 @@ function MemberModal({
         </Box>
       </DialogTitle>
 
-      {/* ── Stats strip ───────────────────────────────────────────────────── */}
-      {(() => {
-        const eng = getEngagement(member.competitions_this_year)
-        return (
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr', borderBottom: '1px solid', borderColor: 'divider' }}>
-
-            {/* Cell 1: Engagement */}
-            <Box sx={{ px: '24px', py: '18px', borderRight: '1px solid', borderColor: 'divider' }}>
-              <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
-                Engagement
-              </Typography>
-              {/* "High / Medium / Low" as large bold colored text */}
-              <Typography sx={{ fontSize: 32, fontWeight: 800, lineHeight: 1, color: eng.dot, mb: 1.25, letterSpacing: '-0.02em' }}>
-                {eng.label}
-              </Typography>
-              {/* X of Y counts */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.375 }}>
-                <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-                  <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.competitions_this_year}</Typography>
-                  {totalCompetitionsThisYear > 0 && (
-                    <Typography component="span" sx={{ color: 'text.secondary' }}> of {totalCompetitionsThisYear}</Typography>
-                  )}{' '}competitions
-                </Typography>
-                <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-                  <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.submission_count_this_year}</Typography>
-                  {totalPossibleImagesThisYear > 0 && (
-                    <Typography component="span" sx={{ color: 'text.secondary' }}> of {totalPossibleImagesThisYear}</Typography>
-                  )}{' '}images
-                </Typography>
-              </Box>
-            </Box>
-
-            {/* Cell 2: Avg Score */}
-            <Box sx={{ px: '24px', py: '18px', borderRight: '1px solid', borderColor: 'divider' }}>
-              <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
-                Avg Score
-              </Typography>
-              {member.avg_score !== null ? (
-                <>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1.25 }}>
-                    <Typography sx={{ fontSize: 32, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em', color: 'text.primary' }}>
-                      {member.avg_score}
-                    </Typography>
-                    <Box sx={{ pt: 0.25 }}>
-                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-                        <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.highest_score}</Typography> highest
-                      </Typography>
-                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-                        <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.lowest_score}</Typography> lowest
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Typography
-                    component="a"
-                    href={`/${clubSlug}/competitions`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
-                  >
-                    Competition results →
-                  </Typography>
-                </>
-              ) : (
-                <Typography sx={{ fontSize: 13, color: 'text.disabled', fontStyle: 'italic', mt: 0.5 }}>No scores yet</Typography>
-              )}
-            </Box>
-
-            {/* Cell 3: Submissions by category donut */}
-            <Box sx={{ px: '24px', py: '18px' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  Submissions by category
-                </Typography>
-                <Typography
-                  component="a"
-                  href={`/${clubSlug}/library`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{ fontSize: 11.5, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' }, flexShrink: 0, ml: 1 }}
-                >
-                  Image library →
-                </Typography>
-              </Box>
-              <SubmissionDonut categories={member.submission_categories} />
-            </Box>
-
-          </Box>
-        )
-      })()}
-
       {/* ── Body ─────────────────────────────────────────────────────────── */}
-      <DialogContent sx={{ p: '0 !important' }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: 0 }}>
+      <DialogContent sx={{ p: '0 !important', bgcolor: 'background.default' }}>
+
+        {/* Activity strip — bordered box with year label */}
+        {(() => {
+          const eng = getEngagement(member.competitions_this_year)
+          const now = new Date()
+          const baseYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1
+          const clubYearLabel = `${baseYear}/${String(baseYear + 1).slice(2)} Club Year`
+          return (
+            <Box sx={{ mx: '22px', mt: '20px', mb: 0, border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', bgcolor: 'background.paper' }}>
+              {/* Year header */}
+              <Box sx={{ py: 0.875, textAlign: 'center', borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'rgba(0,0,0,0.02)' }}>
+                <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                  Activity · {clubYearLabel}
+                </Typography>
+              </Box>
+              {/* Three cells */}
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr' }}>
+
+                {/* Cell 1: Engagement */}
+                <Box sx={{ px: '20px', py: '16px', borderRight: '1px solid', borderColor: 'divider' }}>
+                  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.875 }}>
+                    Engagement
+                  </Typography>
+                  <Typography sx={{ fontSize: 32, fontWeight: 800, lineHeight: 1, color: eng.dot, mb: 1, letterSpacing: '-0.02em' }}>
+                    {eng.label}
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                      <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.competitions_this_year}</Typography>
+                      {totalCompetitionsThisYear > 0 && <Typography component="span"> of {totalCompetitionsThisYear}</Typography>}
+                      {' '}competitions
+                    </Typography>
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                      <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.submission_count_this_year}</Typography>
+                      {totalPossibleImagesThisYear > 0 && <Typography component="span"> of {totalPossibleImagesThisYear}</Typography>}
+                      {' '}images
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Cell 2: Avg Score */}
+                <Box sx={{ px: '20px', py: '16px', borderRight: '1px solid', borderColor: 'divider' }}>
+                  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.875 }}>
+                    Avg Score
+                  </Typography>
+                  {member.avg_score !== null ? (
+                    <>
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1 }}>
+                        <Typography sx={{ fontSize: 32, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em', color: 'text.primary' }}>
+                          {member.avg_score}
+                        </Typography>
+                        <Box sx={{ pt: 0.375 }}>
+                          <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                            <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.highest_score}</Typography> highest
+                          </Typography>
+                          <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                            <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.lowest_score}</Typography> lowest
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Typography component="a" href={`/${clubSlug}/competitions`} target="_blank" rel="noopener noreferrer"
+                        sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                        Competition results →
+                      </Typography>
+                    </>
+                  ) : (
+                    <Typography sx={{ fontSize: 13, color: 'text.disabled', fontStyle: 'italic', mt: 0.5 }}>No scores yet</Typography>
+                  )}
+                </Box>
+
+                {/* Cell 3: Submissions by category */}
+                <Box sx={{ px: '20px', py: '16px' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.875 }}>
+                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                      Submissions by category
+                    </Typography>
+                    <Typography component="a" href={`/${clubSlug}/library`} target="_blank" rel="noopener noreferrer"
+                      sx={{ fontSize: 11.5, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' }, flexShrink: 0, ml: 1 }}>
+                      Image library →
+                    </Typography>
+                  </Box>
+                  <SubmissionDonut categories={member.submission_categories} />
+                </Box>
+
+              </Box>
+            </Box>
+          )
+        })()}
+
+        {/* Two-column content area */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', p: '20px 22px', gap: '16px', minHeight: 0 }}>
 
           {/* ── Left column ──────────────────────────────────────────────── */}
-          <Box sx={{ pl: '30px', pr: '40px', py: '30px', borderRight: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 
-            {/* Login */}
-            <SectionCard title="Login">
-              <Stack spacing={1}>
-                {/* Email row */}
-                <Box sx={{ p: 1.25, border: '1px solid', borderColor: editingEmail ? 'primary.main' : 'divider', borderRadius: 1.25, bgcolor: 'rgba(0,0,0,0.01)', transition: 'border-color 0.15s' }}>
-                  <Typography sx={{ fontSize: 10, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.5 }}>Username / Email</Typography>
+            {/* Login Credentials */}
+            <Section title="Login Credentials">
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 20px' }}>
+                {/* Email column */}
+                <Box>
+                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>Username/Email:</Typography>
                   {editingEmail ? (
                     <Box>
-                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                        <TextField
-                          size="small" autoFocus fullWidth
-                          value={newEmail}
-                          onChange={e => { setNewEmail(e.target.value); setEmailError(null) }}
-                          onKeyDown={e => { if (e.key === 'Enter') handleEmailSave(); if (e.key === 'Escape') { setEditingEmail(false); setNewEmail(member.email ?? '') } }}
-                          placeholder="new@email.com"
-                          error={!!emailError}
-                          sx={{ '& .MuiInputBase-input': { fontSize: 13, fontFamily: 'var(--font-code, monospace)' } }}
-                        />
-                        <Button variant="contained" size="small" onClick={handleEmailSave} disabled={emailSaving} sx={{ flexShrink: 0, fontSize: 12 }}>
+                      <TextField
+                        size="small" autoFocus fullWidth
+                        value={newEmail}
+                        onChange={e => { setNewEmail(e.target.value); setEmailError(null) }}
+                        onKeyDown={e => { if (e.key === 'Enter') handleEmailSave(); if (e.key === 'Escape') { setEditingEmail(false); setNewEmail(member.email ?? '') } }}
+                        placeholder="new@email.com"
+                        error={!!emailError}
+                        sx={{ mb: 0.75, '& .MuiInputBase-input': { fontSize: 13, fontFamily: 'var(--font-code, monospace)' } }}
+                      />
+                      {emailError && <Typography sx={{ fontSize: 11.5, color: 'error.main', mb: 0.75 }}>{emailError}</Typography>}
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Typography component="button" onClick={handleEmailSave} disabled={emailSaving}
+                          sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}>
                           {emailSaving ? 'Saving…' : 'Save'}
-                        </Button>
-                        <Button variant="outlined" color="secondary" size="small" onClick={() => { setEditingEmail(false); setNewEmail(member.email ?? ''); setEmailError(null) }} disabled={emailSaving} sx={{ flexShrink: 0, fontSize: 12 }}>
+                        </Typography>
+                        <Typography sx={{ fontSize: 13, color: 'text.disabled' }}>|</Typography>
+                        <Typography component="button" onClick={() => { setEditingEmail(false); setNewEmail(member.email ?? ''); setEmailError(null) }}
+                          sx={{ fontSize: 13, color: 'text.secondary', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}>
                           Cancel
-                        </Button>
+                        </Typography>
                       </Box>
-                      {emailError && <Typography sx={{ fontSize: 11.5, color: 'error.main', mt: 0.75 }}>{emailError}</Typography>}
                     </Box>
                   ) : (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography sx={{ fontSize: 13, color: member.email ? 'text.primary' : 'text.secondary', fontFamily: 'var(--font-code, monospace)', wordBreak: 'break-all', flex: 1, fontStyle: member.email ? 'normal' : 'italic' }}>
-                        {member.email ?? 'Not on file'}
+                    <Box>
+                      <Typography sx={{ fontSize: 13, color: 'text.primary', fontFamily: 'var(--font-code, monospace)', wordBreak: 'break-all', mb: 0.75 }}>
+                        {member.email ?? <Typography component="span" sx={{ fontStyle: 'italic', color: 'text.disabled' }}>Not on file</Typography>}
                       </Typography>
-                      <Box sx={{ display: 'flex', gap: 0.75, flexShrink: 0 }}>
-                        <Tooltip title="Edit email">
-                          <IconButton size="small" onClick={() => { setEditingEmail(true); setNewEmail(member.email ?? '') }}
-                            sx={{ p: 0.5, color: 'text.secondary', '&:hover': { color: 'text.primary' } }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                            </svg>
-                          </IconButton>
-                        </Tooltip>
+                      <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
                         {member.email && (
-                          <Tooltip title="Send email">
-                            <IconButton size="small" component="a" href={`mailto:${member.email}`}
-                              sx={{ p: 0.5, color: 'text.secondary', '&:hover': { color: 'text.primary' } }}>
-                              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M2 4l6 4 6-4M2 4v8h12V4H2z"/></svg>
-                            </IconButton>
-                          </Tooltip>
+                          <>
+                            <Typography component="a" href={`mailto:${member.email}`}
+                              sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                              Send message
+                            </Typography>
+                            <Typography sx={{ fontSize: 13, color: 'text.disabled' }}>|</Typography>
+                          </>
                         )}
+                        <Typography component="button" onClick={() => { setEditingEmail(true); setNewEmail(member.email ?? '') }}
+                          sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}>
+                          Edit address
+                        </Typography>
                       </Box>
                     </Box>
                   )}
                 </Box>
-                {/* Password row */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.25, border: '1px solid', borderColor: 'divider', borderRadius: 1.25, bgcolor: 'rgba(0,0,0,0.01)' }}>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontSize: 10, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Password</Typography>
-                    <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.25 }}>
-                      {resetSent ? 'Reset email sent ✓' : '••••••••••••'}
-                    </Typography>
-                  </Box>
-                  <Button variant="outlined" color="secondary" size="small"
-                    onClick={handleSendPasswordReset}
-                    disabled={resetSending || resetSent || !member.email}
-                    sx={{ flexShrink: 0, fontSize: 12 }}>
-                    {resetSending ? 'Sending…' : resetSent ? 'Sent' : 'Send reset email'}
-                  </Button>
+                {/* Password column */}
+                <Box>
+                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>Password:</Typography>
+                  <Typography sx={{ fontSize: 13, color: 'text.secondary', letterSpacing: '0.05em', mb: 0.75 }}>
+                    {resetSent ? 'Reset email sent ✓' : '••••••••••••'}
+                  </Typography>
+                  <Typography component="button" onClick={handleSendPasswordReset} disabled={resetSending || resetSent || !member.email}
+                    sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' }, '&:disabled': { color: 'text.disabled', cursor: 'default' } }}>
+                    {resetSending ? 'Sending…' : resetSent ? 'Sent ✓' : 'Send reset email'}
+                  </Typography>
                 </Box>
-              </Stack>
-            </SectionCard>
+              </Box>
+            </Section>
 
             {/* User Permissions */}
             {showPermissions && (
-              <SectionCard title="User Permissions">
-                {/* Member / Admin segmented control — Member is default/first */}
-                <Box sx={{ display: 'inline-flex', border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden', mb: 1.5 }}>
-                  {(['member', 'admin'] as const).map(role => (
-                    <Box
-                      key={role}
-                      component="button"
-                      onClick={() => handleRoleSelect(role)}
-                      sx={{
-                        px: 2.5, py: 0.875, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                        border: 'none', fontFamily: 'inherit',
-                        bgcolor: effectiveRole === role ? 'primary.main' : 'transparent',
-                        color: effectiveRole === role ? 'primary.contrastText' : 'text.secondary',
-                        transition: 'all 0.15s',
-                        '&:hover': effectiveRole !== role ? { bgcolor: 'rgba(0,0,0,0.04)' } : {},
-                      }}
-                    >
-                      {role.charAt(0).toUpperCase() + role.slice(1)}
-                    </Box>
-                  ))}
-                </Box>
+              <Section title="Permissions">
+                <Stack spacing={1.25}>
 
-                {effectiveRole === 'admin' ? (
-                  <Box sx={{ p: 1.5, border: '1px solid', borderColor: 'rgba(166,124,0,0.35)', borderRadius: 1.25, bgcolor: 'rgba(166,124,0,0.04)' }}>
-                    <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: 'text.primary', mb: 0.25 }}>Full admin access</Typography>
-                    <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>
-                      User has full access to all admin features. No additional permissions required.
-                    </Typography>
+                  {/* Admin option */}
+                  <Box onClick={() => handleRoleSelect('admin')} sx={{
+                    display: 'flex', alignItems: 'flex-start', gap: 1.5, p: '14px 16px',
+                    bgcolor: effectiveRole === 'admin' ? 'rgba(30,77,140,0.05)' : 'rgba(0,0,0,0.03)',
+                    borderRadius: 1.5, cursor: 'pointer', transition: 'background 0.15s',
+                    '&:hover': { bgcolor: effectiveRole === 'admin' ? 'rgba(30,77,140,0.08)' : 'rgba(0,0,0,0.05)' },
+                  }}>
+                    <RadioCircle selected={effectiveRole === 'admin'} />
+                    <Box>
+                      <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}>Admin</Typography>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.25 }}>Full member portal and admin access</Typography>
+                    </Box>
                   </Box>
-                ) : (
-                  <Stack spacing={1}>
-                    <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mb: 0.25 }}>
-                      User has access to the member portal. Select optional admin permissions:
-                    </Typography>
-                    {PERM_ROWS.map(perm => (
-                      <Box
-                        key={perm.key}
-                        onClick={() => handlePermissionToggle(perm.key, !perm.value)}
-                        sx={{
-                          display: 'flex', alignItems: 'center', gap: 1.5, p: 1.25,
-                          border: '1px solid',
-                          borderColor: perm.value ? 'rgba(30,77,140,0.22)' : 'divider',
-                          borderRadius: 1.25,
-                          bgcolor: perm.value ? 'rgba(30,77,140,0.04)' : 'rgba(0,0,0,0.01)',
-                          cursor: 'pointer', transition: 'all 0.2s',
-                          '&:hover': { borderColor: perm.value ? 'rgba(30,77,140,0.35)' : '#B0BACA', bgcolor: perm.value ? 'rgba(30,77,140,0.07)' : 'rgba(0,0,0,0.025)' },
-                        }}
-                      >
-                        <IconTile active={perm.value}>{perm.icon}</IconTile>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: 'text.primary' }}>{perm.label}</Typography>
-                          <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.25 }}>{perm.desc}</Typography>
-                        </Box>
-                        <Switch size="small" checked={perm.value}
-                          onChange={e => { e.stopPropagation(); handlePermissionToggle(perm.key, e.target.checked) }}
-                          onClick={e => e.stopPropagation()}
-                        />
+
+                  {/* Member option — expands to show permission rows */}
+                  <Box sx={{ bgcolor: effectiveRole === 'member' ? 'rgba(30,77,140,0.05)' : 'rgba(0,0,0,0.03)', borderRadius: 1.5, overflow: 'hidden' }}>
+                    <Box onClick={() => handleRoleSelect('member')} sx={{
+                      display: 'flex', alignItems: 'flex-start', gap: 1.5, p: '14px 16px',
+                      cursor: 'pointer', transition: 'background 0.15s',
+                      '&:hover': { bgcolor: effectiveRole === 'member' ? 'rgba(30,77,140,0.08)' : 'rgba(0,0,0,0.05)' },
+                    }}>
+                      <RadioCircle selected={effectiveRole === 'member'} />
+                      <Box>
+                        <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}>Member</Typography>
+                        <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.25 }}>Full member portal access (optional admin access).</Typography>
                       </Box>
-                    ))}
-                  </Stack>
-                )}
-              </SectionCard>
+                    </Box>
+                    {/* Sub-permissions — only visible when Member is selected */}
+                    {effectiveRole === 'member' && (
+                      <Box sx={{ px: 2, pb: 1.5, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                        {PERM_ROWS.map(perm => (
+                          <Box key={perm.key}
+                            onClick={() => handlePermissionToggle(perm.key, !perm.value)}
+                            sx={{
+                              display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1,
+                              bgcolor: 'background.paper', borderRadius: 1.25, cursor: 'pointer',
+                              '&:hover': { bgcolor: 'rgba(0,0,0,0.03)' },
+                            }}>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: 'text.primary' }}>{perm.label}</Typography>
+                              <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.125 }}>{perm.desc}</Typography>
+                            </Box>
+                            <Switch size="small" checked={perm.value}
+                              onChange={e => { e.stopPropagation(); handlePermissionToggle(perm.key, e.target.checked) }}
+                              onClick={e => e.stopPropagation()} />
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
+
+                </Stack>
+              </Section>
             )}
 
           </Box>
 
           {/* ── Right column ─────────────────────────────────────────────── */}
-          <Box sx={{ pl: '40px', pr: '30px', py: '30px', display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-
-            <SectionCard title="Profile" hint="Specified by member">
+          <Box>
+            <Section title="Profile" subtitle="Managed by user on My Profile page">
 
               {/* Personal info */}
-              <SubHead title="Personal info" />
-              {hasProfile ? (
-                <Box sx={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '10px 14px', alignItems: 'center', mb: memberClassesEnabled ? 0 : 0 }}>
-                  {member.experience_level && (
-                    <>
-                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Experience</Typography>
-                      <ExperienceBadge level={member.experience_level} />
-                    </>
-                  )}
-                  {member.camera_brands.length > 0 && (
-                    <>
-                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Camera</Typography>
-                      <Typography sx={{ fontSize: 13, color: 'text.primary' }}>{member.camera_brands.join(', ')}</Typography>
-                    </>
-                  )}
-                  {member.shooting_interests.length > 0 && (
-                    <>
-                      <Typography sx={{ fontSize: 13, color: 'text.secondary', alignSelf: 'start', pt: 0.5 }}>Interests</Typography>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                        {member.shooting_interests.map(t => (
-                          <Box key={t} sx={{ px: 1.25, py: 0.5, border: '1px solid', borderColor: 'divider', borderRadius: 9999, fontSize: 12, fontWeight: 500, color: 'text.secondary', bgcolor: 'rgba(0,0,0,0.02)' }}>
-                            {t}
-                          </Box>
-                        ))}
-                      </Box>
-                    </>
-                  )}
-                  {member.bio && (
-                    <>
-                      <Typography sx={{ fontSize: 13, color: 'text.secondary', alignSelf: 'start', pt: 0.25 }}>Bio</Typography>
-                      <Typography sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.55 }}>{member.bio}</Typography>
-                    </>
-                  )}
-                </Box>
-              ) : (
-                <Typography sx={{ fontSize: 13, color: 'text.disabled', fontStyle: 'italic', mb: memberClassesEnabled ? 1 : 0 }}>
-                  No profile information provided.
-                </Typography>
-              )}
+              <SubHead title="Personal Info" />
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '5px 14px', alignItems: 'start', mb: 1.75 }}>
+                {member.location && (
+                  <>
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Location</Typography>
+                    <Typography sx={{ fontSize: 13, color: 'text.primary' }}>{member.location}</Typography>
+                  </>
+                )}
+                {member.phone && (
+                  <>
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Phone</Typography>
+                    <Typography sx={{ fontSize: 13, color: 'text.primary' }}>{member.phone}</Typography>
+                  </>
+                )}
+                {member.experience_level && (
+                  <>
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Experience</Typography>
+                    <Typography sx={{ fontSize: 13, color: 'text.primary' }}>{skillLabel(member.experience_level) ?? member.experience_level}</Typography>
+                  </>
+                )}
+                {member.camera_brands.length > 0 && (
+                  <>
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Camera</Typography>
+                    <Typography sx={{ fontSize: 13, color: 'text.primary' }}>{member.camera_brands.join(', ')}</Typography>
+                  </>
+                )}
+                {member.shooting_interests.length > 0 && (
+                  <>
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary', alignSelf: 'start' }}>Interests</Typography>
+                    <Typography sx={{ fontSize: 13, color: 'text.primary' }}>{member.shooting_interests.join(', ')}</Typography>
+                  </>
+                )}
+                {member.bio && (
+                  <>
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary', alignSelf: 'start' }}>Bio</Typography>
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.55 }}>{member.bio}</Typography>
+                  </>
+                )}
+                {!member.location && !member.phone && !member.experience_level && !member.camera_brands.length && !member.shooting_interests.length && !member.bio && (
+                  <Typography sx={{ fontSize: 13, color: 'text.disabled', fontStyle: 'italic', gridColumn: '1 / -1' }}>No profile info provided.</Typography>
+                )}
+              </Box>
 
-              {/* Skill level — admin-controlled, shown inline */}
+              {/* Skill level — admin-controlled */}
               {memberClassesEnabled && (
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: hasProfile ? 1.5 : 0 }}>
-                  <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Skill level</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.75 }}>
+                  <Typography sx={{ fontSize: 13, color: 'text.secondary', flexShrink: 0 }}>Skill level</Typography>
                   <Select size="small" displayEmpty value={skillLevel} onChange={e => handleSkillLevelChange(e.target.value)} disabled={savingLevel}
                     sx={{ fontSize: 13, minWidth: 130, height: 30, '.MuiSelect-select': { py: '4px' } }}>
                     <MenuItem value="" sx={{ fontSize: 13 }}>
@@ -1025,28 +968,27 @@ function MemberModal({
                 </Box>
               )}
 
-              <Divider sx={{ my: 1.75 }} />
+              <Divider sx={{ mb: 1.75 }} />
 
               {/* Communications */}
               <SubHead title="Communications" />
-              <PrefGrid prefs={[
-                { key: 'pref_competition_reminders', label: 'Competition reminders', value: member.pref_competition_reminders },
-                { key: 'pref_club_newsletter',       label: 'Club newsletter',       value: member.pref_club_newsletter       },
-                { key: 'pref_results_notifications', label: 'Results notifications', value: member.pref_results_notifications },
-              ]} />
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, mb: 1.75 }}>
+                <PrefLine label="Send competition reminders" value={member.pref_competition_reminders} />
+                <PrefLine label="Club newsletter"            value={member.pref_club_newsletter} />
+                <PrefLine label="Send result notifications"  value={member.pref_results_notifications} />
+              </Box>
 
-              <Divider sx={{ my: 1.75 }} />
+              <Divider sx={{ mb: 1.75 }} />
 
               {/* Privacy */}
               <SubHead title="Privacy" />
-              <PrefGrid prefs={[
-                { key: 'pref_show_scores_publicly', label: 'Show scores publicly', value: member.pref_show_scores_publicly },
-                { key: 'pref_public_profile',       label: 'Public profile',       value: member.pref_public_profile       },
-                { key: 'pref_show_in_directory',    label: 'Show in directory',    value: member.pref_show_in_directory    },
-              ]} />
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                <PrefLine label="Show my profile in the directory" value={member.pref_show_in_directory} />
+                <PrefLine label="Show my scores publicly"          value={member.pref_show_scores_publicly} />
+                <PrefLine label="Public profile"                   value={member.pref_public_profile} />
+              </Box>
 
-            </SectionCard>
-
+            </Section>
           </Box>
         </Box>
       </DialogContent>
