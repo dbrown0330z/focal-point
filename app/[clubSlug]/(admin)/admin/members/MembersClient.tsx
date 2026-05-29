@@ -331,12 +331,14 @@ function SubmissionDonut({ categories }: { categories: Record<string, number> })
             fontSize="12" fontWeight="700" fill="currentColor">{total}</text>
         </svg>
       </Box>
-      <Box sx={{ flex: 1, minWidth: 0, pt: 0.5 }}>
+      <Box sx={{ flex: 1, minWidth: 0, pt: 0.25 }}>
         {segments.map((s, i) => (
-          <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
-            <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: s.color, flexShrink: 0 }} />
-            <Typography sx={{ fontSize: 11.5, color: 'text.secondary', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</Typography>
-            <Typography sx={{ fontSize: 11.5, fontWeight: 600, color: 'text.primary', ml: 0.5, flexShrink: 0 }}>{s.count}</Typography>
+          <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mb: 0.375 }}>
+            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: s.color, flexShrink: 0 }} />
+            <Typography sx={{ fontSize: 11, color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+              {s.name}
+              <Typography component="span" sx={{ fontSize: 11, fontWeight: 700, color: 'text.primary', ml: 0.5 }}>{s.count}</Typography>
+            </Typography>
           </Box>
         ))}
       </Box>
@@ -583,7 +585,7 @@ function MemberModal({
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <DialogTitle
         component="div"
-        sx={{ px: '30px', pt: '24px', pb: '20px', borderBottom: '1px solid', borderColor: 'divider' }}
+        sx={{ px: '30px', pt: '24px', pb: '20px', borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.default' }}
       >
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2.5 }}>
 
@@ -688,7 +690,7 @@ function MemberModal({
           const baseYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1
           const clubYearLabel = `${baseYear}/${String(baseYear + 1).slice(2)} Club Year`
           return (
-            <Box sx={{ mx: '22px', mt: '20px', mb: 0, border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', bgcolor: 'background.paper' }}>
+            <Box sx={{ mx: '22px', mt: '20px', mb: 0 }}>
               {/* Year header */}
               <Box sx={{ py: 0.875, textAlign: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
                 <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
@@ -703,11 +705,11 @@ function MemberModal({
                   <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.875 }}>
                     Engagement
                   </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                     <Typography sx={{ fontSize: 32, fontWeight: 800, lineHeight: 1, color: eng.dot, letterSpacing: '-0.02em' }}>
                       {eng.label}
                     </Typography>
-                    <Box sx={{ pt: 0.375 }}>
+                    <Box>
                       <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
                         <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.competitions_this_year}</Typography>
                         {totalCompetitionsThisYear > 0 && <Typography component="span"> of {totalCompetitionsThisYear}</Typography>}
@@ -736,11 +738,11 @@ function MemberModal({
                     )}
                   </Box>
                   {member.avg_score !== null ? (
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                       <Typography sx={{ fontSize: 32, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em', color: 'text.primary' }}>
                         {member.avg_score}
                       </Typography>
-                      <Box sx={{ pt: 0.375 }}>
+                      <Box>
                         <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
                           <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{member.highest_score}</Typography> highest
                         </Typography>
@@ -998,7 +1000,7 @@ function MemberModal({
       </DialogContent>
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <DialogActions sx={{ px: '30px', py: '20px', borderTop: '1px solid', borderColor: 'divider', justifyContent: 'space-between', bgcolor: 'rgba(0,0,0,0.015)' }}>
+      <DialogActions sx={{ px: '30px', py: '20px', borderTop: '1px solid', borderColor: 'divider', justifyContent: 'space-between', bgcolor: 'background.default' }}>
         <Button
           onClick={() => setConfirmDelete(true)}
           sx={{
