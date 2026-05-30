@@ -1694,7 +1694,7 @@ export default function MembersClient({
               ].filter(Boolean) as string[]
               const permCount = permLabels.length
               const eng = getEngagement(profile.competitions_this_year)
-              const cellSx = { py: 1.75, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' } as const
+              const cellSx = { py: 2.75, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' } as const
               return (
                 <TableRow
                   key={profile.id}
