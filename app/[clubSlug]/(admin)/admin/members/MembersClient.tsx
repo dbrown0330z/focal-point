@@ -7,8 +7,6 @@ import {
   Avatar,
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   CircularProgress,
   Dialog,
@@ -17,7 +15,6 @@ import {
   DialogTitle,
   Divider,
   FormControlLabel,
-  FormHelperText,
   IconButton,
   InputAdornment,
   MenuItem,
@@ -339,6 +336,95 @@ function SubmissionDonut({ categories }: { categories: Record<string, number> })
             <Typography sx={{ fontSize: 11, color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
               {s.name}
               <Typography component="span" sx={{ fontSize: 11, fontWeight: 700, color: 'text.primary', ml: 0.5 }}>{s.count}</Typography>
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  )
+}
+
+// ─── Membership donut chart (page-level) ─────────────────────────────────────
+
+const STATUS_DONUT_COLOR: Record<MembershipStatus, string> = {
+  active:        '#2E7D32',
+  complimentary: '#0097A7',
+  pending:       '#A67C00',
+  approved:      '#7B6B38',
+  expired:       '#7E8EA3',
+  paused:        '#E65100',
+  banned:        '#D32F2F',
+  cancelled:     '#5A6C82',
+}
+
+// All statuses in display order — legend always shows all 8, dimmed if count = 0
+const STATUS_ORDER: MembershipStatus[] = [
+  'active', 'complimentary', 'pending', 'approved', 'expired', 'paused', 'banned', 'cancelled',
+]
+
+function MembershipDonut({ profiles }: { profiles: Profile[] }) {
+  const counts = STATUS_ORDER.map(s => ({
+    status: s,
+    count:  profiles.filter(p => p.membership_status === s).length,
+    color:  STATUS_DONUT_COLOR[s],
+    label:  STATUS_LABEL[s],
+  }))
+
+  const total    = profiles.length
+  const nonEmpty = counts.filter(c => c.count > 0)
+  const cx = 55, cy = 55, r = 38, sw = 13
+
+  let cumAngle = -Math.PI / 2
+  const segments = nonEmpty.map(({ count, color, label }) => {
+    const slice = (count / total) * 2 * Math.PI
+    if (nonEmpty.length === 1) return { count, color, label, path: null }
+    const gap = 0.03
+    const x1 = cx + r * Math.cos(cumAngle + gap)
+    const y1 = cy + r * Math.sin(cumAngle + gap)
+    cumAngle += slice
+    const x2 = cx + r * Math.cos(cumAngle - gap)
+    const y2 = cy + r * Math.sin(cumAngle - gap)
+    return {
+      count, color, label,
+      path: `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${slice > Math.PI ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`,
+    }
+  })
+
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+      {/* Donut */}
+      <Box sx={{ flexShrink: 0 }}>
+        <svg width="110" height="110" viewBox="0 0 110 110">
+          {nonEmpty.length === 0 ? (
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke="#D8DDE7" strokeWidth={sw} />
+          ) : nonEmpty.length === 1 ? (
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke={nonEmpty[0].color} strokeWidth={sw} />
+          ) : (
+            segments.map((s, i) => s.path && (
+              <path key={i} d={s.path} fill="none" stroke={s.color} strokeWidth={sw} />
+            ))
+          )}
+          <text x={cx} y={cy - 7} textAnchor="middle" dominantBaseline="middle"
+            fontSize="24" fontWeight="700" fill="currentColor">{total}</text>
+          <text x={cx} y={cy + 11} textAnchor="middle" dominantBaseline="middle"
+            fontSize="10" fill="#7E8EA3">members</text>
+        </svg>
+      </Box>
+
+      {/* Legend — 2-column grid, all statuses shown */}
+      <Box sx={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: 1, columnGap: 1.5 }}>
+        {counts.map(({ status, count, color, label }) => (
+          <Box key={status} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <Box sx={{
+              width: 8, height: 8, borderRadius: '50%',
+              bgcolor: color, flexShrink: 0,
+              opacity: count === 0 ? 0.22 : 1,
+            }} />
+            <Typography sx={{ fontSize: 12, color: count === 0 ? 'text.disabled' : 'text.secondary', lineHeight: 1.3, whiteSpace: 'nowrap' }}>
+              {label}{' '}
+              <Typography component="span" sx={{ fontWeight: 700, color: count === 0 ? 'text.disabled' : 'text.primary' }}>
+                {count}
+              </Typography>
             </Typography>
           </Box>
         ))}
@@ -1300,20 +1386,92 @@ export default function MembersClient({
         <p className="mt-1 text-sm text-content-secondary">Manage membership applications and statuses.</p>
       </Box>
 
-      {/* Summary cards */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2, mb: 4 }}>
-        {[
-          { label: 'Total members',  value: totalCount,   color: 'text.primary'  },
-          { label: 'Pending',        value: pendingCount, color: 'warning.main'  },
-          { label: 'Active members', value: activeCount,  color: 'success.main'  },
-        ].map(card => (
-          <Card key={card.label} variant="outlined">
-            <CardContent sx={{ p: '20px !important' }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{card.label}</Typography>
-              <Typography sx={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: card.color }}>{card.value}</Typography>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Above-table panel: membership donut (left) + classification toggle (right) */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2.5, mb: 3, alignItems: 'start' }}>
+
+        {/* Left — membership breakdown donut */}
+        <Paper variant="outlined" sx={{ px: 3, py: '20px' }}>
+          <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 2 }}>
+            Membership
+          </Typography>
+          <MembershipDonut profiles={profiles} />
+        </Paper>
+
+        {/* Right — member classifications */}
+        <Paper variant="outlined" sx={{ px: 3, py: '20px' }}>
+          <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 2 }}>
+            Member classifications
+          </Typography>
+
+          {/* Enable toggle */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: classesEnabled ? 2 : 0 }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary' }}>
+              Enable skill levels
+            </Typography>
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  checked={classesEnabled}
+                  onChange={e => handleToggleClasses(e.target.checked)}
+                  disabled={classPending}
+                />
+              }
+              label=""
+              sx={{ m: 0 }}
+            />
+          </Box>
+
+          {classesEnabled && (
+            <>
+              <Divider sx={{ mb: 2 }} />
+              {classes.length > 0 && (
+                <Box sx={{ mb: 1.5 }}>
+                  <Stack spacing={1.25}>
+                    {classes.map(cls => (
+                      <ClassRow
+                        key={cls.id}
+                        cls={cls}
+                        onRename={handleRenameClass}
+                        onDelete={handleDeleteClass}
+                        disabled={classPending || classes.length <= 1}
+                      />
+                    ))}
+                  </Stack>
+                  <Divider sx={{ mt: 2 }} />
+                </Box>
+              )}
+              {classAdding ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25, maxWidth: 320, mt: 1.5 }}>
+                  <TextField
+                    size="small" fullWidth autoFocus
+                    placeholder="Class name e.g. Class A"
+                    value={newClassName}
+                    onChange={e => setNewClassName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddClass())}
+                    disabled={classPending}
+                  />
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button variant="contained" size="small"
+                      disabled={!newClassName.trim() || classPending} onClick={handleAddClass}>
+                      Save
+                    </Button>
+                    <Button variant="outlined" color="secondary" size="small"
+                      disabled={classPending} onClick={() => { setNewClassName(''); setClassAdding(false) }}>
+                      Cancel
+                    </Button>
+                  </Box>
+                </Box>
+              ) : (
+                <Button variant="outlined" color="secondary" size="small" sx={{ mt: 1.25 }}
+                  onClick={() => setClassAdding(true)}>
+                  + Add class
+                </Button>
+              )}
+            </>
+          )}
+        </Paper>
+
       </Box>
 
       {/* Filters + search */}
@@ -1708,112 +1866,6 @@ export default function MembersClient({
           </>
         )}
       </Dialog>
-
-      {/* ── Member classifications ──────────────────────────────────────── */}
-      <Box sx={{ mt: 6 }}>
-        <Typography sx={{ fontSize: 17, fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
-          Member classifications
-        </Typography>
-        <FormHelperText sx={{ mx: 0, mb: 2, lineHeight: 1.5, color: 'text.disabled', maxWidth: 600 }}>
-          Skill levels let you track member progression. When enabled, a level column appears in
-          the member table and admins can assign a level from each member&apos;s profile panel.
-        </FormHelperText>
-        <Paper variant="outlined" sx={{ px: 3, py: '20px', maxWidth: 700 }}>
-
-          {/* Enable toggle */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: classesEnabled ? 2.5 : 0 }}>
-            <Box>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'text.primary' }}>
-                Enable skill level classifications
-              </Typography>
-              {!classesEnabled && (
-                <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.25 }}>
-                  Off — no levels shown on member profiles or table.
-                </Typography>
-              )}
-            </Box>
-            <FormControlLabel
-              control={
-                <Switch
-                  size="small"
-                  checked={classesEnabled}
-                  onChange={e => handleToggleClasses(e.target.checked)}
-                  disabled={classPending}
-                />
-              }
-              label=""
-              sx={{ m: 0 }}
-            />
-          </Box>
-
-          {classesEnabled && (
-            <>
-              <Divider sx={{ mb: 2.5 }} />
-
-              {/* Class list */}
-              {classes.length > 0 && (
-                <Box sx={{ mb: 2 }}>
-                  <Stack spacing={1.5}>
-                    {classes.map(cls => (
-                      <ClassRow
-                        key={cls.id}
-                        cls={cls}
-                        onRename={handleRenameClass}
-                        onDelete={handleDeleteClass}
-                        disabled={classPending || classes.length <= 1}
-                      />
-                    ))}
-                  </Stack>
-                  <Divider sx={{ mt: 2 }} />
-                </Box>
-              )}
-
-              {/* Add class form */}
-              {classAdding ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, maxWidth: 360, mt: 1.5 }}>
-                  <TextField
-                    size="small" fullWidth autoFocus
-                    placeholder="Class name e.g. Class A"
-                    value={newClassName}
-                    onChange={e => setNewClassName(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddClass())}
-                    disabled={classPending}
-                  />
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      disabled={!newClassName.trim() || classPending}
-                      onClick={handleAddClass}
-                    >
-                      Save
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      color="secondary"
-                      size="small"
-                      disabled={classPending}
-                      onClick={() => { setNewClassName(''); setClassAdding(false) }}
-                    >
-                      Cancel
-                    </Button>
-                  </Box>
-                </Box>
-              ) : (
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  size="small"
-                  sx={{ mt: 1.5 }}
-                  onClick={() => setClassAdding(true)}
-                >
-                  + Add class
-                </Button>
-              )}
-            </>
-          )}
-        </Paper>
-      </Box>
 
       {/* Delete toast */}
       <Snackbar
