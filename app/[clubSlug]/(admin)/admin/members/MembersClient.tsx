@@ -436,7 +436,7 @@ function MembershipDonut({ profiles }: { profiles: Profile[] }) {
     const isOther = s.key === 'other'
     const row = (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.875, cursor: isOther ? 'help' : 'default' }}>
-        <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: s.color, flexShrink: 0, opacity: s.count === 0 ? 0.22 : 1 }} />
+        <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: s.color, flexShrink: 0, opacity: s.count === 0 ? 0.40 : 1 }} />
         <Typography sx={{ fontSize: 13, color: s.count === 0 ? 'text.disabled' : 'text.secondary', lineHeight: 1.3 }}>
           {s.label}{' '}
           <Typography component="span" sx={{ fontWeight: 700, color: s.count === 0 ? 'text.disabled' : 'text.primary' }}>
@@ -497,8 +497,8 @@ function MembershipDonut({ profiles }: { profiles: Profile[] }) {
         </svg>
       </Box>
 
-      {/* Legend — 2 columns */}
-      <Box sx={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'start', gap: 0 }}>
+      {/* Legend — 2 columns, content-sized so they sit close together */}
+      <Box sx={{ flex: 1, display: 'grid', gridTemplateColumns: 'auto auto', justifyContent: 'start', alignItems: 'start', columnGap: 4, rowGap: 0 }}>
         {/* Column 1: Active, Pending, Expired */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
           {col1.map(s => <LegendItem key={s.key} s={s} />)}
@@ -1502,7 +1502,6 @@ export default function MembersClient({
       {/* Page heading */}
       <Box sx={{ mb: 4 }}>
         <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Members</h1>
-        <p className="mt-1 text-sm text-content-secondary">Manage membership applications and statuses.</p>
       </Box>
 
       {/* Above-table panel: membership donut (left) + classification toggle (right) */}
