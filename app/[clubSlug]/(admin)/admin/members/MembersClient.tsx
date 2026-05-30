@@ -519,6 +519,14 @@ function MemberModal({
     // Flush name edit
     if (editing) saves.push(updateMemberName(member.id, firstName, lastName))
 
+    // Flush in-progress email edit (user may not have clicked the inline Save)
+    if (editingEmail) {
+      const trimmed = newEmail.trim().toLowerCase()
+      if (trimmed && trimmed !== member.email) {
+        saves.push(updateMemberEmail(member.id, trimmed))
+      }
+    }
+
     // Flush staged status change
     if (pendingStatus) saves.push(setMemberStatus(member.id, pendingStatus))
 
@@ -545,6 +553,7 @@ function MemberModal({
 
     setSaving(false)
     setEditing(false)
+    setEditingEmail(false)
     onClose()
   }
 
