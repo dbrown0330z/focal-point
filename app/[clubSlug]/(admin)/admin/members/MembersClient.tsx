@@ -793,6 +793,15 @@ function MemberModal({
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>Username/Email:</Typography>
                   {editingEmail ? (
                     <Box>
+                      {/* Warning — shown whenever the email edit field is open */}
+                      <Box sx={{
+                        mb: 1, px: 1.5, py: 1.25, borderRadius: 1.25,
+                        bgcolor: 'rgba(166,124,0,0.07)', border: '1px solid', borderColor: 'rgba(166,124,0,0.30)',
+                      }}>
+                        <Typography sx={{ fontSize: 12, color: '#6B5000', lineHeight: 1.55 }}>
+                          <strong>This changes the member's login credential.</strong> They must use the new address to sign in immediately after saving. Both addresses will be notified by email.
+                        </Typography>
+                      </Box>
                       <TextField
                         size="small" autoFocus fullWidth
                         value={newEmail}

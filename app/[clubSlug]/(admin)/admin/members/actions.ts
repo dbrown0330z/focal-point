@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getClubContext } from '@/lib/club-context'
-import { sendMemberApproved, sendMemberRejected, sendMemberStatusChanged } from '@/lib/email/send'
+import { sendMemberApproved, sendMemberRejected, sendMemberStatusChanged, sendMemberEmailChanged } from '@/lib/email/send'
 import type { Database } from '@/types/database'
 
 type MembershipStatus = Database['public']['Enums']['membership_status']
@@ -337,9 +337,30 @@ export async function deleteMemberClass(id: string): Promise<{ error?: string }>
 
 export async function updateMemberEmail(memberId: string, newEmail: string): Promise<{ error?: string }> {
   const supabase = createServiceClient()
+
+  // Capture the old email before overwriting it
+  const { data: { user: existing } } = await supabase.auth.admin.getUserById(memberId)
+  const oldEmail = existing?.email ?? null
+
   // Update the canonical email in Supabase Auth (admin API — no verification required)
   const { error } = await supabase.auth.admin.updateUserById(memberId, { email: newEmail })
   if (error) return { error: error.message }
+
+  // Send notification to both old and new addresses (non-fatal)
+  if (oldEmail) {
+    try {
+      const [{ data: profile }, { data: clubSettings }] = await Promise.all([
+        supabase.from('profiles').select('first_name, display_name').eq('id', memberId).single(),
+        supabase.from('club_settings').select('club_name').single(),
+      ])
+      const firstName = profile?.first_name || profile?.display_name || 'there'
+      const clubName  = clubSettings?.club_name ?? 'the club'
+      await sendMemberEmailChanged({ oldEmail, newEmail, firstName, clubName })
+    } catch (err) {
+      console.error('[updateMemberEmail] failed to send notification:', err)
+    }
+  }
+
   revalidatePath('/admin/members')
   return {}
 }

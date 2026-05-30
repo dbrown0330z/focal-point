@@ -327,6 +327,32 @@ export function memberCancellationNotification(args: {
 
 // ─── Judge: competition cancelled ────────────────────────────────────────────
 
+// ─── Member: login email changed by admin ────────────────────────────────────
+
+export function memberEmailChanged(args: {
+  firstName:  string
+  oldEmail:   string
+  newEmail:   string
+  clubName:   string
+}): { subject: string; html: string } {
+  return {
+    subject: `Your ${args.clubName} login email has been updated`,
+    html: base(`
+      <p>Hi ${args.firstName},</p>
+      <p>An administrator has updated the email address associated with your <strong>${args.clubName}</strong> account.</p>
+      <table style="margin:18px 0;border-collapse:collapse;font-size:14px">
+        <tr><td style="color:#737373;padding:3px 16px 3px 0">Previous email</td><td>${args.oldEmail}</td></tr>
+        <tr><td style="color:#737373;padding:3px 16px 3px 0">New email</td><td><strong>${args.newEmail}</strong></td></tr>
+      </table>
+      <p>You will need to use <strong>${args.newEmail}</strong> to sign in from now on.</p>
+      <div class="warning">If you did not expect this change, please contact your club administrator immediately.</div>
+      <p style="font-size:13px;color:#737373">— ${args.clubName}</p>
+    `),
+  }
+}
+
+// ─── Judge: cancellation notification ────────────────────────────────────────
+
 export function judgeCancellationNotification(args: {
   judgeFirstName:   string
   competitionName:  string

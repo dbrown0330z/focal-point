@@ -15,6 +15,7 @@ import {
   judgeReminderClosingDay,
   memberCancellationNotification,
   judgeCancellationNotification,
+  memberEmailChanged,
 } from './templates'
 
 // ─── Admin: new application notification ─────────────────────────────────────
@@ -190,6 +191,22 @@ export async function sendMemberCancellationNotification(args: {
 }) {
   const { subject, html } = memberCancellationNotification(args)
   await getResend().emails.send({ from: FROM_ADDRESS, to: args.memberEmail, subject, html })
+}
+
+// ─── Member: login email changed by admin ────────────────────────────────────
+
+export async function sendMemberEmailChanged(args: {
+  oldEmail:  string
+  newEmail:  string
+  firstName: string
+  clubName:  string
+}) {
+  const { subject, html } = memberEmailChanged(args)
+  // Notify both addresses — old address gets the security alert, new address gets confirmation
+  await Promise.all([
+    getResend().emails.send({ from: FROM_ADDRESS, to: args.oldEmail, subject, html }),
+    getResend().emails.send({ from: FROM_ADDRESS, to: args.newEmail, subject, html }),
+  ])
 }
 
 export async function sendJudgeCancellationNotification(args: {
