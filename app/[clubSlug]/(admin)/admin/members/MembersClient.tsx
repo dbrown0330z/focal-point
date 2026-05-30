@@ -10,6 +10,7 @@ import {
   Card,
   CardContent,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -429,7 +430,11 @@ function MemberModal({
   const memberNum       = `#${String(member.member_number).padStart(4, '0')}`
   const showPermissions = member.role === 'member' || member.role === 'admin'
 
-  // Reset all staged state when a different member is opened
+  // Reset all staged state when a DIFFERENT member is opened.
+  // Keying on member.id (not the object reference) prevents the implicit
+  // router.refresh() after a server action from clearing in-flight UI state
+  // (e.g. resetSent) when the same member's data object is replaced by a new
+  // reference in the refreshed profiles array.
   React.useEffect(() => {
     setEditing(false)
     setFirstName(member.first_name ?? '')
@@ -444,7 +449,7 @@ function MemberModal({
     setEditingEmail(false)
     setNewEmail(member.email ?? '')
     setEmailError(null)
-  }, [member]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [member.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleEmailSave() {
     const trimmed = newEmail.trim().toLowerCase()
@@ -796,9 +801,9 @@ function MemberModal({
                       {/* Warning — shown whenever the email edit field is open */}
                       <Box sx={{
                         mb: 1, px: 1.5, py: 1.25, borderRadius: 1.25,
-                        bgcolor: 'rgba(166,124,0,0.07)', border: '1px solid', borderColor: 'rgba(166,124,0,0.30)',
+                        bgcolor: 'warning.light', border: '1px solid', borderColor: 'warning.main',
                       }}>
-                        <Typography sx={{ fontSize: 12, color: '#6B5000', lineHeight: 1.55 }}>
+                        <Typography sx={{ fontSize: 12, color: 'warning.contrastText', lineHeight: 1.55 }}>
                           <strong>This changes the member's login credential.</strong> They must use the new address to sign in immediately after saving. Both addresses will be notified by email.
                         </Typography>
                       </Box>
@@ -853,12 +858,21 @@ function MemberModal({
                 <Box>
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>Password:</Typography>
                   <Typography sx={{ fontSize: 13, color: 'text.secondary', letterSpacing: '0.05em', mb: 0.75 }}>
-                    {resetSent ? 'Reset email sent ✓' : '••••••••••••'}
+                    {'••••••••••••'}
                   </Typography>
-                  <Typography component="button" onClick={handleSendPasswordReset} disabled={resetSending || resetSent || !member.email}
-                    sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' }, '&:disabled': { color: 'text.disabled', cursor: 'default' } }}>
-                    {resetSending ? 'Sending…' : resetSent ? 'Sent ✓' : 'Send reset email'}
-                  </Typography>
+                  {resetSent ? (
+                    <Alert severity="success" sx={{ py: 0.5, px: 1.25, fontSize: 12, '& .MuiAlert-message': { py: 0.25 } }}>
+                      Reset email sent to {member.email}
+                    </Alert>
+                  ) : (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography component="button" onClick={handleSendPasswordReset} disabled={resetSending || !member.email}
+                        sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' }, '&:disabled': { color: 'text.disabled', cursor: 'default' } }}>
+                        Send reset email
+                      </Typography>
+                      {resetSending && <CircularProgress size={12} thickness={5} />}
+                    </Box>
+                  )}
                 </Box>
               </Box>
             </Section>
