@@ -115,14 +115,14 @@ const STATUS_LABEL: Record<MembershipStatus, string> = {
 }
 
 const STATUS_STYLE: Record<MembershipStatus, { bgcolor: string; color: string }> = {
-  active:        { bgcolor: 'success.light',      color: 'success.contrastText' },
-  complimentary: { bgcolor: 'success.light',      color: 'success.contrastText' },
-  pending:       { bgcolor: 'warning.light',      color: 'warning.contrastText' },
-  approved:      { bgcolor: 'warning.light',      color: 'warning.contrastText' },
-  banned:        { bgcolor: 'error.light',        color: 'error.contrastText'   },
-  cancelled:     { bgcolor: 'background.default', color: 'text.secondary'       },
-  expired:       { bgcolor: 'background.default', color: 'text.secondary'       },
-  paused:        { bgcolor: 'background.default', color: 'text.secondary'       },
+  active:        { bgcolor: 'success.light', color: 'success.contrastText' },
+  complimentary: { bgcolor: '#D8DDE7',       color: '#3E5066' },
+  pending:       { bgcolor: '#D8DDE7',       color: '#3E5066' },
+  approved:      { bgcolor: '#D8DDE7',       color: '#3E5066' },
+  banned:        { bgcolor: '#D8DDE7',       color: '#3E5066' },
+  cancelled:     { bgcolor: '#D8DDE7',       color: '#3E5066' },
+  expired:       { bgcolor: '#D8DDE7',       color: '#3E5066' },
+  paused:        { bgcolor: '#D8DDE7',       color: '#3E5066' },
 }
 
 const ACTIVE_STATUSES:   MembershipStatus[] = ['active', 'complimentary']
@@ -1224,15 +1224,14 @@ export default function MembersClient({
   }
 
   function handleExport() {
-    const headers = ['Status', 'First name', 'Last name', 'Member ID', 'Date joined', 'Class', 'Submissions']
+    const headers = ['Status', 'First name', 'Last name', 'Member ID', 'Class', 'Engagement']
     const rows = filtered.map(p => [
       STATUS_LABEL[p.membership_status],
       p.first_name ?? '',
       p.last_name ?? '',
       `#${String(p.member_number).padStart(4, '0')}`,
-      new Date(p.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
       p.membership_class ?? '',
-      String(p.submission_count),
+      getEngagement(p.competitions_this_year).label,
     ])
     const csv = [headers, ...rows]
       .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
@@ -1256,7 +1255,7 @@ export default function MembersClient({
   const tableHeaders = [
     'Status', 'First name', 'Last name', 'Role',
     ...(classesEnabled ? ['Level'] : []),
-    'Submissions', 'Date joined', '',
+    'Engagement', '',
   ]
 
   return (
@@ -1356,56 +1355,86 @@ export default function MembersClient({
                 </TableCell>
               </TableRow>
             )}
-            {filtered.map(profile => (
-              <TableRow
-                key={profile.id}
-                hover
-                sx={{ '&:last-child td': { borderBottom: 0 }, cursor: 'default' }}
-              >
-                <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }}>
-                  <Chip
-                    label={STATUS_LABEL[profile.membership_status]}
-                    size="small"
-                    sx={{ fontFamily: 'inherit', fontSize: 11, height: 22, ...STATUS_STYLE[profile.membership_status] }}
-                  />
-                </TableCell>
-                <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit' }}>{profile.first_name || '—'}</TableCell>
-                <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit' }}>{profile.last_name || '—'}</TableCell>
-                <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }}>
-                  {profile.role === 'admin' ? (
+            {filtered.map(profile => {
+              // Permission count + labels for the +X tooltip
+              const permLabels = [
+                profile.perm_competition_manager ? 'Competition Manager' : null,
+                profile.perm_event_manager       ? 'Event Manager'       : null,
+                profile.perm_comms_manager       ? 'Comms Manager'       : null,
+              ].filter(Boolean) as string[]
+              const permCount = permLabels.length
+              const eng = getEngagement(profile.competitions_this_year)
+              const cellSx = { py: 1.75, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' } as const
+              return (
+                <TableRow
+                  key={profile.id}
+                  hover
+                  sx={{ '&:last-child td': { borderBottom: 0 }, cursor: 'default' }}
+                >
+                  {/* Status */}
+                  <TableCell sx={cellSx}>
                     <Chip
-                      label="Admin"
+                      label={STATUS_LABEL[profile.membership_status]}
                       size="small"
-                      sx={{ fontFamily: 'inherit', fontSize: 11, height: 22, bgcolor: 'primary.light', color: 'primary.contrastText', fontWeight: 600 }}
+                      sx={{ fontFamily: 'inherit', fontSize: 11, height: 22, ...STATUS_STYLE[profile.membership_status] }}
                     />
-                  ) : profile.role === 'member' ? (
-                    <Typography sx={{ fontSize: 14, color: 'text.secondary', fontFamily: 'inherit' }}>Member</Typography>
-                  ) : (
-                    <Typography sx={{ fontSize: 14, color: 'text.disabled', fontFamily: 'inherit' }}>—</Typography>
-                  )}
-                </TableCell>
-                {classesEnabled && (
-                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit', color: 'text.secondary' }}>
-                    {profile.membership_class || '—'}
                   </TableCell>
-                )}
-                <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit', color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
-                  {profile.submission_count}
-                </TableCell>
-                <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, fontFamily: 'inherit', color: 'text.secondary', whiteSpace: 'nowrap' }}>
-                  {new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                </TableCell>
-                <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }} align="right">
-                  <Typography
-                    component="button"
-                    onClick={() => setManageMember(profile)}
-                    sx={{ fontSize: 14, fontFamily: 'inherit', color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}
-                  >
-                    Manage
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ))}
+
+                  {/* Name */}
+                  <TableCell sx={{ ...cellSx, fontSize: 14 }}>{profile.first_name || '—'}</TableCell>
+                  <TableCell sx={{ ...cellSx, fontSize: 14 }}>{profile.last_name  || '—'}</TableCell>
+
+                  {/* Role */}
+                  <TableCell sx={cellSx}>
+                    {profile.role === 'admin' ? (
+                      <Typography sx={{ fontSize: 14, color: 'text.primary', fontFamily: 'inherit', fontWeight: 600 }}>Admin</Typography>
+                    ) : profile.role === 'member' ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <Typography sx={{ fontSize: 14, color: 'text.secondary', fontFamily: 'inherit' }}>Member</Typography>
+                        {permCount > 0 && (
+                          <Tooltip
+                            title={permLabels.join(', ')}
+                            arrow
+                            slotProps={{ tooltip: { sx: { fontSize: 12 } } }}
+                          >
+                            <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'primary.main', cursor: 'default', lineHeight: 1 }}>
+                              +{permCount}
+                            </Typography>
+                          </Tooltip>
+                        )}
+                      </Box>
+                    ) : (
+                      <Typography sx={{ fontSize: 14, color: 'text.disabled', fontFamily: 'inherit' }}>—</Typography>
+                    )}
+                  </TableCell>
+
+                  {/* Level (optional) */}
+                  {classesEnabled && (
+                    <TableCell sx={{ ...cellSx, fontSize: 14, color: 'text.secondary' }}>
+                      {profile.membership_class || '—'}
+                    </TableCell>
+                  )}
+
+                  {/* Engagement */}
+                  <TableCell sx={cellSx}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: eng.dot, fontFamily: 'inherit' }}>
+                      {eng.label}
+                    </Typography>
+                  </TableCell>
+
+                  {/* Manage */}
+                  <TableCell sx={cellSx} align="right">
+                    <Typography
+                      component="button"
+                      onClick={() => setManageMember(profile)}
+                      sx={{ fontSize: 14, fontFamily: 'inherit', color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}
+                    >
+                      Manage
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       </Box>
