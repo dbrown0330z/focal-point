@@ -385,13 +385,13 @@ function MembershipDonut({ profiles }: { profiles: Profile[] }) {
 
   const total    = profiles.length
   const nonEmpty = slices.filter(s => s.count > 0)
-  const cx = 62, cy = 62, r = 46, sw = 15, size = 124
+  const cx = 74, cy = 74, r = 56, sw = 16, size = 148
 
   let cumAngle = -Math.PI / 2
   const segments = nonEmpty.map(s => {
     const slice = (s.count / Math.max(total, 1)) * 2 * Math.PI
     if (nonEmpty.length === 1) return { ...s, path: null }
-    const gap = 0.022
+    const gap = 0.020
     const x1 = cx + r * Math.cos(cumAngle + gap)
     const y1 = cy + r * Math.sin(cumAngle + gap)
     cumAngle += slice
@@ -414,8 +414,39 @@ function MembershipDonut({ profiles }: { profiles: Profile[] }) {
     borderRadius: 1.5,
   }
 
+  // Legend columns: col1 = Active/Pending/Expired, col2 = Awaiting payment/Other
+  const col1Keys = ['active', 'pending', 'expired']
+  const col2Keys = ['approved', 'other']
+  const col1 = slices.filter(s => col1Keys.includes(s.key))
+  const col2 = slices.filter(s => col2Keys.includes(s.key))
+
+  function LegendItem({ s }: { s: typeof slices[number] }) {
+    const isOther = s.key === 'other'
+    const row = (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.875, cursor: isOther ? 'help' : 'default' }}>
+        <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: s.color, flexShrink: 0, opacity: s.count === 0 ? 0.22 : 1 }} />
+        <Typography sx={{ fontSize: 13, color: s.count === 0 ? 'text.disabled' : 'text.secondary', lineHeight: 1.3 }}>
+          {s.label}{' '}
+          <Typography component="span" sx={{ fontWeight: 700, color: s.count === 0 ? 'text.disabled' : 'text.primary' }}>
+            {s.count}
+          </Typography>
+        </Typography>
+      </Box>
+    )
+    return isOther ? (
+      <Tooltip
+        title={<OtherBreakdown profiles={profiles} />}
+        placement="right"
+        arrow
+        slotProps={{ tooltip: { sx: ttSx }, arrow: { sx: { color: 'background.paper' } } }}
+      >
+        {row}
+      </Tooltip>
+    ) : row
+  }
+
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3.5 }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
 
       {/* Donut SVG */}
       <Box sx={{ flexShrink: 0 }}>
@@ -428,7 +459,6 @@ function MembershipDonut({ profiles }: { profiles: Profile[] }) {
             segments.map((s, i) => {
               if (!s.path) return null
               const isOther = s.key === 'other'
-              // Visible arc + wide transparent hit zone for easy hovering
               const arc = (
                 <g key={i} style={{ cursor: isOther ? 'help' : 'default' }}>
                   <path d={s.path} fill="none" stroke={s.color} strokeWidth={sw} />
@@ -448,43 +478,23 @@ function MembershipDonut({ profiles }: { profiles: Profile[] }) {
               ) : arc
             })
           )}
-          <text x={cx} y={cy - 9} textAnchor="middle" dominantBaseline="middle"
-            fontSize="28" fontWeight="700" fill="currentColor">{total}</text>
-          <text x={cx} y={cy + 13} textAnchor="middle" dominantBaseline="middle"
-            fontSize="10" fill="#7E8EA3">members</text>
+          <text x={cx} y={cy - 10} textAnchor="middle" dominantBaseline="middle"
+            fontSize="32" fontWeight="700" fill="currentColor">{total}</text>
+          <text x={cx} y={cy + 14} textAnchor="middle" dominantBaseline="middle"
+            fontSize="11" fill="#7E8EA3">members</text>
         </svg>
       </Box>
 
-      {/* Legend — single column, counts right-aligned */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.125 }}>
-        {slices.map(({ key, label, color, count }) => {
-          const isOther = key === 'other'
-          const legendRow = (
-            <Box
-              key={key}
-              sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: isOther ? 'help' : 'default' }}
-            >
-              <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: color, flexShrink: 0, opacity: count === 0 ? 0.22 : 1 }} />
-              <Typography sx={{ fontSize: 13, color: count === 0 ? 'text.disabled' : 'text.secondary', flex: 1 }}>
-                {label}
-              </Typography>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: count === 0 ? 'text.disabled' : 'text.primary', minWidth: 24, textAlign: 'right' }}>
-                {count}
-              </Typography>
-            </Box>
-          )
-          return isOther ? (
-            <Tooltip
-              key={key}
-              title={<OtherBreakdown profiles={profiles} />}
-              placement="right"
-              arrow
-              slotProps={{ tooltip: { sx: ttSx }, arrow: { sx: { color: 'background.paper' } } }}
-            >
-              {legendRow}
-            </Tooltip>
-          ) : legendRow
-        })}
+      {/* Legend — 2 columns */}
+      <Box sx={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'start', gap: 0 }}>
+        {/* Column 1: Active, Pending, Expired */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+          {col1.map(s => <LegendItem key={s.key} s={s} />)}
+        </Box>
+        {/* Column 2: Awaiting payment, Other */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+          {col2.map(s => <LegendItem key={s.key} s={s} />)}
+        </Box>
       </Box>
 
     </Box>
@@ -1449,9 +1459,6 @@ export default function MembersClient({
 
         {/* Left — membership breakdown donut (no box, free layout) */}
         <Box sx={{ py: '20px', px: 1 }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 2 }}>
-            Membership
-          </Typography>
           <MembershipDonut profiles={profiles} />
         </Box>
 
