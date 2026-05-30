@@ -95,9 +95,11 @@ type Profile = {
   avg_score: number | null
   highest_score: number | null
   lowest_score: number | null
+  last_login: string | null
 }
 
-type Filter = 'all' | 'active' | 'pending' | 'expired'
+type Filter  = 'all' | 'active' | 'pending' | 'expired'
+type SortKey = 'status' | 'first_name' | 'last_name' | 'role' | 'level' | 'engagement' | 'last_login'
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
@@ -135,6 +137,16 @@ function getInitials(first: string | null, last: string | null): string {
 
 function formatMemberSince(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function formatLastLogin(iso: string | null): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return (
+    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+    ', ' +
+    d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  )
 }
 
 // ─── StatusSelect ─────────────────────────────────────────────────────────────
@@ -1259,6 +1271,8 @@ export default function MembersClient({
   const clubSlug = params.clubSlug as string
   const [filter, setFilter]           = useState<Filter>('all')
   const [search, setSearch]           = useState('')
+  const [sortKey,  setSortKey]  = useState<SortKey>('last_name')
+  const [sortDir,  setSortDir]  = useState<'asc' | 'desc'>('asc')
   const [manageMember, setManageMember] = useState<Profile | null>(null)
   const [loading, setLoading]         = useState<string | null>(null)
   const [deleteToast, setDeleteToast] = useState<string | null>(null)
@@ -1338,6 +1352,33 @@ export default function MembersClient({
         p.first_name?.toLowerCase().includes(q) ||
         p.last_name?.toLowerCase().includes(q)
       )
+    })
+    .sort((a, b) => {
+      let cmp = 0
+      switch (sortKey) {
+        case 'status':
+          cmp = a.membership_status.localeCompare(b.membership_status); break
+        case 'first_name':
+          cmp = (a.first_name ?? '').localeCompare(b.first_name ?? ''); break
+        case 'last_name':
+          cmp = (a.last_name ?? '').localeCompare(b.last_name ?? ''); break
+        case 'role':
+          cmp = (a.role ?? '').localeCompare(b.role ?? ''); break
+        case 'level':
+          cmp = (a.membership_class ?? '').localeCompare(b.membership_class ?? ''); break
+        case 'engagement': {
+          const order = { High: 0, Medium: 1, Low: 2 } as Record<string, number>
+          cmp = (order[getEngagement(a.competitions_this_year).label] ?? 3) -
+                (order[getEngagement(b.competitions_this_year).label] ?? 3)
+          break
+        }
+        case 'last_login': {
+          const at = a.last_login ? new Date(a.last_login).getTime() : 0
+          const bt = b.last_login ? new Date(b.last_login).getTime() : 0
+          cmp = at - bt; break
+        }
+      }
+      return sortDir === 'asc' ? cmp : -cmp
     })
 
   async function handleReject() {
@@ -1440,10 +1481,20 @@ export default function MembersClient({
     { key: 'expired', label: 'Expired', count: profiles.filter(p => INACTIVE_STATUSES.includes(p.membership_status)).length },
   ]
 
-  const tableHeaders = [
-    'Status', 'First name', 'Last name', 'Role',
-    ...(classesEnabled ? ['Level'] : []),
-    'Engagement', '',
+  function handleSort(key: SortKey) {
+    if (key === sortKey) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('asc') }
+  }
+
+  const tableColumns: { label: string; key: SortKey | null }[] = [
+    { label: 'Status',      key: 'status'     },
+    { label: 'First name',  key: 'first_name' },
+    { label: 'Last name',   key: 'last_name'  },
+    { label: 'Role',        key: 'role'       },
+    ...(classesEnabled ? [{ label: 'Level',      key: 'level'      as SortKey | null }] : []),
+    { label: 'Engagement',  key: 'engagement' },
+    { label: 'Last login',  key: 'last_login' },
+    { label: '',            key: null         },
   ]
 
   return (
@@ -1589,25 +1640,47 @@ export default function MembersClient({
         <Table size="small">
           <TableHead>
             <TableRow>
-              {tableHeaders.map(h => (
-                <TableCell
-                  key={h}
-                  sx={{
-                    fontSize: 11, fontWeight: 600, color: 'text.secondary',
-                    textTransform: 'uppercase', letterSpacing: '0.05em',
-                    py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider',
-                    bgcolor: 'background.default', fontFamily: 'inherit', whiteSpace: 'nowrap',
-                  }}
-                >
-                  {h}
-                </TableCell>
-              ))}
+              {tableColumns.map(col => {
+                const active = col.key && col.key === sortKey
+                return (
+                  <TableCell
+                    key={col.label}
+                    onClick={col.key ? () => handleSort(col.key!) : undefined}
+                    sx={{
+                      fontSize: 11, fontWeight: 600, color: active ? 'text.primary' : 'text.secondary',
+                      textTransform: 'uppercase', letterSpacing: '0.05em',
+                      py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider',
+                      bgcolor: 'background.default', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                      cursor: col.key ? 'pointer' : 'default',
+                      userSelect: 'none',
+                      '&:hover': col.key ? { color: 'text.primary' } : {},
+                    }}
+                  >
+                    {col.label ? (
+                      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                        {col.label}
+                        {col.key && (
+                          <Box component="span" sx={{ display: 'inline-flex', opacity: active ? 1 : 0.35 }}>
+                            {active && sortDir === 'desc' ? (
+                              // Active descending — solid down
+                              <svg width="8" height="8" viewBox="0 0 8 8"><path d="M4 7L0.5 1.5h7z" fill="currentColor"/></svg>
+                            ) : (
+                              // Active ascending or inactive — up arrow (inactive is just dimmed)
+                              <svg width="8" height="8" viewBox="0 0 8 8"><path d="M4 1l3.5 5.5H.5z" fill="currentColor"/></svg>
+                            )}
+                          </Box>
+                        )}
+                      </Box>
+                    ) : null}
+                  </TableCell>
+                )
+              })}
             </TableRow>
           </TableHead>
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={tableHeaders.length} sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
+                <TableCell colSpan={tableColumns.length} sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
                   No members found.
                 </TableCell>
               </TableRow>
@@ -1677,6 +1750,11 @@ export default function MembersClient({
                     <Typography sx={{ fontSize: 13, fontWeight: 600, color: eng.dot, fontFamily: 'inherit' }}>
                       {eng.label}
                     </Typography>
+                  </TableCell>
+
+                  {/* Last login */}
+                  <TableCell sx={{ ...cellSx, fontSize: 13, color: profile.last_login ? 'text.secondary' : 'text.disabled', whiteSpace: 'nowrap' }}>
+                    {formatLastLogin(profile.last_login)}
                   </TableCell>
 
                   {/* Manage */}

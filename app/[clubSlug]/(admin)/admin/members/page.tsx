@@ -47,9 +47,11 @@ export default async function MembersPage() {
     admin.from('scores').select('score, submission_id, submissions!inner(member_id)'),
   ])
 
-  const emailById: Record<string, string> = {}
+  const emailById:     Record<string, string>      = {}
+  const lastLoginById: Record<string, string | null> = {}
   for (const u of users) {
     if (u.email) emailById[u.id] = u.email
+    lastLoginById[u.id] = u.last_sign_in_at ?? null
   }
 
   const submissionCounts: Record<string, number> = {}
@@ -109,7 +111,8 @@ export default async function MembersPage() {
       submission_count_this_year: submissionCountsThisYear[p.id] ?? 0,
       competitions_this_year:     competitionSetsThisYear[p.id]?.size ?? 0,
       submission_categories:      categoryBreakdown[p.id] ?? {},
-      email:                      emailById[p.id] ?? null,
+      email:                      emailById[p.id]     ?? null,
+      last_login:                 lastLoginById[p.id] ?? null,
       avg_score:     scoreList ? Math.round((scoreList.reduce((a, b) => a + b, 0) / scoreList.length) * 10) / 10 : null,
       highest_score: scoreList ? Math.max(...scoreList) : null,
       lowest_score:  scoreList ? Math.min(...scoreList) : null,
