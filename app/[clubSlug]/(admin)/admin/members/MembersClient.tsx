@@ -346,89 +346,147 @@ function SubmissionDonut({ categories }: { categories: Record<string, number> })
 
 // ─── Membership donut chart (page-level) ─────────────────────────────────────
 
-const STATUS_DONUT_COLOR: Record<MembershipStatus, string> = {
-  active:        '#2E7D32',
-  complimentary: '#0097A7',
-  pending:       '#A67C00',
-  approved:      '#7B6B38',
-  expired:       '#7E8EA3',
-  paused:        '#E65100',
-  banned:        '#D32F2F',
-  cancelled:     '#5A6C82',
-}
+// Statuses grouped into the "Other" bucket
+const OTHER_STATUSES: MembershipStatus[] = ['complimentary', 'paused', 'banned', 'cancelled']
 
-// All statuses in display order — legend always shows all 8, dimmed if count = 0
-const STATUS_ORDER: MembershipStatus[] = [
-  'active', 'complimentary', 'pending', 'approved', 'expired', 'paused', 'banned', 'cancelled',
+interface SliceDef { key: string; label: string; color: string; statuses: MembershipStatus[] }
+const SLICE_DEFS: SliceDef[] = [
+  { key: 'active',   label: 'Active',          color: '#2E7D32', statuses: ['active'] },
+  { key: 'pending',  label: 'Pending',          color: '#A67C00', statuses: ['pending'] },
+  { key: 'approved', label: 'Awaiting payment', color: '#7B6B38', statuses: ['approved'] },
+  { key: 'expired',  label: 'Expired',          color: '#7E8EA3', statuses: ['expired'] },
+  { key: 'other',    label: 'Other',            color: '#5A6C82', statuses: OTHER_STATUSES },
 ]
 
+// Breakdown list used in the "Other" tooltip
+function OtherBreakdown({ profiles }: { profiles: Profile[] }) {
+  const items = OTHER_STATUSES
+    .map(s => ({ label: STATUS_LABEL[s], count: profiles.filter(p => p.membership_status === s).length }))
+    .filter(x => x.count > 0)
+  if (items.length === 0) return <Typography sx={{ fontSize: 12 }}>None</Typography>
+  return (
+    <Box sx={{ minWidth: 140 }}>
+      <Typography sx={{ fontSize: 11, fontWeight: 700, mb: 0.75, opacity: 0.75 }}>Other includes:</Typography>
+      {items.map(({ label, count }) => (
+        <Box key={label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+          <Typography sx={{ fontSize: 12 }}>{label}</Typography>
+          <Typography sx={{ fontSize: 12, fontWeight: 700 }}>{count}</Typography>
+        </Box>
+      ))}
+    </Box>
+  )
+}
+
 function MembershipDonut({ profiles }: { profiles: Profile[] }) {
-  const counts = STATUS_ORDER.map(s => ({
-    status: s,
-    count:  profiles.filter(p => p.membership_status === s).length,
-    color:  STATUS_DONUT_COLOR[s],
-    label:  STATUS_LABEL[s],
+  const slices = SLICE_DEFS.map(def => ({
+    ...def,
+    count: def.statuses.reduce((sum, s) => sum + profiles.filter(p => p.membership_status === s).length, 0),
   }))
 
   const total    = profiles.length
-  const nonEmpty = counts.filter(c => c.count > 0)
-  const cx = 55, cy = 55, r = 38, sw = 13
+  const nonEmpty = slices.filter(s => s.count > 0)
+  const cx = 62, cy = 62, r = 46, sw = 15, size = 124
 
   let cumAngle = -Math.PI / 2
-  const segments = nonEmpty.map(({ count, color, label }) => {
-    const slice = (count / total) * 2 * Math.PI
-    if (nonEmpty.length === 1) return { count, color, label, path: null }
-    const gap = 0.03
+  const segments = nonEmpty.map(s => {
+    const slice = (s.count / Math.max(total, 1)) * 2 * Math.PI
+    if (nonEmpty.length === 1) return { ...s, path: null }
+    const gap = 0.022
     const x1 = cx + r * Math.cos(cumAngle + gap)
     const y1 = cy + r * Math.sin(cumAngle + gap)
     cumAngle += slice
     const x2 = cx + r * Math.cos(cumAngle - gap)
     const y2 = cy + r * Math.sin(cumAngle - gap)
     return {
-      count, color, label,
+      ...s,
       path: `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${slice > Math.PI ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`,
     }
   })
 
+  // Shared tooltip style — light card appearance so text is readable
+  const ttSx = {
+    bgcolor: 'background.paper',
+    color: 'text.primary',
+    border: '1px solid',
+    borderColor: 'divider',
+    boxShadow: 4,
+    p: 1.5,
+    borderRadius: 1.5,
+  }
+
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-      {/* Donut */}
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3.5 }}>
+
+      {/* Donut SVG */}
       <Box sx={{ flexShrink: 0 }}>
-        <svg width="110" height="110" viewBox="0 0 110 110">
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
           {nonEmpty.length === 0 ? (
             <circle cx={cx} cy={cy} r={r} fill="none" stroke="#D8DDE7" strokeWidth={sw} />
           ) : nonEmpty.length === 1 ? (
             <circle cx={cx} cy={cy} r={r} fill="none" stroke={nonEmpty[0].color} strokeWidth={sw} />
           ) : (
-            segments.map((s, i) => s.path && (
-              <path key={i} d={s.path} fill="none" stroke={s.color} strokeWidth={sw} />
-            ))
+            segments.map((s, i) => {
+              if (!s.path) return null
+              const isOther = s.key === 'other'
+              // Visible arc + wide transparent hit zone for easy hovering
+              const arc = (
+                <g key={i} style={{ cursor: isOther ? 'help' : 'default' }}>
+                  <path d={s.path} fill="none" stroke={s.color} strokeWidth={sw} />
+                  <path d={s.path} fill="none" stroke="transparent" strokeWidth={sw * 3} />
+                </g>
+              )
+              return isOther ? (
+                <Tooltip
+                  key={i}
+                  title={<OtherBreakdown profiles={profiles} />}
+                  placement="right"
+                  arrow
+                  slotProps={{ tooltip: { sx: ttSx }, arrow: { sx: { color: 'background.paper' } } }}
+                >
+                  {arc}
+                </Tooltip>
+              ) : arc
+            })
           )}
-          <text x={cx} y={cy - 7} textAnchor="middle" dominantBaseline="middle"
-            fontSize="24" fontWeight="700" fill="currentColor">{total}</text>
-          <text x={cx} y={cy + 11} textAnchor="middle" dominantBaseline="middle"
+          <text x={cx} y={cy - 9} textAnchor="middle" dominantBaseline="middle"
+            fontSize="28" fontWeight="700" fill="currentColor">{total}</text>
+          <text x={cx} y={cy + 13} textAnchor="middle" dominantBaseline="middle"
             fontSize="10" fill="#7E8EA3">members</text>
         </svg>
       </Box>
 
-      {/* Legend — 2-column grid, all statuses shown */}
-      <Box sx={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: 1, columnGap: 1.5 }}>
-        {counts.map(({ status, count, color, label }) => (
-          <Box key={status} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <Box sx={{
-              width: 8, height: 8, borderRadius: '50%',
-              bgcolor: color, flexShrink: 0,
-              opacity: count === 0 ? 0.22 : 1,
-            }} />
-            <Typography sx={{ fontSize: 12, color: count === 0 ? 'text.disabled' : 'text.secondary', lineHeight: 1.3, whiteSpace: 'nowrap' }}>
-              {label}{' '}
-              <Typography component="span" sx={{ fontWeight: 700, color: count === 0 ? 'text.disabled' : 'text.primary' }}>
+      {/* Legend — single column, counts right-aligned */}
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.125 }}>
+        {slices.map(({ key, label, color, count }) => {
+          const isOther = key === 'other'
+          const legendRow = (
+            <Box
+              key={key}
+              sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: isOther ? 'help' : 'default' }}
+            >
+              <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: color, flexShrink: 0, opacity: count === 0 ? 0.22 : 1 }} />
+              <Typography sx={{ fontSize: 13, color: count === 0 ? 'text.disabled' : 'text.secondary', flex: 1 }}>
+                {label}
+              </Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: count === 0 ? 'text.disabled' : 'text.primary', minWidth: 24, textAlign: 'right' }}>
                 {count}
               </Typography>
-            </Typography>
-          </Box>
-        ))}
+            </Box>
+          )
+          return isOther ? (
+            <Tooltip
+              key={key}
+              title={<OtherBreakdown profiles={profiles} />}
+              placement="right"
+              arrow
+              slotProps={{ tooltip: { sx: ttSx }, arrow: { sx: { color: 'background.paper' } } }}
+            >
+              {legendRow}
+            </Tooltip>
+          ) : legendRow
+        })}
       </Box>
+
     </Box>
   )
 }
@@ -1389,13 +1447,13 @@ export default function MembersClient({
       {/* Above-table panel: membership donut (left) + classification toggle (right) */}
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2.5, mb: 3, alignItems: 'start' }}>
 
-        {/* Left — membership breakdown donut */}
-        <Paper variant="outlined" sx={{ px: 3, py: '20px' }}>
+        {/* Left — membership breakdown donut (no box, free layout) */}
+        <Box sx={{ py: '20px', px: 1 }}>
           <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 2 }}>
             Membership
           </Typography>
           <MembershipDonut profiles={profiles} />
-        </Paper>
+        </Box>
 
         {/* Right — member classifications */}
         <Paper variant="outlined" sx={{ px: 3, py: '20px' }}>
