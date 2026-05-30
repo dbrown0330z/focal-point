@@ -25,7 +25,7 @@ export default async function MembersPage() {
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, first_name, last_name, display_name, member_number, membership_status, membership_class, role, created_at, bio, camera_brands, shooting_interests, experience_level, avatar_url, location, phone')
+      .select('id, first_name, last_name, display_name, member_number, membership_status, membership_class, role, created_at, bio, camera_brands, shooting_interests, experience_level, avatar_url, location, phone, perm_competition_manager, perm_event_manager, perm_comms_manager, pref_competition_reminders, pref_results_notifications, pref_club_newsletter, pref_public_profile, pref_show_scores_publicly, pref_show_in_directory')
       .order('member_number', { ascending: true }),
     admin.from('submissions').select('member_id'),
     // submissions uses submitted_at, not created_at
