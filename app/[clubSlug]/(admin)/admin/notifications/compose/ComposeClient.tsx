@@ -140,14 +140,19 @@ export default function ComposeClient({
   members,
   fromAddress,
   clubName,
+  initialRecipientId,
 }: {
   members: Member[]
   fromAddress: string
   clubName: string
+  initialRecipientId?: string
 }) {
-  const [toOption, setToOption]         = useState<ToOption>('all_active')
-  const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set())
-  const [pendingIds, setPendingIds]     = useState<Set<string>>(new Set())
+  const validInitialId = initialRecipientId && members.some(m => m.id === initialRecipientId)
+    ? initialRecipientId : undefined
+
+  const [toOption, setToOption]         = useState<ToOption>(validInitialId ? 'custom' : 'all_active')
+  const [selectedIds, setSelectedIds]   = useState<Set<string>>(validInitialId ? new Set([validInitialId]) : new Set())
+  const [pendingIds, setPendingIds]     = useState<Set<string>>(validInitialId ? new Set([validInitialId]) : new Set())
   const [selectOpen, setSelectOpen]     = useState(false)
   const [search, setSearch]             = useState('')
   const [subject, setSubject]           = useState('')

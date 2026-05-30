@@ -2,9 +2,14 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import ComposeClient from './ComposeClient'
 
-export default async function ComposePage() {
+export default async function ComposePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ to?: string }>
+}) {
   const supabase = await createClient()
   const admin = createServiceClient()
+  const params = await searchParams
 
   const [{ data: members }, { data: settings }] = await Promise.all([
     admin
@@ -21,10 +26,16 @@ export default async function ComposePage() {
   const clubName  = settings?.club_name?.trim() || 'Your Club'
   const rawFrom   = settings?.from_email?.trim()
   const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'focalpointhq.com'
-  // Show the exact address the action will use, so the admin always sees a value
   const fromAddress = rawFrom
     ? `${clubName} <${rawFrom}>`
     : `${clubName} <notifications@${appDomain}>`
 
-  return <ComposeClient members={members ?? []} fromAddress={fromAddress} clubName={clubName} />
+  return (
+    <ComposeClient
+      members={members ?? []}
+      fromAddress={fromAddress}
+      clubName={clubName}
+      initialRecipientId={params.to}
+    />
+  )
 }

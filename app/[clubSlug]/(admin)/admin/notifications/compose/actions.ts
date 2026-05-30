@@ -74,10 +74,12 @@ export async function sendNotification(args: {
   for (let i = 0; i < emailList.length; i += BATCH) {
     const batch = emailList.slice(i, i + BATCH)
     const { error: sendErr } = await resend.emails.send({
-      from:    fromAddress,
-      to:      batch,
-      subject: args.subject,
-      html:    args.htmlBody,
+      from:      fromAddress,
+      to:        batch,
+      subject:   args.subject,
+      html:      args.htmlBody,
+      // reply_to ensures member replies land on the club's real address, not a no-reply sink
+      ...(fromEmail ? { reply_to: fromEmail } : {}),
     })
     if (sendErr) return { ok: false, error: `Send failed: ${sendErr.message}` }
   }

@@ -832,7 +832,9 @@ function MemberModal({
                       <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
                         {member.email && (
                           <>
-                            <Typography component="a" href={`mailto:${member.email}`}
+                            <Typography component="a"
+                              href={`/${clubSlug}/admin/notifications/compose?to=${member.id}`}
+                              target="_blank" rel="noopener noreferrer"
                               sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                               Send message
                             </Typography>
