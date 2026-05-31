@@ -32,7 +32,8 @@ export default async function MembersPage() {
     admin.from('submissions').select('member_id, competition_id').gte('submitted_at', yearStart).lt('submitted_at', nextYearStart),
     // Category breakdown for the donut chart (all-time)
     admin.from('submissions').select('member_id, competition_categories(name)'),
-    admin.from('club_settings').select('member_classes_enabled').single(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (admin.from('club_settings') as any).select('member_classes_enabled, approval_mode, notify_new_application, notify_member_activates, notify_payment_link_expires, notify_membership_expires, notify_all_admins').single(),
     admin.auth.admin.listUsers({ perPage: 1000 }),
     admin.from('member_classes').select('id, name').order('sort_order').order('created_at'),
     // Competitions with submissions open this year

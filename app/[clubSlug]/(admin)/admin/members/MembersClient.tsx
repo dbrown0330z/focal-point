@@ -1183,44 +1183,94 @@ function EnrollmentTab({ initial }: { initial: EnrollmentSettings }) {
   const [settings, setSettings] = useState<EnrollmentSettings>(initial)
   const [saving, setSaving]     = useState(false)
   const [saved, setSaved]       = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   function update(patch: Partial<EnrollmentSettings>) {
     setSettings(prev => ({ ...prev, ...patch }))
     setSaved(false)
+    setSaveError(null)
   }
 
   async function handleSave() {
     setSaving(true)
-    await saveEnrollmentSettings(settings)
+    setSaved(false)
+    setSaveError(null)
+    const result = await saveEnrollmentSettings(settings)
     setSaving(false)
-    setSaved(true)
+    if (result?.error) {
+      setSaveError(result.error)
+    } else {
+      setSaved(true)
+    }
   }
 
+  const isEmailVerification = settings.approvalMode === 'email_verification'
+
+  // Notification rows — new application is not applicable in email-verification mode
+  const notificationRows: { key: keyof EnrollmentSettings; label: string; desc: string; disabled?: boolean; disabledNote?: string }[] = [
+    {
+      key: 'notifyNewApplication',
+      label: 'New application submitted',
+      desc: 'Receive a notification when someone submits a membership application.',
+      disabled: isEmailVerification,
+      disabledNote: 'Not applicable — members self-activate without admin review.',
+    },
+    {
+      key: 'notifyMemberActivates',
+      label: 'Member activates',
+      desc: 'Receive a notification when a member completes onboarding and becomes active.',
+    },
+    {
+      key: 'notifyPaymentLinkExpires',
+      label: 'Payment link expires',
+      desc: 'Receive a notification when a payment link expires without being used.',
+    },
+    {
+      key: 'notifyMembershipExpires',
+      label: 'Membership expires',
+      desc: "Receive a notification when a member's membership reaches its expiry date.",
+    },
+  ]
+
   return (
-    <Box sx={{ maxWidth: 640 }}>
+    <Box sx={{ maxWidth: 600 }}>
 
       {/* New member approval */}
       <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px', mb: 2.5 }}>
         <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary', mb: 2 }}>
           New member approval
         </Typography>
-        <FormControl>
-          <RadioGroup
-            value={settings.approvalMode}
-            onChange={e => update({ approvalMode: e.target.value as EnrollmentSettings['approvalMode'] })}
-          >
-            <FormControlLabel
-              value="admin_approval"
-              control={<Radio size="small" />}
-              label={<Typography sx={{ fontSize: 14 }}>Admin approval required</Typography>}
-            />
-            <FormControlLabel
-              value="email_verification"
-              control={<Radio size="small" />}
-              label={<Typography sx={{ fontSize: 14 }}>Email verification only</Typography>}
-            />
-          </RadioGroup>
-        </FormControl>
+        <Stack spacing={1.25}>
+          {([
+            {
+              value: 'admin_approval',
+              label: 'Admin approval required',
+              desc: 'New applications are held in a pending state until an admin approves or rejects.',
+            },
+            {
+              value: 'email_verification',
+              label: 'Email verification only',
+              desc: 'Members are automatically activated after verifying their email address. No admin review needed.',
+            },
+          ] as const).map(opt => (
+            <Box
+              key={opt.value}
+              onClick={() => update({ approvalMode: opt.value })}
+              sx={{
+                display: 'flex', alignItems: 'flex-start', gap: 1.5, p: '14px 16px',
+                bgcolor: settings.approvalMode === opt.value ? 'rgba(30,77,140,0.05)' : 'rgba(0,0,0,0.03)',
+                borderRadius: 1.5, cursor: 'pointer', transition: 'background 0.15s',
+                '&:hover': { bgcolor: settings.approvalMode === opt.value ? 'rgba(30,77,140,0.08)' : 'rgba(0,0,0,0.05)' },
+              }}
+            >
+              <RadioCircle selected={settings.approvalMode === opt.value} />
+              <Box>
+                <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}>{opt.label}</Typography>
+                <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.25 }}>{opt.desc}</Typography>
+              </Box>
+            </Box>
+          ))}
+        </Stack>
       </Box>
 
       {/* Admin notifications */}
@@ -1229,78 +1279,105 @@ function EnrollmentTab({ initial }: { initial: EnrollmentSettings }) {
           Admin notifications
         </Typography>
         <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 2 }}>
-          Notify admins when:
+          Choose which events trigger a notification to admins.
         </Typography>
 
         <Stack spacing={1}>
-          {[
-            { key: 'notifyNewApplication'   as keyof EnrollmentSettings, label: 'A new application is submitted' },
-            { key: 'notifyMemberActivates'  as keyof EnrollmentSettings, label: 'A member completes payment and activates' },
-            { key: 'notifyPaymentLinkExpires' as keyof EnrollmentSettings, label: 'A payment link expires without payment' },
-            { key: 'notifyMembershipExpires'  as keyof EnrollmentSettings, label: 'A membership expires' },
-          ].map(({ key, label }) => (
-            <FormControlLabel
+          {notificationRows.map(({ key, label, desc, disabled, disabledNote }) => (
+            <Box
               key={key}
-              control={
-                <Switch
-                  size="small"
-                  checked={settings[key] as boolean}
-                  onChange={e => update({ [key]: e.target.checked })}
-                />
-              }
-              label={<Typography sx={{ fontSize: 14 }}>{label}</Typography>}
-              sx={{ ml: 0 }}
-            />
+              onClick={() => !disabled && update({ [key]: !(settings[key] as boolean) })}
+              sx={{
+                display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, py: 1.25,
+                bgcolor: 'rgba(0,0,0,0.025)', borderRadius: 1.25,
+                cursor: disabled ? 'default' : 'pointer',
+                opacity: disabled ? 0.45 : 1,
+                transition: 'opacity 0.2s',
+                '&:hover': !disabled ? { bgcolor: 'rgba(0,0,0,0.04)' } : {},
+              }}
+            >
+              <Switch
+                size="small"
+                checked={!disabled && (settings[key] as boolean)}
+                disabled={disabled}
+                onChange={e => { e.stopPropagation(); if (!disabled) update({ [key]: e.target.checked }) }}
+                onClick={e => e.stopPropagation()}
+              />
+              <Box sx={{ flex: 1 }}>
+                <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}>{label}</Typography>
+                <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.125 }}>
+                  {disabled && disabledNote ? disabledNote : desc}
+                </Typography>
+              </Box>
+            </Box>
           ))}
         </Stack>
 
         <Divider sx={{ my: 2 }} />
 
-        <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 1 }}>
-          Send notifications to:
+        <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', mb: 0.5 }}>Send notifications to</Typography>
+        <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 1.75 }}>
+          Choose who receives admin notification emails.
         </Typography>
-        <FormControl>
-          <RadioGroup
-            value={settings.notifyAllAdmins ? 'all' : 'primary'}
-            onChange={e => update({ notifyAllAdmins: e.target.value === 'all' })}
-          >
-            <FormControlLabel
-              value="all"
-              control={<Radio size="small" />}
-              label={<Typography sx={{ fontSize: 14 }}>All admins</Typography>}
-            />
-            <FormControlLabel
-              value="primary"
-              control={<Radio size="small" />}
-              label={<Typography sx={{ fontSize: 14 }}>Primary admin only</Typography>}
-            />
-          </RadioGroup>
-        </FormControl>
+        <Stack spacing={1.25}>
+          {([
+            {
+              value: 'all',
+              label: 'All admins',
+              desc: 'Every member with an admin role will receive notification emails.',
+            },
+            {
+              value: 'owner',
+              label: 'Club owner only',
+              desc: 'Only the account designated as club owner in Club Settings receives notifications.',
+            },
+          ] as const).map(opt => {
+            const selected = opt.value === 'all' ? settings.notifyAllAdmins : !settings.notifyAllAdmins
+            return (
+              <Box
+                key={opt.value}
+                onClick={() => update({ notifyAllAdmins: opt.value === 'all' })}
+                sx={{
+                  display: 'flex', alignItems: 'flex-start', gap: 1.5, p: '14px 16px',
+                  bgcolor: selected ? 'rgba(30,77,140,0.05)' : 'rgba(0,0,0,0.03)',
+                  borderRadius: 1.5, cursor: 'pointer', transition: 'background 0.15s',
+                  '&:hover': { bgcolor: selected ? 'rgba(30,77,140,0.08)' : 'rgba(0,0,0,0.05)' },
+                }}
+              >
+                <RadioCircle selected={selected} />
+                <Box>
+                  <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}>{opt.label}</Typography>
+                  <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.25 }}>{opt.desc}</Typography>
+                </Box>
+              </Box>
+            )
+          })}
+        </Stack>
       </Box>
 
       {/* Payment link expiry — coming soon */}
       <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px', mb: 2.5, opacity: 0.65 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
           <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary' }}>
             Payment link expiry
           </Typography>
           <Chip label="Coming soon" size="small" sx={{ fontSize: 11, height: 20, bgcolor: '#D8DDE7', color: '#3E5066' }} />
         </Box>
         <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-          Requires Stripe integration.
+          Set how long payment links remain valid before expiring. Requires Stripe integration.
         </Typography>
       </Box>
 
       {/* Membership dues — coming soon */}
       <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px', mb: 3, opacity: 0.65 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
           <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary' }}>
             Membership dues
           </Typography>
           <Chip label="Coming soon" size="small" sx={{ fontSize: 11, height: 20, bgcolor: '#D8DDE7', color: '#3E5066' }} />
         </Box>
         <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-          Requires Stripe integration.
+          Configure annual dues amounts and renewal periods. Requires Stripe integration.
         </Typography>
       </Box>
 
@@ -1313,6 +1390,9 @@ function EnrollmentTab({ initial }: { initial: EnrollmentSettings }) {
         </Button>
         {saved && (
           <Typography sx={{ fontSize: 13, color: 'success.main', fontWeight: 600 }}>Saved</Typography>
+        )}
+        {saveError && (
+          <Typography sx={{ fontSize: 13, color: 'error.main' }}>{saveError}</Typography>
         )}
       </Box>
     </Box>
@@ -1474,20 +1554,23 @@ function SkillLevelsTab({
         )}
       </Box>
 
-      {/* Benchmark advancement note */}
+      {/* Competition recognitions note */}
       <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px', mb: 2.5 }}>
         <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary', mb: 1 }}>
-          Benchmark advancement
+          Competition recognitions
         </Typography>
         <Typography sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.6, mb: 1 }}>
-          When scoring bands are enabled in Club Defaults, the system tracks scores per member. Advancement notifications appear for admins — level changes are always confirmed manually.
+          Recognitions such as Best in Show, Judge&apos;s Choice, and merit awards are configured in Club Defaults and apply club-wide. When skill levels are enabled, competition results and recognitions can optionally be separated by level — so a Class A and Class B member compete for honours within their own group.
+        </Typography>
+        <Typography sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.6, mb: 1 }}>
+          Separating results by level is configured per competition, not here.
         </Typography>
         <Typography
           component="a"
           href={`/${clubSlug}/admin/settings`}
           sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
         >
-          Go to scoring bands →
+          Go to Club Defaults →
         </Typography>
       </Box>
 
@@ -1570,7 +1653,19 @@ export default function MembersClient({
 
   function handleToggleClasses(enabled: boolean) {
     setClassesEnabled(enabled)
-    startClass(async () => { await setMemberClassesEnabled(enabled) })
+    startClass(async () => {
+      await setMemberClassesEnabled(enabled)
+      // Seed Class A, B, C when enabling for the first time with no existing classes
+      if (enabled && classes.length === 0) {
+        const defaults = ['Class A', 'Class B', 'Class C']
+        const created: { id: string; name: string }[] = []
+        for (const name of defaults) {
+          const { id, error } = await addMemberClass(name)
+          if (!error && id) created.push({ id, name })
+        }
+        if (created.length) setClasses(created)
+      }
+    })
   }
 
   function handleAddClass() {
