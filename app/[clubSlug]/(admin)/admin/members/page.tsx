@@ -32,7 +32,7 @@ export default async function MembersPage() {
     admin.from('submissions').select('member_id, competition_id').gte('submitted_at', yearStart).lt('submitted_at', nextYearStart),
     // Category breakdown for the donut chart (all-time)
     admin.from('submissions').select('member_id, competition_categories(name)'),
-    admin.from('club_settings').select('member_classes_enabled, approval_mode, notify_new_application, notify_member_activates, notify_payment_link_expires, notify_membership_expires, notify_all_admins').single(),
+    admin.from('club_settings').select('member_classes_enabled').single(),
     admin.auth.admin.listUsers({ perPage: 1000 }),
     admin.from('member_classes').select('id, name').order('sort_order').order('created_at'),
     // Competitions with submissions open this year
@@ -136,13 +136,15 @@ export default async function MembersPage() {
     }
   })
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cs = clubSettings as any
   const enrollmentSettings = {
-    approvalMode:             (clubSettings?.approval_mode             ?? 'admin_approval') as 'admin_approval' | 'email_verification',
-    notifyNewApplication:     clubSettings?.notify_new_application     ?? true,
-    notifyMemberActivates:    clubSettings?.notify_member_activates    ?? true,
-    notifyPaymentLinkExpires: clubSettings?.notify_payment_link_expires ?? true,
-    notifyMembershipExpires:  clubSettings?.notify_membership_expires  ?? true,
-    notifyAllAdmins:          clubSettings?.notify_all_admins          ?? true,
+    approvalMode:             (cs?.approval_mode             ?? 'admin_approval') as 'admin_approval' | 'email_verification',
+    notifyNewApplication:     cs?.notify_new_application     ?? true,
+    notifyMemberActivates:    cs?.notify_member_activates    ?? true,
+    notifyPaymentLinkExpires: cs?.notify_payment_link_expires ?? true,
+    notifyMembershipExpires:  cs?.notify_membership_expires  ?? true,
+    notifyAllAdmins:          cs?.notify_all_admins          ?? true,
   }
 
   return (
