@@ -8,7 +8,7 @@ export default function CompetitionsTabNav({ clubSlug }: { clubSlug: string }) {
   const router   = useRouter()
 
   const tabs = [
-    { label: 'All Competitions',      href: `/${clubSlug}/admin/competitions`,           exact: true },
+    { label: 'Competition List',       href: `/${clubSlug}/admin/competitions`,           exact: true },
     { label: 'Competition Templates', href: `/${clubSlug}/admin/competitions/templates` },
   ]
 

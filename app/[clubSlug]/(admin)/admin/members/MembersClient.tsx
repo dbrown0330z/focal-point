@@ -1893,14 +1893,10 @@ export default function MembersClient({
         <Tabs
           value={activeTab}
           onChange={(_, v) => setActiveTab(v)}
-          sx={{
-            '& .MuiTab-root': { fontSize: 14, fontWeight: 500, textTransform: 'none', minHeight: 40, py: 1 },
-            '& .Mui-selected': { fontWeight: 600 },
-          }}
         >
-          <Tab label="Member list" />
-          <Tab label="Enrollment" />
-          <Tab label="Skill levels" />
+          <Tab label="Member List"  sx={{ textTransform: 'none' }} />
+          <Tab label="Enrollment"   sx={{ textTransform: 'none' }} />
+          <Tab label="Skill Levels" sx={{ textTransform: 'none' }} />
         </Tabs>
       </Box>
 
