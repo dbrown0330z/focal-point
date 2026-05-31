@@ -106,7 +106,7 @@ type Profile = {
   last_login: string | null
 }
 
-type Filter  = 'all' | 'active' | 'pending' | 'expired' | 'this_month'
+type Filter  = 'all' | 'active' | 'pending' | 'expired' | 'suspended' | 'this_month'
 type SortKey = 'status' | 'first_name' | 'last_name' | 'role' | 'level' | 'engagement' | 'last_login'
 
 // ─── Status config ────────────────────────────────────────────────────────────
@@ -371,9 +371,10 @@ interface StatBoxProps {
   value: string | number
   active: boolean
   onClick: () => void
+  valueColor?: string
 }
 
-function StatBox({ label, value, active, onClick }: StatBoxProps) {
+function StatBox({ label, value, active, onClick, valueColor }: StatBoxProps) {
   return (
     <Box
       onClick={onClick}
@@ -393,7 +394,7 @@ function StatBox({ label, value, active, onClick }: StatBoxProps) {
         '&:hover': { bgcolor: active ? 'rgba(30,77,140,0.08)' : 'rgba(0,0,0,0.03)' },
       }}
     >
-      <Typography sx={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: 'text.primary', mb: 0.5 }}>
+      <Typography sx={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: valueColor ?? 'text.primary', mb: 0.5 }}>
         {value}
       </Typography>
       <Typography sx={{ fontSize: 12, color: 'text.secondary', textAlign: 'center' }}>
@@ -403,26 +404,36 @@ function StatBox({ label, value, active, onClick }: StatBoxProps) {
   )
 }
 
+const SUSPENDED_STATUSES: MembershipStatus[] = ['paused', 'banned']
+
 interface StatsStripProps {
   profiles: Profile[]
   filter: Filter
   onFilter: (f: Filter) => void
   joinedThisMonth: number
+  approvalMode: 'admin_approval' | 'email_verification'
 }
 
-function StatsStrip({ profiles, filter, onFilter, joinedThisMonth }: StatsStripProps) {
-  const total   = profiles.length
-  const active  = profiles.filter(p => ACTIVE_STATUSES.includes(p.membership_status)).length
-  const pending = profiles.filter(p => PENDING_STATUSES.includes(p.membership_status)).length
-  const expired = profiles.filter(p => INACTIVE_STATUSES.includes(p.membership_status)).length
+function StatsStrip({ profiles, filter, onFilter, joinedThisMonth, approvalMode }: StatsStripProps) {
+  const total     = profiles.length
+  const active    = profiles.filter(p => ACTIVE_STATUSES.includes(p.membership_status)).length
+  const pending   = profiles.filter(p => PENDING_STATUSES.includes(p.membership_status)).length
+  const expired   = profiles.filter(p => INACTIVE_STATUSES.includes(p.membership_status)).length
+  const suspended = profiles.filter(p => SUSPENDED_STATUSES.includes(p.membership_status)).length
+
+  const showPending = approvalMode === 'admin_approval'
 
   return (
     <Box sx={{ display: 'flex', gap: 0.5, mb: 3, bgcolor: 'background.paper', borderRadius: 2, px: 1 }}>
       <StatBox label="Total members"     value={total}                       active={filter === 'all'}        onClick={() => onFilter('all')} />
       <Divider orientation="vertical" flexItem sx={{ my: 2 }} />
-      <StatBox label="Active"            value={active}                      active={filter === 'active'}     onClick={() => onFilter('active')} />
+      <StatBox label="Active"            value={active}                      active={filter === 'active'}     onClick={() => onFilter('active')} valueColor="success.main" />
       <Divider orientation="vertical" flexItem sx={{ my: 2 }} />
-      <StatBox label="Pending"           value={pending}                     active={filter === 'pending'}    onClick={() => onFilter('pending')} />
+      {showPending ? (
+        <StatBox label="Pending"         value={pending}                     active={filter === 'pending'}    onClick={() => onFilter('pending')} />
+      ) : (
+        <StatBox label="Suspended"       value={suspended}                   active={filter === 'suspended'}  onClick={() => onFilter('suspended')} />
+      )}
       <Divider orientation="vertical" flexItem sx={{ my: 2 }} />
       <StatBox label="Expired"           value={expired}                     active={filter === 'expired'}    onClick={() => onFilter('expired')} />
       <Divider orientation="vertical" flexItem sx={{ my: 2 }} />
@@ -1700,6 +1711,7 @@ export default function MembersClient({
       if (filter === 'active')     return ACTIVE_STATUSES.includes(p.membership_status)
       if (filter === 'pending')    return PENDING_STATUSES.includes(p.membership_status)
       if (filter === 'expired')    return INACTIVE_STATUSES.includes(p.membership_status)
+      if (filter === 'suspended')  return SUSPENDED_STATUSES.includes(p.membership_status)
       if (filter === 'this_month') {
         const start = new Date(); start.setDate(1); start.setHours(0, 0, 0, 0)
         return new Date(p.created_at) >= start
@@ -1839,6 +1851,7 @@ export default function MembersClient({
     { key: 'all',        label: 'All',              count: profiles.length },
     { key: 'active',     label: 'Active',            count: profiles.filter(p => ACTIVE_STATUSES.includes(p.membership_status)).length },
     { key: 'pending',    label: 'Pending',           count: profiles.filter(p => PENDING_STATUSES.includes(p.membership_status)).length },
+    { key: 'suspended',  label: 'Suspended',         count: profiles.filter(p => SUSPENDED_STATUSES.includes(p.membership_status)).length },
     { key: 'expired',    label: 'Expired',           count: profiles.filter(p => INACTIVE_STATUSES.includes(p.membership_status)).length },
     { key: 'this_month', label: 'Joined this month', count: joinedThisMonth },
   ]
@@ -1900,6 +1913,7 @@ export default function MembersClient({
             filter={filter}
             onFilter={setFilter}
             joinedThisMonth={joinedThisMonth}
+            approvalMode={enrollmentSettings?.approvalMode ?? 'email_verification'}
           />
 
           {/* Filters + search */}
