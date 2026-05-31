@@ -63,6 +63,7 @@ import {
   sendPasswordReset,
   updateMemberEmail,
   saveEnrollmentSettings,
+  seedDefaultMemberClasses,
 } from './actions'
 
 type MembershipStatus = Database['public']['Enums']['membership_status']
@@ -1381,8 +1382,14 @@ function EnrollmentTab({ initial }: { initial: EnrollmentSettings }) {
         </Typography>
       </Box>
 
-      {/* Save */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      {/* Save — sticky so it's always visible while scrolling */}
+      <Box sx={{
+        position: 'sticky', bottom: 0, zIndex: 10,
+        bgcolor: 'background.default',
+        borderTop: '1px solid', borderColor: 'divider',
+        py: 1.75, mt: 1,
+        display: 'flex', alignItems: 'center', gap: 1.5,
+      }}>
         <Button variant="contained" onClick={handleSave} disabled={saving}
           sx={{ fontSize: 13.5, fontWeight: 600, px: 2.5, py: 1.125, borderRadius: 1.25,
             boxShadow: '0 3px 10px rgba(30,77,140,0.3)' }}>
@@ -1467,10 +1474,9 @@ function SkillLevelsTab({
             <Stack spacing={0.75}>
               {[
                 'Levels classify members by photographic ability.',
-                'Assigned manually by admins.',
+                'Assigned manually by a review group or committee.',
                 'Appear on member profiles and directory.',
                 'Competitions can separate results by level.',
-                'A Skill level column is added to the member table when enabled.',
               ].map((line, i) => (
                 <Box key={i} sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start' }}>
                   <Box sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: 'text.secondary', mt: '7px', flexShrink: 0 }} />
@@ -1567,7 +1573,7 @@ function SkillLevelsTab({
         </Typography>
         <Typography
           component="a"
-          href={`/${clubSlug}/admin/settings`}
+          href={`/${clubSlug}/admin/club-defaults/recognition`}
           sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
         >
           Go to Club Defaults →
@@ -1655,15 +1661,10 @@ export default function MembersClient({
     setClassesEnabled(enabled)
     startClass(async () => {
       await setMemberClassesEnabled(enabled)
-      // Seed Class A, B, C when enabling for the first time with no existing classes
+      // Seed Class A, B, C in a single server call when enabling for the first time
       if (enabled && classes.length === 0) {
-        const defaults = ['Class A', 'Class B', 'Class C']
-        const created: { id: string; name: string }[] = []
-        for (const name of defaults) {
-          const { id, error } = await addMemberClass(name)
-          if (!error && id) created.push({ id, name })
-        }
-        if (created.length) setClasses(created)
+        const { classes: seeded } = await seedDefaultMemberClasses()
+        if (seeded?.length) setClasses(seeded)
       }
     })
   }
@@ -1859,7 +1860,7 @@ export default function MembersClient({
   ]
 
   const defaultEnrollment: EnrollmentSettings = {
-    approvalMode: 'admin_approval',
+    approvalMode: 'email_verification',
     notifyNewApplication: true,
     notifyMemberActivates: true,
     notifyPaymentLinkExpires: true,

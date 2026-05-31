@@ -140,7 +140,7 @@ export default async function MembersPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cs = clubSettings as any
   const enrollmentSettings = {
-    approvalMode:             (cs?.approval_mode             ?? 'admin_approval') as 'admin_approval' | 'email_verification',
+    approvalMode:             (cs?.approval_mode             ?? 'email_verification') as 'admin_approval' | 'email_verification',
     notifyNewApplication:     cs?.notify_new_application     ?? true,
     notifyMemberActivates:    cs?.notify_member_activates    ?? true,
     notifyPaymentLinkExpires: cs?.notify_payment_link_expires ?? true,

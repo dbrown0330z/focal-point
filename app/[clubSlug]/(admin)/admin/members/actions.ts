@@ -313,6 +313,19 @@ export async function addMemberClass(name: string): Promise<{ error?: string; id
   return { id: data.id }
 }
 
+export async function seedDefaultMemberClasses(): Promise<{ error?: string; classes?: { id: string; name: string }[] }> {
+  const supabase = createServiceClient()
+  const defaults = ['Class A', 'Class B', 'Class C']
+  const rows = defaults.map((name, sort_order) => ({ name, sort_order }))
+  const { data, error } = await supabase
+    .from('member_classes')
+    .insert(rows)
+    .select('id, name')
+  if (error) return { error: error.message }
+  revalidatePath('/admin/members')
+  return { classes: data }
+}
+
 export async function renameMemberClass(id: string, name: string): Promise<{ error?: string }> {
   const supabase = createServiceClient()
   const { error } = await supabase
