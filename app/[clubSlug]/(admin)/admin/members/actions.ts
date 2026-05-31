@@ -378,6 +378,31 @@ export async function sendPasswordReset(memberId: string): Promise<{ error?: str
   return {}
 }
 
+export async function saveEnrollmentSettings(settings: {
+  approvalMode: 'admin_approval' | 'email_verification'
+  notifyNewApplication: boolean
+  notifyMemberActivates: boolean
+  notifyPaymentLinkExpires: boolean
+  notifyMembershipExpires: boolean
+  notifyAllAdmins: boolean
+}): Promise<{ error?: string }> {
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('club_settings')
+    .update({
+      approval_mode:               settings.approvalMode,
+      notify_new_application:      settings.notifyNewApplication,
+      notify_member_activates:     settings.notifyMemberActivates,
+      notify_payment_link_expires: settings.notifyPaymentLinkExpires,
+      notify_membership_expires:   settings.notifyMembershipExpires,
+      notify_all_admins:           settings.notifyAllAdmins,
+    })
+    .neq('id', '00000000-0000-0000-0000-000000000000')
+  if (error) return { error: error.message }
+  revalidatePath('/admin/members')
+  return {}
+}
+
 export async function setMemberPreference(
   memberId: string,
   preference: PreferenceKey,

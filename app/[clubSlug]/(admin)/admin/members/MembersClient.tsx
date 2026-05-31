@@ -9,27 +9,33 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
+  FormControl,
   FormControlLabel,
   IconButton,
   InputAdornment,
   MenuItem,
   OutlinedInput,
   Paper,
+  Radio,
+  RadioGroup,
   Select,
   SelectChangeEvent,
   Snackbar,
   Stack,
   Switch,
+  Tab,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
+  Tabs,
   TextField,
   Tooltip,
   Typography,
@@ -56,6 +62,7 @@ import {
   removeAdminRole,
   sendPasswordReset,
   updateMemberEmail,
+  saveEnrollmentSettings,
 } from './actions'
 
 type MembershipStatus = Database['public']['Enums']['membership_status']
@@ -98,7 +105,7 @@ type Profile = {
   last_login: string | null
 }
 
-type Filter  = 'all' | 'active' | 'pending' | 'expired'
+type Filter  = 'all' | 'active' | 'pending' | 'expired' | 'this_month'
 type SortKey = 'status' | 'first_name' | 'last_name' | 'role' | 'level' | 'engagement' | 'last_login'
 
 // ─── Status config ────────────────────────────────────────────────────────────
@@ -356,159 +363,69 @@ function SubmissionDonut({ categories }: { categories: Record<string, number> })
   )
 }
 
-// ─── Membership donut chart (page-level) ─────────────────────────────────────
+// ─── Stats strip ─────────────────────────────────────────────────────────────
 
-// Statuses grouped into the "Other" bucket
-const OTHER_STATUSES: MembershipStatus[] = ['complimentary', 'paused', 'banned', 'cancelled']
+interface StatBoxProps {
+  label: string
+  value: string | number
+  active: boolean
+  onClick: () => void
+}
 
-interface SliceDef { key: string; label: string; color: string; statuses: MembershipStatus[] }
-const SLICE_DEFS: SliceDef[] = [
-  { key: 'active',   label: 'Active',          color: '#2E7D32', statuses: ['active'] },
-  { key: 'pending',  label: 'Pending',          color: '#A67C00', statuses: ['pending'] },
-  { key: 'approved', label: 'Awaiting payment', color: '#7B6B38', statuses: ['approved'] },
-  { key: 'expired',  label: 'Expired',          color: '#7E8EA3', statuses: ['expired'] },
-  { key: 'other',    label: 'Other',            color: '#5A6C82', statuses: OTHER_STATUSES },
-]
-
-// Breakdown list used in the "Other" tooltip
-function OtherBreakdown({ profiles }: { profiles: Profile[] }) {
-  const items = OTHER_STATUSES
-    .map(s => ({ label: STATUS_LABEL[s], count: profiles.filter(p => p.membership_status === s).length }))
-    .filter(x => x.count > 0)
-  if (items.length === 0) return <Typography sx={{ fontSize: 12 }}>None</Typography>
+function StatBox({ label, value, active, onClick }: StatBoxProps) {
   return (
-    <Box sx={{ minWidth: 140 }}>
-      <Typography sx={{ fontSize: 11, fontWeight: 700, mb: 0.75, opacity: 0.75 }}>Other includes:</Typography>
-      {items.map(({ label, count }) => (
-        <Box key={label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
-          <Typography sx={{ fontSize: 12 }}>{label}</Typography>
-          <Typography sx={{ fontSize: 12, fontWeight: 700 }}>{count}</Typography>
-        </Box>
-      ))}
+    <Box
+      onClick={onClick}
+      sx={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        py: '18px',
+        px: 2,
+        cursor: 'pointer',
+        borderRadius: 1.5,
+        bgcolor: active ? 'rgba(30,77,140,0.06)' : 'transparent',
+        borderBottom: active ? '2px solid' : '2px solid transparent',
+        borderColor: active ? 'primary.main' : 'transparent',
+        transition: 'background 0.15s',
+        '&:hover': { bgcolor: active ? 'rgba(30,77,140,0.08)' : 'rgba(0,0,0,0.03)' },
+      }}
+    >
+      <Typography sx={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: 'text.primary', mb: 0.5 }}>
+        {value}
+      </Typography>
+      <Typography sx={{ fontSize: 12, color: 'text.secondary', textAlign: 'center' }}>
+        {label}
+      </Typography>
     </Box>
   )
 }
 
-function MembershipDonut({ profiles }: { profiles: Profile[] }) {
-  const slices = SLICE_DEFS.map(def => ({
-    ...def,
-    count: def.statuses.reduce((sum, s) => sum + profiles.filter(p => p.membership_status === s).length, 0),
-  }))
+interface StatsStripProps {
+  profiles: Profile[]
+  filter: Filter
+  onFilter: (f: Filter) => void
+  joinedThisMonth: number
+}
 
-  const total    = profiles.length
-  const nonEmpty = slices.filter(s => s.count > 0)
-  const cx = 74, cy = 74, r = 56, sw = 16, size = 148
-
-  let cumAngle = -Math.PI / 2
-  const segments = nonEmpty.map(s => {
-    const slice = (s.count / Math.max(total, 1)) * 2 * Math.PI
-    if (nonEmpty.length === 1) return { ...s, path: null }
-    const gap = 0.020
-    const x1 = cx + r * Math.cos(cumAngle + gap)
-    const y1 = cy + r * Math.sin(cumAngle + gap)
-    cumAngle += slice
-    const x2 = cx + r * Math.cos(cumAngle - gap)
-    const y2 = cy + r * Math.sin(cumAngle - gap)
-    return {
-      ...s,
-      path: `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${slice > Math.PI ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`,
-    }
-  })
-
-  // Shared tooltip style — light card appearance so text is readable
-  const ttSx = {
-    bgcolor: 'background.paper',
-    color: 'text.primary',
-    border: '1px solid',
-    borderColor: 'divider',
-    boxShadow: 4,
-    p: 1.5,
-    borderRadius: 1.5,
-  }
-
-  // Legend columns: col1 = Active/Pending/Expired, col2 = Awaiting payment/Other
-  const col1Keys = ['active', 'pending', 'expired']
-  const col2Keys = ['approved', 'other']
-  const col1 = slices.filter(s => col1Keys.includes(s.key))
-  const col2 = slices.filter(s => col2Keys.includes(s.key))
-
-  function LegendItem({ s }: { s: typeof slices[number] }) {
-    const isOther = s.key === 'other'
-    const row = (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.875, cursor: isOther ? 'help' : 'default' }}>
-        <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: s.color, flexShrink: 0, opacity: s.count === 0 ? 0.40 : 1 }} />
-        <Typography sx={{ fontSize: 13, color: s.count === 0 ? 'text.disabled' : 'text.secondary', lineHeight: 1.3 }}>
-          {s.label}{' '}
-          <Typography component="span" sx={{ fontWeight: 700, color: s.count === 0 ? 'text.disabled' : 'text.primary' }}>
-            {s.count}
-          </Typography>
-        </Typography>
-      </Box>
-    )
-    return isOther ? (
-      <Tooltip
-        title={<OtherBreakdown profiles={profiles} />}
-        placement="right"
-        arrow
-        slotProps={{ tooltip: { sx: ttSx }, arrow: { sx: { color: 'background.paper' } } }}
-      >
-        {row}
-      </Tooltip>
-    ) : row
-  }
+function StatsStrip({ profiles, filter, onFilter, joinedThisMonth }: StatsStripProps) {
+  const total   = profiles.length
+  const active  = profiles.filter(p => ACTIVE_STATUSES.includes(p.membership_status)).length
+  const pending = profiles.filter(p => PENDING_STATUSES.includes(p.membership_status)).length
+  const expired = profiles.filter(p => INACTIVE_STATUSES.includes(p.membership_status)).length
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-
-      {/* Donut SVG */}
-      <Box sx={{ flexShrink: 0 }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-          {nonEmpty.length === 0 ? (
-            <circle cx={cx} cy={cy} r={r} fill="none" stroke="#D8DDE7" strokeWidth={sw} />
-          ) : nonEmpty.length === 1 ? (
-            <circle cx={cx} cy={cy} r={r} fill="none" stroke={nonEmpty[0].color} strokeWidth={sw} />
-          ) : (
-            segments.map((s, i) => {
-              if (!s.path) return null
-              const isOther = s.key === 'other'
-              const arc = (
-                <g key={i} style={{ cursor: isOther ? 'help' : 'default' }}>
-                  <path d={s.path} fill="none" stroke={s.color} strokeWidth={sw} />
-                  <path d={s.path} fill="none" stroke="transparent" strokeWidth={sw * 3} />
-                </g>
-              )
-              return isOther ? (
-                <Tooltip
-                  key={i}
-                  title={<OtherBreakdown profiles={profiles} />}
-                  placement="right"
-                  arrow
-                  slotProps={{ tooltip: { sx: ttSx }, arrow: { sx: { color: 'background.paper' } } }}
-                >
-                  {arc}
-                </Tooltip>
-              ) : arc
-            })
-          )}
-          <text x={cx} y={cy - 10} textAnchor="middle" dominantBaseline="middle"
-            fontSize="32" fontWeight="700" fill="currentColor">{total}</text>
-          <text x={cx} y={cy + 14} textAnchor="middle" dominantBaseline="middle"
-            fontSize="11" fill="#7E8EA3">members</text>
-        </svg>
-      </Box>
-
-      {/* Legend — 2 columns, content-sized so they sit close together */}
-      <Box sx={{ flex: 1, display: 'grid', gridTemplateColumns: 'auto auto', justifyContent: 'start', alignItems: 'start', columnGap: 4, rowGap: 0 }}>
-        {/* Column 1: Active, Pending, Expired */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-          {col1.map(s => <LegendItem key={s.key} s={s} />)}
-        </Box>
-        {/* Column 2: Awaiting payment, Other */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-          {col2.map(s => <LegendItem key={s.key} s={s} />)}
-        </Box>
-      </Box>
-
+    <Box sx={{ display: 'flex', gap: 0.5, mb: 3, bgcolor: 'background.paper', borderRadius: 2, px: 1 }}>
+      <StatBox label="Total members"     value={total}                       active={filter === 'all'}        onClick={() => onFilter('all')} />
+      <Divider orientation="vertical" flexItem sx={{ my: 2 }} />
+      <StatBox label="Active"            value={active}                      active={filter === 'active'}     onClick={() => onFilter('active')} />
+      <Divider orientation="vertical" flexItem sx={{ my: 2 }} />
+      <StatBox label="Pending"           value={pending}                     active={filter === 'pending'}    onClick={() => onFilter('pending')} />
+      <Divider orientation="vertical" flexItem sx={{ my: 2 }} />
+      <StatBox label="Expired"           value={expired}                     active={filter === 'expired'}    onClick={() => onFilter('expired')} />
+      <Divider orientation="vertical" flexItem sx={{ my: 2 }} />
+      <StatBox label="Joined this month" value={`+${joinedThisMonth}`}       active={filter === 'this_month'} onClick={() => onFilter('this_month')} />
     </Box>
   )
 }
@@ -1251,6 +1168,347 @@ function MemberModal({
   )
 }
 
+// ─── Enrollment tab ───────────────────────────────────────────────────────────
+
+interface EnrollmentSettings {
+  approvalMode: 'admin_approval' | 'email_verification'
+  notifyNewApplication: boolean
+  notifyMemberActivates: boolean
+  notifyPaymentLinkExpires: boolean
+  notifyMembershipExpires: boolean
+  notifyAllAdmins: boolean
+}
+
+function EnrollmentTab({ initial }: { initial: EnrollmentSettings }) {
+  const [settings, setSettings] = useState<EnrollmentSettings>(initial)
+  const [saving, setSaving]     = useState(false)
+  const [saved, setSaved]       = useState(false)
+
+  function update(patch: Partial<EnrollmentSettings>) {
+    setSettings(prev => ({ ...prev, ...patch }))
+    setSaved(false)
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    await saveEnrollmentSettings(settings)
+    setSaving(false)
+    setSaved(true)
+  }
+
+  return (
+    <Box sx={{ maxWidth: 640 }}>
+
+      {/* New member approval */}
+      <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px', mb: 2.5 }}>
+        <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary', mb: 2 }}>
+          New member approval
+        </Typography>
+        <FormControl>
+          <RadioGroup
+            value={settings.approvalMode}
+            onChange={e => update({ approvalMode: e.target.value as EnrollmentSettings['approvalMode'] })}
+          >
+            <FormControlLabel
+              value="admin_approval"
+              control={<Radio size="small" />}
+              label={<Typography sx={{ fontSize: 14 }}>Admin approval required</Typography>}
+            />
+            <FormControlLabel
+              value="email_verification"
+              control={<Radio size="small" />}
+              label={<Typography sx={{ fontSize: 14 }}>Email verification only</Typography>}
+            />
+          </RadioGroup>
+        </FormControl>
+      </Box>
+
+      {/* Admin notifications */}
+      <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px', mb: 2.5 }}>
+        <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+          Admin notifications
+        </Typography>
+        <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 2 }}>
+          Notify admins when:
+        </Typography>
+
+        <Stack spacing={1}>
+          {[
+            { key: 'notifyNewApplication'   as keyof EnrollmentSettings, label: 'A new application is submitted' },
+            { key: 'notifyMemberActivates'  as keyof EnrollmentSettings, label: 'A member completes payment and activates' },
+            { key: 'notifyPaymentLinkExpires' as keyof EnrollmentSettings, label: 'A payment link expires without payment' },
+            { key: 'notifyMembershipExpires'  as keyof EnrollmentSettings, label: 'A membership expires' },
+          ].map(({ key, label }) => (
+            <FormControlLabel
+              key={key}
+              control={
+                <Switch
+                  size="small"
+                  checked={settings[key] as boolean}
+                  onChange={e => update({ [key]: e.target.checked })}
+                />
+              }
+              label={<Typography sx={{ fontSize: 14 }}>{label}</Typography>}
+              sx={{ ml: 0 }}
+            />
+          ))}
+        </Stack>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 1 }}>
+          Send notifications to:
+        </Typography>
+        <FormControl>
+          <RadioGroup
+            value={settings.notifyAllAdmins ? 'all' : 'primary'}
+            onChange={e => update({ notifyAllAdmins: e.target.value === 'all' })}
+          >
+            <FormControlLabel
+              value="all"
+              control={<Radio size="small" />}
+              label={<Typography sx={{ fontSize: 14 }}>All admins</Typography>}
+            />
+            <FormControlLabel
+              value="primary"
+              control={<Radio size="small" />}
+              label={<Typography sx={{ fontSize: 14 }}>Primary admin only</Typography>}
+            />
+          </RadioGroup>
+        </FormControl>
+      </Box>
+
+      {/* Payment link expiry — coming soon */}
+      <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px', mb: 2.5, opacity: 0.65 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+          <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary' }}>
+            Payment link expiry
+          </Typography>
+          <Chip label="Coming soon" size="small" sx={{ fontSize: 11, height: 20, bgcolor: '#D8DDE7', color: '#3E5066' }} />
+        </Box>
+        <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+          Requires Stripe integration.
+        </Typography>
+      </Box>
+
+      {/* Membership dues — coming soon */}
+      <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px', mb: 3, opacity: 0.65 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+          <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary' }}>
+            Membership dues
+          </Typography>
+          <Chip label="Coming soon" size="small" sx={{ fontSize: 11, height: 20, bgcolor: '#D8DDE7', color: '#3E5066' }} />
+        </Box>
+        <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+          Requires Stripe integration.
+        </Typography>
+      </Box>
+
+      {/* Save */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Button variant="contained" onClick={handleSave} disabled={saving}
+          sx={{ fontSize: 13.5, fontWeight: 600, px: 2.5, py: 1.125, borderRadius: 1.25,
+            boxShadow: '0 3px 10px rgba(30,77,140,0.3)' }}>
+          {saving ? 'Saving…' : 'Save settings'}
+        </Button>
+        {saved && (
+          <Typography sx={{ fontSize: 13, color: 'success.main', fontWeight: 600 }}>Saved</Typography>
+        )}
+      </Box>
+    </Box>
+  )
+}
+
+// ─── Skill levels tab ─────────────────────────────────────────────────────────
+
+interface SkillLevelsTabProps {
+  classesEnabled: boolean
+  classes: { id: string; name: string }[]
+  classPending: boolean
+  classAdding: boolean
+  newClassName: string
+  clubSlug: string
+  onToggle: (enabled: boolean) => void
+  onAddStart: () => void
+  onAddCancel: () => void
+  onAddSave: () => void
+  onNewNameChange: (name: string) => void
+  onRename: (id: string, name: string) => void
+  onDelete: (id: string) => void
+  onSwitchToMemberList: () => void
+}
+
+function SkillLevelsTab({
+  classesEnabled,
+  classes,
+  classPending,
+  classAdding,
+  newClassName,
+  clubSlug,
+  onToggle,
+  onAddStart,
+  onAddCancel,
+  onAddSave,
+  onNewNameChange,
+  onRename,
+  onDelete,
+  onSwitchToMemberList,
+}: SkillLevelsTabProps) {
+  const [howItWorksOpen, setHowItWorksOpen] = useState(false)
+
+  return (
+    <Box sx={{ maxWidth: 560 }}>
+
+      {/* How skill levels work — collapsible */}
+      <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, mb: 2.5, overflow: 'hidden' }}>
+        <Box
+          onClick={() => setHowItWorksOpen(v => !v)}
+          sx={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            px: '22px', py: '14px', cursor: 'pointer',
+            '&:hover': { bgcolor: 'rgba(0,0,0,0.02)' },
+          }}
+        >
+          <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.secondary' }}>
+            How skill levels work
+          </Typography>
+          <Box sx={{
+            transform: howItWorksOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s',
+            color: 'text.secondary',
+          }}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6l4 4 4-4" />
+            </svg>
+          </Box>
+        </Box>
+        <Collapse in={howItWorksOpen}>
+          <Box sx={{ px: '22px', pb: '18px' }}>
+            <Stack spacing={0.75}>
+              {[
+                'Levels classify members by photographic ability.',
+                'Assigned manually by admins.',
+                'Appear on member profiles and directory.',
+                'Competitions can separate results by level.',
+                'A Skill level column is added to the member table when enabled.',
+              ].map((line, i) => (
+                <Box key={i} sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start' }}>
+                  <Box sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: 'text.secondary', mt: '7px', flexShrink: 0 }} />
+                  <Typography sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.6 }}>{line}</Typography>
+                </Box>
+              ))}
+            </Stack>
+          </Box>
+        </Collapse>
+      </Box>
+
+      {/* Enable toggle */}
+      <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px', mb: 2.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: classesEnabled ? 2.5 : 0 }}>
+          <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary' }}>
+            Skill levels
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography sx={{ fontSize: 13, color: classesEnabled ? 'text.primary' : 'text.disabled', fontWeight: 500 }}>
+              {classesEnabled ? 'On' : 'Off'}
+            </Typography>
+            <Switch
+              size="small"
+              checked={classesEnabled}
+              onChange={e => onToggle(e.target.checked)}
+              disabled={classPending}
+            />
+          </Box>
+        </Box>
+
+        {classesEnabled && (
+          <>
+            <Divider sx={{ mb: 2.5 }} />
+
+            {/* Level list */}
+            {classes.length > 0 && (
+              <Box sx={{ mb: 1.5 }}>
+                <Stack spacing={1.25}>
+                  {classes.map(cls => (
+                    <ClassRow
+                      key={cls.id}
+                      cls={cls}
+                      onRename={onRename}
+                      onDelete={onDelete}
+                      disabled={classPending || classes.length <= 1}
+                    />
+                  ))}
+                </Stack>
+                <Divider sx={{ mt: 2 }} />
+              </Box>
+            )}
+
+            {classAdding ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25, maxWidth: 320, mt: 1.5 }}>
+                <TextField
+                  size="small" fullWidth autoFocus
+                  placeholder="Level name e.g. Class A"
+                  value={newClassName}
+                  onChange={e => onNewNameChange(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), onAddSave())}
+                  disabled={classPending}
+                />
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button variant="contained" size="small"
+                    disabled={!newClassName.trim() || classPending} onClick={onAddSave}>
+                    Save
+                  </Button>
+                  <Button variant="outlined" color="secondary" size="small"
+                    disabled={classPending} onClick={onAddCancel}>
+                    Cancel
+                  </Button>
+                </Box>
+              </Box>
+            ) : (
+              <Button variant="outlined" color="secondary" size="small" sx={{ mt: 1.25 }}
+                onClick={onAddStart}>
+                + Add level
+              </Button>
+            )}
+          </>
+        )}
+      </Box>
+
+      {/* Benchmark advancement note */}
+      <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px', mb: 2.5 }}>
+        <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary', mb: 1 }}>
+          Benchmark advancement
+        </Typography>
+        <Typography sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.6, mb: 1 }}>
+          When scoring bands are enabled in Club Defaults, the system tracks scores per member. Advancement notifications appear for admins — level changes are always confirmed manually.
+        </Typography>
+        <Typography
+          component="a"
+          href={`/${clubSlug}/admin/settings`}
+          sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+        >
+          Go to scoring bands →
+        </Typography>
+      </Box>
+
+      {/* Assigning levels note */}
+      <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px' }}>
+        <Typography sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.6, mb: 0.75 }}>
+          Levels are assigned from individual member profiles.
+        </Typography>
+        <Typography
+          component="button"
+          onClick={onSwitchToMemberList}
+          sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}
+        >
+          Go to member list →
+        </Typography>
+      </Box>
+
+    </Box>
+  )
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function MembersClient({
@@ -1259,16 +1517,24 @@ export default function MembersClient({
   memberClasses,
   totalCompetitionsThisYear,
   totalPossibleImagesThisYear,
+  joinedThisMonth,
+  enrollmentSettings,
 }: {
   profiles: Profile[]
   memberClassesEnabled: boolean
   memberClasses: { id: string; name: string }[]
   totalCompetitionsThisYear: number
   totalPossibleImagesThisYear: number
+  joinedThisMonth: number
+  enrollmentSettings?: EnrollmentSettings
 }) {
   const router = useRouter()
   const params = useParams()
   const clubSlug = params.clubSlug as string
+
+  // ── Tab state ────────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState(0)
+
   const [filter, setFilter]           = useState<Filter>('all')
   const [search, setSearch]           = useState('')
   const [sortKey,  setSortKey]  = useState<SortKey>('last_name')
@@ -1332,17 +1598,16 @@ export default function MembersClient({
     })
   }
 
-  // Summary counts
-  const totalCount   = profiles.length
-  const pendingCount = profiles.filter(p => PENDING_STATUSES.includes(p.membership_status)).length
-  const activeCount  = profiles.filter(p => ACTIVE_STATUSES.includes(p.membership_status)).length
-
   // Filtered rows
   const filtered = profiles
     .filter(p => {
-      if (filter === 'active')  return ACTIVE_STATUSES.includes(p.membership_status)
-      if (filter === 'pending') return PENDING_STATUSES.includes(p.membership_status)
-      if (filter === 'expired') return INACTIVE_STATUSES.includes(p.membership_status)
+      if (filter === 'active')     return ACTIVE_STATUSES.includes(p.membership_status)
+      if (filter === 'pending')    return PENDING_STATUSES.includes(p.membership_status)
+      if (filter === 'expired')    return INACTIVE_STATUSES.includes(p.membership_status)
+      if (filter === 'this_month') {
+        const start = new Date(); start.setDate(1); start.setHours(0, 0, 0, 0)
+        return new Date(p.created_at) >= start
+      }
       return true
     })
     .filter(p => {
@@ -1475,10 +1740,11 @@ export default function MembersClient({
   }
 
   const FILTERS: { key: Filter; label: string; count: number }[] = [
-    { key: 'all',     label: 'All',     count: totalCount   },
-    { key: 'active',  label: 'Active',  count: activeCount  },
-    { key: 'pending', label: 'Pending', count: pendingCount },
-    { key: 'expired', label: 'Expired', count: profiles.filter(p => INACTIVE_STATUSES.includes(p.membership_status)).length },
+    { key: 'all',        label: 'All',              count: profiles.length },
+    { key: 'active',     label: 'Active',            count: profiles.filter(p => ACTIVE_STATUSES.includes(p.membership_status)).length },
+    { key: 'pending',    label: 'Pending',           count: profiles.filter(p => PENDING_STATUSES.includes(p.membership_status)).length },
+    { key: 'expired',    label: 'Expired',           count: profiles.filter(p => INACTIVE_STATUSES.includes(p.membership_status)).length },
+    { key: 'this_month', label: 'Joined this month', count: joinedThisMonth },
   ]
 
   function handleSort(key: SortKey) {
@@ -1497,281 +1763,256 @@ export default function MembersClient({
     { label: '',            key: null         },
   ]
 
+  const defaultEnrollment: EnrollmentSettings = {
+    approvalMode: 'admin_approval',
+    notifyNewApplication: true,
+    notifyMemberActivates: true,
+    notifyPaymentLinkExpires: true,
+    notifyMembershipExpires: true,
+    notifyAllAdmins: true,
+  }
+
   return (
     <>
       {/* Page heading */}
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 3 }}>
         <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Members</h1>
       </Box>
 
-      {/* Above-table panel: membership donut (left) + classification toggle (right) */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2.5, mb: 3, alignItems: 'start' }}>
+      {/* Tabs */}
+      <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 3 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(_, v) => setActiveTab(v)}
+          sx={{
+            '& .MuiTab-root': { fontSize: 14, fontWeight: 500, textTransform: 'none', minHeight: 40, py: 1 },
+            '& .Mui-selected': { fontWeight: 600 },
+          }}
+        >
+          <Tab label="Member list" />
+          <Tab label="Enrollment" />
+          <Tab label="Skill levels" />
+        </Tabs>
+      </Box>
 
-        {/* Left — membership breakdown donut (no box, free layout) */}
-        <Box sx={{ py: '20px', px: 1 }}>
-          <MembershipDonut profiles={profiles} />
-        </Box>
+      {/* ── Tab 0: Member list ──────────────────────────────────────────────── */}
+      {activeTab === 0 && (
+        <>
+          {/* Stats strip */}
+          <StatsStrip
+            profiles={profiles}
+            filter={filter}
+            onFilter={setFilter}
+            joinedThisMonth={joinedThisMonth}
+          />
 
-        {/* Right — member classifications */}
-        <Paper variant="outlined" sx={{ px: 3, py: '20px' }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 2 }}>
-            Member classifications
-          </Typography>
-
-          {/* Enable toggle */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: classesEnabled ? 2 : 0 }}>
-            <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary' }}>
-              Enable skill levels
-            </Typography>
-            <FormControlLabel
-              control={
-                <Switch
-                  size="small"
-                  checked={classesEnabled}
-                  onChange={e => handleToggleClasses(e.target.checked)}
-                  disabled={classPending}
-                />
-              }
-              label=""
-              sx={{ m: 0 }}
-            />
+          {/* Filters + search */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Select
+              size="small"
+              value={filter}
+              onChange={e => setFilter(e.target.value as Filter)}
+              sx={{ fontSize: 13, minWidth: 200, fontFamily: 'inherit' }}
+            >
+              {FILTERS.map(f => (
+                <MenuItem key={f.key} value={f.key} sx={{ fontSize: 13, fontFamily: 'inherit' }}>
+                  {f.label} ({f.count})
+                </MenuItem>
+              ))}
+            </Select>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <OutlinedInput
+                size="small"
+                placeholder="Search by name"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                startAdornment={
+                  <InputAdornment position="start">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#7E8EA3' }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
+                    </svg>
+                  </InputAdornment>
+                }
+                sx={{ width: 220 }}
+              />
+              <Button
+                variant="outlined"
+                color="secondary"
+                size="small"
+                onClick={handleExport}
+                startIcon={
+                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                }
+              >
+                Export CSV
+              </Button>
+            </Box>
           </Box>
 
-          {classesEnabled && (
-            <>
-              <Divider sx={{ mb: 2 }} />
-              {classes.length > 0 && (
-                <Box sx={{ mb: 1.5 }}>
-                  <Stack spacing={1.25}>
-                    {classes.map(cls => (
-                      <ClassRow
-                        key={cls.id}
-                        cls={cls}
-                        onRename={handleRenameClass}
-                        onDelete={handleDeleteClass}
-                        disabled={classPending || classes.length <= 1}
-                      />
-                    ))}
-                  </Stack>
-                  <Divider sx={{ mt: 2 }} />
-                </Box>
-              )}
-              {classAdding ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25, maxWidth: 320, mt: 1.5 }}>
-                  <TextField
-                    size="small" fullWidth autoFocus
-                    placeholder="Class name e.g. Class A"
-                    value={newClassName}
-                    onChange={e => setNewClassName(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddClass())}
-                    disabled={classPending}
-                  />
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button variant="contained" size="small"
-                      disabled={!newClassName.trim() || classPending} onClick={handleAddClass}>
-                      Save
-                    </Button>
-                    <Button variant="outlined" color="secondary" size="small"
-                      disabled={classPending} onClick={() => { setNewClassName(''); setClassAdding(false) }}>
-                      Cancel
-                    </Button>
-                  </Box>
-                </Box>
-              ) : (
-                <Button variant="outlined" color="secondary" size="small" sx={{ mt: 1.25 }}
-                  onClick={() => setClassAdding(true)}>
-                  + Add class
-                </Button>
-              )}
-            </>
-          )}
-        </Paper>
-
-      </Box>
-
-      {/* Filters + search */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Select
-          size="small"
-          value={filter}
-          onChange={e => setFilter(e.target.value as Filter)}
-          sx={{ fontSize: 13, minWidth: 180, fontFamily: 'inherit' }}
-        >
-          {FILTERS.map(f => (
-            <MenuItem key={f.key} value={f.key} sx={{ fontSize: 13, fontFamily: 'inherit' }}>
-              {f.label} ({f.count})
-            </MenuItem>
-          ))}
-        </Select>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <OutlinedInput
-            size="small"
-            placeholder="Search by name"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            startAdornment={
-              <InputAdornment position="start">
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#7E8EA3' }}>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
-                </svg>
-              </InputAdornment>
-            }
-            sx={{ width: 220 }}
-          />
-          <Button
-            variant="outlined"
-            color="secondary"
-            size="small"
-            onClick={handleExport}
-            startIcon={
-              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-            }
-          >
-            Export CSV
-          </Button>
-        </Box>
-      </Box>
-
-      {/* Table */}
-      <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              {tableColumns.map(col => {
-                const active = col.key && col.key === sortKey
-                return (
-                  <TableCell
-                    key={col.label}
-                    onClick={col.key ? () => handleSort(col.key!) : undefined}
-                    sx={{
-                      fontSize: 11, fontWeight: 600, color: active ? 'text.primary' : 'text.secondary',
-                      textTransform: 'uppercase', letterSpacing: '0.05em',
-                      py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider',
-                      bgcolor: 'background.default', fontFamily: 'inherit', whiteSpace: 'nowrap',
-                      cursor: col.key ? 'pointer' : 'default',
-                      userSelect: 'none',
-                      '&:hover': col.key ? { color: 'text.primary' } : {},
-                    }}
-                  >
-                    {col.label ? (
-                      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                        {col.label}
-                        {col.key && (
-                          <Box component="span" sx={{ display: 'inline-flex', opacity: active ? 1 : 0.35 }}>
-                            {active && sortDir === 'desc' ? (
-                              // Active descending — solid down
-                              <svg width="8" height="8" viewBox="0 0 8 8"><path d="M4 7L0.5 1.5h7z" fill="currentColor"/></svg>
-                            ) : (
-                              // Active ascending or inactive — up arrow (inactive is just dimmed)
-                              <svg width="8" height="8" viewBox="0 0 8 8"><path d="M4 1l3.5 5.5H.5z" fill="currentColor"/></svg>
+          {/* Table */}
+          <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  {tableColumns.map(col => {
+                    const active = col.key && col.key === sortKey
+                    return (
+                      <TableCell
+                        key={col.label}
+                        onClick={col.key ? () => handleSort(col.key!) : undefined}
+                        sx={{
+                          fontSize: 11, fontWeight: 600, color: active ? 'text.primary' : 'text.secondary',
+                          textTransform: 'uppercase', letterSpacing: '0.05em',
+                          py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider',
+                          bgcolor: 'background.default', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                          cursor: col.key ? 'pointer' : 'default',
+                          userSelect: 'none',
+                          '&:hover': col.key ? { color: 'text.primary' } : {},
+                        }}
+                      >
+                        {col.label ? (
+                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                            {col.label}
+                            {col.key && (
+                              <Box component="span" sx={{ display: 'inline-flex', opacity: active ? 1 : 0.35 }}>
+                                {active && sortDir === 'desc' ? (
+                                  <svg width="8" height="8" viewBox="0 0 8 8"><path d="M4 7L0.5 1.5h7z" fill="currentColor"/></svg>
+                                ) : (
+                                  <svg width="8" height="8" viewBox="0 0 8 8"><path d="M4 1l3.5 5.5H.5z" fill="currentColor"/></svg>
+                                )}
+                              </Box>
                             )}
                           </Box>
-                        )}
-                      </Box>
-                    ) : null}
-                  </TableCell>
-                )
-              })}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filtered.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={tableColumns.length} sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
-                  No members found.
-                </TableCell>
-              </TableRow>
-            )}
-            {filtered.map(profile => {
-              // Permission count + labels for the +X tooltip
-              const permLabels = [
-                profile.perm_competition_manager ? 'Competition Manager' : null,
-                profile.perm_event_manager       ? 'Event Manager'       : null,
-                profile.perm_comms_manager       ? 'Comms Manager'       : null,
-              ].filter(Boolean) as string[]
-              const permCount = permLabels.length
-              const eng = getEngagement(profile.competitions_this_year)
-              const cellSx = { py: 2.75, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' } as const
-              return (
-                <TableRow
-                  key={profile.id}
-                  hover
-                  sx={{ '&:last-child td': { borderBottom: 0 }, cursor: 'default' }}
-                >
-                  {/* Status */}
-                  <TableCell sx={cellSx}>
-                    <Chip
-                      label={STATUS_LABEL[profile.membership_status]}
-                      size="small"
-                      sx={{ fontFamily: 'inherit', fontSize: 11, height: 22, ...STATUS_STYLE[profile.membership_status] }}
-                    />
-                  </TableCell>
-
-                  {/* Name */}
-                  <TableCell sx={{ ...cellSx, fontSize: 14 }}>{profile.first_name || '—'}</TableCell>
-                  <TableCell sx={{ ...cellSx, fontSize: 14 }}>{profile.last_name  || '—'}</TableCell>
-
-                  {/* Role */}
-                  <TableCell sx={cellSx}>
-                    {profile.role === 'admin' ? (
-                      <Typography sx={{ fontSize: 14, color: 'text.primary', fontFamily: 'inherit', fontWeight: 600 }}>Admin</Typography>
-                    ) : profile.role === 'member' ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                        <Typography sx={{ fontSize: 14, color: 'text.secondary', fontFamily: 'inherit' }}>Member</Typography>
-                        {permCount > 0 && (
-                          <Tooltip
-                            title={permLabels.join(', ')}
-                            arrow
-                            slotProps={{ tooltip: { sx: { fontSize: 12 } } }}
-                          >
-                            <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'primary.main', cursor: 'default', lineHeight: 1 }}>
-                              +{permCount}
-                            </Typography>
-                          </Tooltip>
-                        )}
-                      </Box>
-                    ) : (
-                      <Typography sx={{ fontSize: 14, color: 'text.disabled', fontFamily: 'inherit' }}>—</Typography>
-                    )}
-                  </TableCell>
-
-                  {/* Level (optional) */}
-                  {classesEnabled && (
-                    <TableCell sx={{ ...cellSx, fontSize: 14, color: 'text.secondary' }}>
-                      {profile.membership_class || '—'}
-                    </TableCell>
-                  )}
-
-                  {/* Engagement */}
-                  <TableCell sx={cellSx}>
-                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: eng.dot, fontFamily: 'inherit' }}>
-                      {eng.label}
-                    </Typography>
-                  </TableCell>
-
-                  {/* Last login */}
-                  <TableCell sx={{ ...cellSx, fontSize: 13, color: profile.last_login ? 'text.secondary' : 'text.disabled', whiteSpace: 'nowrap' }}>
-                    {formatLastLogin(profile.last_login)}
-                  </TableCell>
-
-                  {/* Manage */}
-                  <TableCell sx={cellSx} align="right">
-                    <Typography
-                      component="button"
-                      onClick={() => setManageMember(profile)}
-                      sx={{ fontSize: 14, fontFamily: 'inherit', color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}
-                    >
-                      Manage
-                    </Typography>
-                  </TableCell>
+                        ) : null}
+                      </TableCell>
+                    )
+                  })}
                 </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
-      </Box>
+              </TableHead>
+              <TableBody>
+                {filtered.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={tableColumns.length} sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
+                      No members found.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {filtered.map(profile => {
+                  const permLabels = [
+                    profile.perm_competition_manager ? 'Competition Manager' : null,
+                    profile.perm_event_manager       ? 'Event Manager'       : null,
+                    profile.perm_comms_manager       ? 'Comms Manager'       : null,
+                  ].filter(Boolean) as string[]
+                  const permCount = permLabels.length
+                  const eng = getEngagement(profile.competitions_this_year)
+                  const cellSx = { py: 2.75, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' } as const
+                  return (
+                    <TableRow
+                      key={profile.id}
+                      hover
+                      sx={{ '&:last-child td': { borderBottom: 0 }, cursor: 'default' }}
+                    >
+                      {/* Status */}
+                      <TableCell sx={cellSx}>
+                        <Chip
+                          label={STATUS_LABEL[profile.membership_status]}
+                          size="small"
+                          sx={{ fontFamily: 'inherit', fontSize: 11, height: 22, ...STATUS_STYLE[profile.membership_status] }}
+                        />
+                      </TableCell>
+
+                      {/* Name */}
+                      <TableCell sx={{ ...cellSx, fontSize: 14 }}>{profile.first_name || '—'}</TableCell>
+                      <TableCell sx={{ ...cellSx, fontSize: 14 }}>{profile.last_name  || '—'}</TableCell>
+
+                      {/* Role */}
+                      <TableCell sx={cellSx}>
+                        {profile.role === 'admin' ? (
+                          <Typography sx={{ fontSize: 14, color: 'text.primary', fontFamily: 'inherit', fontWeight: 600 }}>Admin</Typography>
+                        ) : profile.role === 'member' ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                            <Typography sx={{ fontSize: 14, color: 'text.secondary', fontFamily: 'inherit' }}>Member</Typography>
+                            {permCount > 0 && (
+                              <Tooltip
+                                title={permLabels.join(', ')}
+                                arrow
+                                slotProps={{ tooltip: { sx: { fontSize: 12 } } }}
+                              >
+                                <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'primary.main', cursor: 'default', lineHeight: 1 }}>
+                                  +{permCount}
+                                </Typography>
+                              </Tooltip>
+                            )}
+                          </Box>
+                        ) : (
+                          <Typography sx={{ fontSize: 14, color: 'text.disabled', fontFamily: 'inherit' }}>—</Typography>
+                        )}
+                      </TableCell>
+
+                      {/* Level (optional) */}
+                      {classesEnabled && (
+                        <TableCell sx={{ ...cellSx, fontSize: 14, color: 'text.secondary' }}>
+                          {profile.membership_class || '—'}
+                        </TableCell>
+                      )}
+
+                      {/* Engagement */}
+                      <TableCell sx={cellSx}>
+                        <Typography sx={{ fontSize: 13, fontWeight: 600, color: eng.dot, fontFamily: 'inherit' }}>
+                          {eng.label}
+                        </Typography>
+                      </TableCell>
+
+                      {/* Last login */}
+                      <TableCell sx={{ ...cellSx, fontSize: 13, color: profile.last_login ? 'text.secondary' : 'text.disabled', whiteSpace: 'nowrap' }}>
+                        {formatLastLogin(profile.last_login)}
+                      </TableCell>
+
+                      {/* Manage */}
+                      <TableCell sx={cellSx} align="right">
+                        <Typography
+                          component="button"
+                          onClick={() => setManageMember(profile)}
+                          sx={{ fontSize: 14, fontFamily: 'inherit', color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}
+                        >
+                          Manage
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </Box>
+        </>
+      )}
+
+      {/* ── Tab 1: Enrollment ──────────────────────────────────────────────── */}
+      {activeTab === 1 && (
+        <EnrollmentTab initial={enrollmentSettings ?? defaultEnrollment} />
+      )}
+
+      {/* ── Tab 2: Skill levels ────────────────────────────────────────────── */}
+      {activeTab === 2 && (
+        <SkillLevelsTab
+          classesEnabled={classesEnabled}
+          classes={classes}
+          classPending={classPending}
+          classAdding={classAdding}
+          newClassName={newClassName}
+          clubSlug={clubSlug}
+          onToggle={handleToggleClasses}
+          onAddStart={() => setClassAdding(true)}
+          onAddCancel={() => { setNewClassName(''); setClassAdding(false) }}
+          onAddSave={handleAddClass}
+          onNewNameChange={setNewClassName}
+          onRename={handleRenameClass}
+          onDelete={handleDeleteClass}
+          onSwitchToMemberList={() => setActiveTab(0)}
+        />
+      )}
 
       {/* ── Member modal ─────────────────────────────────────────────────── */}
       {manageMember && (
