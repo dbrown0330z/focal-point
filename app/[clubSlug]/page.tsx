@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubId } from '@/lib/club-context'
+import { requireClubId, getClubContext } from '@/lib/club-context'
 import { redirect } from 'next/navigation'
 import MemberNav from '@/components/layout/MemberNav'
+import GuestNav from '@/components/layout/GuestNav'
 import MemberThemeProvider from '@/components/layout/MemberThemeProvider'
 import HomepageRenderer from '@/components/home/HomepageRenderer'
 import WelcomeHeader from '@/components/home/WelcomeHeader'
@@ -19,7 +20,36 @@ export default async function ClubHomePage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect(`/${clubSlug}/login`)
+  // ── Guest (not logged in) ─────────────────────────────────────────────────
+  if (!user) {
+    const ctx = await getClubContext()
+    const clubId = ctx?.clubId
+    const admin = createServiceClient()
+    const [{ data: clubSettings }] = await Promise.all([
+      admin.from('club_settings').select('club_name, homepage_blocks').eq('club_id', clubId ?? '').single(),
+    ])
+    const clubName = clubSettings?.club_name?.trim() || 'Our Camera Club'
+    const saved: ContentBlock[] = (clubSettings?.homepage_blocks as ContentBlock[] | null) ?? DEFAULT_BLOCKS
+    const blocks: ContentBlock[] = mergeBlocks(saved, DEFAULT_BLOCKS)
+
+    return (
+      <MemberThemeProvider>
+        <div className="flex min-h-screen flex-col">
+          <GuestNav clubSlug={clubSlug} clubName={clubName} />
+          <div className="flex-1">
+            <HomepageRenderer
+              blocks={blocks}
+              clubName={clubName}
+              clubId={clubId ?? ''}
+              clubSlug={clubSlug}
+              isGuest
+            />
+          </div>
+          <AppFooter variant="app" />
+        </div>
+      </MemberThemeProvider>
+    )
+  }
 
   const clubId = await requireClubId()
 

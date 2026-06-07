@@ -111,8 +111,7 @@ export async function updateSession(request: NextRequest) {
       const innerPath = '/' + segments.slice(1).join('/')
 
       const isMemberRoute =
-        innerPath === '/' ||
-        innerPath === ''  ||
+        // Homepage is public — guests see the landing view, members see their feed
         innerPath.startsWith('/library')               ||
         innerPath.startsWith('/competitions')          ||
         innerPath.startsWith('/profile')               ||
