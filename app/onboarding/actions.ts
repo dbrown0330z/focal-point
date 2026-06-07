@@ -86,7 +86,7 @@ export async function completePayment(_formData?: FormData) {
     const interests   = (profile?.shooting_interests as string[]) ?? []
 
     if (email) {
-      await sendMemberWelcome({ memberEmail: email, firstName, clubName, interests, clubUrl })
+      await sendMemberWelcome({ memberEmail: email, firstName, clubName, interests, profileUrl: clubUrl })
     }
 
     // Notify all admins

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getClubContext } from '@/lib/club-context'
-import { sendMemberApproved, sendMemberRejected, sendMemberStatusChanged, sendMemberEmailChanged } from '@/lib/email/send'
+import { sendMemberApproved, sendMemberRejected, sendMemberSuspended, sendMemberBanned, sendMemberEmailChanged } from '@/lib/email/send'
 import type { Database } from '@/types/database'
 
 type MembershipStatus = Database['public']['Enums']['membership_status']
@@ -124,7 +124,7 @@ export async function suspendMember(memberId: string, reason: string) {
     const firstName  = profile?.first_name || profile?.display_name || 'there'
     const clubName   = clubSettings?.club_name ?? 'the club'
     if (email) {
-      await sendMemberStatusChanged({ memberEmail: email, firstName, clubName, action: 'suspended' })
+      await sendMemberSuspended({ memberEmail: email, firstName, clubName })
     }
     // Store reason as an internal note (non-fatal if this fails)
     console.info(`[suspendMember] ${memberId} suspended. Reason: ${reason}`)
@@ -148,7 +148,7 @@ export async function banMember(memberId: string) {
     const firstName  = profile?.first_name || profile?.display_name || 'there'
     const clubName   = clubSettings?.club_name ?? 'the club'
     if (email) {
-      await sendMemberStatusChanged({ memberEmail: email, firstName, clubName, action: 'terminated' })
+      await sendMemberBanned({ memberEmail: email, firstName, clubName })
     }
   } catch (err) {
     console.error('[banMember] failed to send notification:', err)
