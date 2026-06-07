@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import HeroSlideshow from './HeroSlideshow'
 import CustomContentNote from './CustomContentNote'
-import GuestWelcomeBlock from './GuestWelcomeBlock'
 import { Grid8Gallery, Strip8Gallery, SpotlightImageLightbox, type GalleryImage } from './ImageGallery'
 import CompetitionsBlock from './CompetitionsBlock'
 import DualPanelBlock from './DualPanelBlock'
@@ -607,14 +606,12 @@ export default async function HomepageRenderer({
   blocks,
   clubName,
   clubId,
-  clubSlug,
   isGuest = false,
 }: {
-  blocks:    ContentBlock[]
-  clubName:  string
-  clubId:    string
-  clubSlug?: string
-  isGuest?:  boolean
+  blocks:   ContentBlock[]
+  clubName: string
+  clubId:   string
+  isGuest?: boolean
 }) {
   const supabaseRaw = await createClient()
   const supabase    = supabaseRaw
@@ -845,17 +842,8 @@ export default async function HomepageRenderer({
         switch (block.type) {
 
           case 'welcome':
-            // Guest view: render the editable CTA banner, always pinned at top
-            // Member view: this block is skipped — members see the WelcomeHeader instead
-            if (isGuest && block.welcomeContent) {
-              return (
-                <GuestWelcomeBlock
-                  key={block.id}
-                  content={block.welcomeContent}
-                  clubSlug={clubSlug ?? ''}
-                />
-              )
-            }
+            // Always skipped inside the renderer — guest welcome block is rendered
+            // directly in page.tsx above the constrained content wrapper
             return null
 
           case 'large-image':

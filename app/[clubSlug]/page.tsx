@@ -4,6 +4,7 @@ import { requireClubId, getClubContext } from '@/lib/club-context'
 import { redirect } from 'next/navigation'
 import MemberNav from '@/components/layout/MemberNav'
 import GuestNav from '@/components/layout/GuestNav'
+import GuestWelcomeBlock from '@/components/home/GuestWelcomeBlock'
 import MemberThemeProvider from '@/components/layout/MemberThemeProvider'
 import HomepageRenderer from '@/components/home/HomepageRenderer'
 import WelcomeHeader from '@/components/home/WelcomeHeader'
@@ -31,17 +32,22 @@ export default async function ClubHomePage({
     const clubName = clubSettings?.club_name?.trim() || 'Our Camera Club'
     const saved: ContentBlock[] = (clubSettings?.homepage_blocks as ContentBlock[] | null) ?? DEFAULT_BLOCKS
     const blocks: ContentBlock[] = mergeBlocks(saved, DEFAULT_BLOCKS)
+    const welcomeBlock = blocks.find(b => b.type === 'welcome')
 
     return (
       <MemberThemeProvider>
         <div className="flex min-h-screen flex-col">
           <GuestNav clubSlug={clubSlug} clubName={clubName} />
-          <div className="flex-1">
+          {/* Welcome block: full-width, always pinned above all other content */}
+          {welcomeBlock?.welcomeContent && (
+            <GuestWelcomeBlock content={welcomeBlock.welcomeContent} clubSlug={clubSlug} />
+          )}
+          {/* Remaining blocks: constrained to max-w-6xl like the member view */}
+          <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-10">
             <HomepageRenderer
               blocks={blocks}
               clubName={clubName}
               clubId={clubId ?? ''}
-              clubSlug={clubSlug}
               isGuest
             />
           </div>
