@@ -10,11 +10,16 @@ interface LoginModalProps {
 }
 
 export default function LoginModal({ open, onClose, clubSlug }: LoginModalProps) {
-  // Lock body scroll while open
+  // Lock body scroll while open, compensating for scrollbar width to prevent layout shift
   useEffect(() => {
     if (open) {
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
       document.body.style.overflow = 'hidden'
-      return () => { document.body.style.overflow = '' }
+      if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`
+      return () => {
+        document.body.style.overflow = ''
+        document.body.style.paddingRight = ''
+      }
     }
   }, [open])
 
