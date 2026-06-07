@@ -42,7 +42,7 @@ export function memberApproved(args: {
   adminEmail?:   string
 }): { subject: string; html: string } {
   return {
-    subject: `You're approved — let's get you set up`,
+    subject: `You're approved for ${args.clubName} — let's get you set up`,
     html: base(`
       <p>Hi ${args.firstName},</p>
       <p>Great news — your application to join <strong>${args.clubName}</strong> has been approved.</p>
