@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import LoginModal from './LoginModal'
 import type { WelcomeContent } from '@/lib/homepage/types'
@@ -21,21 +21,9 @@ interface GuestWelcomeBlockProps {
 }
 
 export default function GuestWelcomeBlock({ content, clubSlug, clubName }: GuestWelcomeBlockProps) {
-  const [loginOpen,    setLoginOpen]    = useState(false)
-  const [headingIndex, setHeadingIndex] = useState(0)
-  const [visible,      setVisible]      = useState(true)
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Fade out, swap, fade in
-      setVisible(false)
-      setTimeout(() => {
-        setHeadingIndex(i => (i + 1) % HEADINGS.length)
-        setVisible(true)
-      }, 400)
-    }, 4000)
-    return () => clearInterval(interval)
-  }, [])
+  const [loginOpen, setLoginOpen] = useState(false)
+  // Pick a random heading once on mount — changes on each page load, not on a loop
+  const [heading]   = useState(() => HEADINGS[Math.floor(Math.random() * HEADINGS.length)])
 
   // Replace [Club Name] placeholder in body with the actual club name
   const bodyText = (content.body || '').replace(/\[Club Name\]/gi, clubName)
@@ -52,18 +40,15 @@ export default function GuestWelcomeBlock({ content, clubSlug, clubName }: Guest
           <div className="max-w-xl">
             <p
               style={{
-                fontFamily:  'var(--font-lora, Lora, Georgia, serif)',
-                fontSize:    '1.35rem',
-                fontStyle:   'italic',
-                fontWeight:  400,
-                color:       'var(--text-primary)',
-                lineHeight:  1.4,
-                transition:  'opacity 0.4s ease',
-                opacity:     visible ? 1 : 0,
-                minHeight:   '2.1em',  // prevent layout shift during crossfade
+                fontFamily: 'var(--font-lora, Lora, Georgia, serif)',
+                fontSize:   '2rem',
+                fontStyle:  'italic',
+                fontWeight: 400,
+                color:      'var(--text-secondary)',
+                lineHeight: 1.35,
               }}
             >
-              {HEADINGS[headingIndex]}
+              {heading}
             </p>
             {bodyText && (
               <p
