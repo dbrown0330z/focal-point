@@ -263,9 +263,11 @@ export default async function DualPanelBlock() {
   const compEvents: CEvent[] = []
   for (const c of (compMilestoneData ?? []) as CompMilestone[]) {
     const name = c.short_title?.trim() || c.title
-    if (c.status === 'draft' && c.opens_at && c.opens_at >= nowIso)
+    // Opens event: draft or open-but-not-yet-started (opens_at still in the future)
+    if ((c.status === 'draft' || c.status === 'open') && c.opens_at && c.opens_at >= nowIso)
       compEvents.push({ id: `${c.id}-opens`,  title: name, starts_at: c.opens_at,  ends_at: null, all_day: true, event_type: 'submission_open',   location: null })
-    if (c.status === 'open'  && c.closes_at && c.closes_at >= nowIso)
+    // Closes event: open competitions with a future deadline that have already opened
+    if (c.status === 'open' && (!c.opens_at || c.opens_at < nowIso) && c.closes_at && c.closes_at >= nowIso)
       compEvents.push({ id: `${c.id}-closes`, title: name, starts_at: c.closes_at, ends_at: null, all_day: true, event_type: 'submission_closed', location: null })
   }
   const allEvents = [...(calData ?? []) as CEvent[], ...compEvents]
