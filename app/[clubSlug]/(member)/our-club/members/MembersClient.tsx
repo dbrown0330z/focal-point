@@ -5,7 +5,7 @@ import { SHOOTING_INTERESTS, EXPERIENCE_LEVELS, skillLabel } from '@/lib/profile
 import type { MemberRow } from './page'
 import MemberProfileModal from './MemberProfileModal'
 
-// ─── Avatar tile helpers ──────────────────────────────────────────────────────
+// ─── Avatar helpers ───────────────────────────────────────────────────────────
 
 const AVATAR_PALETTE = [
   'var(--action-primary)', 'var(--spot-teal)', 'var(--spot-purple)',
@@ -21,104 +21,94 @@ function getAvatarBg(name: string) {
   return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length]
 }
 
+function RowAvatar({ member }: { member: MemberRow }) {
+  if (member.avatar_url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={member.avatar_url}
+        alt={member.display_name}
+        style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '1.5px solid var(--border-default)', flexShrink: 0, display: 'block' }}
+      />
+    )
+  }
+  return (
+    <div style={{ width: 44, height: 44, borderRadius: '50%', background: getAvatarBg(member.display_name), display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--border-default)', flexShrink: 0, userSelect: 'none' }}>
+      <span style={{ fontSize: 15, fontWeight: 600, color: 'white', lineHeight: 1 }}>{getInitials(member.display_name)}</span>
+    </div>
+  )
+}
+
 // ─── Sort helpers ─────────────────────────────────────────────────────────────
 
 type SortKey = 'first_name' | 'last_name' | 'year_joined' | 'submissions_ytd' | 'submissions_all' | 'experience' | 'camera'
 
 function sortValue(m: MemberRow, key: SortKey): string | number {
   switch (key) {
-    case 'first_name':       return (m.first_name  ?? m.display_name).toLowerCase()
-    case 'last_name':        return (m.last_name   ?? '').toLowerCase()
-    case 'year_joined':      return m.member_since ? new Date(m.member_since).getFullYear() : 0
-    case 'submissions_ytd':  return m.submissions_ytd
-    case 'submissions_all':  return m.submissions_all
-    case 'experience':       return (m.experience_level ?? '').toLowerCase()
-    case 'camera':           return ((m.camera_brands ?? [])[0] ?? '').toLowerCase()
-    default:                 return ''
+    case 'first_name':      return (m.first_name  ?? m.display_name).toLowerCase()
+    case 'last_name':       return (m.last_name   ?? '').toLowerCase()
+    case 'year_joined':     return m.member_since ? new Date(m.member_since).getFullYear() : 0
+    case 'submissions_ytd': return m.submissions_ytd
+    case 'submissions_all': return m.submissions_all
+    case 'experience':      return (m.experience_level ?? '').toLowerCase()
+    case 'camera':          return ((m.camera_brands ?? [])[0] ?? '').toLowerCase()
+    default:                return ''
   }
 }
 
-// ─── Sort icon ────────────────────────────────────────────────────────────────
-
 function SortIcon({ dir }: { dir?: 'asc' | 'desc' }) {
   if (!dir) return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.3 }}>
+    <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.3, flexShrink: 0 }}>
       <path d="M3 3.5L5 1.5 7 3.5M3 6.5L5 8.5 7 6.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
   return dir === 'asc' ? (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.75" style={{ flexShrink: 0 }}>
       <path d="M2 7l3-4 3 4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ) : (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.75" style={{ flexShrink: 0 }}>
       <path d="M2 3l3 4 3-4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
 
-// ─── Grid tile ────────────────────────────────────────────────────────────────
-
-function MemberTile({ member, onClick }: { member: MemberRow; onClick: () => void }) {
+function ColHead({
+  label, sortKey: key, activeSortKey, sortDir, onSort, align = 'left', rowSpan,
+}: {
+  label: string; sortKey: SortKey; activeSortKey: SortKey; sortDir: 'asc' | 'desc'
+  onSort: (k: SortKey) => void; align?: 'left' | 'right'; rowSpan?: number
+}) {
+  const active = activeSortKey === key
   return (
-    <button
-      onClick={onClick}
-      className="group flex flex-col items-center gap-2.5 rounded-xl p-4 text-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-action-primary"
-      style={{ background: 'var(--surface-1)', border: '1px solid var(--border-subtle)', cursor: 'pointer' }}
-      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-2)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-default)' }}
-      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-1)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-subtle)' }}
+    <th
+      rowSpan={rowSpan}
+      onClick={() => onSort(key)}
+      style={{
+        textAlign:     align,
+        padding:       '10px 12px',
+        fontSize:      11,
+        fontWeight:    600,
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        color:         active ? 'var(--action-primary)' : 'var(--text-secondary)',
+        cursor:        'pointer',
+        userSelect:    'none',
+        whiteSpace:    'nowrap',
+        borderBottom:  '1px solid var(--border-default)',
+        background:    'var(--surface-1)',
+        verticalAlign: 'bottom',
+      }}
     >
-      {member.avatar_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={member.avatar_url} alt={member.display_name} className="rounded-full object-cover border border-border-default" style={{ width: 72, height: 72, flexShrink: 0 }} />
-      ) : (
-        <div className="flex items-center justify-center rounded-full font-bold text-white" style={{ width: 72, height: 72, flexShrink: 0, fontSize: 22, background: getAvatarBg(member.display_name), border: '2px solid var(--border-default)' }}>
-          {getInitials(member.display_name)}
-        </div>
-      )}
-      <p className="w-full truncate text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-        {member.display_name}
-      </p>
-      {(member.location || member.membership_class) && (
-        <p className="w-full truncate text-xs" style={{ color: 'var(--text-secondary)', marginTop: -4 }}>
-          {member.membership_class ?? member.location}
-        </p>
-      )}
-    </button>
-  )
-}
-
-// ─── View toggle icons ────────────────────────────────────────────────────────
-
-function GridIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} style={{ color: active ? 'var(--action-primary)' : 'var(--text-tertiary)' }}>
-      <rect x="1" y="1" width="6" height="6" rx="1" /><rect x="9" y="1" width="6" height="6" rx="1" />
-      <rect x="1" y="9" width="6" height="6" rx="1" /><rect x="9" y="9" width="6" height="6" rx="1" />
-    </svg>
-  )
-}
-function ListIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} style={{ color: active ? 'var(--action-primary)' : 'var(--text-tertiary)' }}>
-      <line x1="1" y1="4"  x2="15" y2="4"  strokeLinecap="round" />
-      <line x1="1" y1="8"  x2="15" y2="8"  strokeLinecap="round" />
-      <line x1="1" y1="12" x2="15" y2="12" strokeLinecap="round" />
-    </svg>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        {label}
+        <SortIcon dir={active ? sortDir : undefined} />
+      </span>
+    </th>
   )
 }
 
 // ─── Main client ──────────────────────────────────────────────────────────────
-
-const TABLE_COLS: { label: string; key: SortKey; align?: 'right' }[] = [
-  { label: 'First name',          key: 'first_name' },
-  { label: 'Last name',           key: 'last_name' },
-  { label: 'Year joined',         key: 'year_joined' },
-  { label: 'Submissions (YTD)',   key: 'submissions_ytd',  align: 'right' },
-  { label: 'Submissions (all)',   key: 'submissions_all',  align: 'right' },
-  { label: 'Experience',          key: 'experience' },
-  { label: 'Camera',              key: 'camera' },
-]
 
 export default function MembersClient({
   members,
@@ -127,15 +117,14 @@ export default function MembersClient({
   members: MemberRow[]
   directoryVisible: boolean
 }) {
-  const [view,          setView]       = useState<'grid' | 'list'>('grid')
-  const [search,        setSearch]     = useState('')
-  const [skillFilter,   setSkill]      = useState('')
-  const [interestFilter,setInterest]   = useState('')
-  const [sortKey,       setSortKey]    = useState<SortKey>('last_name')
-  const [sortDir,       setSortDir]    = useState<'asc' | 'desc'>('asc')
-  const [modalIndex,    setModalIndex] = useState<number | null>(null)
+  const [search,         setSearch]     = useState('')
+  const [skillFilter,    setSkill]      = useState('')
+  const [interestFilter, setInterest]   = useState('')
+  const [sortKey,        setSortKey]    = useState<SortKey>('last_name')
+  const [sortDir,        setSortDir]    = useState<'asc' | 'desc'>('asc')
+  const [modalIndex,     setModalIndex] = useState<number | null>(null)
 
-  function handleSortClick(key: SortKey) {
+  function handleSort(key: SortKey) {
     if (key === sortKey) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setSortKey(key); setSortDir('asc') }
   }
@@ -143,12 +132,13 @@ export default function MembersClient({
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
     const rows = members.filter(m => {
-      if (q && !m.display_name.toLowerCase().includes(q) &&
-               !(m.first_name  ?? '').toLowerCase().includes(q) &&
-               !(m.last_name   ?? '').toLowerCase().includes(q) &&
-               !(m.location    ?? '').toLowerCase().includes(q) &&
-               !(m.bio         ?? '').toLowerCase().includes(q)) return false
-      if (skillFilter    && m.experience_level !== skillFilter)              return false
+      if (q &&
+        !m.display_name.toLowerCase().includes(q) &&
+        !(m.first_name  ?? '').toLowerCase().includes(q) &&
+        !(m.last_name   ?? '').toLowerCase().includes(q) &&
+        !(m.location    ?? '').toLowerCase().includes(q) &&
+        !(m.bio         ?? '').toLowerCase().includes(q)) return false
+      if (skillFilter    && m.experience_level !== skillFilter)                     return false
       if (interestFilter && !(m.shooting_interests ?? []).includes(interestFilter)) return false
       return true
     })
@@ -167,38 +157,29 @@ export default function MembersClient({
   const closeModal = useCallback(() => setModalIndex(null), [])
   const navModal   = useCallback((i: number) => setModalIndex(i), [])
 
+  const sharedHead: React.CSSProperties = {
+    padding:       '10px 12px',
+    fontSize:      11,
+    fontWeight:    600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    color:         'var(--text-secondary)',
+    whiteSpace:    'nowrap',
+    background:    'var(--surface-1)',
+    borderBottom:  '1px solid var(--border-default)',
+    textAlign:     'center',
+  }
+
   return (
     <div>
       {/* Page header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Members</h1>
-          <p className="mt-1 text-sm text-content-secondary">
-            {directoryVisible ? `${members.length} active member${members.length !== 1 ? 's' : ''}` : 'Member directory'}
-          </p>
-        </div>
-
-        {/* View toggle */}
-        {directoryVisible && (
-          <div className="flex items-center gap-1 rounded-lg p-1" style={{ background: 'var(--surface-1)', border: '1px solid var(--border-subtle)' }}>
-            <button
-              onClick={() => setView('grid')}
-              className="flex items-center justify-center rounded-md p-1.5 transition-colors"
-              style={{ background: view === 'grid' ? 'var(--surface-2)' : 'transparent', boxShadow: view === 'grid' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none' }}
-              aria-label="Grid view"
-            >
-              <GridIcon active={view === 'grid'} />
-            </button>
-            <button
-              onClick={() => setView('list')}
-              className="flex items-center justify-center rounded-md p-1.5 transition-colors"
-              style={{ background: view === 'list' ? 'var(--surface-2)' : 'transparent', boxShadow: view === 'list' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none' }}
-              aria-label="List view"
-            >
-              <ListIcon active={view === 'list'} />
-            </button>
-          </div>
-        )}
+      <div className="mb-6">
+        <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Members</h1>
+        <p className="mt-1 text-sm text-content-secondary">
+          {directoryVisible
+            ? `${members.length} active member${members.length !== 1 ? 's' : ''}`
+            : 'Member directory'}
+        </p>
       </div>
 
       {!directoryVisible ? (
@@ -211,7 +192,7 @@ export default function MembersClient({
       ) : (
         <>
           {/* Filters */}
-          <div className="mb-6 flex flex-wrap items-center gap-3">
+          <div className="mb-5 flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[200px] max-w-xs">
               <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -224,19 +205,18 @@ export default function MembersClient({
                 className="w-full rounded-lg border border-border-default bg-surface-2 py-2 pl-9 pr-3 text-sm text-content-primary placeholder:text-content-tertiary outline-none focus:border-action-primary transition-colors"
               />
             </div>
-
             <select value={skillFilter} onChange={e => setSkill(e.target.value)} className="rounded-lg border border-border-default bg-surface-2 py-2 px-3 text-sm text-content-primary outline-none focus:border-action-primary transition-colors cursor-pointer">
               <option value="">All skill levels</option>
               {EXPERIENCE_LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
             </select>
-
             <select value={interestFilter} onChange={e => setInterest(e.target.value)} className="rounded-lg border border-border-default bg-surface-2 py-2 px-3 text-sm text-content-primary outline-none focus:border-action-primary transition-colors cursor-pointer">
               <option value="">All interests</option>
               {SHOOTING_INTERESTS.map(i => <option key={i} value={i}>{i}</option>)}
             </select>
-
             {hasFilters && (
-              <button onClick={() => { setSearch(''); setSkill(''); setInterest('') }} className="text-sm text-action-primary hover:underline">Clear</button>
+              <button onClick={() => { setSearch(''); setSkill(''); setInterest('') }} className="text-sm text-action-primary hover:underline">
+                Clear
+              </button>
             )}
           </div>
 
@@ -244,77 +224,89 @@ export default function MembersClient({
             <div className="rounded-xl border border-border-default bg-surface-1 px-6 py-12 text-center">
               <p className="text-sm text-content-secondary">No members match your search.</p>
             </div>
-          ) : view === 'grid' ? (
-
-            /* ── Grid ───────────────────────────────────────────────────────── */
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-              {filtered.map((member, i) => (
-                <MemberTile key={member.id} member={member} onClick={() => setModalIndex(i)} />
-              ))}
-            </div>
-
           ) : (
-
-            /* ── Table ──────────────────────────────────────────────────────── */
             <div className="overflow-x-auto rounded-xl border border-border-default" style={{ background: 'var(--surface-2)' }}>
               <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-default)', background: 'var(--surface-1)' }}>
-                    {TABLE_COLS.map(col => (
-                      <th
-                        key={col.key}
-                        onClick={() => handleSortClick(col.key)}
-                        className="whitespace-nowrap px-4 py-3 font-semibold cursor-pointer select-none transition-colors hover:text-content-primary"
-                        style={{
-                          textAlign:    col.align ?? 'left',
-                          color:        sortKey === col.key ? 'var(--action-primary)' : 'var(--text-secondary)',
-                          fontSize:     11,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                        }}
-                      >
-                        <span className="inline-flex items-center gap-1.5">
-                          {col.label}
-                          <SortIcon dir={sortKey === col.key ? sortDir : undefined} />
-                        </span>
-                      </th>
-                    ))}
+                  {/* Row 1: main headings */}
+                  <tr>
+                    {/* Avatar — no sort, spans 2 header rows */}
+                    <th rowSpan={2} style={{ ...sharedHead, padding: '10px 8px 10px 14px', width: 56 }} />
+
+                    <ColHead label="First name"   sortKey="first_name"      activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} rowSpan={2} />
+                    <ColHead label="Last name"    sortKey="last_name"       activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} rowSpan={2} />
+                    <ColHead label="Year joined"  sortKey="year_joined"     activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} rowSpan={2} />
+
+                    {/* Grouped submissions header */}
+                    <th colSpan={2} style={{ ...sharedHead, borderBottom: 'none', borderLeft: '1px solid var(--border-subtle)', borderRight: '1px solid var(--border-subtle)', paddingBottom: 4 }}>
+                      Submissions
+                    </th>
+
+                    <ColHead label="Experience"   sortKey="experience"      activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} rowSpan={2} />
+                    <ColHead label="Camera"       sortKey="camera"          activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} rowSpan={2} />
+                  </tr>
+
+                  {/* Row 2: submission sub-headings */}
+                  <tr>
+                    <ColHead label="YTD"      sortKey="submissions_ytd" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} align="right" />
+                    <ColHead label="All time" sortKey="submissions_all" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} align="right" />
                   </tr>
                 </thead>
+
                 <tbody>
                   {filtered.map((member, i) => {
                     const yearJoined = member.member_since ? new Date(member.member_since).getFullYear() : '—'
                     const cameras    = (member.camera_brands ?? []).slice(0, 2).join(', ') || '—'
                     const exp        = skillLabel(member.experience_level) || '—'
+
                     return (
                       <tr
                         key={member.id}
-                        onClick={() => setModalIndex(i)}
-                        className="cursor-pointer transition-colors"
                         style={{ borderBottom: '1px solid var(--border-subtle)' }}
                         onMouseEnter={e => (e.currentTarget as HTMLTableRowElement).style.background = 'var(--surface-1)'}
                         onMouseLeave={e => (e.currentTarget as HTMLTableRowElement).style.background = ''}
                       >
-                        <td className="px-4 py-3" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                          {member.first_name ?? '—'}
+                        {/* Avatar */}
+                        <td
+                          style={{ padding: '10px 8px 10px 14px', verticalAlign: 'middle', cursor: 'pointer' }}
+                          onClick={() => setModalIndex(i)}
+                        >
+                          <RowAvatar member={member} />
                         </td>
-                        <td className="px-4 py-3" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+
+                        {/* First name — styled as a link, opens modal */}
+                        <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
+                          <button
+                            onClick={() => setModalIndex(i)}
+                            className="text-left font-medium transition-colors hover:underline focus:outline-none"
+                            style={{ color: 'var(--action-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', padding: 0 }}
+                          >
+                            {member.first_name ?? '—'}
+                          </button>
+                        </td>
+
+                        <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: 'var(--text-primary)', fontWeight: 500 }}>
                           {member.last_name ?? '—'}
                         </td>
-                        <td className="px-4 py-3 tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+
+                        <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
                           {yearJoined}
                         </td>
-                        <td className="px-4 py-3 tabular-nums text-right" style={{ color: 'var(--text-secondary)' }}>
+
+                        <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: 'var(--text-secondary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', borderLeft: '1px solid var(--border-subtle)' }}>
                           {member.submissions_ytd}
                         </td>
-                        <td className="px-4 py-3 tabular-nums text-right" style={{ color: 'var(--text-secondary)' }}>
+
+                        <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: 'var(--text-secondary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', borderRight: '1px solid var(--border-subtle)' }}>
                           {member.submissions_all}
                         </td>
-                        <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>
+
+                        <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: 'var(--text-secondary)' }}>
                           {exp}
                         </td>
-                        <td className="px-4 py-3" style={{ color: 'var(--text-secondary)', maxWidth: 180 }}>
-                          <span className="block truncate">{cameras}</span>
+
+                        <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: 'var(--text-secondary)', maxWidth: 180 }}>
+                          <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cameras}</span>
                         </td>
                       </tr>
                     )
