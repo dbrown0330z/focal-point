@@ -125,9 +125,9 @@ export const DEFAULT_BLOCKS: ContentBlock[] = [
   {
     id: 'welcome', name: 'Welcome', type: 'welcome', enabled: true, fixed: true,
     welcomeContent: {
-      heading:  'Welcome to our camera club',
-      body:     'A community of passionate photographers. We meet regularly for critique nights, competitions, and workshops. All skill levels welcome.',
-      ctaLabel: 'Apply for membership',
+      heading:  'Every great shot starts somewhere.',
+      body:     '[Club Name] brings together photographers of all skill levels for monthly competitions, workshops, field trips, and plenty of good company. If you love making images and want to grow alongside people who share that passion, you\'re in the right place.',
+      ctaLabel: 'Join the club',
       ctaLink:  '/apply',
     },
   },

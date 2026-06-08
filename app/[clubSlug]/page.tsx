@@ -40,7 +40,7 @@ export default async function ClubHomePage({
           <GuestNav clubSlug={clubSlug} clubName={clubName} />
           {/* Welcome block: full-width, always pinned above all other content */}
           {welcomeBlock?.welcomeContent && (
-            <GuestWelcomeBlock content={welcomeBlock.welcomeContent} clubSlug={clubSlug} />
+            <GuestWelcomeBlock content={welcomeBlock.welcomeContent} clubSlug={clubSlug} clubName={clubName} />
           )}
           {/* Remaining blocks: constrained to max-w-6xl like the member view */}
           <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-10">
