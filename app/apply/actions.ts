@@ -6,14 +6,10 @@ import { getClubContext } from '@/lib/club-context'
 import { sendAdminNewApplication } from '@/lib/email/send'
 
 export interface ApplyData {
-  firstName:         string
-  lastName:          string
-  email:             string
-  password:          string
-  experienceLevel?:  string
-  shootingInterests: string[]
-  cameraBrands:      string[]
-  bio?:              string
+  firstName: string
+  lastName:  string
+  email:     string
+  password:  string
 }
 
 export async function applyForMembership(data: ApplyData): Promise<{ error?: string }> {
@@ -44,16 +40,14 @@ export async function applyForMembership(data: ApplyData): Promise<{ error?: str
   // Save profile fields captured at signup. The DB trigger creates the profile
   // row from user_metadata; we upsert here so profile data is always saved
   // even if the trigger hasn't fired yet.
+  // Save basic name fields — experience level, interests, brands and bio
+  // are collected during the post-approval onboarding step, not at signup.
   if (userId) {
     await service.from('profiles').upsert({
-      id:                 userId,
-      first_name:         data.firstName.trim(),
-      last_name:          data.lastName.trim(),
-      display_name:       displayName,
-      experience_level:   data.experienceLevel || null,
-      shooting_interests: data.shootingInterests,
-      camera_brands:      data.cameraBrands,
-      bio:                data.bio?.trim() || null,
+      id:           userId,
+      first_name:   data.firstName.trim(),
+      last_name:    data.lastName.trim(),
+      display_name: displayName,
     }, { onConflict: 'id' })
   }
 

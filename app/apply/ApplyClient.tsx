@@ -6,17 +6,13 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   FormLabel,
-  MenuItem,
   OutlinedInput,
-  Select,
   Stack,
   Typography,
 } from '@mui/material'
 import CheckIcon from '@mui/icons-material/Check'
 import { applyForMembership } from './actions'
-import { SHOOTING_INTERESTS, CAMERA_BRANDS, EXPERIENCE_LEVELS } from '@/lib/profile-options'
 
 const BENEFITS = [
   'Regular competitions with professional judging and scored feedback',
@@ -77,25 +73,16 @@ function ConfirmationScreen({ email, clubName, clubSlug }: { email: string; club
 
 
 export default function ApplyClient({ clubName, termsUrl, clubSlug }: { clubName: string; termsUrl: string | null; clubSlug?: string }) {
-  const [submitted, setSubmitted]     = useState(false)
-  const [submitting, setSubmitting]   = useState(false)
+  const [submitted, setSubmitted]   = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
-  const [agreedTerms,    setAgreedTerms]    = useState(false)
-  const [agreedOriginal, setAgreedOriginal] = useState(false)
-  const [experienceLevel, setExperienceLevel] = useState('')
-  const [interests, setInterests]             = useState<string[]>([])
-  const [brands, setBrands]                   = useState<string[]>([])
-  const [bio, setBio]                         = useState('')
+  const [agreedTerms, setAgreedTerms] = useState(false)
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', password: '', confirmPassword: '',
   })
 
   function set<K extends keyof typeof form>(key: K, value: string) {
     setForm(prev => ({ ...prev, [key]: value }))
-  }
-
-  function toggleChip(list: string[], setList: (v: string[]) => void, value: string) {
-    setList(list.includes(value) ? list.filter(v => v !== value) : [...list, value])
   }
 
   const passwordMismatch =
@@ -107,8 +94,7 @@ export default function ApplyClient({ clubName, termsUrl, clubSlug }: { clubName
     form.email.trim() &&
     form.password.length >= 8 &&
     form.confirmPassword === form.password &&
-    (!termsUrl || agreedTerms) &&
-    agreedOriginal
+    (!termsUrl || agreedTerms)
   )
 
   async function handleSubmit(e: React.FormEvent) {
@@ -117,11 +103,10 @@ export default function ApplyClient({ clubName, termsUrl, clubSlug }: { clubName
     setSubmitting(true)
     setServerError(null)
     const result = await applyForMembership({
-      ...form,
-      experienceLevel,
-      shootingInterests: interests,
-      cameraBrands: brands,
-      bio: bio.trim(),
+      firstName:  form.firstName,
+      lastName:   form.lastName,
+      email:      form.email,
+      password:   form.password,
     })
     if (result?.error) {
       setServerError(result.error)
@@ -291,197 +276,35 @@ export default function ApplyClient({ clubName, termsUrl, clubSlug }: { clubName
                 )}
               </Box>
 
-              {/* ── Experience level ─────────────────────────────────── */}
-              <Box>
-                <FormLabel sx={{ display: 'block', mb: 0.75, fontSize: '13px', fontWeight: 500, color: '#E8E8E8', fontFamily: 'var(--font-body)' }}>
-                  Experience level
-                </FormLabel>
-                <Select
-                  displayEmpty
-                  fullWidth
-                  value={experienceLevel}
-                  onChange={e => setExperienceLevel(e.target.value)}
-                  input={<OutlinedInput sx={darkInputSx()} />}
-                  renderValue={val => {
-                    const lvl = EXPERIENCE_LEVELS.find(l => l.value === val)
-                    return lvl
-                      ? <span style={{ color: '#E8E8E8', fontSize: 14 }}>{lvl.label} — {lvl.description}</span>
-                      : <span style={{ color: '#5E5E5E', fontSize: 14 }}>Select one…</span>
-                  }}
-                  sx={{
-                    bgcolor: '#292929',
-                    color: '#E8E8E8',
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.12)' },
-                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.25)' },
-                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#4A90D4' },
-                    '& .MuiSelect-icon': { color: '#5E5E5E' },
-                  }}
-                >
-                  {EXPERIENCE_LEVELS.map(l => (
-                    <MenuItem key={l.value} value={l.value} sx={{ fontSize: 14 }}>{l.label} — {l.description}</MenuItem>
-                  ))}
-                </Select>
-              </Box>
-
-              {/* ── Shooting interests ───────────────────────────────── */}
-              <Box>
-                <FormLabel sx={{ display: 'block', mb: 0.75, fontSize: '13px', fontWeight: 500, color: '#E8E8E8', fontFamily: 'var(--font-body)' }}>
-                  Shooting interests <span style={{ color: '#737373', fontWeight: 400 }}>(choose all that apply)</span>
-                </FormLabel>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {SHOOTING_INTERESTS.map(interest => {
-                    const active = interests.includes(interest)
-                    return (
-                      <Chip
-                        key={interest}
-                        label={interest}
-                        onClick={() => toggleChip(interests, setInterests, interest)}
-                        variant={active ? 'filled' : 'outlined'}
-                        size="small"
-                        sx={{
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                          fontSize: '13px',
-                          fontWeight: 400,
-                          textTransform: 'none',
-                          letterSpacing: 'normal',
-                          borderRadius: '9999px',
-                          ...(active
-                            ? { bgcolor: '#4A90D4', color: '#fff', borderColor: '#4A90D4' }
-                            : { bgcolor: 'transparent', borderColor: 'rgba(255,255,255,0.18)', color: '#9E9E9E',
-                                '&:hover': { borderColor: 'rgba(255,255,255,0.35)', color: '#E8E8E8' } }),
-                        }}
-                      />
-                    )
-                  })}
-                </Box>
-              </Box>
-
-              {/* ── Camera brands ────────────────────────────────────── */}
-              <Box>
-                <FormLabel sx={{ display: 'block', mb: 0.75, fontSize: '13px', fontWeight: 500, color: '#E8E8E8', fontFamily: 'var(--font-body)' }}>
-                  Camera brand <span style={{ color: '#737373', fontWeight: 400 }}>(choose all that apply)</span>
-                </FormLabel>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {CAMERA_BRANDS.map(brand => {
-                    const active = brands.includes(brand)
-                    return (
-                      <Chip
-                        key={brand}
-                        label={brand}
-                        onClick={() => toggleChip(brands, setBrands, brand)}
-                        variant={active ? 'filled' : 'outlined'}
-                        size="small"
-                        sx={{
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                          fontSize: '13px',
-                          fontWeight: 400,
-                          textTransform: 'none',
-                          letterSpacing: 'normal',
-                          borderRadius: '9999px',
-                          ...(active
-                            ? { bgcolor: '#4A90D4', color: '#fff', borderColor: '#4A90D4' }
-                            : { bgcolor: 'transparent', borderColor: 'rgba(255,255,255,0.18)', color: '#9E9E9E',
-                                '&:hover': { borderColor: 'rgba(255,255,255,0.35)', color: '#E8E8E8' } }),
-                        }}
-                      />
-                    )
-                  })}
-                </Box>
-              </Box>
-
-              {/* ── Bio ──────────────────────────────────────────────── */}
-              <Box>
-                <FormLabel sx={{ display: 'block', mb: 0.75, fontSize: '13px', fontWeight: 500, color: '#E8E8E8', fontFamily: 'var(--font-body)' }}>
-                  Bio <span style={{ color: '#737373', fontWeight: 400 }}>(optional)</span>
-                </FormLabel>
-                <OutlinedInput
-                  multiline
-                  rows={3}
-                  fullWidth
-                  placeholder="A little about you, your gear, or what drew you to photography…"
-                  value={bio}
-                  onChange={e => setBio(e.target.value)}
-                  sx={darkInputSx()}
-                />
-                <Typography sx={{ mt: 0.75, fontSize: '12px', color: '#737373' }}>
-                  Visible to other club members.
-                </Typography>
-              </Box>
-
-              {/* ── Agreement checkboxes ──────────────────────────────── */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 0.5 }}>
-
-                {/* Membership terms — only shown when a T&C document exists */}
-                {termsUrl && (
-                  <Box
-                    component="label"
-                    sx={{
-                      display: 'flex', alignItems: 'flex-start', gap: 1.5,
-                      cursor: 'pointer', userSelect: 'none',
-                    }}
-                  >
-                    <Box
-                      component="input"
-                      type="checkbox"
-                      checked={agreedTerms}
-                      onChange={e => setAgreedTerms(e.target.checked)}
-                      sx={{
-                        mt: '2px', flexShrink: 0,
-                        width: 16, height: 16,
-                        accentColor: '#4A90D4',
-                        cursor: 'pointer',
-                      }}
-                    />
-                    <Box component="span" sx={{ fontSize: '13px', color: '#9E9E9E', lineHeight: 1.55 }}>
-                      I have read and agree to the{' '}
-                      <Box
-                        component="a"
-                        href={termsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={e => e.stopPropagation()}
-                        sx={{
-                          color: '#4A90D4',
-                          textDecoration: 'underline',
-                          textUnderlineOffset: '2px',
-                          '&:hover': { color: '#5FA0E0' },
-                        }}
-                      >
-                        {clubName} membership terms
-                      </Box>
-                      .
-                    </Box>
-                  </Box>
-                )}
-
-                {/* Original work declaration — always shown */}
+              {/* ── Membership terms — only shown when a T&C document exists ── */}
+              {termsUrl && (
                 <Box
                   component="label"
-                  sx={{
-                    display: 'flex', alignItems: 'flex-start', gap: 1.5,
-                    cursor: 'pointer', userSelect: 'none',
-                  }}
+                  sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, cursor: 'pointer', userSelect: 'none' }}
                 >
                   <Box
                     component="input"
                     type="checkbox"
-                    checked={agreedOriginal}
-                    onChange={e => setAgreedOriginal(e.target.checked)}
-                    sx={{
-                      mt: '2px', flexShrink: 0,
-                      width: 16, height: 16,
-                      accentColor: '#4A90D4',
-                      cursor: 'pointer',
-                    }}
+                    checked={agreedTerms}
+                    onChange={e => setAgreedTerms(e.target.checked)}
+                    sx={{ mt: '2px', flexShrink: 0, width: 16, height: 16, accentColor: '#4A90D4', cursor: 'pointer' }}
                   />
                   <Box component="span" sx={{ fontSize: '13px', color: '#9E9E9E', lineHeight: 1.55 }}>
-                    I confirm that all photos I submit to competitions will be my own original work.
+                    I have read and agree to the{' '}
+                    <Box
+                      component="a"
+                      href={termsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      sx={{ color: '#4A90D4', textDecoration: 'underline', textUnderlineOffset: '2px', '&:hover': { color: '#5FA0E0' } }}
+                    >
+                      {clubName} membership terms
+                    </Box>
+                    .
                   </Box>
                 </Box>
-
-              </Box>
+              )}
 
               <Button
                 type="submit"
@@ -499,7 +322,7 @@ export default function ApplyClient({ clubName, termsUrl, clubSlug }: { clubName
                   },
                 }}
               >
-                {submitting ? 'Submitting…' : 'Submit application'}
+                {submitting ? 'Creating account…' : 'Create account'}
               </Button>
             </Stack>
           </Box>
