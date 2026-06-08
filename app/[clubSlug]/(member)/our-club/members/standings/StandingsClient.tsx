@@ -812,7 +812,7 @@ export default function StandingsClient({
       {/* Page header — title + last updated + season selector */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-baseline gap-3">
-          <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Standings</h1>
+          <h1 className="font-bold text-content-primary" style={{ fontFamily: 'var(--font-heading)', fontSize: 28, letterSpacing: '-0.02em' }}>Standings</h1>
           {lastUpdatedAt && (
             <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
               Updated{' '}
