@@ -207,10 +207,12 @@ function getPhase(closesAt: string | null, status: string): Phase {
 
 function phaseTint(phase: Phase) {
   if (phase === 'open' || phase === 'warning') return 'var(--phase-open-bg)'
+  if (phase === 'judging') return 'var(--phase-warning-bg)'
   return 'rgba(0,0,0,0.02)'
 }
 function phaseBorder(phase: Phase) {
   if (phase === 'open' || phase === 'warning') return 'var(--phase-open-border)'
+  if (phase === 'judging') return 'var(--phase-warning-border)'
   return 'transparent'
 }
 

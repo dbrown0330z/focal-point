@@ -207,6 +207,7 @@ function SlimRow({ card }: { card: JudgingCard | ComingSoonCard }) {
       borderRadius: 8,
       border:       '1px solid var(--border-subtle)',
       borderLeft:   leftBorder,
+      background:   card.kind === 'judging' ? 'var(--phase-warning-bg)' : undefined,
     }}>
       <StatusDot kind={card.kind} />
       <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -277,9 +278,14 @@ export default async function DualPanelBlock() {
 
   // A competition is only "open" if its opens_at has passed (or has no opens_at gate).
   // If opens_at is still in the future it renders as "coming soon" regardless of DB status.
-  const openList       = comps.filter(c => c.status === 'open' && (!c.opens_at || c.opens_at <= nowIso)).sort((a, b) => (a.closes_at ?? '').localeCompare(b.closes_at ?? ''))
+  // A competition whose closes_at has passed but DB status hasn't been updated yet
+  // should be treated as judging, not open (matches the competitions page behaviour).
+  const openList       = comps.filter(c => c.status === 'open' && (!c.opens_at || c.opens_at <= nowIso) && (!c.closes_at || c.closes_at > nowIso)).sort((a, b) => (a.closes_at ?? '').localeCompare(b.closes_at ?? ''))
   const resultsList    = comps.filter(c => c.status === 'results_published').sort((a, b) => (b.results_at ?? '').localeCompare(a.results_at ?? ''))
-  const judgingList    = comps.filter(c => (JUDGING_STATUSES as readonly string[]).includes(c.status))
+  const judgingList    = comps.filter(c =>
+    (JUDGING_STATUSES as readonly string[]).includes(c.status) ||
+    (c.status === 'open' && c.closes_at && c.closes_at <= nowIso),
+  )
   const comingSoonList = comps
     .filter(c =>
       (c.status === 'draft' && c.opens_at && c.opens_at > nowIso) ||
