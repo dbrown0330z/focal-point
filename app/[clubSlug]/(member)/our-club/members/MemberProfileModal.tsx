@@ -394,14 +394,21 @@ export default function MemberProfileModal({ members, index, onClose, onNav }: M
   }, [])
 
   return (
+    // Backdrop — overflow-hidden so the page never scrolls behind it
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto"
-      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)', padding: '40px 16px' }}
+      className="fixed inset-0 z-[200] flex items-center justify-center overflow-hidden px-4 py-10"
+      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)' }}
       onClick={onClose}
     >
+      {/* Panel — flex-column with capped height; content scrolls inside */}
       <div
-        className="relative w-full max-w-3xl rounded-2xl shadow-2xl"
-        style={{ background: 'var(--surface-2)', border: '1px solid var(--border-default)', minHeight: 400 }}
+        className="relative flex w-full max-w-3xl flex-col rounded-2xl shadow-2xl"
+        style={{
+          background:  'var(--surface-2)',
+          border:      '1px solid var(--border-default)',
+          maxHeight:   '88vh',
+          minHeight:   280,
+        }}
         onClick={e => e.stopPropagation()}
       >
         {/* Close */}
@@ -414,8 +421,8 @@ export default function MemberProfileModal({ members, index, onClose, onNav }: M
           <CloseIcon />
         </button>
 
-        {/* Scrollable content */}
-        <div style={{ padding: '28px 28px 0' }}>
+        {/* Scrollable content area — grows to fill available height */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '28px 28px 0', minHeight: 0 }}>
           {loading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0', color: 'var(--text-tertiary)', fontSize: 14 }}>
               Loading…
@@ -429,9 +436,9 @@ export default function MemberProfileModal({ members, index, onClose, onNav }: M
           )}
         </div>
 
-        {/* Footer nav */}
+        {/* Footer nav — always pinned at the bottom of the panel */}
         <div
-          className="flex items-center justify-between px-6 py-4 sticky bottom-0 rounded-b-2xl"
+          className="flex flex-shrink-0 items-center justify-between rounded-b-2xl px-6 py-4"
           style={{ background: 'var(--surface-2)', borderTop: '1px solid var(--border-subtle)' }}
         >
           <button
