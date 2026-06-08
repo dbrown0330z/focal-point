@@ -74,10 +74,12 @@ function SortIcon({ dir }: { dir?: 'asc' | 'desc' }) {
 }
 
 function ColHead({
-  label, sortKey: key, activeSortKey, sortDir, onSort, align = 'left', rowSpan,
+  label, sortKey: key, activeSortKey, sortDir, onSort,
+  align = 'left', rowSpan, borderLeft, borderRight,
 }: {
   label: string; sortKey: SortKey; activeSortKey: SortKey; sortDir: 'asc' | 'desc'
   onSort: (k: SortKey) => void; align?: 'left' | 'right'; rowSpan?: number
+  borderLeft?: string; borderRight?: string
 }) {
   const active = activeSortKey === key
   return (
@@ -96,6 +98,8 @@ function ColHead({
         userSelect:    'none',
         whiteSpace:    'nowrap',
         borderBottom:  '1px solid var(--border-default)',
+        borderLeft,
+        borderRight,
         background:    'var(--surface-1)',
         verticalAlign: 'bottom',
       }}
@@ -230,26 +234,26 @@ export default function MembersClient({
                 <thead>
                   {/* Row 1: main headings */}
                   <tr>
-                    {/* Avatar — no sort, spans 2 header rows */}
+                    {/* Avatar — no sort, spans 2 rows */}
                     <th rowSpan={2} style={{ ...sharedHead, padding: '10px 8px 10px 14px', width: 56 }} />
 
-                    <ColHead label="First name"   sortKey="first_name"      activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} rowSpan={2} />
-                    <ColHead label="Last name"    sortKey="last_name"       activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} rowSpan={2} />
-                    <ColHead label="Year joined"  sortKey="year_joined"     activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} rowSpan={2} />
+                    <ColHead label="First name"  sortKey="first_name"  activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} rowSpan={2} />
+                    <ColHead label="Last name"   sortKey="last_name"   activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} rowSpan={2} />
+                    <ColHead label="Experience"  sortKey="experience"  activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} rowSpan={2} />
+                    <ColHead label="Camera"      sortKey="camera"      activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} rowSpan={2} />
 
                     {/* Grouped submissions header */}
-                    <th colSpan={2} style={{ ...sharedHead, borderBottom: 'none', borderLeft: '1px solid var(--border-subtle)', borderRight: '1px solid var(--border-subtle)', paddingBottom: 4 }}>
+                    <th colSpan={2} style={{ ...sharedHead, borderBottom: 'none', borderLeft: '1px solid var(--border-default)', borderRight: '1px solid var(--border-default)', paddingBottom: 4 }}>
                       Submissions
                     </th>
 
-                    <ColHead label="Experience"   sortKey="experience"      activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} rowSpan={2} />
-                    <ColHead label="Camera"       sortKey="camera"          activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} rowSpan={2} />
+                    <ColHead label="Year joined" sortKey="year_joined" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} rowSpan={2} />
                   </tr>
 
                   {/* Row 2: submission sub-headings */}
                   <tr>
-                    <ColHead label="YTD"      sortKey="submissions_ytd" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} align="right" />
-                    <ColHead label="All time" sortKey="submissions_all" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} align="right" />
+                    <ColHead label="YTD"      sortKey="submissions_ytd" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} align="right" borderLeft="1px solid var(--border-default)" />
+                    <ColHead label="All time" sortKey="submissions_all" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} align="right" borderRight="1px solid var(--border-default)" />
                   </tr>
                 </thead>
 
@@ -289,24 +293,24 @@ export default function MembersClient({
                           {member.last_name ?? '—'}
                         </td>
 
-                        <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
-                          {yearJoined}
-                        </td>
-
-                        <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: 'var(--text-secondary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', borderLeft: '1px solid var(--border-subtle)' }}>
-                          {member.submissions_ytd}
-                        </td>
-
-                        <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: 'var(--text-secondary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', borderRight: '1px solid var(--border-subtle)' }}>
-                          {member.submissions_all}
-                        </td>
-
                         <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: 'var(--text-secondary)' }}>
                           {exp}
                         </td>
 
                         <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: 'var(--text-secondary)', maxWidth: 180 }}>
                           <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cameras}</span>
+                        </td>
+
+                        <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: 'var(--text-secondary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', borderLeft: '1px solid var(--border-default)' }}>
+                          {member.submissions_ytd}
+                        </td>
+
+                        <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: 'var(--text-secondary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', borderRight: '1px solid var(--border-default)' }}>
+                          {member.submissions_all}
+                        </td>
+
+                        <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
+                          {yearJoined}
                         </td>
                       </tr>
                     )
