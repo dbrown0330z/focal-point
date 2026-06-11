@@ -540,7 +540,16 @@ export default function LibraryClient({ images, clubSlug }: { images: Image[]; c
                         <div className="mt-2 flex items-start justify-between gap-1">
                           <div className="min-w-0">
                             <p className="text-[13px] font-semibold text-content-primary" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: '2.85em', lineHeight: 1.4 }}>{image.title}</p>
-                            {image.isSubmitted && !(image.score !== null || image.competitionDate) && <SubmittedBadge />}
+                            {image.isSubmitted && (
+                              <div className="mt-0.5 flex items-center gap-1.5">
+                                <SubmittedBadge />
+                                {image.score !== null && (
+                                  <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                                    {image.score}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                           <div className="flex flex-shrink-0 items-center gap-1">
                             <button

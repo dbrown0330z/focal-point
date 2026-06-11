@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import Select        from '@mui/material/Select'
+import MenuItem      from '@mui/material/MenuItem'
 import { SHOOTING_INTERESTS, EXPERIENCE_LEVELS, skillLabel } from '@/lib/profile-options'
 import type { MemberRow } from './page'
 import MemberProfileModal from './MemberProfileModal'
@@ -206,14 +208,30 @@ export default function MembersClient({
                 className="w-full rounded-lg border border-border-default bg-surface-2 py-2 pl-9 pr-3 text-sm text-content-primary placeholder:text-content-tertiary outline-none focus:border-action-primary transition-colors"
               />
             </div>
-            <select value={skillFilter} onChange={e => setSkill(e.target.value)} className="rounded-lg border border-border-default bg-surface-2 py-2 px-3 text-sm text-content-primary outline-none focus:border-action-primary transition-colors cursor-pointer" style={{ colorScheme: 'dark light' }}>
-              <option value="" style={{ background: 'var(--surface-2)', color: 'var(--text-primary)' }}>All skill levels</option>
-              {EXPERIENCE_LEVELS.map(l => <option key={l.value} value={l.value} style={{ background: 'var(--surface-2)', color: 'var(--text-primary)' }}>{l.label}</option>)}
-            </select>
-            <select value={interestFilter} onChange={e => setInterest(e.target.value)} className="rounded-lg border border-border-default bg-surface-2 py-2 px-3 text-sm text-content-primary outline-none focus:border-action-primary transition-colors cursor-pointer" style={{ colorScheme: 'dark light' }}>
-              <option value="" style={{ background: 'var(--surface-2)', color: 'var(--text-primary)' }}>All interests</option>
-              {SHOOTING_INTERESTS.map(i => <option key={i} value={i} style={{ background: 'var(--surface-2)', color: 'var(--text-primary)' }}>{i}</option>)}
-            </select>
+            <Select
+              size="small"
+              value={skillFilter}
+              onChange={e => setSkill(e.target.value)}
+              displayEmpty
+              sx={{ fontSize: 14, fontFamily: 'inherit', minWidth: 150 }}
+            >
+              <MenuItem value="" sx={{ fontSize: 14, fontFamily: 'inherit' }}>All skill levels</MenuItem>
+              {EXPERIENCE_LEVELS.map(l => (
+                <MenuItem key={l.value} value={l.value} sx={{ fontSize: 14, fontFamily: 'inherit' }}>{l.label}</MenuItem>
+              ))}
+            </Select>
+            <Select
+              size="small"
+              value={interestFilter}
+              onChange={e => setInterest(e.target.value)}
+              displayEmpty
+              sx={{ fontSize: 14, fontFamily: 'inherit', minWidth: 150 }}
+            >
+              <MenuItem value="" sx={{ fontSize: 14, fontFamily: 'inherit' }}>All interests</MenuItem>
+              {SHOOTING_INTERESTS.map(i => (
+                <MenuItem key={i} value={i} sx={{ fontSize: 14, fontFamily: 'inherit' }}>{i}</MenuItem>
+              ))}
+            </Select>
             {hasFilters && (
               <button onClick={() => { setSearch(''); setSkill(''); setInterest('') }} className="text-sm text-action-primary hover:underline">
                 Clear

@@ -610,7 +610,7 @@ function PoyLeaderboard({
     <>
       {/* Description + view toggle */}
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+        <p className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
           {scoringDescription(poyConfig)}
         </p>
         <ViewToggle view={view} onChange={setView} />
@@ -752,7 +752,7 @@ function RecentAwardsFeed({ awards }: { awards: RecentAward[] }) {
                 {a.memberName}
               </p>
               <p className="text-[12px] text-content-secondary mt-0.5">
-                <span style={{ color: '#E8B800' }}>{a.awardName}</span>
+                <span style={{ color: '#FACC15' }}>{a.awardName}</span>
                 {' · '}{a.competitionTitle}
               </p>
             </div>
