@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import MuiSelect  from '@mui/material/Select'
+import MenuItem   from '@mui/material/MenuItem'
 import type {
   PoyEntry,
   PoyConfig,
@@ -127,18 +129,18 @@ function SeasonSelector({
   return (
     <div className="flex items-center gap-2">
       <span className="text-[13px] text-content-secondary">Season</span>
-      <select
+      <MuiSelect
+        size="small"
         value={current}
-        onChange={handleChange}
-        className="rounded-md border border-border-default bg-surface-2 px-2.5 py-1.5 text-[13px] text-content-primary focus:outline-none focus:border-action-primary transition-colors cursor-pointer"
-        style={{ colorScheme: 'dark light' }}
+        onChange={e => handleChange({ target: { value: String(e.target.value) } } as React.ChangeEvent<HTMLSelectElement>)}
+        sx={{ fontSize: 13, fontFamily: 'inherit', minWidth: 120 }}
       >
         {options.map(o => (
-          <option key={o.year} value={o.year} style={{ background: 'var(--surface-2)', color: 'var(--text-primary)' }}>
+          <MenuItem key={o.year} value={o.year} sx={{ fontSize: 13, fontFamily: 'inherit' }}>
             {o.label}{o.isCurrent ? ' (current)' : ''}
-          </option>
+          </MenuItem>
         ))}
-      </select>
+      </MuiSelect>
     </div>
   )
 }
@@ -249,7 +251,7 @@ function RankCell({ entry, hoverBg }: { entry: PoyEntry; hoverBg?: boolean }) {
       className={`${tdBase} text-right font-semibold`}
       style={{ ...stickyRankStyle(), background: hoverBg ? 'var(--surface-1)' : 'var(--surface-2)', color: entry.rank <= 3 ? 'var(--text-primary)' : 'var(--text-secondary)', width: RANK_W }}
     >
-      {entry.isCurrentUser && <span style={{ color: 'var(--spot-gold)', marginRight: 1 }}>★</span>}
+      {entry.isCurrentUser && <span style={{ color: '#FACC15', marginRight: 1 }}>★</span>}
       {entry.rank}{entry.tied ? '=' : ''}
     </td>
   )
@@ -259,7 +261,7 @@ function MemberCell({ entry, hoverBg }: { entry: PoyEntry; hoverBg?: boolean }) 
     <td className={`${tdBase} pl-3`} style={{ ...stickyMemberStyle(), background: hoverBg ? 'var(--surface-1)' : 'var(--surface-2)' }}>
       <div className="flex items-center gap-2 min-w-0">
         <Avatar name={entry.displayName} url={entry.avatarUrl} size={24} />
-        <span className="truncate text-[13px] font-medium" style={{ color: entry.isCurrentUser ? 'var(--spot-gold)' : 'var(--text-primary)' }}>
+        <span className="truncate text-[13px] font-medium" style={{ color: entry.isCurrentUser ? '#FACC15' : 'var(--text-primary)' }}>
           {entry.displayName}
         </span>
       </div>

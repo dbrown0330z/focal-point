@@ -398,9 +398,6 @@ export default function LibraryClient({ images, clubSlug }: { images: Image[]; c
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="font-[family-name:var(--font-lora)] text-[28px] font-bold leading-tight tracking-[-0.02em] text-content-primary">My Images</h1>
-          <p className="mt-1 text-[15px] text-content-secondary">
-            {images.length} {images.length === 1 ? 'photo' : 'photos'}
-          </p>
         </div>
         <div className="flex items-center gap-4">
           {images.length > 0 && (
@@ -513,6 +510,14 @@ export default function LibraryClient({ images, clubSlug }: { images: Image[]; c
                 <MenuItem value="title_desc" sx={{ fontSize: 14, fontFamily: 'inherit' }}>Name (Z–A)</MenuItem>
               </Select>
             </div>
+
+            {/* Live count */}
+            <span className="ml-auto text-sm" style={{ color: 'var(--text-secondary)' }}>
+              {galleryFiltered.length} {galleryFiltered.length === 1 ? 'photo' : 'photos'}
+              {statusFilter !== 'all' && images.length !== galleryFiltered.length && (
+                <span style={{ color: 'var(--text-tertiary)' }}> of {images.length}</span>
+              )}
+            </span>
           </div>
 
           {galleryFiltered.length === 0 ? (
@@ -614,6 +619,14 @@ export default function LibraryClient({ images, clubSlug }: { images: Image[]; c
                 )
               })}
             </div>
+
+            {/* Live count */}
+            <span className="ml-auto text-sm" style={{ color: 'var(--text-secondary)' }}>
+              {listFiltered.length} {listFiltered.length === 1 ? 'photo' : 'photos'}
+              {statusFilter !== 'all' && images.length !== listFiltered.length && (
+                <span style={{ color: 'var(--text-tertiary)' }}> of {images.length}</span>
+              )}
+            </span>
           </div>
 
         {listFiltered.length === 0 ? (
