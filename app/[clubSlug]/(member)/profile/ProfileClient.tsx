@@ -21,6 +21,7 @@ import type { ProfileData, HistoryEntry } from './page'
 import { updateProfile, updatePassword, updateAvatarUrl } from './actions'
 import { createClient } from '@/lib/supabase/client'
 import { SHOOTING_INTERESTS, CAMERA_BRANDS, EXPERIENCE_LEVELS, skillLabel, skillFull } from '@/lib/profile-options'
+import { avatarGradient, avatarInitials } from '@/lib/avatar'
 import { formatPhone } from '@/lib/format-phone'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -30,28 +31,6 @@ function fmtSince(iso: string) {
 }
 
 // ─── Initials avatar helpers ──────────────────────────────────────────────────
-
-// Uses design token CSS variables — resolves to spot/action colors at render time
-const AVATAR_PALETTE = [
-  'var(--action-primary)',
-  'var(--spot-teal)',
-  'var(--spot-purple)',
-  'var(--spot-green)',
-  'var(--spot-pink)',
-  'var(--spot-orange)',
-]
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-  return name.slice(0, 2).toUpperCase()
-}
-
-function getAvatarBg(name: string): string {
-  let hash = 0
-  for (const c of name) hash = c.charCodeAt(0) + ((hash << 5) - hash)
-  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length]
-}
 
 function AvatarOrInitials({
   avatarUrl, name, size, fontSize,
@@ -69,14 +48,14 @@ function AvatarOrInitials({
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%',
-      background: getAvatarBg(name),
+      background: avatarGradient(name),
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       border: '2px solid var(--border-default)',
       flexShrink: 0,
       userSelect: 'none',
     }}>
       <span style={{ fontSize, fontWeight: 600, color: 'white', lineHeight: 1, letterSpacing: '0.02em' }}>
-        {getInitials(name)}
+        {avatarInitials(name)}
       </span>
     </div>
   )

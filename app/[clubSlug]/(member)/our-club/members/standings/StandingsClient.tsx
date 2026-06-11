@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import MuiSelect  from '@mui/material/Select'
 import MenuItem   from '@mui/material/MenuItem'
+import { avatarGradient, avatarInitials } from '@/lib/avatar'
 import type {
   PoyEntry,
   PoyConfig,
@@ -15,12 +16,6 @@ import type {
 } from './page'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-function getInitials(name: string) {
-  const parts = name.trim().split(/\s+/)
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-  return name.slice(0, 2).toUpperCase()
-}
 
 function ordinalSuffix(n: number): string {
   const s = ['th', 'st', 'nd', 'rd']
@@ -63,9 +58,9 @@ function Avatar({
   return (
     <span
       className="flex items-center justify-center rounded-full text-white font-semibold flex-shrink-0"
-      style={{ ...style, background: 'var(--action-primary)' }}
+      style={{ ...style, background: avatarGradient(name) }}
     >
-      {getInitials(name)}
+      {avatarInitials(name)}
     </span>
   )
 }

@@ -13,28 +13,13 @@ import IconButton   from '@mui/material/IconButton'
 import type { MemberRow } from './page'
 import type { ProfileData, HistoryEntry } from '@/app/[clubSlug]/(member)/profile/page'
 import { getMemberPublicProfile } from './actions'
+import { avatarGradient as getAvatarGradient, avatarInitials } from '@/lib/avatar'
 import { skillLabel, skillFull } from '@/lib/profile-options'
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
 function fmtSince(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-}
-
-const AVATAR_PALETTE = [
-  'var(--action-primary)', 'var(--spot-teal)', 'var(--spot-purple)',
-  'var(--spot-green)',     'var(--spot-pink)', 'var(--spot-orange)',
-]
-function getInitials(name: string) {
-  const p = name.trim().split(/\s+/).filter(Boolean)
-  return p.length >= 2 ? (p[0][0] + p[p.length - 1][0]).toUpperCase() : name.slice(0, 2).toUpperCase()
-}
-function getAvatarGradient(name: string) {
-  let h = 0
-  for (const c of name) h = c.charCodeAt(0) + ((h << 5) - h)
-  const i1 = Math.abs(h) % AVATAR_PALETTE.length
-  const i2 = (i1 + 2) % AVATAR_PALETTE.length
-  return `linear-gradient(135deg, ${AVATAR_PALETTE[i1]} 0%, ${AVATAR_PALETTE[i2]} 100%)`
 }
 
 function AvatarOrInitials({ avatarUrl, name, size, fontSize }: { avatarUrl: string | null; name: string; size: number; fontSize: number }) {
@@ -44,7 +29,7 @@ function AvatarOrInitials({ avatarUrl, name, size, fontSize }: { avatarUrl: stri
   }
   return (
     <div style={{ width: size, height: size, borderRadius: '50%', background: getAvatarGradient(name), display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--border-default)', flexShrink: 0, userSelect: 'none' }}>
-      <span style={{ fontSize, fontWeight: 600, color: 'white', lineHeight: 1 }}>{getInitials(name)}</span>
+      <span style={{ fontSize, fontWeight: 600, color: 'white', lineHeight: 1 }}>{avatarInitials(name)}</span>
     </div>
   )
 }

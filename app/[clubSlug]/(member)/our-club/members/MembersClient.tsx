@@ -9,21 +9,7 @@ import MemberProfileModal from './MemberProfileModal'
 
 // ─── Avatar helpers ───────────────────────────────────────────────────────────
 
-const AVATAR_PALETTE = [
-  'var(--action-primary)', 'var(--spot-teal)', 'var(--spot-purple)',
-  'var(--spot-green)',     'var(--spot-pink)', 'var(--spot-orange)',
-]
-function getInitials(name: string) {
-  const p = name.trim().split(/\s+/).filter(Boolean)
-  return p.length >= 2 ? (p[0][0] + p[p.length - 1][0]).toUpperCase() : name.slice(0, 2).toUpperCase()
-}
-function getAvatarGradient(name: string) {
-  let h = 0
-  for (const c of name) h = c.charCodeAt(0) + ((h << 5) - h)
-  const i1 = Math.abs(h) % AVATAR_PALETTE.length
-  const i2 = (i1 + 2) % AVATAR_PALETTE.length   // offset by 2 for complementary feel
-  return `linear-gradient(135deg, ${AVATAR_PALETTE[i1]} 0%, ${AVATAR_PALETTE[i2]} 100%)`
-}
+import { avatarGradient as getAvatarGradient, avatarInitials as getInitials } from '@/lib/avatar'
 
 function RowAvatar({ member }: { member: MemberRow }) {
   if (member.avatar_url) {

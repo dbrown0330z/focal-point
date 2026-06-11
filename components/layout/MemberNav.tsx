@@ -6,19 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { logout } from '@/app/(auth)/actions'
 import { useTheme } from './ThemeProvider'
 
-// ── Avatar gradient (matches member directory tiles) ──────────────────────────
-
-const NAV_AVATAR_PALETTE = [
-  'var(--action-primary)', 'var(--spot-teal)', 'var(--spot-purple)',
-  'var(--spot-green)',     'var(--spot-pink)', 'var(--spot-orange)',
-]
-function getNavAvatarGradient(name: string): string {
-  let h = 0
-  for (const c of name) h = c.charCodeAt(0) + ((h << 5) - h)
-  const i1 = Math.abs(h) % NAV_AVATAR_PALETTE.length
-  const i2 = (i1 + 2) % NAV_AVATAR_PALETTE.length
-  return `linear-gradient(135deg, ${NAV_AVATAR_PALETTE[i1]} 0%, ${NAV_AVATAR_PALETTE[i2]} 100%)`
-}
+import { avatarGradient as getNavAvatarGradient } from '@/lib/avatar'
 
 // ── Icon components ────────────────────────────────────────────────────────────
 
