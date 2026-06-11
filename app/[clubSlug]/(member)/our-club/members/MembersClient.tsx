@@ -15,10 +15,12 @@ function getInitials(name: string) {
   const p = name.trim().split(/\s+/).filter(Boolean)
   return p.length >= 2 ? (p[0][0] + p[p.length - 1][0]).toUpperCase() : name.slice(0, 2).toUpperCase()
 }
-function getAvatarBg(name: string) {
+function getAvatarGradient(name: string) {
   let h = 0
   for (const c of name) h = c.charCodeAt(0) + ((h << 5) - h)
-  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length]
+  const i1 = Math.abs(h) % AVATAR_PALETTE.length
+  const i2 = (i1 + 2) % AVATAR_PALETTE.length   // offset by 2 for complementary feel
+  return `linear-gradient(135deg, ${AVATAR_PALETTE[i1]} 0%, ${AVATAR_PALETTE[i2]} 100%)`
 }
 
 function RowAvatar({ member }: { member: MemberRow }) {
@@ -33,7 +35,7 @@ function RowAvatar({ member }: { member: MemberRow }) {
     )
   }
   return (
-    <div style={{ width: 44, height: 44, borderRadius: '50%', background: getAvatarBg(member.display_name), display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--border-default)', flexShrink: 0, userSelect: 'none' }}>
+    <div style={{ width: 44, height: 44, borderRadius: '50%', background: getAvatarGradient(member.display_name), display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--border-default)', flexShrink: 0, userSelect: 'none' }}>
       <span style={{ fontSize: 15, fontWeight: 600, color: 'white', lineHeight: 1 }}>{getInitials(member.display_name)}</span>
     </div>
   )
@@ -209,13 +211,13 @@ export default function MembersClient({
                 className="w-full rounded-lg border border-border-default bg-surface-2 py-2 pl-9 pr-3 text-sm text-content-primary placeholder:text-content-tertiary outline-none focus:border-action-primary transition-colors"
               />
             </div>
-            <select value={skillFilter} onChange={e => setSkill(e.target.value)} className="rounded-lg border border-border-default bg-surface-2 py-2 px-3 text-sm text-content-primary outline-none focus:border-action-primary transition-colors cursor-pointer">
-              <option value="">All skill levels</option>
-              {EXPERIENCE_LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+            <select value={skillFilter} onChange={e => setSkill(e.target.value)} className="rounded-lg border border-border-default bg-surface-2 py-2 px-3 text-sm text-content-primary outline-none focus:border-action-primary transition-colors cursor-pointer" style={{ colorScheme: 'dark light' }}>
+              <option value="" style={{ background: 'var(--surface-2)', color: 'var(--text-primary)' }}>All skill levels</option>
+              {EXPERIENCE_LEVELS.map(l => <option key={l.value} value={l.value} style={{ background: 'var(--surface-2)', color: 'var(--text-primary)' }}>{l.label}</option>)}
             </select>
-            <select value={interestFilter} onChange={e => setInterest(e.target.value)} className="rounded-lg border border-border-default bg-surface-2 py-2 px-3 text-sm text-content-primary outline-none focus:border-action-primary transition-colors cursor-pointer">
-              <option value="">All interests</option>
-              {SHOOTING_INTERESTS.map(i => <option key={i} value={i}>{i}</option>)}
+            <select value={interestFilter} onChange={e => setInterest(e.target.value)} className="rounded-lg border border-border-default bg-surface-2 py-2 px-3 text-sm text-content-primary outline-none focus:border-action-primary transition-colors cursor-pointer" style={{ colorScheme: 'dark light' }}>
+              <option value="" style={{ background: 'var(--surface-2)', color: 'var(--text-primary)' }}>All interests</option>
+              {SHOOTING_INTERESTS.map(i => <option key={i} value={i} style={{ background: 'var(--surface-2)', color: 'var(--text-primary)' }}>{i}</option>)}
             </select>
             {hasFilters && (
               <button onClick={() => { setSearch(''); setSkill(''); setInterest('') }} className="text-sm text-action-primary hover:underline">

@@ -242,23 +242,24 @@ function stickyMemberStyle(): React.CSSProperties {
   return { position: 'sticky', left: RANK_W, zIndex: 1, background: 'var(--surface-2)', boxShadow: '2px 0 4px -2px rgba(0,0,0,0.08)', minWidth: MEMBER_W }
 }
 
-function RankCell({ entry }: { entry: PoyEntry }) {
+// Sticky cells accept an optional hoverBg so the row hover effect spans them too
+function RankCell({ entry, hoverBg }: { entry: PoyEntry; hoverBg?: boolean }) {
   return (
     <td
       className={`${tdBase} text-right font-semibold`}
-      style={{ ...stickyRankStyle(), color: entry.rank <= 3 ? 'var(--text-primary)' : 'var(--text-secondary)', width: RANK_W }}
+      style={{ ...stickyRankStyle(), background: hoverBg ? 'var(--surface-1)' : 'var(--surface-2)', color: entry.rank <= 3 ? 'var(--text-primary)' : 'var(--text-secondary)', width: RANK_W }}
     >
+      {entry.isCurrentUser && <span style={{ color: 'var(--spot-gold)', marginRight: 1 }}>★</span>}
       {entry.rank}{entry.tied ? '=' : ''}
-      {entry.isCurrentUser && <span className="ml-0.5 text-[10px]" style={{ color: 'var(--action-primary)' }}>★</span>}
     </td>
   )
 }
-function MemberCell({ entry }: { entry: PoyEntry }) {
+function MemberCell({ entry, hoverBg }: { entry: PoyEntry; hoverBg?: boolean }) {
   return (
-    <td className={`${tdBase} pl-3`} style={stickyMemberStyle()}>
+    <td className={`${tdBase} pl-3`} style={{ ...stickyMemberStyle(), background: hoverBg ? 'var(--surface-1)' : 'var(--surface-2)' }}>
       <div className="flex items-center gap-2 min-w-0">
         <Avatar name={entry.displayName} url={entry.avatarUrl} size={24} />
-        <span className="truncate text-[13px] font-medium" style={{ color: entry.isCurrentUser ? 'var(--action-primary)' : 'var(--text-primary)' }}>
+        <span className="truncate text-[13px] font-medium" style={{ color: entry.isCurrentUser ? 'var(--spot-gold)' : 'var(--text-primary)' }}>
           {entry.displayName}
         </span>
       </div>
@@ -281,6 +282,21 @@ function ShowMoreButton({ count, total, showAll, onToggle }: { count: number; to
     <button onClick={onToggle} className="mt-3 w-full rounded-[8px] border border-border-default bg-surface-2 py-2 text-[13px] text-content-secondary hover:bg-surface-1 transition-colors">
       {showAll ? 'Show fewer' : `Show all ${total} members`}
     </button>
+  )
+}
+
+/** Table row that tracks its own hover and passes it to a render prop —
+ *  allows sticky cells to update their background on hover too. */
+function HoverRow({ render, borderBottom }: { render: (hovered: boolean) => React.ReactNode; borderBottom?: boolean }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <tr
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ background: hovered ? 'var(--surface-1)' : undefined, borderBottom: borderBottom ? '1px solid var(--border-subtle)' : undefined, transition: 'background 0.1s' }}
+    >
+      {render(hovered)}
+    </tr>
   )
 }
 
@@ -368,18 +384,23 @@ function PoyTableOverall({
         </thead>
         <tbody>
           {entries.map((entry, i) => (
-            <tr key={entry.memberId} className="transition-colors hover:bg-surface-1"
-              style={{ borderBottom: i < entries.length - 1 ? '1px solid var(--border-subtle)' : undefined }}>
-              <RankCell entry={entry} />
-              <MemberCell entry={entry} />
-              {view === 'detailed' && slots.map(si => (
-                <td key={si} className={`${tdBase} text-right w-12`}
-                  style={{ color: entry.allScores[si] != null ? 'var(--text-primary)' : 'var(--text-disabled)', borderLeft: si === 0 ? '1px solid var(--border-subtle)' : undefined }}>
-                  {entry.allScores[si] != null ? entry.allScores[si].toFixed(1) : '—'}
-                </td>
-              ))}
-              <TotalCell score={entry.score} />
-            </tr>
+            <HoverRow
+              key={entry.memberId}
+              borderBottom={i < entries.length - 1}
+              render={isHovered => (
+                <>
+                  <RankCell entry={entry} hoverBg={isHovered} />
+                  <MemberCell entry={entry} hoverBg={isHovered} />
+                  {view === 'detailed' && slots.map(si => (
+                    <td key={si} className={`${tdBase} text-right w-12`}
+                      style={{ color: entry.allScores[si] != null ? 'var(--text-primary)' : 'var(--text-disabled)', borderLeft: si === 0 ? '1px solid var(--border-subtle)' : undefined }}>
+                      {entry.allScores[si] != null ? entry.allScores[si].toFixed(1) : '—'}
+                    </td>
+                  ))}
+                  <TotalCell score={entry.score} />
+                </>
+              )}
+            />
           ))}
         </tbody>
       </table>
@@ -453,33 +474,34 @@ function PoyTablePerCategory({
         </thead>
         <tbody>
           {entries.map((entry, i) => (
-            <tr key={entry.memberId} className="transition-colors hover:bg-surface-1"
-              style={{ borderBottom: i < entries.length - 1 ? '1px solid var(--border-subtle)' : undefined }}>
-              <RankCell entry={entry} />
-              <MemberCell entry={entry} />
-              {view === 'compact'
-                ? categoryNames.map(cat => {
-                    const scores = entry.byCategory[cat] ?? []
-                    const total  = scores.reduce((a, b) => a + b, 0)
-                    return (
-                      <td key={cat} className={`${tdBase} text-right`}
-                        style={{ color: scores.length > 0 ? 'var(--text-primary)' : 'var(--text-disabled)', borderLeft: '1px solid var(--border-subtle)' }}>
-                        {scores.length > 0 ? total.toFixed(1) : '—'}
-                      </td>
-                    )
-                  })
-                : categoryNames.flatMap(cat => {
-                    const scores = entry.byCategory[cat] ?? []
-                    return catSlots[cat].map(si => (
-                      <td key={`${cat}-${si}`} className={`${tdBase} text-right w-12`}
-                        style={{ color: scores[si] != null ? 'var(--text-primary)' : 'var(--text-disabled)', borderLeft: si === 0 ? '1px solid var(--border-subtle)' : undefined }}>
-                        {scores[si] != null ? scores[si].toFixed(1) : '—'}
-                      </td>
-                    ))
-                  })
-              }
-              <TotalCell score={entry.score} />
-            </tr>
+            <HoverRow key={entry.memberId} borderBottom={i < entries.length - 1} render={isHovered => (
+              <>
+                <RankCell entry={entry} hoverBg={isHovered} />
+                <MemberCell entry={entry} hoverBg={isHovered} />
+                {view === 'compact'
+                  ? categoryNames.map(cat => {
+                      const scores = entry.byCategory[cat] ?? []
+                      const total  = scores.reduce((a, b) => a + b, 0)
+                      return (
+                        <td key={cat} className={`${tdBase} text-right`}
+                          style={{ color: scores.length > 0 ? 'var(--text-primary)' : 'var(--text-disabled)', borderLeft: '1px solid var(--border-subtle)' }}>
+                          {scores.length > 0 ? total.toFixed(1) : '—'}
+                        </td>
+                      )
+                    })
+                  : categoryNames.flatMap(cat => {
+                      const scores = entry.byCategory[cat] ?? []
+                      return catSlots[cat].map(si => (
+                        <td key={`${cat}-${si}`} className={`${tdBase} text-right w-12`}
+                          style={{ color: scores[si] != null ? 'var(--text-primary)' : 'var(--text-disabled)', borderLeft: si === 0 ? '1px solid var(--border-subtle)' : undefined }}>
+                          {scores[si] != null ? scores[si].toFixed(1) : '—'}
+                        </td>
+                      ))
+                    })
+                }
+                <TotalCell score={entry.score} />
+              </>
+            )} />
           ))}
         </tbody>
       </table>
@@ -524,18 +546,19 @@ function PoyTableSingleCategory({
           {entries.map((entry, i) => {
             const scores = entry.byCategory[catName] ?? []
             return (
-              <tr key={entry.memberId} className="transition-colors hover:bg-surface-1"
-                style={{ borderBottom: i < entries.length - 1 ? '1px solid var(--border-subtle)' : undefined }}>
-                <RankCell entry={entry} />
-                <MemberCell entry={entry} />
-                {view === 'detailed' && slots.map(si => (
-                  <td key={si} className={`${tdBase} text-right w-12`}
-                    style={{ color: scores[si] != null ? 'var(--text-primary)' : 'var(--text-disabled)', borderLeft: si === 0 ? '1px solid var(--border-subtle)' : undefined }}>
-                    {scores[si] != null ? scores[si].toFixed(1) : '—'}
-                  </td>
-                ))}
-                <TotalCell score={entry.score} />
-              </tr>
+              <HoverRow key={entry.memberId} borderBottom={i < entries.length - 1} render={isHovered => (
+                <>
+                  <RankCell entry={entry} hoverBg={isHovered} />
+                  <MemberCell entry={entry} hoverBg={isHovered} />
+                  {view === 'detailed' && slots.map(si => (
+                    <td key={si} className={`${tdBase} text-right w-12`}
+                      style={{ color: scores[si] != null ? 'var(--text-primary)' : 'var(--text-disabled)', borderLeft: si === 0 ? '1px solid var(--border-subtle)' : undefined }}>
+                      {scores[si] != null ? scores[si].toFixed(1) : '—'}
+                    </td>
+                  ))}
+                  <TotalCell score={entry.score} />
+                </>
+              )} />
             )
           })}
         </tbody>
@@ -802,8 +825,8 @@ export default function StandingsClient({
 
   const TABS: { key: Tab; label: string }[] = [
     { key: 'poy',       label: 'Photographer of the Year' },
-    { key: 'benchmark', label: 'Benchmark' },
-    { key: 'awards',    label: 'Awards' },
+    ...(benchmarkConfigured ? [{ key: 'benchmark' as Tab, label: 'Benchmark' }] : []),
+    ...(awardsConfigured    ? [{ key: 'awards'    as Tab, label: 'Awards' }]    : []),
   ]
 
   return (
@@ -843,14 +866,6 @@ export default function StandingsClient({
       {/* ── POY tab ──────────────────────────────────────────────────── */}
       {tab === 'poy' && (
         <div className="space-y-4">
-          {currentProfile && (
-            <MyStandingLine
-              entry={currentUserPoy}
-              totalMembers={totalPoyMembers}
-              clubSlug={clubSlug}
-            />
-          )}
-
           <PoyLeaderboard
             entries={poyStandings}
             standingsByCategory={poyStandingsByCategory}

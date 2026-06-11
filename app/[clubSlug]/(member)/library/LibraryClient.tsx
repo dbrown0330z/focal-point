@@ -82,10 +82,13 @@ function IconInfo() {
 
 // ─── Submission badge ─────────────────────────────────────────────────────────
 
-function SubmissionBadge({ submitted }: { submitted: boolean }) {
-  return submitted
-    ? <span className="text-xs font-medium" style={{ background: 'var(--status-success-bg)', color: 'var(--status-success-text)', borderRadius: 4, padding: '2px 7px' }}>Submitted</span>
-    : <span className="text-xs font-medium" style={{ background: 'var(--badge-available-bg)', border: '1px solid var(--badge-available-border)', color: 'var(--badge-available-text)', borderRadius: 4, padding: '2px 7px' }}>Available</span>
+// Only shown when submitted but score/date not yet available
+function SubmittedBadge() {
+  return (
+    <span className="text-xs font-medium" style={{ background: 'var(--badge-available-bg)', border: '1px solid var(--badge-available-border)', color: 'var(--badge-available-text)', borderRadius: 4, padding: '2px 7px' }}>
+      Submitted
+    </span>
+  )
 }
 
 // ─── Delete button ────────────────────────────────────────────────────────────
@@ -254,39 +257,39 @@ function DetailPanel({ image, onClose }: { image: Image; onClose: () => void }) 
         />
       </div>
 
-      {/* Status + competition */}
-      <div className="px-4 pb-3">
-        <div className="flex items-center gap-2">
-          <SubmissionBadge submitted={image.isSubmitted} />
-          {image.competitionTitle && (
-            <span className="truncate text-xs text-content-tertiary">· {image.competitionTitle}</span>
+      {/* Status + competition — only shown when submitted */}
+      {image.isSubmitted && (
+        <div className="px-4 pb-3">
+          {(image.score !== null || image.competitionDate) ? (
+            // Score/date available: show inline, no badge
+            <dl className="space-y-1">
+              {image.competitionDate && (
+                <div className="flex justify-between gap-2 text-xs">
+                  <dt className="text-content-secondary">Competition</dt>
+                  <dd className="font-medium text-content-primary">
+                    {new Date(image.competitionDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                  </dd>
+                </div>
+              )}
+              {image.score !== null && (
+                <div className="flex justify-between gap-2 text-xs">
+                  <dt className="text-content-secondary">Score</dt>
+                  <dd className="font-medium text-content-primary">{image.score}</dd>
+                </div>
+              )}
+              {image.categoryName && (
+                <div className="flex justify-between gap-2 text-xs">
+                  <dt className="text-content-secondary">Category</dt>
+                  <dd className="font-medium text-content-primary">{image.categoryName}</dd>
+                </div>
+              )}
+            </dl>
+          ) : (
+            // No score/date yet: show gray submitted badge
+            <SubmittedBadge />
           )}
         </div>
-        {(image.categoryName || image.score !== null || image.competitionDate) && (
-          <dl className="mt-2 space-y-1">
-            {image.categoryName && (
-              <div className="flex justify-between gap-2 text-xs">
-                <dt className="text-content-secondary">Category</dt>
-                <dd className="font-medium text-content-primary">{image.categoryName}</dd>
-              </div>
-            )}
-            {image.score !== null && (
-              <div className="flex justify-between gap-2 text-xs">
-                <dt className="text-content-secondary">Score</dt>
-                <dd className="font-medium text-content-primary">{image.score}</dd>
-              </div>
-            )}
-            {image.competitionDate && (
-              <div className="flex justify-between gap-2 text-xs">
-                <dt className="text-content-secondary">Competition</dt>
-                <dd className="font-medium text-content-primary">
-                  {new Date(image.competitionDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                </dd>
-              </div>
-            )}
-          </dl>
-        )}
-      </div>
+      )}
 
       <div className="mx-4 border-t border-border-subtle" />
 
@@ -539,7 +542,7 @@ export default function LibraryClient({ images, clubSlug }: { images: Image[]; c
                         <div className="mt-2 flex items-start justify-between gap-1">
                           <div className="min-w-0">
                             <p className="text-[13px] font-semibold text-content-primary" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: '2.85em', lineHeight: 1.4 }}>{image.title}</p>
-                            <SubmissionBadge submitted={image.isSubmitted} />
+                            {image.isSubmitted && !(image.score !== null || image.competitionDate) && <SubmittedBadge />}
                           </div>
                           <div className="flex flex-shrink-0 items-center gap-1">
                             <button
@@ -653,9 +656,9 @@ export default function LibraryClient({ images, clubSlug }: { images: Image[]; c
                       </td>
                       {/* Name */}
                       <td className="px-4 py-2.5 font-medium text-content-primary">{image.title}</td>
-                      {/* Status */}
+                      {/* Status — badge only when submitted but no score/date yet */}
                       <td className="px-4 py-2.5 whitespace-nowrap">
-                        <SubmissionBadge submitted={image.isSubmitted} />
+                        {image.isSubmitted && !(image.score !== null || image.competitionDate) && <SubmittedBadge />}
                       </td>
                       {/* Date added */}
                       <td className="hidden px-4 py-2.5 text-content-secondary whitespace-nowrap sm:table-cell">

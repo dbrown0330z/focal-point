@@ -29,10 +29,12 @@ function getInitials(name: string) {
   const p = name.trim().split(/\s+/).filter(Boolean)
   return p.length >= 2 ? (p[0][0] + p[p.length - 1][0]).toUpperCase() : name.slice(0, 2).toUpperCase()
 }
-function getAvatarBg(name: string) {
+function getAvatarGradient(name: string) {
   let h = 0
   for (const c of name) h = c.charCodeAt(0) + ((h << 5) - h)
-  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length]
+  const i1 = Math.abs(h) % AVATAR_PALETTE.length
+  const i2 = (i1 + 2) % AVATAR_PALETTE.length
+  return `linear-gradient(135deg, ${AVATAR_PALETTE[i1]} 0%, ${AVATAR_PALETTE[i2]} 100%)`
 }
 
 function AvatarOrInitials({ avatarUrl, name, size, fontSize }: { avatarUrl: string | null; name: string; size: number; fontSize: number }) {
@@ -41,7 +43,7 @@ function AvatarOrInitials({ avatarUrl, name, size, fontSize }: { avatarUrl: stri
     return <img src={avatarUrl} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-default)', display: 'block' }} />
   }
   return (
-    <div style={{ width: size, height: size, borderRadius: '50%', background: getAvatarBg(name), display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--border-default)', flexShrink: 0, userSelect: 'none' }}>
+    <div style={{ width: size, height: size, borderRadius: '50%', background: getAvatarGradient(name), display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--border-default)', flexShrink: 0, userSelect: 'none' }}>
       <span style={{ fontSize, fontWeight: 600, color: 'white', lineHeight: 1 }}>{getInitials(name)}</span>
     </div>
   )

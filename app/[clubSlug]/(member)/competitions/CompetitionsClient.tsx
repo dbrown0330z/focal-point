@@ -1436,18 +1436,8 @@ export default function CompetitionsClient({
           )}
         </div>
 
-        {/* Upcoming — scheduled but submissions not yet open */}
-        <UpcomingCompetitionsBlock competitions={upcomingCompetitions} />
-
-        {/* Previous — only shown when there are closed competitions with results ready */}
-        {previousCompetitions.length > 0 && (
-          <div>
-            <h2 className="mb-4 text-[15px] font-bold tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
-              Previous Competitions
-            </h2>
-            <PreviousCompetitionsBlock competitions={previousCompetitions} />
-          </div>
-        )}
+        {/* Upcoming — next competition only (results are on the Results page) */}
+        <UpcomingCompetitionsBlock competitions={upcomingCompetitions.slice(0, 1)} />
       </div>
 
       {/* Submit modal */}
