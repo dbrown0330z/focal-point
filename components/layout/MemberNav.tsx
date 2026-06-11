@@ -6,6 +6,20 @@ import { useEffect, useRef, useState } from 'react'
 import { logout } from '@/app/(auth)/actions'
 import { useTheme } from './ThemeProvider'
 
+// ── Avatar gradient (matches member directory tiles) ──────────────────────────
+
+const NAV_AVATAR_PALETTE = [
+  'var(--action-primary)', 'var(--spot-teal)', 'var(--spot-purple)',
+  'var(--spot-green)',     'var(--spot-pink)', 'var(--spot-orange)',
+]
+function getNavAvatarGradient(name: string): string {
+  let h = 0
+  for (const c of name) h = c.charCodeAt(0) + ((h << 5) - h)
+  const i1 = Math.abs(h) % NAV_AVATAR_PALETTE.length
+  const i2 = (i1 + 2) % NAV_AVATAR_PALETTE.length
+  return `linear-gradient(135deg, ${NAV_AVATAR_PALETTE[i1]} 0%, ${NAV_AVATAR_PALETTE[i2]} 100%)`
+}
+
 // ── Icon components ────────────────────────────────────────────────────────────
 
 function ImagesIcon() {
@@ -367,7 +381,10 @@ export default function MemberNav({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={avatarUrl} alt={displayName} className="h-8 w-8 rounded-full object-cover border border-border-default" />
               ) : (
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-action-primary text-xs font-bold text-white flex-shrink-0">
+                <span
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white flex-shrink-0"
+                  style={{ background: getNavAvatarGradient(displayName) }}
+                >
                   {initials}
                 </span>
               )}

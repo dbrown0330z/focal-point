@@ -257,24 +257,25 @@ function DetailPanel({ image, onClose }: { image: Image; onClose: () => void }) 
         />
       </div>
 
-      {/* Status + competition — only shown when submitted */}
+      {/* Submission info — only shown when submitted */}
       {image.isSubmitted && (
-        <div className="px-4 pb-3">
-          {(image.score !== null || image.competitionDate) ? (
-            // Score/date available: show inline, no badge
-            <dl className="space-y-1">
+        <div className="px-4 pb-2">
+          <SubmittedBadge />
+          {/* Score — large and prominent */}
+          {image.score !== null && (
+            <div className="mt-3 flex items-baseline justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wide text-content-secondary">Score</span>
+              <span className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{image.score}</span>
+            </div>
+          )}
+          {(image.competitionDate || image.categoryName) && (
+            <dl className="mt-2 space-y-1">
               {image.competitionDate && (
                 <div className="flex justify-between gap-2 text-xs">
                   <dt className="text-content-secondary">Competition</dt>
                   <dd className="font-medium text-content-primary">
                     {new Date(image.competitionDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                   </dd>
-                </div>
-              )}
-              {image.score !== null && (
-                <div className="flex justify-between gap-2 text-xs">
-                  <dt className="text-content-secondary">Score</dt>
-                  <dd className="font-medium text-content-primary">{image.score}</dd>
                 </div>
               )}
               {image.categoryName && (
@@ -284,14 +285,11 @@ function DetailPanel({ image, onClose }: { image: Image; onClose: () => void }) 
                 </div>
               )}
             </dl>
-          ) : (
-            // No score/date yet: show gray submitted badge
-            <SubmittedBadge />
           )}
         </div>
       )}
 
-      <div className="mx-4 border-t border-border-subtle" />
+      <div className="mx-4 mt-3 border-t border-border-subtle" />
 
       {/* EXIF */}
       <div className="px-4 py-3">
@@ -552,7 +550,7 @@ export default function LibraryClient({ images, clubSlug }: { images: Image[]; c
                             >
                               <IconInfo />
                             </button>
-                            <DeleteImageButtonIcon imageId={image.id} storagePath={image.storage_path} />
+                            {!image.isSubmitted && <DeleteImageButtonIcon imageId={image.id} storagePath={image.storage_path} />}
                           </div>
                         </div>
                       </div>
@@ -678,9 +676,9 @@ export default function LibraryClient({ images, clubSlug }: { images: Image[]; c
                       <td className={`hidden px-4 py-2.5 text-content-secondary ${detailImage ? 'xl:table-cell' : 'lg:table-cell'}`}>
                         {image.score !== null ? image.score : <span className="text-content-tertiary">—</span>}
                       </td>
-                      {/* Delete */}
+                      {/* Delete — hidden when submitted */}
                       <td className="px-4 py-2.5 text-right">
-                        <DeleteImageButtonIcon imageId={image.id} storagePath={image.storage_path} />
+                        {!image.isSubmitted && <DeleteImageButtonIcon imageId={image.id} storagePath={image.storage_path} />}
                       </td>
                       {/* Details */}
                       <td className="px-4 py-2.5">

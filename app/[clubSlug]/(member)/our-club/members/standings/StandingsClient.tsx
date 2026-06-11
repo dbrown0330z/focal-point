@@ -130,11 +130,11 @@ function SeasonSelector({
       <select
         value={current}
         onChange={handleChange}
-        className="rounded-md border border-border-default bg-surface-2 px-2.5 py-1.5 text-[13px] text-content-primary focus:outline-none"
-        style={{ borderColor: 'var(--border-default)' }}
+        className="rounded-md border border-border-default bg-surface-2 px-2.5 py-1.5 text-[13px] text-content-primary focus:outline-none focus:border-action-primary transition-colors cursor-pointer"
+        style={{ colorScheme: 'dark light' }}
       >
         {options.map(o => (
-          <option key={o.year} value={o.year}>
+          <option key={o.year} value={o.year} style={{ background: 'var(--surface-2)', color: 'var(--text-primary)' }}>
             {o.label}{o.isCurrent ? ' (current)' : ''}
           </option>
         ))}
@@ -752,7 +752,7 @@ function RecentAwardsFeed({ awards }: { awards: RecentAward[] }) {
                 {a.memberName}
               </p>
               <p className="text-[12px] text-content-secondary mt-0.5">
-                <span style={{ color: 'var(--spot-gold)' }}>{a.awardName}</span>
+                <span style={{ color: '#E8B800' }}>{a.awardName}</span>
                 {' · '}{a.competitionTitle}
               </p>
             </div>
@@ -837,9 +837,11 @@ export default function StandingsClient({
         <div className="flex items-baseline gap-3">
           <h1 className="font-bold text-content-primary" style={{ fontFamily: 'var(--font-heading)', fontSize: 28, letterSpacing: '-0.02em' }}>Standings</h1>
           {lastUpdatedAt && (
-            <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-              Updated{' '}
-              {new Date(lastUpdatedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+            <span className="flex items-center gap-1" style={{ fontSize: 14, color: 'var(--text-tertiary)' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              Updated {new Date(lastUpdatedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
           )}
         </div>
@@ -852,11 +854,12 @@ export default function StandingsClient({
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`px-4 py-2.5 text-[13px] font-medium transition-colors border-b-2 -mb-px ${
+            className={`px-4 py-2.5 transition-colors border-b-2 -mb-px uppercase tracking-wide ${
               tab === key
-                ? 'border-action-primary text-action-primary'
-                : 'border-transparent text-content-secondary hover:text-content-primary'
+                ? 'border-action-primary text-action-primary font-bold'
+                : 'border-transparent text-content-secondary font-medium hover:text-content-primary'
             }`}
+            style={{ fontSize: 14 }}
           >
             {label}
           </button>

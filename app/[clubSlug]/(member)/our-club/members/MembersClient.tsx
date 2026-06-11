@@ -181,11 +181,6 @@ export default function MembersClient({
       {/* Page header */}
       <div className="mb-6">
         <h1 className="mb-0 font-bold text-content-primary" style={{ fontFamily: 'var(--font-heading)', fontSize: 28, letterSpacing: '-0.02em' }}>Members</h1>
-        <p className="mt-1 text-sm text-content-secondary">
-          {directoryVisible
-            ? `${members.length} active member${members.length !== 1 ? 's' : ''}`
-            : 'Member directory'}
-        </p>
       </div>
 
       {!directoryVisible ? (
@@ -197,7 +192,7 @@ export default function MembersClient({
         </div>
       ) : (
         <>
-          {/* Filters */}
+          {/* Filters + live count */}
           <div className="mb-5 flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[200px] max-w-xs">
               <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,6 +219,14 @@ export default function MembersClient({
                 Clear
               </button>
             )}
+
+            {/* Live member count — updates as filters change */}
+            <span className="ml-auto text-sm" style={{ color: 'var(--text-secondary)' }}>
+              {filtered.length} {filtered.length === 1 ? 'member' : 'members'}
+              {hasFilters && members.length !== filtered.length && (
+                <span style={{ color: 'var(--text-tertiary)' }}> of {members.length}</span>
+              )}
+            </span>
           </div>
 
           {filtered.length === 0 ? (
