@@ -4,6 +4,8 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { requireClubSlug } from '@/lib/club-context'
 import LibraryClient from './LibraryClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function LibraryPage() {
   const clubSlug = await requireClubSlug()
   const supabase = await createClient()
@@ -33,15 +35,17 @@ export default async function LibraryPage() {
   const nowIso = new Date().toISOString()
   const { data: openCompsRaw } = await supabase
     .from('competitions')
-    .select('id, title, opens_at, competition_categories(id, name)')
+    .select('id, title, opens_at, closes_at, competition_categories(id, name)')
     .eq('status', 'open')
     .is('deleted_at', null)
     .is('archived_at', null)
     .order('created_at', { ascending: false })
 
   const openCompRaw = (openCompsRaw ?? []).find(c => {
-    const opensAt = (c as unknown as { opens_at: string | null }).opens_at
-    return !opensAt || opensAt <= nowIso
+    const cc = c as unknown as { opens_at: string | null; closes_at: string | null }
+    const opensAt  = cc.opens_at
+    const closesAt = cc.closes_at
+    return (!opensAt || opensAt <= nowIso) && (!closesAt || closesAt >= nowIso)
   }) ?? null
 
   const openCompetition = openCompRaw ? {
