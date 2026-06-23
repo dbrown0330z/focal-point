@@ -86,16 +86,8 @@ function IconInfo() {
 
 function SubmittedBadge() {
   return (
-    <span className="text-xs font-medium" style={{ background: 'var(--status-success-bg)', border: '1px solid rgba(46,125,50,0.25)', color: 'var(--status-success-text)', borderRadius: 4, padding: '2px 7px' }}>
-      Submitted
-    </span>
-  )
-}
-
-function AvailableBadge() {
-  return (
     <span className="text-xs font-medium" style={{ background: 'var(--badge-available-bg)', border: '1px solid var(--badge-available-border)', color: 'var(--badge-available-text)', borderRadius: 4, padding: '2px 7px' }}>
-      Available
+      Submitted
     </span>
   )
 }
@@ -761,9 +753,7 @@ export default function LibraryClient({
                                 >
                                   Submit →
                                 </button>
-                              ) : (
-                                <AvailableBadge />
-                              )}
+                              ) : null}
                             </div>
                           </div>
                           <div className="flex flex-shrink-0 items-center gap-1">
@@ -898,9 +888,7 @@ export default function LibraryClient({
                           >
                             Submit →
                           </button>
-                        ) : (
-                          <AvailableBadge />
-                        )}
+                        ) : null}
                       </td>
                       {/* Date added */}
                       <td className="hidden px-4 py-2.5 text-content-secondary whitespace-nowrap sm:table-cell">

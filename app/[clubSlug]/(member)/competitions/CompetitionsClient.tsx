@@ -1390,6 +1390,12 @@ export default function CompetitionsClient({
 
   const modalCompetition = currentCompetitions.find(c => c.id === modalCompId) ?? null
   const modalFullCategoryIds = modalCompetition ? getFullCategoryIds(modalCompetition) : []
+  const modalCategoriesWithCount = modalCompetition
+    ? modalCompetition.categories.map(cat => ({
+        ...cat,
+        count: modalCompetition.clubStats.byCat.find(b => b.name === cat.name)?.count ?? 0,
+      }))
+    : []
 
   return (
     <div style={{ paddingBottom: 48 }}>
@@ -1448,7 +1454,7 @@ export default function CompetitionsClient({
           userId={userId}
           competitionId={modalCompetition.id}
           competitionTitle={modalCompetition.title}
-          categories={modalCompetition.categories}
+          categories={modalCategoriesWithCount}
           libraryImages={libraryImages}
           fullCategoryIds={modalFullCategoryIds}
         />

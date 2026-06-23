@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import type { CompetitionsSettings } from '@/lib/homepage/types'
+import OpenCompEntryButton from './OpenCompEntryButton'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -97,9 +98,10 @@ type OpenComp = {
   submission_limit: number
   totalEntries:     number
   memberUsed:       number
+  categories:       { id: string; name: string; count?: number }[]
 }
 
-function OpenCompCard({ comp }: { comp: OpenComp }) {
+function OpenCompCard({ comp, userId }: { comp: OpenComp; userId: string | null }) {
   const days   = comp.closes_at ? daysRemaining(comp.closes_at) : null
   const status = comp.memberUsed === 0
     ? 'none'
@@ -149,19 +151,16 @@ function OpenCompCard({ comp }: { comp: OpenComp }) {
                 ? "You haven't entered yet."
                 : `You've submitted ${comp.memberUsed} of ${comp.submission_limit} ${comp.submission_limit === 1 ? 'entry' : 'entries'}.`}
             </p>
-            <Link
-              href={`/submit?competition=${comp.id}`}
-              style={{
-                flexShrink:   0,
-                fontSize:     13,
-                fontWeight:   600,
-                color:        'var(--action-primary)',
-                textDecoration: 'none',
-                whiteSpace:   'nowrap',
-              }}
-            >
-              {status === 'none' ? 'Enter now →' : 'Enter again →'}
-            </Link>
+            {userId ? (
+              <OpenCompEntryButton comp={comp} userId={userId} status={status} />
+            ) : (
+              <Link
+                href="/login"
+                style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: 'var(--action-primary)', textDecoration: 'none', whiteSpace: 'nowrap' }}
+              >
+                Sign in to enter →
+              </Link>
+            )}
           </>
         )}
       </div>
@@ -291,7 +290,7 @@ export default async function CompetitionsBlock({
   // ── 1. Open competitions ─────────────────────────────────────────────────
   const { data: openCompsRaw } = await supabase
     .from('competitions')
-    .select('id, title, short_title, closes_at, submission_limit')
+    .select('id, title, short_title, closes_at, submission_limit, competition_categories(id, name)')
     .eq('status', 'open')
     .order('closes_at', { ascending: true, nullsFirst: false })
     .limit(settings.maxOpenShown)
@@ -300,16 +299,19 @@ export default async function CompetitionsBlock({
   if ((openCompsRaw ?? []).length > 0) {
     const openIds: string[] = (openCompsRaw ?? []).map((c: { id: string }) => c.id)
 
-    // Total entries per open competition
+    // Total entries per open competition, also track per-category counts
     const { data: allEntriesRaw } = await supabase
       .from('submissions')
-      .select('competition_id')
+      .select('competition_id, category_id')
       .in('competition_id', openIds)
       .eq('status', 'submitted')
 
     const entryCounts: Record<string, number> = {}
+    const catCounts: Record<string, Record<string, number>> = {} // compId → { catId → count }
     for (const row of (allEntriesRaw ?? [])) {
       entryCounts[row.competition_id] = (entryCounts[row.competition_id] ?? 0) + 1
+      if (!catCounts[row.competition_id]) catCounts[row.competition_id] = {}
+      catCounts[row.competition_id][row.category_id] = (catCounts[row.competition_id][row.category_id] ?? 0) + 1
     }
 
     // Member's entries per open competition
@@ -328,6 +330,8 @@ export default async function CompetitionsBlock({
     }
 
     for (const c of (openCompsRaw ?? [])) {
+      const cats = (c.competition_categories as unknown as { id: string; name: string }[]) ?? []
+      const compCatCounts = catCounts[c.id] ?? {}
       openComps.push({
         id:               c.id,
         title:            c.title,
@@ -336,6 +340,7 @@ export default async function CompetitionsBlock({
         submission_limit: c.submission_limit,
         totalEntries:     entryCounts[c.id] ?? 0,
         memberUsed:       memberCounts[c.id] ?? 0,
+        categories:       cats.map(cat => ({ id: cat.id, name: cat.name, count: compCatCounts[cat.id] ?? 0 })),
       })
     }
   }
@@ -547,7 +552,7 @@ export default async function CompetitionsBlock({
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {openComps.map(comp => (
-                  <OpenCompCard key={comp.id} comp={comp} />
+                  <OpenCompCard key={comp.id} comp={comp} userId={userId} />
                 ))}
               </div>
             </div>

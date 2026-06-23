@@ -7,7 +7,7 @@ import * as exifr from 'exifr'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type Category = { id: string; name: string }
+type Category = { id: string; name: string; count?: number }
 
 type LibraryImage = {
   id: string
@@ -212,7 +212,12 @@ function CategoryButtons({
               opacity: isFull ? 0.6 : 1,
             }}
           >
-            {cat.name}{isFull ? ' · Full' : ''}
+            {cat.name}
+            {isFull
+              ? <span style={{ marginLeft: 5, opacity: 0.8 }}>· Full</span>
+              : cat.count !== undefined && cat.count > 0
+                ? <span style={{ marginLeft: 5, opacity: 0.55, fontSize: 11 }}>{cat.count}</span>
+                : null}
           </button>
         )
       })}
