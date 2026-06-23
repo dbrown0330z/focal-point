@@ -1455,7 +1455,9 @@ export default function CompetitionsClient({
           competitionId={modalCompetition.id}
           competitionTitle={modalCompetition.title}
           categories={modalCategoriesWithCount}
-          libraryImages={libraryImages}
+          libraryImages={libraryImages.filter(img =>
+            !(submissionsMap[modalCompetition.id] ?? []).some(s => s.imageId === img.id)
+          )}
           fullCategoryIds={modalFullCategoryIds}
         />
       )}

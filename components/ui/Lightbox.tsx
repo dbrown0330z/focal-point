@@ -4,11 +4,13 @@ import { useState, useEffect, useCallback } from 'react'
 import { buildExifRows } from '@/lib/exif'
 
 export type LightboxImage = {
-  src:       string
-  title?:    string
-  subtitle?: string   // maker name, category, or omit for own-image galleries
-  score?:    number | null
-  exifData?: Record<string, unknown> | null
+  src:              string
+  title?:           string
+  subtitle?:        string   // maker name, category, or omit for own-image galleries
+  score?:           number | null
+  exifData?:        Record<string, unknown> | null
+  competitionDate?: string | null
+  categoryName?:    string | null
 }
 
 export function Lightbox({
@@ -47,7 +49,8 @@ export function Lightbox({
   if (!current) return null
 
   const exifRows  = current.exifData ? buildExifRows(current.exifData) : []
-  const hasPanel  = current.score != null || exifRows.length > 0
+  const hasCompMeta = Boolean(current.competitionDate || current.categoryName)
+  const hasPanel  = hasCompMeta || current.score != null || exifRows.length > 0
 
   return (
     <div
@@ -240,6 +243,37 @@ export function Lightbox({
               flexShrink:   0,
             }}
           >
+            {/* Competition metadata */}
+            {hasCompMeta && (
+              <div style={{ marginBottom: 20 }}>
+                {current.competitionDate && (
+                  <div style={{ marginBottom: current.categoryName ? 12 : 0 }}>
+                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 4 }}>
+                      Competition
+                    </p>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)', margin: 0 }}>
+                      {current.competitionDate}
+                    </p>
+                  </div>
+                )}
+                {current.categoryName && (
+                  <div>
+                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 4 }}>
+                      Category
+                    </p>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)', margin: 0 }}>
+                      {current.categoryName}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Divider after comp metadata */}
+            {hasCompMeta && (current.score != null || exifRows.length > 0) && (
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginBottom: 20 }} />
+            )}
+
             {/* Score */}
             {current.score != null && (
               <div style={{ marginBottom: exifRows.length > 0 ? 20 : 0 }}>

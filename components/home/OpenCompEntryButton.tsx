@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import SubmitModal from '@/app/[clubSlug]/(member)/competitions/SubmitModal'
 
 type Category = { id: string; name: string; count?: number }
@@ -20,47 +19,12 @@ type Props = {
 }
 
 export default function OpenCompEntryButton({ comp, userId, status }: Props) {
-  const [modalOpen, setModalOpen]       = useState(false)
-  const [libraryImages, setLibraryImages] = useState<{
-    id: string; title: string; storage_path: string; created_at: string; publicUrl: string
-  }[]>([])
-  const [loading, setLoading]           = useState(false)
-
-  async function handleClick() {
-    if (loading) return
-    setLoading(true)
-    try {
-      const supabase = createClient()
-      const { data: imgs } = await supabase
-        .from('images')
-        .select(`id, title, storage_path, created_at, submissions!submissions_image_id_fkey(status)`)
-        .eq('owner_id', userId)
-        .order('created_at', { ascending: false })
-
-      const available = (imgs ?? []).filter(img => {
-        const subs = Array.isArray(img.submissions) ? img.submissions : []
-        return !subs.some((s: { status: string }) => s.status === 'submitted')
-      })
-
-      setLibraryImages(available.map(img => ({
-        id:           img.id,
-        title:        img.title,
-        storage_path: img.storage_path,
-        created_at:   img.created_at,
-        publicUrl:    supabase.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
-      })))
-    } catch {
-      setLibraryImages([])
-    }
-    setLoading(false)
-    setModalOpen(true)
-  }
+  const [modalOpen, setModalOpen] = useState(false)
 
   return (
     <>
       <button
-        onClick={handleClick}
-        disabled={loading}
+        onClick={() => setModalOpen(true)}
         style={{
           flexShrink:     0,
           fontSize:       13,
@@ -69,13 +33,12 @@ export default function OpenCompEntryButton({ comp, userId, status }: Props) {
           background:     'none',
           border:         'none',
           padding:        0,
-          cursor:         loading ? 'wait' : 'pointer',
+          cursor:         'pointer',
           whiteSpace:     'nowrap',
           textDecoration: 'none',
-          opacity:        loading ? 0.6 : 1,
         }}
       >
-        {loading ? 'Loading…' : status === 'none' ? 'Enter now →' : 'Enter again →'}
+        {status === 'none' ? 'Enter now →' : 'Enter again →'}
       </button>
 
       {modalOpen && (
@@ -87,7 +50,6 @@ export default function OpenCompEntryButton({ comp, userId, status }: Props) {
           competitionId={comp.id}
           competitionTitle={comp.short_title ?? comp.title}
           categories={comp.categories}
-          libraryImages={libraryImages}
         />
       )}
     </>
