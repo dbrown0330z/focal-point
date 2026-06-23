@@ -293,21 +293,21 @@ export default function MemberNav({
 
           {/* Competitions ▾ */}
           <NavDropdown label="Competitions" isActive={isActive('/competitions')}>
-            <DropdownLink href={`${base}/competitions`}         label="Current" icon={<TrophyIcon />}  active={isActive('/competitions', true)} />
-            <DropdownLink href={`${base}/competitions/results`} label="Results" icon={<ResultsIcon />} active={isActive('/competitions/results')} />
+            <DropdownLink href={`${base}/competitions`}         label="Current"    icon={<TrophyIcon />}    active={isActive('/competitions', true)} />
+            <DropdownLink href={`${base}/competitions/results`} label="Results"    icon={<ResultsIcon />}   active={isActive('/competitions/results')} />
             {customPages.filter(p => p.parent_system === 'competitions').map(p => (
               <DropdownLink key={p.id} href={customPageHref(p, base)} label={p.title}
                 icon={p.page_type === 'external_link' ? <ExternalLinkIcon /> : <CustomPageIcon />}
                 active={isActive(`/p/${p.slug}`)} />
             ))}
+            <DropdownLink href={`${base}/our-club/members/standings`} label="Standings" icon={<StandingsIcon />} active={isActive('/our-club/members/standings')} />
           </NavDropdown>
 
           {/* Our Club ▾ */}
           <NavDropdown label="Our Club" isActive={isActive('/our-club')}>
-            <DropdownLink href={`${base}/our-club/about`}             label="About our club"   icon={<AboutIcon />}     active={isActive('/our-club/about')} />
-            <DropdownLink href={`${base}/our-club/members`}           label="Member directory" icon={<MembersIcon />}   active={isActive('/our-club/members', true)} />
-            <DropdownLink href={`${base}/our-club/members/standings`} label="Standings"        icon={<StandingsIcon />} active={isActive('/our-club/members/standings')} />
-            <DropdownLink href={`${base}/our-club/documents`}         label="Documents"        icon={<DocumentsIcon />} active={isActive('/our-club/documents')} />
+            <DropdownLink href={`${base}/our-club/about`}    label="About our club"   icon={<AboutIcon />}     active={isActive('/our-club/about')} />
+            <DropdownLink href={`${base}/our-club/members`}  label="Member directory" icon={<MembersIcon />}   active={isActive('/our-club/members', true)} />
+            <DropdownLink href={`${base}/our-club/documents`} label="Documents"       icon={<DocumentsIcon />} active={isActive('/our-club/documents')} />
             {customPages.filter(p => p.parent_system === 'our-club').map(p => (
               <DropdownLink key={p.id} href={customPageHref(p, base)} label={p.title}
                 icon={p.page_type === 'external_link' ? <ExternalLinkIcon /> : <CustomPageIcon />}

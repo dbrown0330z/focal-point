@@ -1065,7 +1065,6 @@ export default function CalendarClient({
             <Typography variant="h5" sx={{ fontWeight: 700, fontSize: 28, fontFamily: "var(--font-lora, 'Lora', Georgia, serif)", letterSpacing: '-0.02em' }}>
               Calendar
             </Typography>
-            <Typography variant="body2" color="text.secondary">Club events and meetings</Typography>
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
