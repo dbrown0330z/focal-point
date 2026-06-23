@@ -73,15 +73,6 @@ function IconChevronDown() {
   )
 }
 
-function IconInfo() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
-      <circle cx="12" cy="12" r="10" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4M12 8h.01" />
-    </svg>
-  )
-}
-
 // ─── Status badges ────────────────────────────────────────────────────────────
 
 function SubmittedBadge() {
@@ -322,185 +313,6 @@ function SortTh({ label, sortKey, current, dir, onSort, className }: {
   )
 }
 
-// ─── EXIF formatting ──────────────────────────────────────────────────────────
-
-function fNum(v: unknown): number | null {
-  const n = Number(v)
-  return isFinite(n) ? n : null
-}
-
-function fmtShutter(v: unknown): string | null {
-  const n = fNum(v)
-  if (n === null) return null
-  if (n >= 1) return `${n} s`
-  const denom = Math.round(1 / n)
-  return `1/${denom} s`
-}
-
-function fmtAperture(v: unknown): string | null {
-  const n = fNum(v)
-  if (n === null) return null
-  return `f/${n % 1 === 0 ? n : n.toFixed(1)}`
-}
-
-function fmtFocal(v: unknown): string | null {
-  const n = fNum(v)
-  return n !== null ? `${Math.round(n)} mm` : null
-}
-
-function fmtDate(v: unknown): string | null {
-  if (!v) return null
-  const d = new Date(v as string)
-  if (isNaN(d.getTime())) return null
-  const date = d.toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
-  const time = d.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true })
-  return `${date} · ${time}`
-}
-
-function fmtColorSpace(v: unknown): string | null {
-  if (v === 1 || v === '1') return 'sRGB'
-  if (v === 65535 || v === '65535') return 'Uncalibrated'
-  return v ? String(v) : null
-}
-
-function fmtDimensions(exif: Record<string, unknown>): string | null {
-  const w = fNum(exif.ExifImageWidth ?? exif.PixelXDimension ?? exif.ImageWidth)
-  const h = fNum(exif.ExifImageHeight ?? exif.PixelYDimension ?? exif.ImageHeight)
-  if (!w || !h) return null
-  return `${w.toLocaleString()} × ${h.toLocaleString()}`
-}
-
-function fmtCamera(exif: Record<string, unknown>): string | null {
-  const make  = (exif.Make  as string | undefined)?.trim() ?? ''
-  const model = (exif.Model as string | undefined)?.trim() ?? ''
-  if (!make && !model) return null
-  // Avoid "Sony Sony ILCE-7M4" if model already starts with make
-  if (model.toLowerCase().startsWith(make.toLowerCase())) return model
-  return [make, model].filter(Boolean).join(' ')
-}
-
-function fmtLens(exif: Record<string, unknown>): string | null {
-  const make  = (exif.LensMake  as string | undefined)?.trim() ?? ''
-  const model = (exif.LensModel as string | undefined)?.trim() ?? ''
-  if (!make && !model) return null
-  if (model.toLowerCase().startsWith(make.toLowerCase())) return model
-  return [make, model].filter(Boolean).join(' ')
-}
-
-function buildExifRows(exif: Record<string, unknown>): { label: string; value: string }[] {
-  const rows: { label: string; value: string }[] = []
-  const add = (label: string, value: string | null) => { if (value) rows.push({ label, value }) }
-
-  add('Captured',     fmtDate(exif.DateTimeOriginal))
-  add('Dimensions',   fmtDimensions(exif))
-  add('Color space',  fmtColorSpace(exif.ColorSpace))
-  add('Camera',       fmtCamera(exif))
-  add('Lens',         fmtLens(exif))
-  add('Focal length', fmtFocal(exif.FocalLength))
-  add('Aperture',     fmtAperture(exif.FNumber))
-  add('Shutter speed',fmtShutter(exif.ExposureTime))
-  add('ISO',          (exif.ISO ?? exif.ISOSpeedRatings) ? String(exif.ISO ?? exif.ISOSpeedRatings) : null)
-
-  return rows
-}
-
-// ─── Detail panel ─────────────────────────────────────────────────────────────
-
-// Inline panel — renders as a flex sibling to the table, no overlay
-function DetailPanel({ image, onClose }: { image: Image; onClose: () => void }) {
-  const exifRows = image.exifData ? buildExifRows(image.exifData) : []
-
-  return (
-    <div className="flex w-72 flex-shrink-0 flex-col overflow-y-auto rounded-xl border border-border-default bg-surface-2">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border-default px-4 py-3">
-        <h2 className="truncate pr-2 text-sm font-semibold text-content-primary">{image.title}</h2>
-        <button
-          onClick={onClose}
-          className="flex-shrink-0 rounded-md p-1 text-content-tertiary hover:bg-surface-1 hover:text-content-primary transition-colors"
-          aria-label="Close"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Thumbnail */}
-      <div className="p-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={image.publicUrl}
-          alt={image.title}
-          className="w-full rounded-lg object-cover shadow-sm"
-          style={{ maxHeight: '200px', objectFit: 'cover' }}
-        />
-      </div>
-
-      {/* Submission info — only shown when submitted */}
-      {image.isSubmitted && (
-        <div className="px-4 pb-2">
-          <SubmittedBadge />
-          {/* Score — large and prominent */}
-          {image.score !== null && (
-            <div className="mt-3 flex items-baseline justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wide text-content-secondary">Score</span>
-              <span className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{image.score}</span>
-            </div>
-          )}
-          {(image.competitionDate || image.categoryName) && (
-            <dl className="mt-2 space-y-1">
-              {image.competitionDate && (
-                <div className="flex justify-between gap-2 text-xs">
-                  <dt className="text-content-secondary">Competition</dt>
-                  <dd className="font-medium text-content-primary">
-                    {new Date(image.competitionDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                  </dd>
-                </div>
-              )}
-              {image.categoryName && (
-                <div className="flex justify-between gap-2 text-xs">
-                  <dt className="text-content-secondary">Category</dt>
-                  <dd className="font-medium text-content-primary">{image.categoryName}</dd>
-                </div>
-              )}
-            </dl>
-          )}
-        </div>
-      )}
-
-      <div className="mx-4 mt-3 border-t border-border-subtle" />
-
-      {/* EXIF */}
-      <div className="px-4 py-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-content-secondary">EXIF data</p>
-        {exifRows.length === 0 ? (
-          <p className="text-xs text-content-tertiary">No EXIF data available</p>
-        ) : (
-          <dl className="space-y-1.5">
-            {exifRows.map(({ label, value }) => (
-              <div key={label} className="flex justify-between gap-4">
-                <dt className="text-xs text-content-secondary">{label}</dt>
-                <dd className="text-right text-xs font-medium text-content-primary">{value}</dd>
-              </div>
-            ))}
-          </dl>
-        )}
-      </div>
-
-      {image.description && (
-        <>
-          <div className="mx-4 border-t border-border-subtle" />
-          <div className="px-4 py-3">
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-content-secondary">Description</p>
-            <p className="text-xs text-content-primary">{image.description}</p>
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
@@ -520,10 +332,9 @@ export default function LibraryClient({
   userId:          string
   openCompetition: OpenCompetition | null
 }) {
-  const [view, setView]                       = useState<View>('gallery')
-  const [lightboxIndex, setLightboxIndex]     = useState<number | null>(null)
-  const [detailImage, setDetailImage]         = useState<Image | null>(null)
-  const [uploadOpen, setUploadOpen]           = useState(false)
+  const [view, setView]                         = useState<View>('gallery')
+  const [lightboxIndex, setLightboxIndex]       = useState<number | null>(null)
+  const [uploadOpen, setUploadOpen]             = useState(false)
   const [quickSubmitImage, setQuickSubmitImage] = useState<Image | null>(null)
   // Gallery controls
   const [gallerySort, setGallerySort]     = useState<GallerySort>('date_desc')
@@ -565,24 +376,8 @@ export default function LibraryClient({
   const lightboxImages = view === 'list' ? listFiltered : galleryFiltered
   const openLightbox   = (i: number) => setLightboxIndex(i)
 
-  // Arrow-key navigation through rows when detail panel is open
-  useEffect(() => {
-    if (!detailImage) return
-    function handleKey(e: KeyboardEvent) {
-      const idx = listFiltered.findIndex(img => img.id === detailImage!.id)
-      if (e.key === 'ArrowDown' && idx < listFiltered.length - 1) {
-        e.preventDefault()
-        setDetailImage(listFiltered[idx + 1])
-      } else if (e.key === 'ArrowUp' && idx > 0) {
-        e.preventDefault()
-        setDetailImage(listFiltered[idx - 1])
-      } else if (e.key === 'Escape') {
-        setDetailImage(null)
-      }
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [detailImage, listSorted])
+  // suppress unused warning — clubSlug may be needed by future child actions
+  void clubSlug
 
   return (
     <>
@@ -656,7 +451,7 @@ export default function LibraryClient({
         <>
           {/* Gallery toolbar */}
           <div className="mb-4 flex flex-wrap items-center gap-3">
-            {/* Status filter — connected toggle (judge portal style) */}
+            {/* Status filter */}
             <div style={{ display: 'inline-flex' }}>
               {STATUS_FILTERS.map((f, i) => {
                 const active = statusFilter === f.key
@@ -717,68 +512,48 @@ export default function LibraryClient({
               <p className="text-sm font-medium text-content-secondary">No photos match this filter</p>
             </div>
           ) : (
-            <div className="flex items-start gap-3">
-              {/* Grid — shrinks when panel is open */}
-              <div className="min-w-0 flex-1">
-                <div className="transition-all duration-200" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))', gap: 18 }}>
-                  {galleryFiltered.map((image, i) => {
-                    const isActive = detailImage?.id === image.id
-                    return (
-                      <div key={image.id} className="group">
-                        <button
-                          onClick={() => openLightbox(i)}
-                          className={`relative block w-full overflow-hidden rounded-lg bg-surface-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-action-primary transition-all ${isActive ? 'ring-2 ring-action-primary' : ''}`}
-                          style={{ paddingTop: '72%' }}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={image.publicUrl} alt={image.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                        </button>
-                        <div className="mt-2 flex items-start justify-between gap-1">
-                          <div className="min-w-0">
-                            <p className="text-[13px] font-semibold text-content-primary" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4 }}>{image.title}</p>
-                            <div className="mt-1.5 flex items-center gap-1.5">
-                              {image.isSubmitted ? (
-                                <>
-                                  <SubmittedBadge />
-                                  {image.score !== null && (
-                                    <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{image.score}</span>
-                                  )}
-                                </>
-                              ) : openCompetition ? (
-                                <button
-                                  onClick={e => { e.stopPropagation(); setQuickSubmitImage(image) }}
-                                  className="text-[12px] font-semibold transition-colors hover:underline"
-                                  style={{ color: 'var(--action-primary)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                                >
-                                  Submit →
-                                </button>
-                              ) : null}
-                            </div>
-                          </div>
-                          <div className="flex flex-shrink-0 items-center gap-1">
-                            <button
-                              onClick={() => setDetailImage(isActive ? null : image)}
-                              className={`transition-colors ${isActive ? 'text-action-primary' : 'text-content-tertiary hover:text-action-primary'}`}
-                              aria-label="Details"
-                            >
-                              <IconInfo />
-                            </button>
-                            {!image.isSubmitted && <DeleteImageButtonIcon imageId={image.id} storagePath={image.storage_path} />}
-                          </div>
-                        </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))', gap: 18 }}>
+              {galleryFiltered.map((image, i) => (
+                <div key={image.id} className="group">
+                  <button
+                    onClick={() => openLightbox(i)}
+                    className="relative block w-full overflow-hidden rounded-lg bg-surface-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-action-primary"
+                    style={{ paddingTop: '72%' }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={image.publicUrl} alt={image.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                  </button>
+                  <div className="mt-2 flex items-start justify-between gap-1">
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-semibold text-content-primary" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4 }}>{image.title}</p>
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        {image.isSubmitted ? (
+                          <>
+                            <SubmittedBadge />
+                            {image.score !== null && (
+                              <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{image.score}</span>
+                            )}
+                          </>
+                        ) : openCompetition ? (
+                          <button
+                            onClick={e => { e.stopPropagation(); setQuickSubmitImage(image) }}
+                            className="text-[12px] font-semibold transition-colors hover:underline"
+                            style={{ color: 'var(--action-primary)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                          >
+                            Submit →
+                          </button>
+                        ) : null}
                       </div>
-                    )
-                  })}
+                    </div>
+                    {!image.isSubmitted && (
+                      <div className="flex-shrink-0">
+                        <DeleteImageButtonIcon imageId={image.id} storagePath={image.storage_path} />
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-
-              {/* Detail panel */}
-              <div className={`transition-all duration-200 ${detailImage ? 'w-72 opacity-100' : 'w-0 opacity-0 overflow-hidden'}`}>
-                {detailImage && (
-                  <DetailPanel image={detailImage} onClose={() => setDetailImage(null)} />
-                )}
-              </div>
+              ))}
             </div>
           )}
         </>
@@ -829,39 +604,30 @@ export default function LibraryClient({
             </span>
           </div>
 
-        {listFiltered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border-default py-16 text-center">
-            <p className="text-sm font-medium text-content-secondary">No photos match this filter</p>
-          </div>
-        ) : (
-        <div className="flex items-start gap-3">
-          {/* Table — shrinks when panel is open */}
-          <div className="min-w-0 flex-1 overflow-hidden rounded-xl border border-border-default transition-all duration-200">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border-default bg-surface-1">
-                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-content-secondary w-16">Photo</th>
-                  <SortTh label="Name"       sortKey="title"      current={sortKey} dir={sortDir} onSort={handleListSort} />
-                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-content-secondary whitespace-nowrap">Status</th>
-                  <SortTh label="Date Added" sortKey="created_at" current={sortKey} dir={sortDir} onSort={handleListSort} className="hidden sm:table-cell" />
-                  <th className={`hidden px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-content-secondary whitespace-nowrap ${detailImage ? 'xl:table-cell' : 'lg:table-cell'}`}>Competition date</th>
-                  <th className={`hidden px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-content-secondary ${detailImage ? 'xl:table-cell' : 'lg:table-cell'}`}>Category</th>
-                  <th className={`hidden px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-content-secondary ${detailImage ? 'xl:table-cell' : 'lg:table-cell'}`}>Score</th>
-                  <th className="px-4 py-2.5 w-10" />
-                  <th className="px-4 py-2.5 w-16" />
-                </tr>
-              </thead>
-              <tbody>
-                {listFiltered.map((image, i) => {
-                  const isActive = detailImage?.id === image.id
-                  return (
+          {listFiltered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border-default py-16 text-center">
+              <p className="text-sm font-medium text-content-secondary">No photos match this filter</p>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-xl border border-border-default">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border-default bg-surface-1">
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-content-secondary w-16">Photo</th>
+                    <SortTh label="Name"       sortKey="title"      current={sortKey} dir={sortDir} onSort={handleListSort} />
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-content-secondary whitespace-nowrap">Status</th>
+                    <SortTh label="Date Added" sortKey="created_at" current={sortKey} dir={sortDir} onSort={handleListSort} className="hidden sm:table-cell" />
+                    <th className="hidden lg:table-cell px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-content-secondary whitespace-nowrap">Competition date</th>
+                    <th className="hidden lg:table-cell px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-content-secondary">Category</th>
+                    <th className="hidden lg:table-cell px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-content-secondary">Score</th>
+                    <th className="px-4 py-2.5 w-10" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {listFiltered.map((image, i) => (
                     <tr
                       key={image.id}
-                      className={`border-b border-border-default last:border-0 transition-colors ${
-                        isActive
-                          ? 'bg-action-primary/8 ring-1 ring-inset ring-action-primary/20'
-                          : 'hover:bg-surface-1'
-                      }`}
+                      className="border-b border-border-default last:border-0 hover:bg-surface-1 transition-colors"
                     >
                       {/* Thumbnail */}
                       <td className="px-4 py-2.5">
@@ -895,54 +661,41 @@ export default function LibraryClient({
                         {new Date(image.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                       </td>
                       {/* Competition date */}
-                      <td className={`hidden px-4 py-2.5 text-content-secondary whitespace-nowrap ${detailImage ? 'xl:table-cell' : 'lg:table-cell'}`}>
+                      <td className="hidden lg:table-cell px-4 py-2.5 text-content-secondary whitespace-nowrap">
                         {image.competitionDate
                           ? new Date(image.competitionDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
                           : <span className="text-content-tertiary">—</span>}
                       </td>
                       {/* Category */}
-                      <td className={`hidden px-4 py-2.5 text-content-secondary ${detailImage ? 'xl:table-cell' : 'lg:table-cell'}`}>
+                      <td className="hidden lg:table-cell px-4 py-2.5 text-content-secondary">
                         {image.categoryName ?? <span className="text-content-tertiary">—</span>}
                       </td>
                       {/* Score */}
-                      <td className={`hidden px-4 py-2.5 text-content-secondary ${detailImage ? 'xl:table-cell' : 'lg:table-cell'}`}>
+                      <td className="hidden lg:table-cell px-4 py-2.5 text-content-secondary">
                         {image.score !== null ? image.score : <span className="text-content-tertiary">—</span>}
                       </td>
                       {/* Delete — hidden when submitted */}
                       <td className="px-4 py-2.5 text-right">
                         {!image.isSubmitted && <DeleteImageButtonIcon imageId={image.id} storagePath={image.storage_path} />}
                       </td>
-                      {/* Details */}
-                      <td className="px-4 py-2.5">
-                        <button
-                          onClick={() => setDetailImage(isActive ? null : image)}
-                          className={`text-xs font-medium whitespace-nowrap transition-colors ${isActive ? 'text-content-tertiary hover:text-content-secondary' : 'text-action-primary hover:underline'}`}
-                        >
-                          {isActive ? 'Close' : 'Details'}
-                        </button>
-                      </td>
                     </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Detail panel — slides in as flex sibling */}
-          <div className={`transition-all duration-200 ${detailImage ? 'w-72 opacity-100' : 'w-0 opacity-0 overflow-hidden'}`}>
-            {detailImage && (
-              <DetailPanel image={detailImage} onClose={() => setDetailImage(null)} />
-            )}
-          </div>
-        </div>
-        )}
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       )}
 
       {/* Lightbox */}
       {lightboxIndex !== null && (
         <Lightbox
-          images={lightboxImages.map((img): LightboxImage => ({ src: img.publicUrl, title: img.title }))}
+          images={lightboxImages.map((img): LightboxImage => ({
+            src:      img.publicUrl,
+            title:    img.title,
+            score:    img.score,
+            exifData: img.exifData,
+          }))}
           startIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           contextTitle="My Image Gallery"

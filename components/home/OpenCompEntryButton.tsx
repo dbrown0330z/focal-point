@@ -29,28 +29,29 @@ export default function OpenCompEntryButton({ comp, userId, status }: Props) {
   async function handleClick() {
     if (loading) return
     setLoading(true)
-    // Fetch available library images client-side (images not already submitted)
-    const supabase = createClient()
-    const { data: imgs } = await supabase
-      .from('images')
-      .select(`id, title, storage_path, created_at, submissions!submissions_image_id_fkey(status)`)
-      .eq('owner_id', userId)
-      .order('created_at', { ascending: false })
+    try {
+      const supabase = createClient()
+      const { data: imgs } = await supabase
+        .from('images')
+        .select(`id, title, storage_path, created_at, submissions!submissions_image_id_fkey(status)`)
+        .eq('owner_id', userId)
+        .order('created_at', { ascending: false })
 
-    const available = (imgs ?? []).filter(img => {
-      const subs = Array.isArray(img.submissions) ? img.submissions : []
-      return !subs.some((s: { status: string }) => s.status === 'submitted')
-    })
+      const available = (imgs ?? []).filter(img => {
+        const subs = Array.isArray(img.submissions) ? img.submissions : []
+        return !subs.some((s: { status: string }) => s.status === 'submitted')
+      })
 
-    const withUrls = available.map(img => ({
-      id:           img.id,
-      title:        img.title,
-      storage_path: img.storage_path,
-      created_at:   img.created_at,
-      publicUrl:    supabase.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
-    }))
-
-    setLibraryImages(withUrls)
+      setLibraryImages(available.map(img => ({
+        id:           img.id,
+        title:        img.title,
+        storage_path: img.storage_path,
+        created_at:   img.created_at,
+        publicUrl:    supabase.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
+      })))
+    } catch {
+      setLibraryImages([])
+    }
     setLoading(false)
     setModalOpen(true)
   }
