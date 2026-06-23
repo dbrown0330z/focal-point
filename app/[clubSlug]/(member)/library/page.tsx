@@ -29,13 +29,12 @@ export default async function LibraryPage() {
 
   if (error) console.error('[library] query error', error.message)
 
-  // Open competition for the upload modal's "submit" checkbox.
-  // Must have opens_at in the past (or null) — same rule as competitions page uses to
-  // distinguish "truly open" from "scheduled but not yet started".
+  // Open competition for the upload modal and quick-submit.
+  // Only "truly open": opens_at in the past (or null) AND closes_at in the future (or null).
   const nowIso = new Date().toISOString()
   const { data: openCompsRaw } = await supabase
     .from('competitions')
-    .select('id, title, opens_at, closes_at, competition_categories(id, name)')
+    .select('id, title, opens_at, closes_at, submission_limit, competition_categories(id, name)')
     .eq('status', 'open')
     .is('deleted_at', null)
     .is('archived_at', null)
@@ -43,19 +42,50 @@ export default async function LibraryPage() {
 
   const openCompRaw = (openCompsRaw ?? []).find(c => {
     const cc = c as unknown as { opens_at: string | null; closes_at: string | null }
-    const opensAt  = cc.opens_at
-    const closesAt = cc.closes_at
-    return (!opensAt || opensAt <= nowIso) && (!closesAt || closesAt >= nowIso)
+    return (!cc.opens_at || cc.opens_at <= nowIso) && (!cc.closes_at || cc.closes_at >= nowIso)
   }) ?? null
 
-  const openCompetition = openCompRaw ? {
-    id:         openCompRaw.id,
-    title:      openCompRaw.title as string,
-    categories: (openCompRaw.competition_categories as unknown as { id: string; name: string }[]) ?? [],
-  } : null
+  let openCompetition = null
+  if (openCompRaw) {
+    const cats = (openCompRaw.competition_categories as unknown as { id: string; name: string }[]) ?? []
+    const subLimit = (openCompRaw as unknown as { submission_limit: number | null }).submission_limit
+
+    // Club-wide submission counts per category
+    const { data: catSubsRaw } = await admin
+      .from('submissions')
+      .select('category_id')
+      .eq('competition_id', openCompRaw.id)
+      .eq('status', 'submitted')
+
+    const catCounts: Record<string, number> = {}
+    for (const s of catSubsRaw ?? []) {
+      catCounts[s.category_id] = (catCounts[s.category_id] ?? 0) + 1
+    }
+
+    // Member's own submission count for this competition (to check against submission_limit)
+    const { count: myCount } = await supabase
+      .from('submissions')
+      .select('id', { count: 'exact', head: true })
+      .eq('competition_id', openCompRaw.id)
+      .eq('member_id', user.id)
+      .eq('status', 'submitted')
+
+    openCompetition = {
+      id:               openCompRaw.id,
+      title:            openCompRaw.title as string,
+      submissionLimit:  subLimit ?? null,
+      mySubmissionCount: myCount ?? 0,
+      categories: cats.map(cat => ({
+        id:    cat.id,
+        name:  cat.name,
+        count: catCounts[cat.id] ?? 0,
+        limit: null as number | null, // per-category cap — null until DB field is added
+      })),
+    }
+  }
 
   const imagesWithUrls = (images ?? []).map(image => {
-    const subs     = Array.isArray(image.submissions) ? image.submissions : []
+    const subs      = Array.isArray(image.submissions) ? image.submissions : []
     const activeSub = subs.find((s: Record<string, unknown>) => {
       if (s.status !== 'submitted') return false
       const comp = s.competitions as { archived_at?: string | null } | null

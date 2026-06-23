@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { deleteImage } from '@/app/[clubSlug]/(member)/library/actions'
+import { submitFromLibrary } from '@/app/[clubSlug]/(member)/competitions/actions'
 import { Lightbox, type LightboxImage } from '@/components/ui/Lightbox'
 import UploadModal, { type OpenCompetition } from '@/components/library/UploadModal'
 import Button from '@mui/material/Button'
@@ -80,14 +82,200 @@ function IconInfo() {
   )
 }
 
-// ─── Submission badge ─────────────────────────────────────────────────────────
+// ─── Status badges ────────────────────────────────────────────────────────────
 
-// Only shown when submitted but score/date not yet available
 function SubmittedBadge() {
   return (
-    <span className="text-xs font-medium" style={{ background: 'var(--badge-available-bg)', border: '1px solid var(--badge-available-border)', color: 'var(--badge-available-text)', borderRadius: 4, padding: '2px 7px' }}>
+    <span className="text-xs font-medium" style={{ background: 'var(--status-success-bg)', border: '1px solid rgba(46,125,50,0.25)', color: 'var(--status-success-text)', borderRadius: 4, padding: '2px 7px' }}>
       Submitted
     </span>
+  )
+}
+
+function AvailableBadge() {
+  return (
+    <span className="text-xs font-medium" style={{ background: 'var(--badge-available-bg)', border: '1px solid var(--badge-available-border)', color: 'var(--badge-available-text)', borderRadius: 4, padding: '2px 7px' }}>
+      Available
+    </span>
+  )
+}
+
+// ─── Quick submit modal ───────────────────────────────────────────────────────
+
+function IconClose() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+    </svg>
+  )
+}
+
+function QuickSubmitModal({
+  open,
+  onClose,
+  image,
+  competition,
+}: {
+  open:        boolean
+  onClose:     () => void
+  image:       Image
+  competition: OpenCompetition
+}) {
+  const router = useRouter()
+  const [categoryId, setCategoryId] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError]           = useState<string | null>(null)
+
+  useEffect(() => {
+    if (open) { setCategoryId(''); setError(null) }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
+    document.body.style.overflow     = 'hidden'
+    document.body.style.paddingRight = `${scrollbarWidth}px`
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow     = ''
+      document.body.style.paddingRight = ''
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open, onClose])
+
+  if (!open) return null
+
+  const atLimit = competition.submissionLimit !== null &&
+    competition.mySubmissionCount >= competition.submissionLimit
+
+  async function handleSubmit() {
+    if (!categoryId || atLimit) return
+    setSubmitting(true)
+    setError(null)
+    const { error: err } = await submitFromLibrary(image.id, competition.id, categoryId)
+    if (err) { setError(err); setSubmitting(false); return }
+    setSubmitting(false)
+    router.refresh()
+    onClose()
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="flex flex-col rounded-2xl shadow-2xl w-full"
+        style={{ maxWidth: 420, background: 'var(--surface-1)', border: '1px solid var(--border-default)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between flex-shrink-0"
+          style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-default)' }}>
+          <div>
+            <h2 className="text-[15px] font-bold" style={{ color: 'var(--text-primary)' }}>
+              Submit to competition
+            </h2>
+            <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+              {competition.title}
+            </p>
+          </div>
+          <button onClick={onClose}
+            className="flex h-7 w-7 items-center justify-center rounded-lg"
+            style={{ color: 'var(--text-tertiary)', background: 'var(--surface-2)' }}>
+            <IconClose />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '16px 20px' }}>
+          {/* Image row */}
+          <div className="flex items-center gap-3 mb-4 pb-4" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={image.publicUrl} alt={image.title}
+              className="rounded-lg flex-shrink-0"
+              style={{ width: 56, height: 42, objectFit: 'cover' }} />
+            <p className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+              {image.title}
+            </p>
+          </div>
+
+          {atLimit ? (
+            <div className="rounded-lg px-3 py-2.5 text-[12px]"
+              style={{ background: 'var(--status-warning-bg)', color: 'var(--status-warning-text)', border: '1px solid rgba(166,124,0,0.25)' }}>
+              You&apos;ve used all {competition.submissionLimit} submissions for this competition.
+            </div>
+          ) : (
+            <>
+              <p className="text-[12px] font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
+                Select a category
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {competition.categories.map(cat => {
+                  const isFull     = cat.limit !== null && cat.count >= cat.limit
+                  const isSelected = categoryId === cat.id
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      disabled={isFull}
+                      onClick={() => !isFull && setCategoryId(cat.id)}
+                      className="rounded-full px-3 py-1.5 text-[12px] font-semibold transition-all"
+                      style={{
+                        background: isSelected ? 'var(--action-primary)' : isFull ? 'var(--surface-0)' : 'var(--surface-2)',
+                        border:     `1px solid ${isSelected ? 'var(--action-primary)' : 'var(--border-default)'}`,
+                        color:      isSelected ? '#fff' : isFull ? 'var(--text-disabled)' : 'var(--text-secondary)',
+                        cursor:     isFull ? 'not-allowed' : 'pointer',
+                        opacity:    isFull ? 0.6 : 1,
+                      }}
+                    >
+                      {cat.name}
+                      {cat.limit !== null && (
+                        <span style={{ marginLeft: 4, opacity: 0.7 }}>({cat.count}/{cat.limit})</span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+              {competition.submissionLimit !== null && (
+                <p className="mt-3 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                  {competition.mySubmissionCount} of {competition.submissionLimit} submissions used
+                </p>
+              )}
+            </>
+          )}
+
+          {error && (
+            <div className="mt-3 rounded-lg px-3 py-2.5 text-[12px]"
+              style={{ background: 'var(--status-error-bg)', color: 'var(--status-error-text)', border: '1px solid rgba(211,47,47,0.25)' }}>
+              {error}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 flex-shrink-0"
+          style={{ padding: '12px 20px', borderTop: '1px solid var(--border-default)' }}>
+          <button type="button" onClick={onClose}
+            className="rounded-lg border px-4 py-1.5 text-[13px] font-semibold"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'transparent' }}>
+            Cancel
+          </button>
+          <button type="button" onClick={handleSubmit}
+            disabled={!categoryId || submitting || atLimit}
+            className="rounded-lg px-5 py-1.5 text-[13px] font-bold text-white"
+            style={{
+              background: 'var(--action-primary)',
+              opacity:    (!categoryId || submitting || atLimit) ? 0.5 : 1,
+              cursor:     (!categoryId || submitting || atLimit) ? 'not-allowed' : 'pointer',
+            }}>
+            {submitting ? 'Submitting…' : 'Submit'}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -340,10 +528,11 @@ export default function LibraryClient({
   userId:          string
   openCompetition: OpenCompetition | null
 }) {
-  const [view, setView]                   = useState<View>('gallery')
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
-  const [detailImage, setDetailImage]     = useState<Image | null>(null)
-  const [uploadOpen, setUploadOpen]       = useState(false)
+  const [view, setView]                       = useState<View>('gallery')
+  const [lightboxIndex, setLightboxIndex]     = useState<number | null>(null)
+  const [detailImage, setDetailImage]         = useState<Image | null>(null)
+  const [uploadOpen, setUploadOpen]           = useState(false)
+  const [quickSubmitImage, setQuickSubmitImage] = useState<Image | null>(null)
   // Gallery controls
   const [gallerySort, setGallerySort]     = useState<GallerySort>('date_desc')
   const [statusFilter, setStatusFilter]   = useState<StatusFilter>('all')
@@ -555,17 +744,27 @@ export default function LibraryClient({
                         </button>
                         <div className="mt-2 flex items-start justify-between gap-1">
                           <div className="min-w-0">
-                            <p className="text-[13px] font-semibold text-content-primary" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: '2.85em', lineHeight: 1.4 }}>{image.title}</p>
-                            {image.isSubmitted && (
-                              <div className="mt-0.5 flex items-center gap-1.5">
-                                <SubmittedBadge />
-                                {image.score !== null && (
-                                  <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
-                                    {image.score}
-                                  </span>
-                                )}
-                              </div>
-                            )}
+                            <p className="text-[13px] font-semibold text-content-primary" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4 }}>{image.title}</p>
+                            <div className="mt-1.5 flex items-center gap-1.5">
+                              {image.isSubmitted ? (
+                                <>
+                                  <SubmittedBadge />
+                                  {image.score !== null && (
+                                    <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{image.score}</span>
+                                  )}
+                                </>
+                              ) : openCompetition ? (
+                                <button
+                                  onClick={e => { e.stopPropagation(); setQuickSubmitImage(image) }}
+                                  className="text-[12px] font-semibold transition-colors hover:underline"
+                                  style={{ color: 'var(--action-primary)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                                >
+                                  Submit →
+                                </button>
+                              ) : (
+                                <AvailableBadge />
+                              )}
+                            </div>
                           </div>
                           <div className="flex flex-shrink-0 items-center gap-1">
                             <button
@@ -687,9 +886,21 @@ export default function LibraryClient({
                       </td>
                       {/* Name */}
                       <td className="px-4 py-2.5 font-medium text-content-primary">{image.title}</td>
-                      {/* Status — badge only when submitted but no score/date yet */}
+                      {/* Status */}
                       <td className="px-4 py-2.5 whitespace-nowrap">
-                        {image.isSubmitted && !(image.score !== null || image.competitionDate) && <SubmittedBadge />}
+                        {image.isSubmitted ? (
+                          !(image.score !== null || image.competitionDate) && <SubmittedBadge />
+                        ) : openCompetition ? (
+                          <button
+                            onClick={() => setQuickSubmitImage(image)}
+                            className="text-[12px] font-semibold transition-colors hover:underline"
+                            style={{ color: 'var(--action-primary)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                          >
+                            Submit →
+                          </button>
+                        ) : (
+                          <AvailableBadge />
+                        )}
                       </td>
                       {/* Date added */}
                       <td className="hidden px-4 py-2.5 text-content-secondary whitespace-nowrap sm:table-cell">
@@ -747,6 +958,16 @@ export default function LibraryClient({
           startIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           contextTitle="My Image Gallery"
+        />
+      )}
+
+      {/* Quick submit modal */}
+      {quickSubmitImage && openCompetition && (
+        <QuickSubmitModal
+          open={quickSubmitImage !== null}
+          onClose={() => setQuickSubmitImage(null)}
+          image={quickSubmitImage}
+          competition={openCompetition}
         />
       )}
 

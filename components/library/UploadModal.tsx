@@ -10,12 +10,19 @@ import { EXIF_TAGS, buildExifRows } from '@/lib/exif'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Category = { id: string; name: string }
+export type CompetitionCategory = {
+  id:    string
+  name:  string
+  count: number       // club-wide entries in this category
+  limit: number | null // per-category cap; null = no cap
+}
 
 export type OpenCompetition = {
-  id:         string
-  title:      string
-  categories: Category[]
+  id:                string
+  title:             string
+  submissionLimit:   number | null
+  mySubmissionCount: number
+  categories:        CompetitionCategory[]
 }
 
 // ─── Icon ─────────────────────────────────────────────────────────────────────
@@ -308,7 +315,12 @@ export default function UploadModal({
             </div>
 
             {/* Competition submission block */}
-            {openCompetition && (
+            {openCompetition && openCompetition.submissionLimit !== null && openCompetition.mySubmissionCount >= openCompetition.submissionLimit && (
+              <div className="rounded-lg px-3 py-2.5 text-[12px] flex-shrink-0" style={{ marginTop: 18, background: 'var(--status-warning-bg)', color: 'var(--status-warning-text)', border: '1px solid rgba(166,124,0,0.25)' }}>
+                You&apos;ve used all {openCompetition.submissionLimit} submissions for this competition.
+              </div>
+            )}
+            {openCompetition && !(openCompetition.submissionLimit !== null && openCompetition.mySubmissionCount >= openCompetition.submissionLimit) && (
               <div
                 className="rounded-xl flex-shrink-0"
                 style={{
@@ -345,21 +357,31 @@ export default function UploadModal({
                       Select a category
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {openCompetition.categories.map(cat => (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setCategoryId(cat.id)}
-                          className="rounded-full px-3 py-1 text-[12px] font-semibold transition-all"
-                          style={{
-                            background:  categoryId === cat.id ? 'var(--action-primary)' : 'var(--surface-1)',
-                            border:      `1px solid ${categoryId === cat.id ? 'var(--action-primary)' : 'var(--border-default)'}`,
-                            color:       categoryId === cat.id ? '#fff' : 'var(--text-secondary)',
-                          }}
-                        >
-                          {cat.name}
-                        </button>
-                      ))}
+                      {openCompetition.categories.map(cat => {
+                        const isFull     = cat.limit !== null && cat.count >= cat.limit
+                        const isSelected = categoryId === cat.id
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            disabled={isFull}
+                            onClick={() => !isFull && setCategoryId(cat.id)}
+                            className="rounded-full px-3 py-1 text-[12px] font-semibold transition-all"
+                            style={{
+                              background: isSelected ? 'var(--action-primary)' : isFull ? 'var(--surface-0)' : 'var(--surface-1)',
+                              border:     `1px solid ${isSelected ? 'var(--action-primary)' : 'var(--border-default)'}`,
+                              color:      isSelected ? '#fff' : isFull ? 'var(--text-disabled)' : 'var(--text-secondary)',
+                              cursor:     isFull ? 'not-allowed' : 'pointer',
+                              opacity:    isFull ? 0.6 : 1,
+                            }}
+                          >
+                            {cat.name}
+                            {cat.limit !== null && (
+                              <span style={{ marginLeft: 4, opacity: 0.7 }}>({cat.count}/{cat.limit})</span>
+                            )}
+                          </button>
+                        )
+                      })}
                     </div>
                     {!categoryId && (
                       <p className="mt-2 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
