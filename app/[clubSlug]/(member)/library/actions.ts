@@ -31,6 +31,32 @@ export async function createImageRecord(data: {
   redirect('/library')
 }
 
+/** Modal-friendly version — returns result instead of redirecting. */
+export async function uploadImageToLibrary(data: {
+  title:        string
+  description:  string
+  storage_path: string
+  exif_data:    Record<string, unknown> | null
+}): Promise<{ error: string | null }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
+  if (!user) redirect('/login')
+
+  const { error } = await admin.from('images').insert({
+    owner_id:     user.id,
+    title:        data.title,
+    description:  data.description || null,
+    storage_path: data.storage_path,
+    exif_data:    data.exif_data as Json,
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/library')
+  return { error: null }
+}
+
 export async function deleteImage(imageId: string, storagePath: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

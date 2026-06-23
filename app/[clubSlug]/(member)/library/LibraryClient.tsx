@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { deleteImage } from '@/app/[clubSlug]/(member)/library/actions'
 import { Lightbox, type LightboxImage } from '@/components/ui/Lightbox'
+import UploadModal, { type OpenCompetition } from '@/components/library/UploadModal'
 import Button from '@mui/material/Button'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
@@ -328,10 +328,21 @@ const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
   { key: 'available', label: 'Available' },
 ]
 
-export default function LibraryClient({ images, clubSlug }: { images: Image[]; clubSlug: string }) {
+export default function LibraryClient({
+  images,
+  clubSlug,
+  userId,
+  openCompetition,
+}: {
+  images:          Image[]
+  clubSlug:        string
+  userId:          string
+  openCompetition: OpenCompetition | null
+}) {
   const [view, setView]                   = useState<View>('gallery')
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [detailImage, setDetailImage]     = useState<Image | null>(null)
+  const [uploadOpen, setUploadOpen]       = useState(false)
   // Gallery controls
   const [gallerySort, setGallerySort]     = useState<GallerySort>('date_desc')
   const [statusFilter, setStatusFilter]   = useState<StatusFilter>('all')
@@ -432,7 +443,7 @@ export default function LibraryClient({ images, clubSlug }: { images: Image[]; c
             </div>
           )}
           {images.length > 0 && (
-            <Button variant="contained" component={Link} href={`/${clubSlug}/library/upload`}>
+            <Button variant="contained" onClick={() => setUploadOpen(true)}>
               + Add image
             </Button>
           )}
@@ -455,7 +466,7 @@ export default function LibraryClient({ images, clubSlug }: { images: Image[]; c
           <p className="mt-2 text-[15px]" style={{ color: 'var(--text-secondary)' }}>
             You haven&apos;t added anything yet — upload your first image to get started.
           </p>
-          <Button variant="contained" component={Link} href={`/${clubSlug}/library/upload`} sx={{ mt: 4 }}>
+          <Button variant="contained" onClick={() => setUploadOpen(true)} sx={{ mt: 4 }}>
             + Add image
           </Button>
         </div>
@@ -715,6 +726,14 @@ export default function LibraryClient({ images, clubSlug }: { images: Image[]; c
           contextTitle="My Image Gallery"
         />
       )}
+
+      {/* Upload modal */}
+      <UploadModal
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        userId={userId}
+        openCompetition={openCompetition}
+      />
 
     </>
   )

@@ -58,11 +58,12 @@ export async function submitFromLibrary(
 }
 
 export async function submitUploadedImage(data: {
-  storagePath: string
-  title: string
-  exifData: Record<string, unknown> | null
+  storagePath:   string
+  title:         string
+  description?:  string
+  exifData:      Record<string, unknown> | null
   competitionId: string
-  categoryId: string
+  categoryId:    string
 }): Promise<{ error: string | null }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -76,19 +77,20 @@ export async function submitUploadedImage(data: {
   }
 
   const { data: img, error: imgErr } = await admin.from('images').insert({
-    owner_id: user.id,
-    title: data.title,
+    owner_id:     user.id,
+    title:        data.title,
+    description:  data.description || null,
     storage_path: data.storagePath,
-    exif_data: data.exifData as Json,
+    exif_data:    data.exifData as Json,
   }).select('id').single()
 
   if (imgErr || !img) return { error: imgErr?.message ?? 'Failed to save image' }
 
   const { error: subErr } = await admin.from('submissions').insert({
     competition_id: data.competitionId,
-    category_id: data.categoryId,
-    image_id: img.id,
-    member_id: user.id,
+    category_id:    data.categoryId,
+    image_id:       img.id,
+    member_id:      user.id,
   })
 
   if (subErr) {
@@ -99,6 +101,7 @@ export async function submitUploadedImage(data: {
     return { error: msg }
   }
 
+  revalidatePath('/library')
   revalidatePath('/competitions')
   return { error: null }
 }
