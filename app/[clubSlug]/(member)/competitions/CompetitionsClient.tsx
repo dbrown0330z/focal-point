@@ -63,7 +63,6 @@ type LibraryImage = {
 type Props = {
   userId: string
   currentCompetitions: CurrentCompetition[]
-  previousCompetitions: PreviousCompetition[]
   libraryImages: LibraryImage[]
 }
 
@@ -1299,7 +1298,7 @@ function NoCompetition() {
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export default function CompetitionsClient({
-  userId, currentCompetitions, previousCompetitions, libraryImages,
+  userId, currentCompetitions, libraryImages,
 }: Props) {
   const [submissionsMap, setSubmissionsMap] = useState<Record<string, Submission[]>>(
     () => Object.fromEntries(currentCompetitions.map(c => [c.id, c.mySubmissions]))
@@ -1387,15 +1386,6 @@ export default function CompetitionsClient({
           )}
         </div>
 
-        {/* Previous — only shown when there are closed competitions with results ready */}
-        {previousCompetitions.length > 0 && (
-          <div>
-            <h2 className="mb-4 text-[15px] font-bold tracking-[0.05em]" style={{ color: 'var(--text-primary)' }}>
-              Previous Competitions
-            </h2>
-            <PreviousCompetitionsBlock competitions={previousCompetitions} />
-          </div>
-        )}
       </div>
 
       {/* Submit modal */}

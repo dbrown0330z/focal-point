@@ -502,7 +502,7 @@ export default async function CompetitionsBlock({
       .not('opens_at', 'is', null)
       .gt('opens_at', new Date().toISOString())
       .order('opens_at', { ascending: true })
-      .limit(3)
+      .limit(1)
 
     upcomingComps = (upcomingRaw ?? []) as UpcomingComp[]
   }

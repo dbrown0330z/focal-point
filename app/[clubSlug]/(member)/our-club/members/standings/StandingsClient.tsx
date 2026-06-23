@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { skillLabel } from '@/lib/profile-options'
+import { avatarGradient, avatarInitials } from '@/lib/avatar'
 import type {
   PoyEntry,
   AwardLeaderboardEntry,
@@ -13,12 +14,6 @@ import type {
 } from './page'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-function getInitials(name: string) {
-  const parts = name.trim().split(/\s+/)
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-  return name.slice(0, 2).toUpperCase()
-}
 
 function ordinalSuffix(n: number): string {
   const s = ['th', 'st', 'nd', 'rd']
@@ -61,9 +56,9 @@ function Avatar({
   return (
     <span
       className="flex items-center justify-center rounded-full text-white font-semibold flex-shrink-0"
-      style={{ ...style, background: 'var(--action-primary)' }}
+      style={{ ...style, background: avatarGradient(name) }}
     >
-      {getInitials(name)}
+      {avatarInitials(name)}
     </span>
   )
 }
@@ -318,10 +313,10 @@ function PoyLeaderboard({
             <span className={`text-right text-[14px] font-semibold tabular-nums ${
               entry.rank <= 3 ? 'text-content-primary' : 'text-content-secondary'
             }`}>
-              {entry.rank}{entry.tied ? '=' : ''}
               {entry.isCurrentUser && (
-                <span className="ml-1 text-[10px]" style={{ color: 'var(--action-primary)' }}>★</span>
+                <span className="mr-1 text-[10px]" style={{ color: '#FACC15' }}>★</span>
               )}
+              {entry.rank}{entry.tied ? '=' : ''}
             </span>
 
             {/* Member */}
@@ -330,7 +325,8 @@ function PoyLeaderboard({
               <div className="min-w-0">
                 <Link
                   href={`/our-club/members`}
-                  className="text-[13px] font-medium text-content-primary hover:text-action-primary truncate block leading-tight"
+                  className="text-[13px] font-medium truncate block leading-tight"
+                  style={{ color: entry.isCurrentUser ? '#FACC15' : 'var(--text-primary)' }}
                 >
                   {entry.displayName}
                 </Link>
@@ -417,11 +413,11 @@ function AwardLeaderboard({
             <span className="w-6 flex-shrink-0 text-[13px] text-content-tertiary tabular-nums">{i + 1}</span>
             <div className="flex flex-1 items-center gap-2.5 min-w-0">
               <Avatar name={entry.displayName} url={entry.avatarUrl} size={28} />
-              <span className="text-[13px] font-medium text-content-primary truncate">
-                {entry.displayName}
+              <span className="text-[13px] font-medium truncate" style={{ color: entry.isCurrentUser ? '#FACC15' : 'var(--text-primary)' }}>
                 {entry.isCurrentUser && (
-                  <span className="ml-1 text-[11px]" style={{ color: 'var(--action-primary)' }}>★</span>
+                  <span className="mr-1 text-[11px]" style={{ color: '#FACC15' }}>★</span>
                 )}
+                {entry.displayName}
               </span>
             </div>
             {allTypes.map(t => (
@@ -538,9 +534,9 @@ export default function StandingsClient({
   const currentUserAwards = awardLeaderboard.find(e => e.isCurrentUser) ?? null
 
   const TABS: { key: Tab; label: string }[] = [
-    { key: 'poy',       label: 'Photographer of the Year' },
-    { key: 'benchmark', label: 'Benchmark' },
-    { key: 'awards',    label: 'Awards' },
+    { key: 'poy', label: 'Photographer of the Year' },
+    ...(benchmarkConfigured ? [{ key: 'benchmark' as Tab, label: 'Benchmark' }] : []),
+    ...(awardsConfigured    ? [{ key: 'awards'    as Tab, label: 'Awards'    }] : []),
   ]
 
   return (

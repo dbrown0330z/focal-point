@@ -102,40 +102,10 @@ export default async function CompetitionsPage() {
       }))
   })() : []
 
-  // Previous competitions: closed only
-  const { data: pastRaw } = await supabase
-    .from('competitions')
-    .select('id, title, status, closes_at, judge_tokens(judge_name)')
-    .eq('status', 'closed')
-    .is('deleted_at', null)
-    .order('closes_at', { ascending: false })
-
-  const previousCompetitions = await Promise.all(
-    (pastRaw ?? []).map(async comp => {
-      const { count } = await supabase
-        .from('submissions')
-        .select('id', { count: 'exact', head: true })
-        .eq('competition_id', comp.id)
-        .eq('status', 'submitted')
-
-      const tokens = comp.judge_tokens as unknown as { judge_name: string }[] | null
-
-      return {
-        id: comp.id,
-        title: comp.title,
-        status: comp.status,
-        closes_at: comp.closes_at,
-        imageCount: count ?? 0,
-        judgeName: tokens?.[0]?.judge_name ?? null,
-      }
-    })
-  )
-
   return (
     <CompetitionsClient
       userId={user?.id ?? ''}
       currentCompetitions={currentCompetitions}
-      previousCompetitions={previousCompetitions}
       libraryImages={libraryImages}
     />
   )
