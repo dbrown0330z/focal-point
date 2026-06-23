@@ -19,19 +19,36 @@ export type LightboxImage = {
   submission?:  LightboxSubmission
 }
 
-// ─── Panel heading ─────────────────────────────────────────────────────────────
+// ─── Shared sub-label (field name inside a box) ───────────────────────────────
 
-function PanelHeading({ children }: { children: React.ReactNode }) {
+function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
     <p style={{
-      fontSize:        10,
-      fontWeight:      700,
-      letterSpacing:   '0.08em',
-      textTransform:   'uppercase',
-      color:           'rgba(255,255,255,0.40)',
-      marginBottom:    12,
-      margin:          0,
-      paddingBottom:   12,
+      fontSize:      10,
+      fontWeight:    600,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      color:         'rgba(255,255,255,0.35)',
+      margin:        0,
+      marginBottom:  3,
+    }}>
+      {children}
+    </p>
+  )
+}
+
+// ─── Section heading (box title — "Submitted", "EXIF Data") ──────────────────
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <p style={{
+      fontSize:      13,
+      fontWeight:    700,
+      color:         'rgba(255,255,255,0.55)',
+      letterSpacing: '0.04em',
+      textTransform: 'uppercase',
+      margin:        0,
+      marginBottom:  14,
     }}>
       {children}
     </p>
@@ -42,18 +59,22 @@ function PanelHeading({ children }: { children: React.ReactNode }) {
 
 function SubmissionBox({ sub }: { sub: LightboxSubmission }) {
   function fmtDate(iso: string) {
-    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    if (!iso) return '—'
+    const d = new Date(iso)
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  const boxStyle = {
+    background:   'rgba(255,255,255,0.05)',
+    border:       '1px solid rgba(255,255,255,0.12)',
+    borderRadius: 10,
+    padding:      '14px 16px',
   }
 
   if (sub.status === 'available') {
     return (
-      <div style={{
-        background:   'rgba(255,255,255,0.05)',
-        border:       '1px solid rgba(255,255,255,0.10)',
-        borderRadius: 10,
-        padding:      '14px 16px',
-      }}>
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 12, lineHeight: 1.5 }}>
+      <div style={boxStyle}>
+        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.50)', margin: '0 0 12px', lineHeight: 1.5 }}>
           This image is available to enter in the current competition.
         </p>
         <button
@@ -69,8 +90,8 @@ function SubmissionBox({ sub }: { sub: LightboxSubmission }) {
             color:        '#fff',
             cursor:       'pointer',
           }}
-          onMouseEnter={e => ((e.target as HTMLElement).style.background = 'var(--action-primary-hover, #155AA3)')}
-          onMouseLeave={e => ((e.target as HTMLElement).style.background = 'var(--action-primary, #1A6FC4)')}
+          onMouseEnter={e => ((e.currentTarget).style.background = 'var(--action-primary-hover, #155AA3)')}
+          onMouseLeave={e => ((e.currentTarget).style.background = 'var(--action-primary, #1A6FC4)')}
         >
           Submit to competition →
         </button>
@@ -78,39 +99,55 @@ function SubmissionBox({ sub }: { sub: LightboxSubmission }) {
     )
   }
 
-  // Shared: competition + category rows
+  // Shared meta rows for submitted / judging / judged
   const metaRows = (
-    <dl style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
+    <dl style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div>
-        <dt style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 3 }}>Competition</dt>
-        <dd style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', margin: 0, lineHeight: 1.4 }}>{sub.competitionName}</dd>
+        <FieldLabel>Competition</FieldLabel>
+        <dd style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', margin: 0, lineHeight: 1.4 }}>
+          {sub.competitionName}
+        </dd>
       </div>
       <div>
-        <dt style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 3 }}>Category</dt>
-        <dd style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', margin: 0, lineHeight: 1.4 }}>{sub.categoryName}</dd>
+        <FieldLabel>Category</FieldLabel>
+        <dd style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', margin: 0, lineHeight: 1.4 }}>
+          {sub.categoryName}
+        </dd>
       </div>
     </dl>
   )
 
   if (sub.status === 'submitted') {
     return (
-      <div style={{
-        background:   'rgba(255,255,255,0.04)',
-        border:       '1px solid rgba(255,255,255,0.09)',
-        borderRadius: 10,
-        padding:      '14px 16px',
-      }}>
-        <PanelHeading>Submitted</PanelHeading>
+      <div style={boxStyle}>
+        <SectionHeading>Submitted</SectionHeading>
         {metaRows}
-        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', margin: 0 }}>
+        <div style={{
+          marginTop:    14,
+          paddingTop:   12,
+          borderTop:    '1px solid rgba(255,255,255,0.08)',
+          display:      'flex',
+          alignItems:   'center',
+          justifyContent: 'space-between',
+          gap:          8,
+        }}>
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.40)', margin: 0 }}>
             Closes {fmtDate(sub.closesAt)}
           </p>
           <button
             onClick={sub.onWithdraw}
-            style={{ fontSize: 12, fontWeight: 600, color: 'rgba(220,80,80,0.85)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0 }}
-            onMouseEnter={e => ((e.target as HTMLElement).style.color = 'rgba(220,80,80,1)')}
-            onMouseLeave={e => ((e.target as HTMLElement).style.color = 'rgba(220,80,80,0.85)')}
+            style={{
+              fontSize:   12,
+              fontWeight: 600,
+              color:      'rgba(220,70,70,0.80)',
+              background: 'none',
+              border:     'none',
+              padding:    0,
+              cursor:     'pointer',
+              flexShrink: 0,
+            }}
+            onMouseEnter={e => ((e.currentTarget).style.color = 'rgba(220,70,70,1)')}
+            onMouseLeave={e => ((e.currentTarget).style.color = 'rgba(220,70,70,0.80)')}
           >
             Withdraw
           </button>
@@ -121,15 +158,16 @@ function SubmissionBox({ sub }: { sub: LightboxSubmission }) {
 
   if (sub.status === 'judging') {
     return (
-      <div style={{
-        background:   'rgba(255,255,255,0.04)',
-        border:       '1px solid rgba(255,255,255,0.09)',
-        borderRadius: 10,
-        padding:      '14px 16px',
-      }}>
-        <PanelHeading>Submitted</PanelHeading>
+      <div style={boxStyle}>
+        <SectionHeading>Submitted</SectionHeading>
         {metaRows}
-        <div style={{ marginTop: 14, borderRadius: 7, padding: '8px 12px', background: 'rgba(166,124,0,0.18)', border: '1px solid rgba(166,124,0,0.35)' }}>
+        <div style={{
+          marginTop:    14,
+          borderRadius: 7,
+          padding:      '8px 12px',
+          background:   'rgba(166,124,0,0.18)',
+          border:       '1px solid rgba(166,124,0,0.35)',
+        }}>
           <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(250,216,74,0.90)', margin: 0 }}>
             Judging in progress
           </p>
@@ -140,17 +178,20 @@ function SubmissionBox({ sub }: { sub: LightboxSubmission }) {
 
   // judged
   return (
-    <div style={{
-      background:   'rgba(255,255,255,0.04)',
-      border:       '1px solid rgba(255,255,255,0.09)',
-      borderRadius: 10,
-      padding:      '14px 16px',
-    }}>
-      <PanelHeading>Submitted</PanelHeading>
+    <div style={boxStyle}>
+      <SectionHeading>Submitted</SectionHeading>
       {metaRows}
       <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 6 }}>Score</p>
-        <p style={{ fontSize: 40, fontWeight: 700, color: 'rgba(255,255,255,0.95)', lineHeight: 1, margin: 0, fontFamily: 'var(--font-lora, Georgia, serif)' }}>
+        <FieldLabel>Score</FieldLabel>
+        <p style={{
+          fontSize:    40,
+          fontWeight:  700,
+          color:       'rgba(255,255,255,0.95)',
+          lineHeight:  1,
+          margin:      0,
+          marginTop:   4,
+          fontFamily:  'var(--font-lora, Georgia, serif)',
+        }}>
           {sub.score.toFixed(1)}
         </p>
       </div>
@@ -163,18 +204,16 @@ function SubmissionBox({ sub }: { sub: LightboxSubmission }) {
 function ExifBox({ rows }: { rows: { label: string; value: string }[] }) {
   return (
     <div style={{
-      background:   'rgba(255,255,255,0.04)',
-      border:       '1px solid rgba(255,255,255,0.09)',
+      background:   'rgba(255,255,255,0.05)',
+      border:       '1px solid rgba(255,255,255,0.12)',
       borderRadius: 10,
       padding:      '14px 16px',
     }}>
-      <PanelHeading>EXIF Data</PanelHeading>
+      <SectionHeading>EXIF Data</SectionHeading>
       <dl style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {rows.map(({ label, value }) => (
           <div key={label}>
-            <dt style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 2 }}>
-              {label}
-            </dt>
+            <FieldLabel>{label}</FieldLabel>
             <dd style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)', margin: 0, lineHeight: 1.4 }}>
               {value}
             </dd>
@@ -283,18 +322,16 @@ export function Lightbox({
         </div>
       </div>
 
-      {/* ── Main content ── */}
+      {/* ── Main content: image + panel, separated by a gap ── */}
       <div
         onClick={e => e.stopPropagation()}
         style={{
           display:       'flex',
           flexDirection: 'row',
           alignItems:    'flex-start',
-          gap:           0,
+          gap:           14,
           maxWidth:      '95vw',
           maxHeight:     '85vh',
-          borderRadius:  12,
-          overflow:      'hidden',
         }}
       >
         {/* ── Image column ── */}
@@ -308,7 +345,7 @@ export function Lightbox({
                 maxHeight:    '80vh',
                 maxWidth:     hasPanel ? '65vw' : '90vw',
                 objectFit:    'contain',
-                borderRadius: hasPanel ? '12px 0 0 12px' : 12,
+                borderRadius: 12,
                 display:      'block',
               }}
             />
@@ -402,21 +439,18 @@ export function Lightbox({
           )}
         </div>
 
-        {/* ── Right panel ── */}
+        {/* ── Right panel: two separate boxed sections ── */}
         {hasPanel && (
           <div
             style={{
               width:        270,
               maxHeight:    '80vh',
               overflowY:    'auto',
-              background:   'rgba(18,18,18,0.97)',
-              borderLeft:   '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '0 12px 12px 0',
-              padding:      '18px 16px',
               flexShrink:   0,
               display:      'flex',
               flexDirection:'column',
-              gap:          12,
+              gap:          10,
+              scrollbarWidth: 'thin',
             }}
           >
             {current.submission && (
