@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import DualPanelEvents, { type CEvent } from './DualPanelEvents'
+import OpenCompActivityButton from './OpenCompActivityButton'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -25,6 +26,8 @@ type OpenCard = {
   totalEntries: number
   memberUsed:   number
   memberMax:    number
+  categories:   { id: string; name: string }[]
+  userId:       string | null
 }
 type ResultsCard = {
   kind:          'results'
@@ -112,12 +115,20 @@ function OpenCompCard({ card }: { card: OpenCard }) {
           <span style={{ fontWeight: 500 }}>{card.memberUsed}</span>
           {` of ${card.memberMax} submitted`}
         </p>
-        <Link
-          href={`/submit?competition=${card.id}`}
-          style={{ fontSize: 12, fontWeight: 600, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
-        >
-          {complete ? 'Edit your submissions →' : 'Submit an image →'}
-        </Link>
+        {card.userId ? (
+          <OpenCompActivityButton
+            comp={card}
+            userId={card.userId}
+            complete={complete}
+          />
+        ) : (
+          <Link
+            href="/competitions"
+            style={{ fontSize: 12, fontWeight: 600, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
+          >
+            {complete ? 'Edit your submissions →' : 'Submit an image →'}
+          </Link>
+        )}
       </div>
     </div>
   )
@@ -307,7 +318,7 @@ export default async function DualPanelBlock() {
   const openIds    = s1.map(c => c.id)
   const resultsIds = s2.map(c => c.id)
 
-  const [entriesRes, memberEntriesRes, memberSubsRes] = await Promise.all([
+  const [entriesRes, memberEntriesRes, memberSubsRes, categoriesRes] = await Promise.all([
     // Total submitted entries per open comp
     openIds.length > 0
       ? supabase
@@ -336,7 +347,23 @@ export default async function DualPanelBlock() {
           .eq('member_id', userId)
           .eq('status', 'submitted')
       : Promise.resolve({ data: [] as { id: string; competition_id: string; images: { title: string } | null }[] }),
+
+    // Categories for open comps (needed for SubmitModal)
+    openIds.length > 0
+      ? supabase
+          .from('competition_categories')
+          .select('id, name, competition_id')
+          .in('competition_id', openIds)
+          .order('name')
+      : Promise.resolve({ data: [] as { id: string; name: string; competition_id: string }[] }),
   ])
+
+  // Group categories by competition
+  const categoriesByComp: Record<string, { id: string; name: string }[]> = {}
+  for (const cat of (categoriesRes.data ?? []) as { id: string; name: string; competition_id: string }[]) {
+    if (!categoriesByComp[cat.competition_id]) categoriesByComp[cat.competition_id] = []
+    categoriesByComp[cat.competition_id].push({ id: cat.id, name: cat.name })
+  }
 
   // Aggregate total entries per open comp
   const totalEntriesMap: Record<string, number> = {}
@@ -386,9 +413,11 @@ export default async function DualPanelBlock() {
       id:           c.id,
       name:         dn(c),
       closesAt:     c.closes_at,
-      totalEntries: totalEntriesMap[c.id] ?? 0,
-      memberUsed:   memberUsedMap[c.id]   ?? 0,
-      memberMax:    c.submission_limit    ?? 3,
+      totalEntries: totalEntriesMap[c.id]   ?? 0,
+      memberUsed:   memberUsedMap[c.id]     ?? 0,
+      memberMax:    c.submission_limit      ?? 3,
+      categories:   categoriesByComp[c.id]  ?? [],
+      userId,
     })),
     ...s2.map((c): ResultsCard => {
       const scores = memberSubsByComp[c.id] ?? []
