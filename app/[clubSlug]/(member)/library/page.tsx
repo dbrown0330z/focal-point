@@ -27,16 +27,22 @@ export default async function LibraryPage() {
 
   if (error) console.error('[library] query error', error.message)
 
-  // Open competition for the upload modal's "submit" checkbox
-  const { data: openCompRaw } = await supabase
+  // Open competition for the upload modal's "submit" checkbox.
+  // Must have opens_at in the past (or null) — same rule as competitions page uses to
+  // distinguish "truly open" from "scheduled but not yet started".
+  const nowIso = new Date().toISOString()
+  const { data: openCompsRaw } = await supabase
     .from('competitions')
-    .select('id, title, competition_categories(id, name)')
+    .select('id, title, opens_at, competition_categories(id, name)')
     .eq('status', 'open')
     .is('deleted_at', null)
     .is('archived_at', null)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+
+  const openCompRaw = (openCompsRaw ?? []).find(c => {
+    const opensAt = (c as unknown as { opens_at: string | null }).opens_at
+    return !opensAt || opensAt <= nowIso
+  }) ?? null
 
   const openCompetition = openCompRaw ? {
     id:         openCompRaw.id,
