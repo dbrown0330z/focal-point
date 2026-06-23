@@ -70,7 +70,6 @@ type Props = {
   userId: string
   currentCompetitions:  CurrentCompetition[]
   upcomingCompetitions: UpcomingCompetition[]
-  previousCompetitions: PreviousCompetition[]
   libraryImages: LibraryImage[]
 }
 
@@ -1348,7 +1347,7 @@ function NoCompetition() {
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export default function CompetitionsClient({
-  userId, currentCompetitions, upcomingCompetitions, previousCompetitions, libraryImages,
+  userId, currentCompetitions, upcomingCompetitions, libraryImages,
 }: Props) {
   const [submissionsMap, setSubmissionsMap] = useState<Record<string, Submission[]>>(
     () => Object.fromEntries(currentCompetitions.map(c => [c.id, c.mySubmissions]))

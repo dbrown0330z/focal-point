@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import MuiSelect  from '@mui/material/Select'
 import MenuItem   from '@mui/material/MenuItem'
+import { skillLabel } from '@/lib/profile-options'
 import { avatarGradient, avatarInitials } from '@/lib/avatar'
 import type {
   PoyEntry,
@@ -605,12 +606,62 @@ function PoyLeaderboard({
 
   return (
     <>
-      {/* Description + view toggle */}
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
-          {scoringDescription(poyConfig)}
-        </p>
-        <ViewToggle view={view} onChange={setView} />
+      <div className="rounded-[10px] border border-border-default bg-surface-2 overflow-hidden">
+        {/* Header row */}
+        <div className="grid gap-3 border-b border-border-subtle px-4 py-2.5"
+          style={{ gridTemplateColumns: '2.5rem 1fr 5rem 7rem' }}>
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary text-right">Rank</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary">Member</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary text-right">Score</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary text-right pr-1">Competitions</span>
+        </div>
+
+        {visible.map((entry, i) => (
+          <div
+            key={entry.memberId}
+            className={`grid gap-3 px-4 py-3 items-center transition-colors hover:bg-surface-1 ${
+              i < visible.length - 1 ? 'border-b border-border-subtle' : ''
+            } ${entry.isCurrentUser ? 'bg-[rgba(26,111,196,0.04)]' : ''}`}
+            style={{ gridTemplateColumns: '2.5rem 1fr 5rem 7rem' }}
+          >
+            {/* Rank */}
+            <span className={`text-right text-[14px] font-semibold tabular-nums ${
+              entry.rank <= 3 ? 'text-content-primary' : 'text-content-secondary'
+            }`}>
+              {entry.isCurrentUser && (
+                <span className="mr-1 text-[10px]" style={{ color: '#FACC15' }}>★</span>
+              )}
+              {entry.rank}{entry.tied ? '=' : ''}
+            </span>
+
+            {/* Member */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Avatar name={entry.displayName} url={entry.avatarUrl} size={28} />
+              <div className="min-w-0">
+                <Link
+                  href={`/our-club/members`}
+                  className="text-[13px] font-medium truncate block leading-tight"
+                  style={{ color: entry.isCurrentUser ? '#FACC15' : 'var(--text-primary)' }}
+                >
+                  {entry.displayName}
+                </Link>
+                {entry.skillLevel && (
+                  <span className="text-[11px] text-content-tertiary">{skillLabel(entry.skillLevel)}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Score */}
+            <span className="text-right text-[14px] font-semibold tabular-nums text-content-primary">
+              {entry.score.toFixed(1)}
+            </span>
+
+            {/* Competitions */}
+            <span className="text-right text-[13px] text-content-secondary tabular-nums pr-1">
+              {entry.competitionsEntered}
+            </span>
+          </div>
+        ))}
       </div>
 
       {isSeparate ? (
@@ -687,11 +738,11 @@ function AwardLeaderboard({
             <span className="w-6 flex-shrink-0 text-[13px] text-content-tertiary tabular-nums">{i + 1}</span>
             <div className="flex flex-1 items-center gap-2.5 min-w-0">
               <Avatar name={entry.displayName} url={entry.avatarUrl} size={28} />
-              <span className="text-[13px] font-medium text-content-primary truncate">
-                {entry.displayName}
+              <span className="text-[13px] font-medium truncate" style={{ color: entry.isCurrentUser ? '#FACC15' : 'var(--text-primary)' }}>
                 {entry.isCurrentUser && (
-                  <span className="ml-1 text-[11px]" style={{ color: 'var(--action-primary)' }}>★</span>
+                  <span className="mr-1 text-[11px]" style={{ color: '#FACC15' }}>★</span>
                 )}
+                {entry.displayName}
               </span>
             </div>
             {allTypes.map(t => (
@@ -821,9 +872,9 @@ export default function StandingsClient({
   const currentUserAwards = awardLeaderboard.find(e => e.isCurrentUser) ?? null
 
   const TABS: { key: Tab; label: string }[] = [
-    { key: 'poy',       label: 'Photographer of the Year' },
+    { key: 'poy', label: 'Photographer of the Year' },
     ...(benchmarkConfigured ? [{ key: 'benchmark' as Tab, label: 'Benchmark' }] : []),
-    ...(awardsConfigured    ? [{ key: 'awards'    as Tab, label: 'Awards' }]    : []),
+    ...(awardsConfigured    ? [{ key: 'awards'    as Tab, label: 'Awards'    }] : []),
   ]
 
   return (

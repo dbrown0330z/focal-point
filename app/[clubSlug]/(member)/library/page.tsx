@@ -27,6 +27,23 @@ export default async function LibraryPage() {
 
   if (error) console.error('[library] query error', error.message)
 
+  // Open competition for the upload modal's "submit" checkbox
+  const { data: openCompRaw } = await supabase
+    .from('competitions')
+    .select('id, title, competition_categories(id, name)')
+    .eq('status', 'open')
+    .is('deleted_at', null)
+    .is('archived_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const openCompetition = openCompRaw ? {
+    id:         openCompRaw.id,
+    title:      openCompRaw.title as string,
+    categories: (openCompRaw.competition_categories as unknown as { id: string; name: string }[]) ?? [],
+  } : null
+
   const imagesWithUrls = (images ?? []).map(image => {
     const subs     = Array.isArray(image.submissions) ? image.submissions : []
     const activeSub = subs.find((s: Record<string, unknown>) => {
@@ -65,5 +82,12 @@ export default async function LibraryPage() {
     }
   })
 
-  return <LibraryClient images={imagesWithUrls} clubSlug={clubSlug} />
+  return (
+    <LibraryClient
+      images={imagesWithUrls}
+      clubSlug={clubSlug}
+      userId={user.id}
+      openCompetition={openCompetition}
+    />
+  )
 }
