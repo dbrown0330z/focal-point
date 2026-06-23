@@ -19,7 +19,7 @@ export default async function LibraryPage() {
       id, title, description, storage_path, created_at, exif_data,
       submissions!submissions_image_id_fkey(
         id, status,
-        competitions!submissions_competition_id_fkey(title, opens_at, closes_at, archived_at),
+        competitions!submissions_competition_id_fkey(title, status, opens_at, closes_at, archived_at),
         competition_categories!submissions_category_id_fkey(name),
         scores!scores_submission_id_fkey(score)
       )
@@ -100,25 +100,27 @@ export default async function LibraryPage() {
       : null
 
     const competition = activeSub
-      ? (activeSub as Record<string, unknown>).competitions as { title: string; opens_at: string | null; closes_at: string | null } | null
+      ? (activeSub as Record<string, unknown>).competitions as { title: string; status: string; opens_at: string | null; closes_at: string | null } | null
       : null
     const category = activeSub
       ? (activeSub as Record<string, unknown>).competition_categories as { name: string } | null
       : null
 
     return {
-      id:               image.id,
-      title:            image.title,
-      description:      image.description,
-      storage_path:     image.storage_path,
-      created_at:       image.created_at,
-      exifData:         (image.exif_data ?? null) as Record<string, unknown> | null,
-      publicUrl:        admin.storage.from('images').getPublicUrl(image.storage_path).data.publicUrl,
-      isSubmitted:      !!activeSub,
-      competitionTitle: competition?.title ?? null,
-      competitionDate:  competition?.closes_at ?? competition?.opens_at ?? null,
-      categoryName:     category?.name ?? null,
-      score:            avgScore,
+      id:                image.id,
+      title:             image.title,
+      description:       image.description,
+      storage_path:      image.storage_path,
+      created_at:        image.created_at,
+      exifData:          (image.exif_data ?? null) as Record<string, unknown> | null,
+      publicUrl:         admin.storage.from('images').getPublicUrl(image.storage_path).data.publicUrl,
+      isSubmitted:       !!activeSub,
+      submissionId:      (activeSub as Record<string, unknown> | null)?.id as string | null ?? null,
+      competitionTitle:  competition?.title ?? null,
+      competitionStatus: competition?.status ?? null,
+      competitionDate:   competition?.closes_at ?? competition?.opens_at ?? null,
+      categoryName:      category?.name ?? null,
+      score:             avgScore,
     }
   })
 

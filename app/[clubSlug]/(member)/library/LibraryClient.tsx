@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { deleteImage } from '@/app/[clubSlug]/(member)/library/actions'
-import { Lightbox, type LightboxImage } from '@/components/ui/Lightbox'
+import { withdrawFromCompetition } from '@/app/[clubSlug]/(member)/competitions/actions'
+import { Lightbox, type LightboxImage, type LightboxSubmission } from '@/components/ui/Lightbox'
 import UploadModal, { type OpenCompetition } from '@/components/library/UploadModal'
 import SubmitModal from '@/app/[clubSlug]/(member)/competitions/SubmitModal'
 import Button from '@mui/material/Button'
@@ -18,8 +19,10 @@ type Image = {
   created_at: string
   publicUrl: string
   isSubmitted: boolean
+  submissionId: string | null
   exifData: Record<string, unknown> | null
   competitionTitle: string | null
+  competitionStatus: string | null
   competitionDate: string | null
   categoryName: string | null
   score: number | null
@@ -512,16 +515,57 @@ export default function LibraryClient({
       {/* Lightbox */}
       {lightboxIndex !== null && (
         <Lightbox
-          images={lightboxImages.map((img): LightboxImage => ({
-            src:             img.publicUrl,
-            title:           img.title,
-            score:           img.score,
-            exifData:        img.exifData,
-            competitionDate: img.competitionDate
-              ? new Date(img.competitionDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-              : null,
-            categoryName:    img.categoryName,
-          }))}
+          images={lightboxImages.map((img): LightboxImage => {
+            let submission: LightboxSubmission | undefined
+
+            if (img.isSubmitted && img.competitionTitle && img.categoryName) {
+              const compStatus = img.competitionStatus ?? 'open'
+              const JUDGING = ['judging', 'judging_on_hold', 'results_pending']
+
+              if (compStatus === 'results_published' && img.score !== null) {
+                submission = {
+                  status:          'judged',
+                  competitionName: img.competitionTitle,
+                  categoryName:    img.categoryName,
+                  score:           img.score,
+                }
+              } else if (JUDGING.includes(compStatus)) {
+                submission = {
+                  status:          'judging',
+                  competitionName: img.competitionTitle,
+                  categoryName:    img.categoryName,
+                }
+              } else {
+                submission = {
+                  status:          'submitted',
+                  competitionName: img.competitionTitle,
+                  categoryName:    img.categoryName,
+                  closesAt:        img.competitionDate ?? '',
+                  onWithdraw:      async () => {
+                    if (!img.submissionId) return
+                    await withdrawFromCompetition(img.submissionId)
+                    setLightboxIndex(null)
+                    router.refresh()
+                  },
+                }
+              }
+            } else if (!img.isSubmitted && openCompetition) {
+              submission = {
+                status:   'available',
+                onSubmit: () => {
+                  setLightboxIndex(null)
+                  setQuickSubmitImage(img)
+                },
+              }
+            }
+
+            return {
+              src:       img.publicUrl,
+              title:     img.title,
+              exifData:  img.exifData,
+              submission,
+            }
+          })}
           startIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           contextTitle="My Image Gallery"
