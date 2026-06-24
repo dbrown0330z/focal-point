@@ -1,3 +1,9 @@
+-- Shared trigger function for updated_at
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN NEW.updated_at = now(); RETURN NEW; END;
+$$;
+
 -- ─── Member galleries ────────────────────────────────────────────────────────
 -- Personal galleries created by members.
 -- image_ids: ordered JSONB array of image UUIDs from the images table.
@@ -33,7 +39,7 @@ CREATE POLICY "mg_public_read" ON member_galleries
   FOR SELECT USING (visibility = 'public');
 
 CREATE TRIGGER mg_updated_at BEFORE UPDATE ON member_galleries
-  FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- ─── Club galleries ───────────────────────────────────────────────────────────
 -- Curated by admins. Not scoped per-member — shared club assets.
@@ -68,7 +74,7 @@ CREATE POLICY "cg_members_read" ON club_galleries
   FOR SELECT USING (visibility = 'members_only' AND archived_at IS NULL AND auth.uid() IS NOT NULL);
 
 CREATE TRIGGER cg_updated_at BEFORE UPDATE ON club_galleries
-  FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- ─── Club gallery images ──────────────────────────────────────────────────────
 -- Junction table: ordered submissions within a club gallery.
