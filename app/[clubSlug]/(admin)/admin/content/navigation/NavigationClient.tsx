@@ -19,6 +19,7 @@ import HomepageEditor from './HomepageEditor'
 import type { ContentBlock } from '@/lib/homepage/types'
 import AboutPageEditor from '../about/AboutPageEditor'
 import CustomPageEditorComponent from './[pageId]/CustomPageEditor'
+import ClubGalleriesTab, { type ClubGalleryData, type SubmissionOption } from '../galleries/ClubGalleriesTab'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -26,7 +27,7 @@ type PageType     = 'rich_text' | 'document_link' | 'external_link'
 type Visibility   = 'all_members' | 'members_only' | 'hidden'
 type PageStatus   = 'draft' | 'published'
 type ParentSystem = 'calendar' | 'images' | 'competitions' | 'our-club'
-type MainTab      = 'navigation' | 'homepage' | 'pages'
+type MainTab      = 'navigation' | 'homepage' | 'pages' | 'galleries'
 
 export type CustomPage = {
   id:            string
@@ -66,8 +67,8 @@ const SYSTEM_NAV: SysItem[] = [
   {
     label: 'Images', href: '/library', dynamic: true, parentKey: 'images',
     children: [
-      { label: 'My images', href: '/library',           dynamic: true },
-      { label: 'Galleries', href: '/library/galleries', dynamic: true },
+      { label: 'My images',   href: '/library',           dynamic: true },
+      { label: 'My galleries', href: '/library/galleries', dynamic: true },
     ],
   },
   {
@@ -82,8 +83,8 @@ const SYSTEM_NAV: SysItem[] = [
     children: [
       { label: 'About our club',   href: '/our-club/about',             editHref: '/admin/content/about' },
       { label: 'Member directory', href: '/our-club/members',           dynamic: true },
-      { label: 'Standings',        href: '/our-club/members/standings', dynamic: true },
       { label: 'Documents',        href: '/our-club/documents',         dynamic: true },
+      { label: 'Club galleries',   href: '/our-club/galleries',         dynamic: true },
     ],
   },
 ]
@@ -1030,10 +1031,14 @@ export default function NavigationClient({
   customPages: initialPages,
   customTabs:  initialTabs,
   initialHomepageBlocks,
+  initialGalleries = [],
+  submissions = [],
 }: {
   customPages:            CustomPage[]
   customTabs:             CustomTab[]
   initialHomepageBlocks?: ContentBlock[]
+  initialGalleries?:      ClubGalleryData[]
+  submissions?:           SubmissionOption[]
 }) {
   const params = useParams()
   const clubSlug = typeof params.clubSlug === 'string' ? params.clubSlug : ''
@@ -1174,6 +1179,7 @@ export default function NavigationClient({
     { key: 'homepage'   as MainTab, label: 'Homepage' },
     { key: 'pages'      as MainTab, label: 'Pages' },
     { key: 'navigation' as MainTab, label: 'Navigation' },
+    { key: 'galleries'  as MainTab, label: 'Club galleries' },
   ]
 
   return (
@@ -1285,6 +1291,14 @@ export default function NavigationClient({
             pending={pending}
           />
         </div>
+      )}
+
+      {/* ── Club galleries tab ─────────────────────────────────────────── */}
+      {activeTab === 'galleries' && (
+        <ClubGalleriesTab
+          galleries={initialGalleries}
+          submissions={submissions}
+        />
       )}
 
       {/* ── Dialogs ─────────────────────────────────────────────────────── */}

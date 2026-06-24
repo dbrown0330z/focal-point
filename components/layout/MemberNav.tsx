@@ -283,7 +283,7 @@ export default function MemberNav({
           {/* Images ▾ */}
           <NavDropdown label="Images" isActive={isActive('/library')}>
             <DropdownLink href={`${base}/library`}           label="My images" icon={<ImagesIcon />}   active={isActive('/library', true)} />
-            <DropdownLink href={`${base}/library/galleries`} label="Galleries" icon={<GalleriesIcon />} active={isActive('/library/galleries')} />
+            <DropdownLink href={`${base}/library/galleries`} label="My galleries" icon={<GalleriesIcon />} active={isActive('/library/galleries')} />
             {customPages.filter(p => p.parent_system === 'images').map(p => (
               <DropdownLink key={p.id} href={customPageHref(p, base)} label={p.title}
                 icon={p.page_type === 'external_link' ? <ExternalLinkIcon /> : <CustomPageIcon />}
@@ -307,7 +307,8 @@ export default function MemberNav({
           <NavDropdown label="Our Club" isActive={isActive('/our-club')}>
             <DropdownLink href={`${base}/our-club/about`}    label="About our club"   icon={<AboutIcon />}     active={isActive('/our-club/about')} />
             <DropdownLink href={`${base}/our-club/members`}  label="Member directory" icon={<MembersIcon />}   active={isActive('/our-club/members', true)} />
-            <DropdownLink href={`${base}/our-club/documents`} label="Documents"       icon={<DocumentsIcon />} active={isActive('/our-club/documents')} />
+            <DropdownLink href={`${base}/our-club/documents`}  label="Documents"      icon={<DocumentsIcon />}  active={isActive('/our-club/documents')} />
+            <DropdownLink href={`${base}/our-club/galleries`} label="Club galleries" icon={<GalleriesIcon />}  active={isActive('/our-club/galleries')} />
             {customPages.filter(p => p.parent_system === 'our-club').map(p => (
               <DropdownLink key={p.id} href={customPageHref(p, base)} label={p.title}
                 icon={p.page_type === 'external_link' ? <ExternalLinkIcon /> : <CustomPageIcon />}
