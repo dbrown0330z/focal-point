@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions,
@@ -10,7 +10,6 @@ import AddIcon          from '@mui/icons-material/Add'
 import DeleteIcon       from '@mui/icons-material/Delete'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined'
-import CheckCircleIcon  from '@mui/icons-material/CheckCircle'
 import PublicIcon       from '@mui/icons-material/Public'
 import PeopleIcon       from '@mui/icons-material/People'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
@@ -187,7 +186,7 @@ function PickerGrid({
   selectedIds,
   onToggle,
 }: {
-  items:       { id: string; title: string; publicUrl: string; badge?: string }[]
+  items:       { id: string; title: string; publicUrl: string; badge?: string; inGallery?: boolean }[]
   selectedIds: Set<string>
   onToggle:    (id: string) => void
 }) {
@@ -199,7 +198,7 @@ function PickerGrid({
     )
   }
   return (
-    <div className="grid grid-cols-5 gap-2.5">
+    <div className="grid grid-cols-6 gap-2">
       {items.map(item => {
         const selected = selectedIds.has(item.id)
         return (
@@ -233,6 +232,12 @@ function PickerGrid({
                 <IconCheck size={11} />
               </div>
             )}
+            {item.inGallery && !selectedIds.has(item.id) && (
+              <div className="absolute right-1.5 top-1.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide"
+                style={{ background: 'rgba(0,0,0,0.60)', color: 'rgba(255,255,255,0.85)' }}>
+                In gallery
+              </div>
+            )}
             {item.badge && (
               <div
                 className="absolute bottom-0 left-0 right-0 px-1.5 py-1"
@@ -250,20 +255,24 @@ function PickerGrid({
 
 // ─── Filter-based image picker (Step 1 + Edit dialog) ────────────────────────
 
-type StatusFilter = 'all' | 'submitted' | 'not_submitted'
+type StatusFilter  = 'all' | 'submitted' | 'not_submitted'
+type GalleryFilter = 'all' | 'in_gallery' | 'not_in_gallery'
 
 function ImageFilterPicker({
   allImages,
   selectedIds,
   onToggle,
+  galleryIds,
 }: {
   allImages:   MergedImage[]
   selectedIds: Set<string>
   onToggle:    (id: string) => void
+  galleryIds?: Set<string>   // when editing: IDs already in the gallery
 }) {
-  const [status,   setStatus]   = useState<StatusFilter>('all')
-  const [minScore, setMinScore] = useState<string>('')
-  const [cats,     setCats]     = useState<Set<string>>(new Set())
+  const [status,        setStatus]        = useState<StatusFilter>('all')
+  const [galleryFilter, setGalleryFilter] = useState<GalleryFilter>('all')
+  const [minScore,      setMinScore]      = useState<string>('')
+  const [cats,          setCats]          = useState<Set<string>>(new Set())
 
   const availableCategories = useMemo(
     () => [...new Set(allImages.filter(i => i.categoryName).map(i => i.categoryName!))].sort(),
@@ -283,19 +292,22 @@ function ImageFilterPicker({
   const filtered = useMemo(() => {
     const minS = minScore ? Number(minScore) : null
     return allImages.filter(img => {
-      if (status === 'submitted'     && !img.submitted) return false
-      if (status === 'not_submitted' &&  img.submitted) return false
-      if (minS !== null && (img.score === null || img.score < minS)) return false
-      if (cats.size > 0 && !cats.has(img.categoryName ?? '')) return false
+      if (status === 'submitted'            && !img.submitted)          return false
+      if (status === 'not_submitted'        &&  img.submitted)          return false
+      if (galleryFilter === 'in_gallery'    && !galleryIds?.has(img.id)) return false
+      if (galleryFilter === 'not_in_gallery' && galleryIds?.has(img.id)) return false
+      if (minS !== null && (img.score === null || img.score < minS))     return false
+      if (cats.size > 0 && !cats.has(img.categoryName ?? ''))            return false
       return true
     })
-  }, [allImages, status, minScore, cats])
+  }, [allImages, status, galleryFilter, galleryIds, minScore, cats])
 
   const items = filtered.map(img => ({
-    id:        img.id,
-    title:     img.title,
-    publicUrl: img.publicUrl,
-    badge:     img.submitted
+    id:          img.id,
+    title:       img.title,
+    publicUrl:   img.publicUrl,
+    inGallery:   galleryIds?.has(img.id) ?? false,
+    badge:       img.submitted
       ? [img.competitionName, img.score !== null ? `${img.score}` : null].filter(Boolean).join(' · ')
       : undefined,
   }))
@@ -304,6 +316,33 @@ function ImageFilterPicker({
     <div>
       {/* Filter bar */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
+        {/* Gallery filter — only shown in edit mode */}
+        {galleryIds && (
+          <div style={{ display: 'inline-flex', borderRadius: 7, border: '1px solid var(--border-default)', overflow: 'hidden' }}>
+            {([
+              { key: 'all',           label: 'All' },
+              { key: 'in_gallery',    label: 'In gallery' },
+              { key: 'not_in_gallery', label: 'Not in gallery' },
+            ] as { key: GalleryFilter; label: string }[]).map((opt, i, arr) => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setGalleryFilter(opt.key)}
+                className="px-3 py-1.5 text-xs font-semibold transition-colors"
+                style={{
+                  background:  galleryFilter === opt.key ? 'var(--action-primary)' : 'var(--surface-2)',
+                  color:       galleryFilter === opt.key ? '#fff' : 'var(--text-secondary)',
+                  border:      'none',
+                  cursor:      'pointer',
+                  borderRight: i < arr.length - 1 ? '1px solid var(--border-default)' : 'none',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Status */}
         <div style={{ display: 'inline-flex', borderRadius: 7, border: '1px solid var(--border-default)', overflow: 'hidden' }}>
           {(['all', 'submitted', 'not_submitted'] as StatusFilter[]).map(s => (
@@ -392,7 +431,7 @@ function CoverPicker({
   if (items.length === 0) return null
 
   return (
-    <div className="grid grid-cols-5 gap-2.5">
+    <div className="grid grid-cols-6 gap-2">
       {items.map(item => {
         const selected = coverId === item.id
         return (
@@ -432,14 +471,15 @@ function CoverPicker({
 // ─── Modal shell (shared by wizard + edit) ────────────────────────────────────
 
 function ModalShell({
-  open, onClose, title, subtitle, maxWidth = 940, children,
+  open, onClose, title, subtitle, maxWidth = 1040, bodyHeight = 620, children,
 }: {
-  open:      boolean
-  onClose:   () => void
-  title:     string
-  subtitle?: string
-  maxWidth?: number
-  children:  React.ReactNode
+  open:        boolean
+  onClose:     () => void
+  title:       string
+  subtitle?:   string
+  maxWidth?:   number
+  bodyHeight?: number
+  children:    React.ReactNode
 }) {
   if (!open) return null
   return (
@@ -453,6 +493,7 @@ function ModalShell({
         style={{
           maxWidth,
           borderRadius:  18,
+          height:        `${bodyHeight + 160}px`,
           maxHeight:     'calc(100vh - 48px)',
           background:    'var(--surface-1)',
           border:        '1px solid var(--border-default)',
@@ -573,7 +614,7 @@ function CreateWizard({
 
         {/* Step 0: Name & visibility */}
         {step === 0 && (
-          <div className="flex flex-col gap-5" style={{ maxWidth: 480 }}>
+          <div className="flex flex-col gap-6" style={{ maxWidth: 520 }}>
             <div>
               <FieldLabel required>Gallery name</FieldLabel>
               <NativeInput value={name} onChange={setName} placeholder="e.g. Spring landscapes" maxLength={80} autoFocus />
@@ -581,11 +622,37 @@ function CreateWizard({
             </div>
             <div>
               <FieldLabel>Visibility</FieldLabel>
-              <NativeSelect value={visibility} onChange={v => setVisibility(v as typeof visibility)}>
-                <option value="public">Public — anyone with the link can view</option>
-                <option value="members_only">Members only — signed-in club members only</option>
-                <option value="private">Private — only visible to you</option>
-              </NativeSelect>
+              <div className="flex flex-col gap-2.5 pt-0.5">
+                {([
+                  { value: 'public',       icon: <PublicIcon sx={{ fontSize: 18 }} />,       label: 'Public',       sub: 'Anyone with a link' },
+                  { value: 'members_only', icon: <PeopleIcon sx={{ fontSize: 18 }} />,       label: 'Members only', sub: 'Signed-in club members' },
+                  { value: 'private',      icon: <LockOutlinedIcon sx={{ fontSize: 18 }} />, label: 'Private',      sub: 'Only you' },
+                ] as const).map(opt => {
+                  const active = visibility === opt.value
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setVisibility(opt.value)}
+                      className="flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all"
+                      style={{
+                        border:      active ? '2px solid var(--action-primary)' : '1.5px solid var(--border-default)',
+                        background:  active ? 'rgba(26,111,196,0.06)' : 'var(--surface-2)',
+                        cursor:      'pointer',
+                        boxShadow:   active ? '0 0 0 3px rgba(26,111,196,0.12)' : 'none',
+                      }}
+                    >
+                      <span style={{ color: active ? 'var(--action-primary)' : 'var(--text-tertiary)', flexShrink: 0 }}>
+                        {opt.icon}
+                      </span>
+                      <span>
+                        <span className="block text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{opt.label}</span>
+                        <span className="block text-xs" style={{ color: 'var(--text-secondary)' }}>{opt.sub}</span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
         )}
@@ -698,7 +765,19 @@ function EditGalleryDialog({
   const [saving,      setSaving]      = useState(false)
   const [error,       setError]       = useState<string | null>(null)
 
+  // Re-sync when a different gallery is opened
+  useEffect(() => {
+    if (gallery) {
+      setName(gallery.name)
+      setVisibility(gallery.visibility)
+      setSelectedIds(new Set(gallery.image_ids))
+      setError(null)
+    }
+  }, [gallery?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!gallery) return null
+
+  const originalIds = new Set(gallery.image_ids)
 
   const toggleId = (id: string) => {
     setSelectedIds(prev => {
@@ -722,7 +801,7 @@ function EditGalleryDialog({
   }
 
   return (
-    <ModalShell open onClose={onClose} title="Edit gallery" maxWidth={860}>
+    <ModalShell open onClose={onClose} title="Edit gallery" maxWidth={1040}>
       <div className="flex-1 overflow-y-auto" style={{ padding: '22px 28px' }}>
         {error && (
           <div className="mb-4 rounded-lg px-4 py-3 text-sm"
@@ -759,6 +838,7 @@ function EditGalleryDialog({
               allImages={allImages}
               selectedIds={selectedIds}
               onToggle={toggleId}
+              galleryIds={originalIds}
             />
           )}
         </div>
