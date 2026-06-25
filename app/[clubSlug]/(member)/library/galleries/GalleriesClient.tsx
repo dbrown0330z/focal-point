@@ -232,7 +232,7 @@ function PickerGrid({
                 <IconCheck size={11} />
               </div>
             )}
-            {item.inGallery && !selectedIds.has(item.id) && (
+            {item.inGallery && selectedIds.has(item.id) && (
               <div className="absolute right-1.5 top-1.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide"
                 style={{ background: 'rgba(0,0,0,0.60)', color: 'rgba(255,255,255,0.85)' }}>
                 In gallery
@@ -303,13 +303,11 @@ function ImageFilterPicker({
   }, [allImages, status, galleryFilter, galleryIds, minScore, cats])
 
   const items = filtered.map(img => ({
-    id:          img.id,
-    title:       img.title,
-    publicUrl:   img.publicUrl,
-    inGallery:   galleryIds?.has(img.id) ?? false,
-    badge:       img.submitted
-      ? [img.competitionName, img.score !== null ? `${img.score}` : null].filter(Boolean).join(' · ')
-      : undefined,
+    id:        img.id,
+    title:     img.title,
+    publicUrl: img.publicUrl,
+    inGallery: galleryIds?.has(img.id) ?? false,
+    badge:     img.title,
   }))
 
   return (
@@ -398,10 +396,18 @@ function ImageFilterPicker({
         ))}
       </div>
 
-      {/* Count */}
-      <p className="mb-2.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-        {selectedIds.size} selected · {filtered.length} image{filtered.length !== 1 ? 's' : ''} shown
-      </p>
+      {/* Heading + count */}
+      <div className="mb-2.5 flex items-baseline gap-2">
+        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Images</p>
+        {selectedIds.size > 0 && (
+          <span className="text-xs font-semibold" style={{ color: 'var(--action-primary)' }}>
+            {selectedIds.size} selected
+          </span>
+        )}
+        <span className="ml-auto text-xs" style={{ color: 'var(--text-tertiary)' }}>
+          {filtered.length} shown
+        </span>
+      </div>
 
       {/* Grid — scrollable, shows ~4 rows */}
       <div style={{ maxHeight: 520, overflowY: 'auto', scrollbarWidth: 'thin' }}>
@@ -762,8 +768,9 @@ function EditGalleryDialog({
   const [name,        setName]        = useState(gallery?.name ?? '')
   const [visibility,  setVisibility]  = useState<'public' | 'members_only' | 'private'>(gallery?.visibility ?? 'private')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(gallery?.image_ids ?? []))
-  const [saving,      setSaving]      = useState(false)
-  const [error,       setError]       = useState<string | null>(null)
+  const [saving,         setSaving]         = useState(false)
+  const [error,          setError]          = useState<string | null>(null)
+  const [editingDetails, setEditingDetails] = useState(false)
 
   // Re-sync when a different gallery is opened
   useEffect(() => {
@@ -772,6 +779,7 @@ function EditGalleryDialog({
       setVisibility(gallery.visibility)
       setSelectedIds(new Set(gallery.image_ids))
       setError(null)
+      setEditingDetails(false)
     }
   }, [gallery?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -810,27 +818,63 @@ function EditGalleryDialog({
           </div>
         )}
 
-        {/* Details */}
-        <div className="mb-6 grid gap-4" style={{ gridTemplateColumns: '1fr 1fr' }}>
-          <div>
-            <FieldLabel required>Gallery name</FieldLabel>
-            <NativeInput value={name} onChange={setName} maxLength={80} autoFocus />
-          </div>
-          <div>
-            <FieldLabel>Visibility</FieldLabel>
-            <NativeSelect value={visibility} onChange={v => setVisibility(v as typeof visibility)}>
-              <option value="public">Public</option>
-              <option value="members_only">Members only</option>
-              <option value="private">Private</option>
-            </NativeSelect>
-          </div>
+        {/* Details — read-only with pencil toggle */}
+        <div className="mb-5" style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: 16 }}>
+          {!editingDetails ? (
+            <div
+              className="group flex items-start justify-between"
+              style={{ minHeight: 44 }}
+            >
+              <div>
+                <p className="text-[17px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>{name}</p>
+                <p className="mt-1 flex items-center gap-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <VisibilityIcon v={visibility} />{visibilityLabel(visibility)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingDetails(true)}
+                title="Edit name and visibility"
+                className="invisible rounded-md p-1.5 group-hover:visible"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', flexShrink: 0 }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-0)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+              >
+                <EditOutlinedIcon sx={{ fontSize: 16 }} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                <div>
+                  <FieldLabel required>Gallery name</FieldLabel>
+                  <NativeInput value={name} onChange={setName} maxLength={80} autoFocus />
+                </div>
+                <div>
+                  <FieldLabel>Visibility</FieldLabel>
+                  <NativeSelect value={visibility} onChange={v => setVisibility(v as typeof visibility)}>
+                    <option value="public">Public</option>
+                    <option value="members_only">Members only</option>
+                    <option value="private">Private</option>
+                  </NativeSelect>
+                </div>
+              </div>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setEditingDetails(false)}
+                  className="text-xs font-semibold"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--action-primary)', padding: 0 }}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Divider + image section */}
         <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 20 }}>
-          <p className="mb-3 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-            Images
-          </p>
           {allImages.length === 0 ? (
             <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>No images in your library yet.</p>
           ) : (
