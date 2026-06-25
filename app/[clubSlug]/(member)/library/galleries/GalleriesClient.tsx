@@ -768,6 +768,7 @@ function EditGalleryDialog({
   const [name,        setName]        = useState(gallery?.name ?? '')
   const [visibility,  setVisibility]  = useState<'public' | 'members_only' | 'private'>(gallery?.visibility ?? 'private')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(gallery?.image_ids ?? []))
+  const [coverId,        setCoverId]        = useState<string | null>(gallery?.cover_image_id ?? null)
   const [saving,         setSaving]         = useState(false)
   const [error,          setError]          = useState<string | null>(null)
   const [editingDetails, setEditingDetails] = useState(false)
@@ -778,6 +779,7 @@ function EditGalleryDialog({
       setName(gallery.name)
       setVisibility(gallery.visibility)
       setSelectedIds(new Set(gallery.image_ids))
+      setCoverId(gallery.cover_image_id)
       setError(null)
       setEditingDetails(false)
     }
@@ -790,7 +792,12 @@ function EditGalleryDialog({
   const toggleId = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id); else next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+        if (coverId === id) setCoverId([...next][0] ?? null)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }
@@ -799,10 +806,8 @@ function EditGalleryDialog({
     if (!gallery) return
     setSaving(true); setError(null)
     const ids    = [...selectedIds]
-    const coverId = gallery.cover_image_id && ids.includes(gallery.cover_image_id)
-      ? gallery.cover_image_id
-      : ids[0] ?? null
-    const res = await updateGalleryFull(gallery.id, { name, visibility, imageIds: ids, coverId })
+    const cover  = coverId && ids.includes(coverId) ? coverId : ids[0] ?? null
+    const res = await updateGalleryFull(gallery.id, { name, visibility, imageIds: ids, coverId: cover })
     setSaving(false)
     if (res.error) { setError(res.error); return }
     onClose(); router.refresh()
@@ -819,15 +824,16 @@ function EditGalleryDialog({
         )}
 
         {/* Details — read-only with pencil toggle */}
-        <div className="mb-5" style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: 16 }}>
+        <div className="mb-5">
           {!editingDetails ? (
             <div
-              className="group flex items-start justify-between"
-              style={{ minHeight: 44 }}
+              className="group flex items-center justify-between"
+              style={{ minHeight: 36 }}
             >
-              <div>
-                <p className="text-[17px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>{name}</p>
-                <p className="mt-1 flex items-center gap-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
+              <div className="flex items-center gap-3">
+                <p className="text-[17px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>{name}</p>
+                <span style={{ color: 'var(--border-strong)', userSelect: 'none' }}>|</span>
+                <p className="flex items-center gap-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
                   <VisibilityIcon v={visibility} />{visibilityLabel(visibility)}
                 </p>
               </div>
@@ -873,8 +879,8 @@ function EditGalleryDialog({
           )}
         </div>
 
-        {/* Divider + image section */}
-        <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 20 }}>
+        {/* Image picker */}
+        <div>
           {allImages.length === 0 ? (
             <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>No images in your library yet.</p>
           ) : (
@@ -886,6 +892,19 @@ function EditGalleryDialog({
             />
           )}
         </div>
+
+        {/* Cover image picker — shown when at least one image is selected */}
+        {selectedIds.size > 0 && (
+          <div className="mt-6">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Cover image</p>
+            <CoverPicker
+              imageIds={[...selectedIds]}
+              imageMap={imageMap}
+              coverId={coverId ?? [...selectedIds][0] ?? null}
+              onSelect={setCoverId}
+            />
+          </div>
+        )}
       </div>
 
       <div style={{ padding: '16px 28px 22px', borderTop: '1px solid var(--border-default)', flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
