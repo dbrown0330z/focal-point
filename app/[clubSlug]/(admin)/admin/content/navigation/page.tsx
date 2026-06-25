@@ -85,7 +85,7 @@ export default async function NavigationPage() {
   })
 
   // ── All competition submissions (for adding to club galleries) ────────────
-  const { data: subsRaw } = await admin
+  const { data: subsRaw } = await adminAny
     .from('submissions')
     .select(`
       id,

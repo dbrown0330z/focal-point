@@ -752,20 +752,45 @@ export default function GalleriesClient({
 
       {/* Gallery grid */}
       {galleries.length === 0 ? (
-        <Box sx={{
-          textAlign: 'center',
-          py:        8,
-          border:    '1px dashed var(--border-default)',
-          borderRadius: 3,
-        }}>
-          <Typography sx={{ fontWeight: 600, mb: 1 }}>No galleries yet</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Create your first gallery to share curated collections of your photos.
-          </Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
-            Create gallery
+        <div className="flex flex-col items-center justify-center pb-16 pt-4 text-center">
+          {/* Inline illustration — overlapping framed photos */}
+          <svg width="320" height="180" viewBox="0 0 320 180" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-2 opacity-60 dark:opacity-40">
+            {/* Back frame */}
+            <rect x="50" y="30" width="120" height="90" rx="6" fill="var(--surface-1)" stroke="var(--border-default)" strokeWidth="1.5"/>
+            <rect x="58" y="38" width="104" height="66" rx="3" fill="var(--surface-0)"/>
+            {/* Mountains in back frame */}
+            <polygon points="68,96 95,58 122,96" fill="var(--gray-300)"/>
+            <polygon points="92,96 115,68 138,96" fill="var(--gray-200)"/>
+            {/* Sun in back frame */}
+            <circle cx="125" cy="52" r="8" fill="var(--gray-300)"/>
+            {/* Middle frame */}
+            <rect x="110" y="50" width="130" height="95" rx="6" fill="var(--surface-2)" stroke="var(--border-default)" strokeWidth="1.5"/>
+            <rect x="119" y="59" width="112" height="72" rx="3" fill="var(--surface-1)"/>
+            {/* Mountains in middle frame */}
+            <polygon points="130,124 162,78 194,124" fill="var(--gray-300)"/>
+            <polygon points="158,124 185,92 212,124" fill="var(--gray-200)"/>
+            {/* Sun in middle frame */}
+            <circle cx="210" cy="72" r="9" fill="var(--gray-300)"/>
+            {/* Front frame */}
+            <rect x="165" y="25" width="115" height="87" rx="6" fill="var(--surface-2)" stroke="var(--border-default)" strokeWidth="1.5"/>
+            <rect x="173" y="33" width="99" height="62" rx="3" fill="var(--surface-1)"/>
+            {/* Mountains in front frame */}
+            <polygon points="183,89 212,50 241,89" fill="var(--gray-300)"/>
+            <polygon points="208,89 232,65 256,89" fill="var(--gray-200)"/>
+            {/* Sun in front frame */}
+            <circle cx="254" cy="43" r="8" fill="var(--gray-300)"/>
+          </svg>
+
+          <p className="text-[22px] font-bold tracking-[-0.01em]" style={{ fontFamily: 'var(--font-primary)', color: 'var(--text-secondary)' }}>
+            Every photographer has a story to tell
+          </p>
+          <p className="mt-2 text-[15px]" style={{ color: 'var(--text-secondary)' }}>
+            Your gallery is where you tell yours — curate your best work and share it with the world.
+          </p>
+          <Button variant="contained" onClick={() => setCreateOpen(true)} sx={{ mt: 4 }}>
+            + Create your first gallery
           </Button>
-        </Box>
+        </div>
       ) : (
         <Box sx={{
           display:             'grid',
