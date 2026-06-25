@@ -18,6 +18,7 @@ export type CompImage = {
   title:           string
   publicUrl:       string
   competitionName: string
+  categoryName:    string | null
   score:           number | null
 }
 
@@ -97,6 +98,7 @@ export default async function MyGalleriesPage() {
       image_id,
       images!submissions_image_id_fkey(title, storage_path),
       competitions!submissions_competition_id_fkey(title),
+      competition_categories!submissions_category_id_fkey(name),
       scores!scores_submission_id_fkey(score)
     `)
     .eq('member_id', user.id)
@@ -107,10 +109,11 @@ export default async function MyGalleriesPage() {
   const compImages: CompImage[] = []
   for (const s of (subsRaw ?? []) as unknown[]) {
     const sub = s as {
-      image_id:     string
-      images:       { title: string; storage_path: string } | null
-      competitions: { title: string } | null
-      scores:       { score: number }[]
+      image_id:               string
+      images:                 { title: string; storage_path: string } | null
+      competitions:           { title: string } | null
+      competition_categories: { name: string } | null
+      scores:                 { score: number }[]
     }
     if (!sub.images || seen.has(sub.image_id)) continue
     seen.add(sub.image_id)
@@ -121,6 +124,7 @@ export default async function MyGalleriesPage() {
       title:           sub.images.title,
       publicUrl:       admin.storage.from('images').getPublicUrl(sub.images.storage_path).data.publicUrl,
       competitionName: sub.competitions?.title ?? '',
+      categoryName:    sub.competition_categories?.name ?? null,
       score:           avg !== null ? Math.round(avg * 10) / 10 : null,
     })
   }

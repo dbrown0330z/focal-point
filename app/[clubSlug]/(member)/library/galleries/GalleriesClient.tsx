@@ -1,33 +1,61 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions,
-  IconButton, TextField, Select, MenuItem, FormControl, InputLabel,
-  Stepper, Step, StepLabel, Tabs, Tab, Chip, Tooltip, CircularProgress,
-  Alert,
+  IconButton, Chip, Tooltip, CircularProgress, Alert,
 } from '@mui/material'
-import AddIcon         from '@mui/icons-material/Add'
-import DeleteIcon         from '@mui/icons-material/Delete'
-import EditOutlinedIcon  from '@mui/icons-material/EditOutlined'
+import AddIcon          from '@mui/icons-material/Add'
+import DeleteIcon       from '@mui/icons-material/Delete'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined'
-import CheckCircleIcon   from '@mui/icons-material/CheckCircle'
-import PublicIcon        from '@mui/icons-material/Public'
-import PeopleIcon        from '@mui/icons-material/People'
-import LockOutlinedIcon  from '@mui/icons-material/LockOutlined'
+import CheckCircleIcon  from '@mui/icons-material/CheckCircle'
+import PublicIcon       from '@mui/icons-material/Public'
+import PeopleIcon       from '@mui/icons-material/People'
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import type { GalleryData, GalleryImage, CompImage } from './page'
 import {
   createGallery,
-  updateGalleryMeta,
+  updateGalleryFull,
   deleteGallery,
-  updateGalleryImages,
-  setCoverImage,
 } from './actions'
 
 const GALLERY_LIMIT = 3
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Score options ────────────────────────────────────────────────────────────
+
+const SCORE_OPTIONS = [5, 6, 7, 8, 9, 10]
+
+// ─── Merged image type ────────────────────────────────────────────────────────
+
+type MergedImage = {
+  id:              string
+  title:           string
+  publicUrl:       string
+  submitted:       boolean
+  score:           number | null
+  categoryName:    string | null
+  competitionName: string | null
+}
+
+function buildMergedImages(libraryImages: GalleryImage[], compImages: CompImage[]): MergedImage[] {
+  const submittedMap = new Map(compImages.map(c => [c.imageId, c]))
+  return libraryImages.map(img => {
+    const sub = submittedMap.get(img.id)
+    return {
+      id:              img.id,
+      title:           img.title,
+      publicUrl:       img.publicUrl,
+      submitted:       Boolean(sub),
+      score:           sub?.score ?? null,
+      categoryName:    sub?.categoryName ?? null,
+      competitionName: sub?.competitionName ?? null,
+    }
+  })
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function VisibilityIcon({ v }: { v: string }) {
   if (v === 'public')       return <PublicIcon sx={{ fontSize: 14 }} />
@@ -41,49 +69,148 @@ function visibilityLabel(v: string) {
   return 'Private'
 }
 
-// ─── Picker grid (shared between steps) ──────────────────────────────────────
+// ─── Mini icon: checkmark ─────────────────────────────────────────────────────
+
+function IconCheck({ size = 13 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+      strokeLinecap="round" strokeLinejoin="round" width={size} height={size}>
+      <path d="M20 6L9 17l-5-5"/>
+    </svg>
+  )
+}
+
+// ─── Custom stepper (matches SubmitModal style) ───────────────────────────────
+
+function WizardStepper({ step, labels }: { step: number; labels: string[] }) {
+  return (
+    <div className="flex justify-center py-4">
+      <div className="flex items-center" style={{ width: '55%', minWidth: 280 }}>
+        {labels.map((label, i) => {
+          const done   = i < step
+          const active = i === step
+          return (
+            <div key={i} className="flex flex-1 items-center">
+              <div className="flex flex-col items-center gap-1">
+                <div
+                  className="flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors"
+                  style={{
+                    background:  done || active ? 'var(--action-primary)' : 'transparent',
+                    borderColor: done || active ? 'var(--action-primary)' : 'var(--border-default)',
+                    color:       done || active ? '#fff' : 'var(--text-tertiary)',
+                  }}
+                >
+                  {done ? <IconCheck size={13} /> : i + 1}
+                </div>
+                <span
+                  className="text-[10px] font-bold uppercase tracking-widest"
+                  style={{ color: active ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
+                >
+                  {label}
+                </span>
+              </div>
+              {i < labels.length - 1 && (
+                <div
+                  className="mx-2 mb-4 h-0.5 flex-1 transition-colors"
+                  style={{ background: i < step ? 'var(--action-primary)' : 'var(--border-default)' }}
+                />
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── Label + native input helpers ────────────────────────────────────────────
+
+function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
+  return (
+    <label className="mb-1.5 block text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+      {children}
+      {required && <span style={{ color: 'var(--status-error)', marginLeft: 3 }}>*</span>}
+    </label>
+  )
+}
+
+function NativeInput({
+  value, onChange, placeholder, maxLength, autoFocus,
+}: {
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+  maxLength?: number
+  autoFocus?: boolean
+}) {
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      maxLength={maxLength}
+      autoFocus={autoFocus}
+      className="w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+      style={{ border: '1.5px solid var(--border-default)', background: 'var(--surface-2)', color: 'var(--text-primary)' }}
+      onFocus={e => (e.target.style.borderColor = 'var(--action-primary)')}
+      onBlur={e => (e.target.style.borderColor = 'var(--border-default)')}
+    />
+  )
+}
+
+function NativeSelect({
+  value, onChange, children,
+}: {
+  value: string
+  onChange: (v: string) => void
+  children: React.ReactNode
+}) {
+  return (
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className="w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+      style={{ border: '1.5px solid var(--border-default)', background: 'var(--surface-2)', color: 'var(--text-primary)' }}
+      onFocus={e => (e.target.style.borderColor = 'var(--action-primary)')}
+      onBlur={e => (e.target.style.borderColor = 'var(--border-default)')}
+    >
+      {children}
+    </select>
+  )
+}
+
+// ─── Image picker grid ────────────────────────────────────────────────────────
 
 function PickerGrid({
   items,
   selectedIds,
   onToggle,
-  emptyMsg,
 }: {
-  items:       { id: string; title: string; publicUrl: string; sub?: string }[]
+  items:       { id: string; title: string; publicUrl: string; badge?: string }[]
   selectedIds: Set<string>
   onToggle:    (id: string) => void
-  emptyMsg:    string
 }) {
   if (items.length === 0) {
     return (
-      <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}>
-        <Typography variant="body2">{emptyMsg}</Typography>
-      </Box>
+      <div className="py-10 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
+        No images match the current filters.
+      </div>
     )
   }
   return (
-    <Box sx={{
-      display:             'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-      gap:                 1.5,
-    }}>
+    <div className="grid grid-cols-5 gap-2.5">
       {items.map(item => {
         const selected = selectedIds.has(item.id)
         return (
-          <Box
+          <div
             key={item.id}
             onClick={() => onToggle(item.id)}
-            sx={{
-              position:     'relative',
-              aspectRatio:  '1',
-              borderRadius: 2,
-              overflow:     'hidden',
-              cursor:       'pointer',
-              border:       selected ? '2.5px solid' : '2.5px solid transparent',
-              borderColor:  selected ? 'primary.main' : 'transparent',
-              outline:      selected ? '2px solid' : 'none',
-              outlineColor: selected ? 'rgba(26,111,196,0.25)' : 'transparent',
-              transition:   'border-color 0.1s',
+            className="relative cursor-pointer overflow-hidden rounded-lg transition-all"
+            style={{
+              aspectRatio: '1',
+              border:      selected ? '2px solid var(--action-primary)' : '2px solid var(--border-default)',
+              boxShadow:   selected ? '0 0 0 3px rgba(26,111,196,0.22)' : 'none',
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -92,45 +219,156 @@ function PickerGrid({
               alt={item.title}
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
-            <Box sx={{
+            <div style={{
               position:   'absolute',
               inset:      0,
-              background: selected ? 'rgba(26,111,196,0.18)' : 'rgba(0,0,0,0)',
+              background: selected ? 'rgba(26,111,196,0.18)' : 'transparent',
               transition: 'background 0.1s',
             }} />
             {selected && (
-              <CheckCircleIcon sx={{
-                position:  'absolute',
-                top:       6,
-                right:     6,
-                fontSize:  18,
-                color:     'primary.main',
-                bgcolor:   'white',
-                borderRadius: '50%',
-              }} />
+              <div
+                className="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full"
+                style={{ background: 'var(--action-primary)', color: '#fff' }}
+              >
+                <IconCheck size={11} />
+              </div>
             )}
-            <Box sx={{
-              position:   'absolute',
-              bottom:     0,
-              left:       0,
-              right:      0,
-              background: 'linear-gradient(transparent, rgba(0,0,0,0.65))',
-              px:         1,
-              py:         0.75,
-            }}>
-              <Typography sx={{ fontSize: 11, color: '#fff', lineHeight: 1.3, fontWeight: 500 }} noWrap>
-                {item.title}
-              </Typography>
-              {item.sub && (
-                <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', lineHeight: 1.2 }} noWrap>
-                  {item.sub}
-                </Typography>
-              )}
-            </Box>
-          </Box>
+            {item.badge && (
+              <div
+                className="absolute bottom-0 left-0 right-0 px-1.5 py-1"
+                style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.70))' }}
+              >
+                <p className="truncate text-[10px] font-semibold" style={{ color: '#fff' }}>{item.badge}</p>
+              </div>
+            )}
+          </div>
         )
       })}
-    </Box>
+    </div>
+  )
+}
+
+// ─── Filter-based image picker (Step 1 + Edit dialog) ────────────────────────
+
+type StatusFilter = 'all' | 'submitted' | 'not_submitted'
+
+function ImageFilterPicker({
+  allImages,
+  selectedIds,
+  onToggle,
+}: {
+  allImages:   MergedImage[]
+  selectedIds: Set<string>
+  onToggle:    (id: string) => void
+}) {
+  const [status,   setStatus]   = useState<StatusFilter>('all')
+  const [minScore, setMinScore] = useState<string>('')
+  const [cats,     setCats]     = useState<Set<string>>(new Set())
+
+  const availableCategories = useMemo(
+    () => [...new Set(allImages.filter(i => i.categoryName).map(i => i.categoryName!))].sort(),
+    [allImages],
+  )
+
+  const hasSubmitted = allImages.some(i => i.submitted && i.score !== null)
+
+  function toggleCat(cat: string) {
+    setCats(prev => {
+      const next = new Set(prev)
+      if (next.has(cat)) next.delete(cat); else next.add(cat)
+      return next
+    })
+  }
+
+  const filtered = useMemo(() => {
+    const minS = minScore ? Number(minScore) : null
+    return allImages.filter(img => {
+      if (status === 'submitted'     && !img.submitted) return false
+      if (status === 'not_submitted' &&  img.submitted) return false
+      if (minS !== null && (img.score === null || img.score < minS)) return false
+      if (cats.size > 0 && !cats.has(img.categoryName ?? '')) return false
+      return true
+    })
+  }, [allImages, status, minScore, cats])
+
+  const items = filtered.map(img => ({
+    id:        img.id,
+    title:     img.title,
+    publicUrl: img.publicUrl,
+    badge:     img.submitted
+      ? [img.competitionName, img.score !== null ? `${img.score}` : null].filter(Boolean).join(' · ')
+      : undefined,
+  }))
+
+  return (
+    <div>
+      {/* Filter bar */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {/* Status */}
+        <div style={{ display: 'inline-flex', borderRadius: 7, border: '1px solid var(--border-default)', overflow: 'hidden' }}>
+          {(['all', 'submitted', 'not_submitted'] as StatusFilter[]).map(s => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStatus(s)}
+              className="px-3 py-1.5 text-xs font-semibold transition-colors"
+              style={{
+                background:  status === s ? 'var(--action-primary)' : 'var(--surface-2)',
+                color:       status === s ? '#fff' : 'var(--text-secondary)',
+                border:      'none',
+                cursor:      'pointer',
+                borderRight: s !== 'not_submitted' ? '1px solid var(--border-default)' : 'none',
+              }}
+            >
+              {s === 'all' ? 'All' : s === 'submitted' ? 'Submitted' : 'Not submitted'}
+            </button>
+          ))}
+        </div>
+
+        {/* Min score */}
+        {hasSubmitted && (
+          <select
+            value={minScore}
+            onChange={e => setMinScore(e.target.value)}
+            className="rounded-lg px-2 py-1.5 text-xs outline-none"
+            style={{ border: '1px solid var(--border-default)', background: 'var(--surface-2)', color: 'var(--text-secondary)' }}
+          >
+            <option value="">Any score</option>
+            {SCORE_OPTIONS.map(s => (
+              <option key={s} value={s}>{s}+</option>
+            ))}
+          </select>
+        )}
+
+        {/* Category chips */}
+        {availableCategories.map(cat => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => toggleCat(cat)}
+            className="rounded-full px-2.5 py-1 text-xs font-semibold transition-all"
+            style={{
+              background:   cats.has(cat) ? 'var(--action-primary)' : 'var(--surface-1)',
+              color:        cats.has(cat) ? '#fff' : 'var(--text-secondary)',
+              border:       `1px solid ${cats.has(cat) ? 'var(--action-primary)' : 'var(--border-default)'}`,
+              cursor:       'pointer',
+            }}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Count */}
+      <p className="mb-2.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+        {selectedIds.size} selected · {filtered.length} image{filtered.length !== 1 ? 's' : ''} shown
+      </p>
+
+      {/* Grid — scrollable, shows ~4 rows */}
+      <div style={{ maxHeight: 520, overflowY: 'auto', scrollbarWidth: 'thin' }}>
+        <PickerGrid items={items} selectedIds={selectedIds} onToggle={onToggle} />
+      </div>
+    </div>
   )
 }
 
@@ -138,74 +376,119 @@ function PickerGrid({
 
 function CoverPicker({
   imageIds,
-  libraryImages,
-  compImages,
+  imageMap,
   coverId,
   onSelect,
 }: {
-  imageIds:      string[]
-  libraryImages: GalleryImage[]
-  compImages:    CompImage[]
-  coverId:       string | null
-  onSelect:      (id: string) => void
+  imageIds: string[]
+  imageMap: Map<string, { title: string; publicUrl: string }>
+  coverId:  string | null
+  onSelect: (id: string) => void
 }) {
-  const libMap  = useMemo(() => new Map(libraryImages.map(i => [i.id, i])),  [libraryImages])
-  const compMap = useMemo(() => new Map(compImages.map(i => [i.imageId, i])), [compImages])
-
-  const items = imageIds.map(id => {
-    const lib  = libMap.get(id)
-    if (lib) return { id: lib.id, title: lib.title, publicUrl: lib.publicUrl }
-    const comp = compMap.get(id)
-    if (comp) return { id: comp.imageId, title: comp.title, publicUrl: comp.publicUrl }
-    return null
-  }).filter(Boolean) as { id: string; title: string; publicUrl: string }[]
+  const items = imageIds
+    .map(id => { const img = imageMap.get(id); return img ? { id, ...img } : null })
+    .filter(Boolean) as { id: string; title: string; publicUrl: string }[]
 
   if (items.length === 0) return null
 
   return (
-    <Box sx={{
-      display:             'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-      gap:                 1.5,
-    }}>
+    <div className="grid grid-cols-5 gap-2.5">
       {items.map(item => {
         const selected = coverId === item.id
         return (
-          <Box
+          <div
             key={item.id}
             onClick={() => onSelect(item.id)}
-            sx={{
-              position:    'relative',
+            className="relative cursor-pointer overflow-hidden rounded-lg"
+            style={{
               aspectRatio: '1',
-              borderRadius: 2,
-              overflow:    'hidden',
-              cursor:      'pointer',
-              border:      selected ? '2.5px solid' : '2.5px solid transparent',
-              borderColor: selected ? 'primary.main' : 'transparent',
+              border:      selected ? '2px solid var(--action-primary)' : '2px solid var(--border-default)',
+              boxShadow:   selected ? '0 0 0 3px rgba(26,111,196,0.22)' : 'none',
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={item.publicUrl} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <img src={item.publicUrl} alt={item.title}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             {selected && (
-              <CheckCircleIcon sx={{ position: 'absolute', top: 6, right: 6, fontSize: 18, color: 'primary.main', bgcolor: 'white', borderRadius: '50%' }} />
+              <div className="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full"
+                style={{ background: 'var(--action-primary)', color: '#fff' }}>
+                <IconCheck size={11} />
+              </div>
             )}
-            <Box sx={{
-              position:   'absolute',
-              bottom:     0,
-              left:       0,
-              right:      0,
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
               background: 'linear-gradient(transparent, rgba(0,0,0,0.65))',
-              px:         1,
-              py:         0.75,
+              padding: '4px 6px 5px',
             }}>
-              <Typography sx={{ fontSize: 11, color: '#fff', lineHeight: 1.3, fontWeight: 500 }} noWrap>
-                {item.title}
-              </Typography>
-            </Box>
-          </Box>
+              <p className="truncate text-[10px] font-semibold" style={{ color: '#fff' }}>{item.title}</p>
+            </div>
+          </div>
         )
       })}
-    </Box>
+    </div>
+  )
+}
+
+// ─── Modal shell (shared by wizard + edit) ────────────────────────────────────
+
+function ModalShell({
+  open, onClose, title, subtitle, maxWidth = 940, children,
+}: {
+  open:      boolean
+  onClose:   () => void
+  title:     string
+  subtitle?: string
+  maxWidth?: number
+  children:  React.ReactNode
+}) {
+  if (!open) return null
+  return (
+    <div
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-6"
+      style={{ background: 'rgba(0,0,0,0.70)', backdropFilter: 'blur(3px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="flex w-full flex-col overflow-hidden"
+        style={{
+          maxWidth,
+          borderRadius:  18,
+          maxHeight:     'calc(100vh - 48px)',
+          background:    'var(--surface-1)',
+          border:        '1px solid var(--border-default)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ padding: '22px 28px 0', borderBottom: '1px solid var(--border-default)', flexShrink: 0 }}>
+          <div className="flex items-start justify-between pb-4">
+            <div>
+              <h2 className="text-[22px] font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                {title}
+              </h2>
+              {subtitle && (
+                <p className="mt-0.5 text-[13px]" style={{ color: 'var(--text-secondary)' }}>{subtitle}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-[34px] w-[34px] items-center justify-center rounded-lg transition-colors"
+              style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-0)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {children}
+      </div>
+    </div>
   )
 }
 
@@ -226,33 +509,32 @@ function CreateWizard({
 }) {
   const router = useRouter()
 
-  const [step,        setStep]        = useState(0)
-  const [name,        setName]        = useState('')
-  const [visibility,  setVisibility]  = useState<'public' | 'members_only' | 'private'>('private')
+  const [step,        setStep]       = useState(0)
+  const [name,        setName]       = useState('')
+  const [visibility,  setVisibility] = useState<'public' | 'members_only' | 'private'>('private')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [coverId,     setCoverId]     = useState<string | null>(null)
-  const [pickerTab,   setPickerTab]   = useState(0)
-  const [saving,      setSaving]      = useState(false)
-  const [error,       setError]       = useState<string | null>(null)
+  const [coverId,     setCoverId]    = useState<string | null>(null)
+  const [saving,      setSaving]     = useState(false)
+  const [error,       setError]      = useState<string | null>(null)
+
+  const allImages = useMemo(() => buildMergedImages(libraryImages, compImages), [libraryImages, compImages])
+  const imageMap  = useMemo(() => new Map(allImages.map(i => [i.id, { title: i.title, publicUrl: i.publicUrl }])), [allImages])
 
   function reset() {
     setStep(0); setName(''); setVisibility('private')
-    setSelectedIds(new Set()); setCoverId(null); setPickerTab(0)
-    setError(null)
+    setSelectedIds(new Set()); setCoverId(null); setError(null)
   }
 
   function handleClose() { reset(); onClose() }
 
-  function toggleId(id: string) {
+  const toggleId = useCallback((id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev)
       if (next.has(id)) { next.delete(id); if (coverId === id) setCoverId(null) }
       else next.add(id)
       return next
     })
-  }
-
-  function handleCoverSelect(id: string) { setCoverId(id) }
+  }, [coverId])
 
   async function handleCreate() {
     setSaving(true); setError(null)
@@ -268,230 +550,246 @@ function CreateWizard({
     reset(); onClose(); router.refresh()
   }
 
-  const libItems  = libraryImages.map(i => ({ id: i.id, title: i.title, publicUrl: i.publicUrl }))
-  const compItems = compImages.map(i => ({ id: i.imageId, title: i.title, publicUrl: i.publicUrl, sub: i.competitionName }))
-
   const canAdvance0 = name.trim().length > 0
   const canAdvance1 = selectedIds.size > 0
   const orderedIds  = [...selectedIds]
   const defaultCover = coverId ?? orderedIds[0] ?? null
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth sx={{ '& .MuiPaper-root': { borderRadius: 3 } }}>
-      <DialogTitle sx={{ pb: 1 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700 }}>Create gallery</Typography>
-      </DialogTitle>
+    <ModalShell open={open} onClose={handleClose} title="Create gallery">
+      {/* Stepper */}
+      <div style={{ padding: '0 28px', flexShrink: 0 }}>
+        <WizardStepper step={step} labels={STEP_LABELS} />
+      </div>
 
-      <Box sx={{ px: 3 }}>
-        <Stepper activeStep={step} sx={{ mb: 3 }}>
-          {STEP_LABELS.map(label => (
-            <Step key={label}><StepLabel>{label}</StepLabel></Step>
-          ))}
-        </Stepper>
-      </Box>
-
-      <DialogContent sx={{ pt: 0, minHeight: 380 }}>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto" style={{ padding: '20px 28px 4px' }}>
+        {error && (
+          <div className="mb-4 rounded-lg px-4 py-3 text-sm"
+            style={{ background: 'var(--status-error-bg)', border: '1px solid var(--status-error)', color: 'var(--status-error-text)' }}>
+            {error}
+          </div>
+        )}
 
         {/* Step 0: Name & visibility */}
         {step === 0 && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, maxWidth: 480 }}>
-            <TextField
-              label="Gallery name"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              autoFocus
-              fullWidth
-              slotProps={{ htmlInput: { maxLength: 80 } }}
-              helperText={`${name.length}/80`}
-            />
-            <FormControl fullWidth>
-              <InputLabel>Visibility</InputLabel>
-              <Select
-                value={visibility}
-                label="Visibility"
-                onChange={e => setVisibility(e.target.value as 'public' | 'members_only' | 'private')}
-              >
-                <MenuItem value="public">
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <PublicIcon fontSize="small" />
-                    <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>Public</Typography>
-                      <Typography variant="caption" color="text.secondary">Anyone with the link can view</Typography>
-                    </Box>
-                  </Box>
-                </MenuItem>
-                <MenuItem value="members_only">
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <PeopleIcon fontSize="small" />
-                    <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>Members only</Typography>
-                      <Typography variant="caption" color="text.secondary">Only signed-in club members can view</Typography>
-                    </Box>
-                  </Box>
-                </MenuItem>
-                <MenuItem value="private">
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <LockOutlinedIcon fontSize="small" />
-                    <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>Private</Typography>
-                      <Typography variant="caption" color="text.secondary">Only visible to you</Typography>
-                    </Box>
-                  </Box>
-                </MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
+          <div className="flex flex-col gap-5" style={{ maxWidth: 480 }}>
+            <div>
+              <FieldLabel required>Gallery name</FieldLabel>
+              <NativeInput value={name} onChange={setName} placeholder="e.g. Spring landscapes" maxLength={80} autoFocus />
+              <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>{name.length}/80</p>
+            </div>
+            <div>
+              <FieldLabel>Visibility</FieldLabel>
+              <NativeSelect value={visibility} onChange={v => setVisibility(v as typeof visibility)}>
+                <option value="public">Public — anyone with the link can view</option>
+                <option value="members_only">Members only — signed-in club members only</option>
+                <option value="private">Private — only visible to you</option>
+              </NativeSelect>
+            </div>
+          </div>
         )}
 
         {/* Step 1: Pick images */}
         {step === 1 && (
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                {selectedIds.size} image{selectedIds.size !== 1 ? 's' : ''} selected
-              </Typography>
-            </Box>
-            <Tabs value={pickerTab} onChange={(_, v) => setPickerTab(v)} sx={{ mb: 2 }}>
-              <Tab label={`My library (${libraryImages.length})`} />
-              <Tab label={`Competition images (${compImages.length})`} />
-            </Tabs>
-            {pickerTab === 0 && (
-              <PickerGrid
-                items={libItems}
-                selectedIds={selectedIds}
-                onToggle={toggleId}
-                emptyMsg="No images in your library yet."
-              />
-            )}
-            {pickerTab === 1 && (
-              <PickerGrid
-                items={compItems}
-                selectedIds={selectedIds}
-                onToggle={toggleId}
-                emptyMsg="No competition submissions yet."
-              />
-            )}
-          </Box>
+          <ImageFilterPicker
+            allImages={allImages}
+            selectedIds={selectedIds}
+            onToggle={toggleId}
+          />
         )}
 
         {/* Step 2: Cover */}
         {step === 2 && (
-          <Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Choose a cover image for your gallery. The first image is selected by default.
-            </Typography>
+          <div>
+            <p className="mb-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+              Choose a cover image. The first selected image is used by default.
+            </p>
             <CoverPicker
               imageIds={orderedIds}
-              libraryImages={libraryImages}
-              compImages={compImages}
+              imageMap={imageMap}
               coverId={defaultCover}
-              onSelect={handleCoverSelect}
+              onSelect={setCoverId}
             />
-          </Box>
+          </div>
         )}
-      </DialogContent>
+      </div>
 
-      <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
-        <Button variant="outlined" color="secondary" onClick={handleClose} disabled={saving}>
+      {/* Footer */}
+      <div style={{ padding: '16px 28px 22px', borderTop: '1px solid var(--border-default)', flexShrink: 0, display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button
+          type="button"
+          onClick={handleClose}
+          disabled={saving}
+          className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+          style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', cursor: 'pointer' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-0)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+        >
           Cancel
-        </Button>
-        <Box sx={{ flex: 1 }} />
+        </button>
+        <div style={{ flex: 1 }} />
         {step > 0 && (
-          <Button variant="outlined" color="secondary" onClick={() => setStep(s => s - 1)} disabled={saving}>
+          <button
+            type="button"
+            onClick={() => setStep(s => s - 1)}
+            disabled={saving}
+            className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+            style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', cursor: 'pointer' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-0)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+          >
             Back
-          </Button>
+          </button>
         )}
         {step < 2 && (
-          <Button
-            variant="contained"
-            disabled={(step === 0 && !canAdvance0) || (step === 1 && !canAdvance1)}
+          <button
+            type="button"
             onClick={() => setStep(s => s + 1)}
+            disabled={(step === 0 && !canAdvance0) || (step === 1 && !canAdvance1)}
+            className="rounded-lg px-5 py-2 text-sm font-bold text-white transition-colors"
+            style={{ background: 'var(--action-primary)', border: 'none', cursor: (step === 0 && !canAdvance0) || (step === 1 && !canAdvance1) ? 'not-allowed' : 'pointer', opacity: (step === 0 && !canAdvance0) || (step === 1 && !canAdvance1) ? 0.5 : 1 }}
+            onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = 'var(--action-primary-hover)' }}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--action-primary)')}
           >
             Next
-          </Button>
+          </button>
         )}
         {step === 2 && (
-          <Button
-            variant="contained"
+          <button
+            type="button"
             onClick={handleCreate}
             disabled={saving}
-            startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
+            className="flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold text-white transition-colors"
+            style={{ background: 'var(--action-primary)', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
+            onMouseEnter={e => { if (!saving) e.currentTarget.style.background = 'var(--action-primary-hover)' }}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--action-primary)')}
           >
+            {saving && <CircularProgress size={14} color="inherit" />}
             {saving ? 'Creating…' : 'Create gallery'}
-          </Button>
+          </button>
         )}
-      </DialogActions>
-    </Dialog>
+      </div>
+    </ModalShell>
   )
 }
 
-// ─── Edit meta dialog ─────────────────────────────────────────────────────────
+// ─── Edit gallery dialog ──────────────────────────────────────────────────────
 
-function EditMetaDialog({
+function EditGalleryDialog({
   gallery,
+  libraryImages,
+  compImages,
   onClose,
 }: {
-  gallery: GalleryData | null
-  onClose: () => void
+  gallery:       GalleryData | null
+  libraryImages: GalleryImage[]
+  compImages:    CompImage[]
+  onClose:       () => void
 }) {
   const router = useRouter()
-  const [name,       setName]       = useState(gallery?.name ?? '')
-  const [visibility, setVisibility] = useState<'public' | 'members_only' | 'private'>(gallery?.visibility ?? 'private')
-  const [saving,     setSaving]     = useState(false)
-  const [error,      setError]      = useState<string | null>(null)
+
+  const allImages = useMemo(() => buildMergedImages(libraryImages, compImages), [libraryImages, compImages])
+  const imageMap  = useMemo(() => new Map(allImages.map(i => [i.id, { title: i.title, publicUrl: i.publicUrl }])), [allImages])
+
+  const [name,        setName]        = useState(gallery?.name ?? '')
+  const [visibility,  setVisibility]  = useState<'public' | 'members_only' | 'private'>(gallery?.visibility ?? 'private')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(gallery?.image_ids ?? []))
+  const [saving,      setSaving]      = useState(false)
+  const [error,       setError]       = useState<string | null>(null)
 
   if (!gallery) return null
+
+  const toggleId = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
 
   async function handleSave() {
     if (!gallery) return
     setSaving(true); setError(null)
-    const res = await updateGalleryMeta(gallery.id, { name, visibility })
+    const ids    = [...selectedIds]
+    const coverId = gallery.cover_image_id && ids.includes(gallery.cover_image_id)
+      ? gallery.cover_image_id
+      : ids[0] ?? null
+    const res = await updateGalleryFull(gallery.id, { name, visibility, imageIds: ids, coverId })
     setSaving(false)
     if (res.error) { setError(res.error); return }
     onClose(); router.refresh()
   }
 
   return (
-    <Dialog open onClose={onClose} maxWidth="xs" fullWidth sx={{ '& .MuiPaper-root': { borderRadius: 3 } }}>
-      <DialogTitle>Edit gallery</DialogTitle>
-      <DialogContent>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
-          <TextField
-            label="Gallery name"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            autoFocus
-            fullWidth
-            slotProps={{ htmlInput: { maxLength: 80 } }}
-          />
-          <FormControl fullWidth>
-            <InputLabel>Visibility</InputLabel>
-            <Select
-              value={visibility}
-              label="Visibility"
-              onChange={e => setVisibility(e.target.value as 'public' | 'members_only' | 'private')}
-            >
-              <MenuItem value="public">Public</MenuItem>
-              <MenuItem value="members_only">Members only</MenuItem>
-              <MenuItem value="private">Private</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button variant="outlined" color="secondary" onClick={onClose} disabled={saving}>Cancel</Button>
-        <Button
-          variant="contained"
+    <ModalShell open onClose={onClose} title="Edit gallery" maxWidth={860}>
+      <div className="flex-1 overflow-y-auto" style={{ padding: '22px 28px' }}>
+        {error && (
+          <div className="mb-4 rounded-lg px-4 py-3 text-sm"
+            style={{ background: 'var(--status-error-bg)', border: '1px solid var(--status-error)', color: 'var(--status-error-text)' }}>
+            {error}
+          </div>
+        )}
+
+        {/* Details */}
+        <div className="mb-6 grid gap-4" style={{ gridTemplateColumns: '1fr 1fr' }}>
+          <div>
+            <FieldLabel required>Gallery name</FieldLabel>
+            <NativeInput value={name} onChange={setName} maxLength={80} autoFocus />
+          </div>
+          <div>
+            <FieldLabel>Visibility</FieldLabel>
+            <NativeSelect value={visibility} onChange={v => setVisibility(v as typeof visibility)}>
+              <option value="public">Public</option>
+              <option value="members_only">Members only</option>
+              <option value="private">Private</option>
+            </NativeSelect>
+          </div>
+        </div>
+
+        {/* Divider + image section */}
+        <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 20 }}>
+          <p className="mb-3 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Images
+          </p>
+          {allImages.length === 0 ? (
+            <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>No images in your library yet.</p>
+          ) : (
+            <ImageFilterPicker
+              allImages={allImages}
+              selectedIds={selectedIds}
+              onToggle={toggleId}
+            />
+          )}
+        </div>
+      </div>
+
+      <div style={{ padding: '16px 28px 22px', borderTop: '1px solid var(--border-default)', flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={saving}
+          className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+          style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', cursor: 'pointer' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-0)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
           onClick={handleSave}
           disabled={!name.trim() || saving}
-          startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
+          className="flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold text-white transition-colors"
+          style={{ background: 'var(--action-primary)', border: 'none', cursor: (!name.trim() || saving) ? 'not-allowed' : 'pointer', opacity: (!name.trim() || saving) ? 0.5 : 1 }}
+          onMouseEnter={e => { if (name.trim() && !saving) e.currentTarget.style.background = 'var(--action-primary-hover)' }}
+          onMouseLeave={e => (e.currentTarget.style.background = 'var(--action-primary)')}
         >
-          {saving ? 'Saving…' : 'Save'}
-        </Button>
-      </DialogActions>
-    </Dialog>
+          {saving && <CircularProgress size={14} color="inherit" />}
+          {saving ? 'Saving…' : 'Save changes'}
+        </button>
+      </div>
+    </ModalShell>
   )
 }
 
@@ -541,106 +839,6 @@ function DeleteDialog({
         </Button>
       </DialogActions>
     </Dialog>
-  )
-}
-
-// ─── Gallery card ─────────────────────────────────────────────────────────────
-
-function GalleryCard({
-  gallery,
-  clubSlug,
-  onEdit,
-  onDelete,
-  onShare,
-}: {
-  gallery:  GalleryData
-  clubSlug: string
-  onEdit:   (g: GalleryData) => void
-  onDelete: (g: GalleryData) => void
-  onShare:  (g: GalleryData) => void
-}) {
-  return (
-    <Box
-      sx={{
-        borderRadius:  2,
-        overflow:      'hidden',
-        bgcolor:       'background.paper',
-        border:        '1px solid var(--border-default)',
-        display:       'flex',
-        flexDirection: 'column',
-      }}
-    >
-      {/* Cover */}
-      <Box
-        sx={{
-          aspectRatio: '4/3',
-          bgcolor:     'var(--surface-1)',
-          position:    'relative',
-          overflow:    'hidden',
-        }}
-      >
-        {gallery.coverImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={gallery.coverImageUrl}
-            alt={gallery.name}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
-        ) : (
-          <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Typography variant="caption" color="text.disabled">No images</Typography>
-          </Box>
-        )}
-        <Box sx={{
-          position:        'absolute',
-          bottom:          8,
-          right:           8,
-          bgcolor:         'rgba(0,0,0,0.55)',
-          borderRadius:    1,
-          px:              1,
-          py:              0.25,
-        }}>
-          <Typography sx={{ fontSize: 11, color: '#fff', fontWeight: 600 }}>
-            {gallery.imageCount} image{gallery.imageCount !== 1 ? 's' : ''}
-          </Typography>
-        </Box>
-      </Box>
-
-      {/* Info */}
-      <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-          <Typography sx={{ fontWeight: 600, fontSize: 15, flex: 1, lineHeight: 1.3 }}>
-            {gallery.name}
-          </Typography>
-          <Chip
-            icon={<VisibilityIcon v={gallery.visibility} />}
-            label={visibilityLabel(gallery.visibility)}
-            size="small"
-            sx={{ fontSize: 11, height: 22 }}
-          />
-        </Box>
-        <Box sx={{ display: 'flex', gap: 0.5, mt: 'auto', pt: 1 }}>
-          <Tooltip title="Edit name & visibility">
-            <IconButton size="small" onClick={() => onEdit(gallery)}>
-              <EditOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          {gallery.visibility !== 'private' && (
-            <Tooltip title="Share gallery">
-              <IconButton size="small" onClick={() => onShare(gallery)}>
-                <ShareOutlinedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-          <Box sx={{ flex: 1 }} />
-          <Tooltip title="Delete gallery">
-            <IconButton size="small" color="error" onClick={() => onDelete(gallery)}>
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
-    </Box>
   )
 }
 
@@ -701,6 +899,84 @@ function ShareDialog({
   )
 }
 
+// ─── Gallery card ─────────────────────────────────────────────────────────────
+
+function GalleryCard({
+  gallery,
+  clubSlug,
+  onEdit,
+  onDelete,
+  onShare,
+}: {
+  gallery:  GalleryData
+  clubSlug: string
+  onEdit:   (g: GalleryData) => void
+  onDelete: (g: GalleryData) => void
+  onShare:  (g: GalleryData) => void
+}) {
+  return (
+    <Box sx={{
+      borderRadius:  2,
+      overflow:      'hidden',
+      bgcolor:       'background.paper',
+      border:        '1px solid var(--border-default)',
+      display:       'flex',
+      flexDirection: 'column',
+    }}>
+      <Box sx={{ aspectRatio: '4/3', bgcolor: 'var(--surface-1)', position: 'relative', overflow: 'hidden' }}>
+        {gallery.coverImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={gallery.coverImageUrl} alt={gallery.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        ) : (
+          <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Typography variant="caption" color="text.disabled">No images</Typography>
+          </Box>
+        )}
+        <Box sx={{ position: 'absolute', bottom: 8, right: 8, bgcolor: 'rgba(0,0,0,0.55)', borderRadius: 1, px: 1, py: 0.25 }}>
+          <Typography sx={{ fontSize: 11, color: '#fff', fontWeight: 600 }}>
+            {gallery.imageCount} image{gallery.imageCount !== 1 ? 's' : ''}
+          </Typography>
+        </Box>
+      </Box>
+
+      <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+          <Typography sx={{ fontWeight: 600, fontSize: 15, flex: 1, lineHeight: 1.3 }}>
+            {gallery.name}
+          </Typography>
+          <Chip
+            icon={<VisibilityIcon v={gallery.visibility} />}
+            label={visibilityLabel(gallery.visibility)}
+            size="small"
+            sx={{ fontSize: 11, height: 22 }}
+          />
+        </Box>
+        <Box sx={{ display: 'flex', gap: 0.5, mt: 'auto', pt: 1 }}>
+          <Tooltip title="Edit gallery">
+            <IconButton size="small" onClick={() => onEdit(gallery)}>
+              <EditOutlinedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          {gallery.visibility !== 'private' && (
+            <Tooltip title="Share gallery">
+              <IconButton size="small" onClick={() => onShare(gallery)}>
+                <ShareOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+          <Box sx={{ flex: 1 }} />
+          <Tooltip title="Delete gallery">
+            <IconButton size="small" color="error" onClick={() => onDelete(gallery)}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </Box>
+    </Box>
+  )
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export default function GalleriesClient({
@@ -716,25 +992,25 @@ export default function GalleriesClient({
   libraryImages: GalleryImage[]
   compImages:    CompImage[]
 }) {
-  const [createOpen,  setCreateOpen]  = useState(false)
-  const [editGallery, setEditGallery] = useState<GalleryData | null>(null)
-  const [delGallery,  setDelGallery]  = useState<GalleryData | null>(null)
+  const [createOpen,   setCreateOpen]   = useState(false)
+  const [editGallery,  setEditGallery]  = useState<GalleryData | null>(null)
+  const [delGallery,   setDelGallery]   = useState<GalleryData | null>(null)
   const [shareGallery, setShareGallery] = useState<GalleryData | null>(null)
 
-  const atLimit = galleries.length >= GALLERY_LIMIT
+  const atLimit    = galleries.length >= GALLERY_LIMIT
+  const hasImages  = libraryImages.length > 0
 
   return (
     <Box>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 3 }}>
         <Box>
-          <Typography variant="h1" sx={{ fontSize: 'var(--text-h1-size)', fontWeight: 'var(--text-h1-weight)', letterSpacing: 'var(--text-h1-ls)', mb: 0.5 }}>
+          <h1 className="font-[family-name:var(--font-lora)] text-[28px] font-bold leading-tight tracking-[-0.02em] text-content-primary">
             My galleries
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Curate and share collections of your work.
-            {atLimit ? ` You've reached the ${GALLERY_LIMIT}-gallery limit.` : ` ${galleries.length} of ${GALLERY_LIMIT} used.`}
-          </Typography>
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            {galleries.length} of {GALLERY_LIMIT} created
+          </p>
         </Box>
         {galleries.length > 0 && (
           <Tooltip title={atLimit ? `Maximum ${GALLERY_LIMIT} galleries allowed` : ''}>
@@ -752,27 +1028,34 @@ export default function GalleriesClient({
         )}
       </Box>
 
-      {/* Gallery grid */}
-      {galleries.length === 0 ? (
+      {/* Empty state */}
+      {galleries.length === 0 && (
         <div className="flex flex-col items-center justify-center pb-16 pt-4 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/no-images-library.svg"
-            alt=""
-            width={510}
-            className="-mb-4 opacity-70 dark:invert"
-          />
+          <img src="/no-images-library.svg" alt="" width={510} className="-mb-4 opacity-70 dark:invert" />
           <p className="text-[22px] font-bold tracking-[-0.01em]" style={{ fontFamily: 'var(--font-lora)', color: 'var(--text-secondary)' }}>
             Every photographer has a story to tell
           </p>
           <p className="mt-2 text-[15px]" style={{ color: 'var(--text-secondary)' }}>
             Your gallery is where you tell yours — curate your best work and share it with the world.
           </p>
-          <Button variant="contained" onClick={() => setCreateOpen(true)} sx={{ mt: 4 }}>
-            + Create your first gallery
-          </Button>
+          <Tooltip title={!hasImages ? "You can create a gallery once you've uploaded your first image" : ''}>
+            <span>
+              <Button
+                variant="contained"
+                onClick={() => setCreateOpen(true)}
+                disabled={!hasImages}
+                sx={{ mt: 4 }}
+              >
+                + Create your first gallery
+              </Button>
+            </span>
+          </Tooltip>
         </div>
-      ) : (
+      )}
+
+      {/* Gallery grid */}
+      {galleries.length > 0 && (
         <Box sx={{
           display:             'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
@@ -798,8 +1081,10 @@ export default function GalleriesClient({
         libraryImages={libraryImages}
         compImages={compImages}
       />
-      <EditMetaDialog
+      <EditGalleryDialog
         gallery={editGallery}
+        libraryImages={libraryImages}
+        compImages={compImages}
         onClose={() => setEditGallery(null)}
       />
       <DeleteDialog

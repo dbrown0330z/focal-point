@@ -16,9 +16,8 @@ export default function GalleryViewer({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
   const lightboxImages: LightboxImage[] = images.map(img => ({
-    src:      img.publicUrl,
-    title:    img.title,
-    exifData: img.exifData,
+    src:   img.publicUrl,
+    title: img.title,
   }))
 
   if (images.length === 0) {

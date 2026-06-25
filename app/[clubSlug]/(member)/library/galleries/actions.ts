@@ -120,6 +120,42 @@ export async function deleteGallery(galleryId: string): Promise<{ error: string 
   return { error: null }
 }
 
+export async function updateGalleryFull(galleryId: string, data: {
+  name:       string
+  visibility: 'public' | 'members_only' | 'private'
+  imageIds:   string[]
+  coverId:    string | null
+}): Promise<{ error: string | null }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const clubSlug = await requireClubSlug()
+  if (!user) redirect(`/${clubSlug}/login`)
+
+  const name = data.name.trim()
+  if (!name) return { error: 'Gallery name is required.' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db   = createServiceClient() as any
+  const ctx  = await getClubContext()
+  const base = slugify(name)
+  const slug = await uniqueSlug(base, user.id, ctx!.clubId, galleryId)
+
+  const { error } = await db.from('member_galleries')
+    .update({
+      name,
+      slug,
+      visibility:     data.visibility,
+      image_ids:      data.imageIds,
+      cover_image_id: data.coverId,
+    })
+    .eq('id', galleryId)
+    .eq('member_id', user.id)
+
+  if (error) return { error: (error as { message: string }).message }
+  revalidatePath(`/${clubSlug}/library/galleries`)
+  return { error: null }
+}
+
 export async function updateGalleryImages(galleryId: string, imageIds: string[]): Promise<{ error: string | null }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
