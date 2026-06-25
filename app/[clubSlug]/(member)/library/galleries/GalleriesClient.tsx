@@ -736,52 +736,33 @@ export default function GalleriesClient({
             {atLimit ? ` You've reached the ${GALLERY_LIMIT}-gallery limit.` : ` ${galleries.length} of ${GALLERY_LIMIT} used.`}
           </Typography>
         </Box>
-        <Tooltip title={atLimit ? `Maximum ${GALLERY_LIMIT} galleries allowed` : ''}>
-          <span>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              disabled={atLimit}
-              onClick={() => setCreateOpen(true)}
-            >
-              New gallery
-            </Button>
-          </span>
-        </Tooltip>
+        {galleries.length > 0 && (
+          <Tooltip title={atLimit ? `Maximum ${GALLERY_LIMIT} galleries allowed` : ''}>
+            <span>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                disabled={atLimit}
+                onClick={() => setCreateOpen(true)}
+              >
+                New gallery
+              </Button>
+            </span>
+          </Tooltip>
+        )}
       </Box>
 
       {/* Gallery grid */}
       {galleries.length === 0 ? (
         <div className="flex flex-col items-center justify-center pb-16 pt-4 text-center">
-          {/* Inline illustration — overlapping framed photos */}
-          <svg width="320" height="180" viewBox="0 0 320 180" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-2 opacity-60 dark:opacity-40">
-            {/* Back frame */}
-            <rect x="50" y="30" width="120" height="90" rx="6" fill="var(--surface-1)" stroke="var(--border-default)" strokeWidth="1.5"/>
-            <rect x="58" y="38" width="104" height="66" rx="3" fill="var(--surface-0)"/>
-            {/* Mountains in back frame */}
-            <polygon points="68,96 95,58 122,96" fill="var(--gray-300)"/>
-            <polygon points="92,96 115,68 138,96" fill="var(--gray-200)"/>
-            {/* Sun in back frame */}
-            <circle cx="125" cy="52" r="8" fill="var(--gray-300)"/>
-            {/* Middle frame */}
-            <rect x="110" y="50" width="130" height="95" rx="6" fill="var(--surface-2)" stroke="var(--border-default)" strokeWidth="1.5"/>
-            <rect x="119" y="59" width="112" height="72" rx="3" fill="var(--surface-1)"/>
-            {/* Mountains in middle frame */}
-            <polygon points="130,124 162,78 194,124" fill="var(--gray-300)"/>
-            <polygon points="158,124 185,92 212,124" fill="var(--gray-200)"/>
-            {/* Sun in middle frame */}
-            <circle cx="210" cy="72" r="9" fill="var(--gray-300)"/>
-            {/* Front frame */}
-            <rect x="165" y="25" width="115" height="87" rx="6" fill="var(--surface-2)" stroke="var(--border-default)" strokeWidth="1.5"/>
-            <rect x="173" y="33" width="99" height="62" rx="3" fill="var(--surface-1)"/>
-            {/* Mountains in front frame */}
-            <polygon points="183,89 212,50 241,89" fill="var(--gray-300)"/>
-            <polygon points="208,89 232,65 256,89" fill="var(--gray-200)"/>
-            {/* Sun in front frame */}
-            <circle cx="254" cy="43" r="8" fill="var(--gray-300)"/>
-          </svg>
-
-          <p className="text-[22px] font-bold tracking-[-0.01em]" style={{ fontFamily: 'var(--font-primary)', color: 'var(--text-secondary)' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/no-images-library.svg"
+            alt=""
+            width={510}
+            className="-mb-4 opacity-70 dark:invert"
+          />
+          <p className="text-[22px] font-bold tracking-[-0.01em]" style={{ fontFamily: 'var(--font-lora)', color: 'var(--text-secondary)' }}>
             Every photographer has a story to tell
           </p>
           <p className="mt-2 text-[15px]" style={{ color: 'var(--text-secondary)' }}>
