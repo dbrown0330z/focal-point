@@ -96,7 +96,7 @@ export default async function NavigationPage() {
     .eq('club_id', ctx!.clubId)
     .order('submitted_at', { ascending: false })
 
-  const submissions: SubmissionOption[] = (subsRaw ?? []).map(s => {
+  const submissions: SubmissionOption[] = ((subsRaw ?? []) as any[]).map((s: any) => {
     const sub = s as {
       id: string
       images?: { title: string; storage_path: string } | null
