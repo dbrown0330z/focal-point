@@ -45,10 +45,13 @@ export async function uploadImageToLibrary(data: {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
-  if (!user) redirect('/login')
+  const ctx = await getClubContext()
+  const slug = ctx?.clubSlug ?? ''
+  if (!user) redirect(`/${slug}/login`)
 
   const { error } = await admin.from('images').insert({
     owner_id:     user.id,
+    club_id:      ctx?.clubId ?? null,
     title:        data.title,
     description:  data.description || null,
     storage_path: data.storage_path,
@@ -57,7 +60,7 @@ export async function uploadImageToLibrary(data: {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/library')
+  revalidatePath(`/${slug}/library`)
   return { error: null }
 }
 
