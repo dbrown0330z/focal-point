@@ -1127,7 +1127,7 @@ function GalleryCard({
             {gallery.name}
           </p>
           <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginTop: 5 }}>
-            {displayName}&nbsp;·&nbsp;{gallery.imageCount} photo{gallery.imageCount !== 1 ? 's' : ''}
+            {gallery.imageCount} photo{gallery.imageCount !== 1 ? 's' : ''}
           </p>
         </div>
 
@@ -1212,12 +1212,12 @@ export default function GalleriesClient({
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 6 }}>
         <h1 className="font-[family-name:var(--font-lora)] text-[28px] font-bold leading-tight tracking-[-0.02em] text-content-primary">
           My galleries
         </h1>
         <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-          {galleries.length} of {GALLERY_LIMIT} created
+          Up to 3 galleries, shared however you like
         </p>
       </Box>
 
