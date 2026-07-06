@@ -33,6 +33,10 @@ export type GalleryData = {
   imageCount:     number
 }
 
+export type MemberProfile = {
+  displayName: string
+}
+
 export default async function MyGalleriesPage() {
   const clubSlug = await requireClubSlug()
   const supabase = await createClient()
@@ -41,6 +45,14 @@ export default async function MyGalleriesPage() {
 
   const ctx      = await getClubContext()
   const admin    = createServiceClient()
+
+  // ── Member display name ───────────────────────────────────────────────────
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('first_name, last_name')
+    .eq('id', user.id)
+    .single()
+  const displayName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'Member'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminAny = admin as any
 
@@ -133,6 +145,7 @@ export default async function MyGalleriesPage() {
     <GalleriesClient
       clubSlug={clubSlug}
       userId={user.id}
+      displayName={displayName}
       galleries={galleries}
       libraryImages={libraryImages}
       compImages={compImages}

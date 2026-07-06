@@ -4,12 +4,10 @@ import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions,
-  IconButton, Chip, Tooltip, CircularProgress, Alert,
+  Tooltip, CircularProgress, Alert,
 } from '@mui/material'
 import AddIcon          from '@mui/icons-material/Add'
-import DeleteIcon       from '@mui/icons-material/Delete'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
-import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined'
 import PublicIcon       from '@mui/icons-material/Public'
 import PeopleIcon       from '@mui/icons-material/People'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
@@ -1044,79 +1042,145 @@ function ShareDialog({
 
 // ─── Gallery card ─────────────────────────────────────────────────────────────
 
+function visibilityBadgeStyle(v: string): React.CSSProperties {
+  if (v === 'public')       return { background: 'rgba(26,111,196,0.82)', color: '#fff' }
+  if (v === 'members_only') return { background: 'rgba(0,0,0,0.55)',      color: '#fff' }
+  return                           { background: 'rgba(0,0,0,0.55)',      color: 'rgba(255,255,255,0.75)' }
+}
+
 function GalleryCard({
   gallery,
   clubSlug,
+  userId,
+  displayName,
   onEdit,
   onDelete,
   onShare,
 }: {
-  gallery:  GalleryData
-  clubSlug: string
-  onEdit:   (g: GalleryData) => void
-  onDelete: (g: GalleryData) => void
-  onShare:  (g: GalleryData) => void
+  gallery:     GalleryData
+  clubSlug:    string
+  userId:      string
+  displayName: string
+  onEdit:      (g: GalleryData) => void
+  onDelete:    (g: GalleryData) => void
+  onShare:     (g: GalleryData) => void
 }) {
+  const galleryUrl = `/${clubSlug}/gallery/${userId}/${gallery.slug}`
+
   return (
-    <Box sx={{
-      borderRadius:  2,
-      overflow:      'hidden',
-      bgcolor:       'background.paper',
-      border:        '1px solid var(--border-default)',
-      display:       'flex',
-      flexDirection: 'column',
-    }}>
-      <Box sx={{ aspectRatio: '4/3', bgcolor: 'var(--surface-1)', position: 'relative', overflow: 'hidden' }}>
+    <div
+      style={{
+        borderRadius: 14,
+        overflow:     'hidden',
+        background:   'var(--surface-1)',
+        border:       '1px solid var(--border-default)',
+        display:      'flex',
+        flexDirection:'column',
+      }}
+    >
+      {/* Cover image — clickable, opens gallery in new tab */}
+      <a
+        href={galleryUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ display: 'block', position: 'relative', aspectRatio: '4/3', overflow: 'hidden', flexShrink: 0 }}
+      >
         {gallery.coverImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={gallery.coverImageUrl} alt={gallery.name}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-        ) : (
-          <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Typography variant="caption" color="text.disabled">No images</Typography>
-          </Box>
-        )}
-        <Box sx={{ position: 'absolute', bottom: 8, right: 8, bgcolor: 'rgba(0,0,0,0.55)', borderRadius: 1, px: 1, py: 0.25 }}>
-          <Typography sx={{ fontSize: 11, color: '#fff', fontWeight: 600 }}>
-            {gallery.imageCount} image{gallery.imageCount !== 1 ? 's' : ''}
-          </Typography>
-        </Box>
-      </Box>
-
-      <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-          <Typography sx={{ fontWeight: 600, fontSize: 15, flex: 1, lineHeight: 1.3 }}>
-            {gallery.name}
-          </Typography>
-          <Chip
-            icon={<VisibilityIcon v={gallery.visibility} />}
-            label={visibilityLabel(gallery.visibility)}
-            size="small"
-            sx={{ fontSize: 11, height: 22 }}
+          <img
+            src={gallery.coverImageUrl}
+            alt={gallery.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.25s ease' }}
+            onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.03)')}
+            onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
           />
-        </Box>
-        <Box sx={{ display: 'flex', gap: 0.5, mt: 'auto', pt: 1 }}>
-          <Tooltip title="Edit gallery">
-            <IconButton size="small" onClick={() => onEdit(gallery)}>
-              <EditOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-0)' }}>
+            <span style={{ fontSize: 13, color: 'var(--text-disabled)' }}>No cover image</span>
+          </div>
+        )}
+        {/* Visibility badge */}
+        <div
+          style={{
+            position:     'absolute',
+            top:          12,
+            left:         12,
+            borderRadius: 9999,
+            padding:      '3px 10px',
+            fontSize:     11,
+            fontWeight:   700,
+            letterSpacing:'0.05em',
+            textTransform:'uppercase',
+            backdropFilter: 'blur(4px)',
+            ...visibilityBadgeStyle(gallery.visibility),
+          }}
+        >
+          {visibilityLabel(gallery.visibility)}
+        </div>
+      </a>
+
+      {/* Info + actions */}
+      <div style={{ padding: '14px 16px 14px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+        {/* Name + meta */}
+        <div>
+          <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2, margin: 0 }}>
+            {gallery.name}
+          </p>
+          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginTop: 5 }}>
+            {displayName}&nbsp;·&nbsp;{gallery.imageCount} photo{gallery.imageCount !== 1 ? 's' : ''}
+          </p>
+        </div>
+
+        {/* Action buttons */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 'auto' }}>
+          <button
+            type="button"
+            onClick={() => onEdit(gallery)}
+            style={{
+              flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 13, fontWeight: 600,
+              background: 'transparent', border: '1.5px solid var(--border-default)',
+              color: 'var(--text-primary)', cursor: 'pointer',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.background = 'var(--surface-2)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'transparent' }}
+          >
+            Edit
+          </button>
           {gallery.visibility !== 'private' && (
-            <Tooltip title="Share gallery">
-              <IconButton size="small" onClick={() => onShare(gallery)}>
-                <ShareOutlinedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <button
+              type="button"
+              onClick={() => onShare(gallery)}
+              style={{
+                flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                background: 'transparent', border: '1.5px solid var(--border-default)',
+                color: 'var(--text-primary)', cursor: 'pointer',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.background = 'var(--surface-2)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'transparent' }}
+            >
+              Share
+            </button>
           )}
-          <Box sx={{ flex: 1 }} />
-          <Tooltip title="Delete gallery">
-            <IconButton size="small" color="error" onClick={() => onDelete(gallery)}>
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
-    </Box>
+          <button
+            type="button"
+            onClick={() => onDelete(gallery)}
+            title="Delete gallery"
+            style={{
+              width: 34, height: 34, borderRadius: 8, fontSize: 13,
+              background: 'transparent', border: '1.5px solid var(--border-default)',
+              color: 'var(--status-error)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--status-error-bg)'; e.currentTarget.style.borderColor = 'var(--status-error)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border-default)' }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width={15} height={15}>
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -1125,12 +1189,14 @@ function GalleryCard({
 export default function GalleriesClient({
   clubSlug,
   userId,
+  displayName,
   galleries,
   libraryImages,
   compImages,
 }: {
   clubSlug:      string
   userId:        string
+  displayName:   string
   galleries:     GalleryData[]
   libraryImages: GalleryImage[]
   compImages:    CompImage[]
@@ -1140,38 +1206,22 @@ export default function GalleriesClient({
   const [delGallery,   setDelGallery]   = useState<GalleryData | null>(null)
   const [shareGallery, setShareGallery] = useState<GalleryData | null>(null)
 
-  const atLimit    = galleries.length >= GALLERY_LIMIT
-  const hasImages  = libraryImages.length > 0
+  const atLimit   = galleries.length >= GALLERY_LIMIT
+  const hasImages = libraryImages.length > 0
 
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 3 }}>
-        <Box>
-          <h1 className="font-[family-name:var(--font-lora)] text-[28px] font-bold leading-tight tracking-[-0.02em] text-content-primary">
-            My galleries
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            {galleries.length} of {GALLERY_LIMIT} created
-          </p>
-        </Box>
-        {galleries.length > 0 && (
-          <Tooltip title={atLimit ? `Maximum ${GALLERY_LIMIT} galleries allowed` : ''}>
-            <span>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                disabled={atLimit}
-                onClick={() => setCreateOpen(true)}
-              >
-                New gallery
-              </Button>
-            </span>
-          </Tooltip>
-        )}
+      <Box sx={{ mb: 4 }}>
+        <h1 className="font-[family-name:var(--font-lora)] text-[28px] font-bold leading-tight tracking-[-0.02em] text-content-primary">
+          My galleries
+        </h1>
+        <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
+          {galleries.length} of {GALLERY_LIMIT} created
+        </p>
       </Box>
 
-      {/* Empty state */}
+      {/* Empty state — no galleries yet */}
       {galleries.length === 0 && (
         <div className="flex flex-col items-center justify-center pb-16 pt-4 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1197,24 +1247,63 @@ export default function GalleriesClient({
         </div>
       )}
 
-      {/* Gallery grid */}
-      {galleries.length > 0 && (
-        <Box sx={{
+      {/* Gallery grid + New Gallery card */}
+      {(galleries.length > 0) && (
+        <div style={{
           display:             'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-          gap:                 3,
+          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+          gap:                 24,
         }}>
           {galleries.map(g => (
             <GalleryCard
               key={g.id}
               gallery={g}
               clubSlug={clubSlug}
+              userId={userId}
+              displayName={displayName}
               onEdit={setEditGallery}
               onDelete={setDelGallery}
               onShare={setShareGallery}
             />
           ))}
-        </Box>
+
+          {/* New Gallery placeholder card */}
+          {!atLimit && (
+            <Tooltip title={!hasImages ? "Upload images to your library first" : ''}>
+              <button
+                type="button"
+                onClick={() => { if (hasImages) setCreateOpen(true) }}
+                disabled={!hasImages}
+                style={{
+                  borderRadius:   14,
+                  border:         '2px dashed var(--border-default)',
+                  background:     'transparent',
+                  cursor:         hasImages ? 'pointer' : 'not-allowed',
+                  display:        'flex',
+                  flexDirection:  'column',
+                  alignItems:     'center',
+                  justifyContent: 'center',
+                  gap:            10,
+                  minHeight:      260,
+                  opacity:        hasImages ? 1 : 0.5,
+                  transition:     'border-color 0.15s, background 0.15s',
+                }}
+                onMouseEnter={e => { if (hasImages) { e.currentTarget.style.borderColor = 'var(--action-primary)'; e.currentTarget.style.background = 'rgba(26,111,196,0.04)' } }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'transparent' }}
+              >
+                <div style={{
+                  width: 44, height: 44, borderRadius: '50%',
+                  border: '1.5px dashed var(--border-strong)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--text-tertiary)',
+                }}>
+                  <AddIcon sx={{ fontSize: 22 }} />
+                </div>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>New Gallery</span>
+              </button>
+            </Tooltip>
+          )}
+        </div>
       )}
 
       {/* Dialogs */}
