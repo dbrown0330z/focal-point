@@ -1214,9 +1214,11 @@ export default function GalleriesClient({
         <h1 className="font-[family-name:var(--font-lora)] text-[28px] font-bold leading-tight tracking-[-0.02em] text-content-primary">
           My galleries
         </h1>
-        <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Up to 3 galleries, shared however you like
-        </p>
+        {galleries.length > 0 && (
+          <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Up to 3 galleries, shared however you like
+          </p>
+        )}
       </Box>
 
       {/* Empty state — no galleries yet */}
