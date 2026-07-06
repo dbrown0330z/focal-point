@@ -1053,7 +1053,6 @@ function GalleryCard({
   clubSlug,
   userId,
   displayName,
-  onEdit,
   onDelete,
   onShare,
 }: {
@@ -1061,11 +1060,11 @@ function GalleryCard({
   clubSlug:    string
   userId:      string
   displayName: string
-  onEdit:      (g: GalleryData) => void
   onDelete:    (g: GalleryData) => void
   onShare:     (g: GalleryData) => void
 }) {
   const galleryUrl = `/${clubSlug}/gallery/${userId}/${gallery.slug}`
+  const editUrl    = `/${clubSlug}/library/galleries/${gallery.id}/edit`
 
   return (
     <div
@@ -1133,19 +1132,19 @@ function GalleryCard({
 
         {/* Action buttons */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 'auto' }}>
-          <button
-            type="button"
-            onClick={() => onEdit(gallery)}
+          <a
+            href={editUrl}
             style={{
               flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 13, fontWeight: 600,
               background: 'transparent', border: '1.5px solid var(--border-default)',
               color: 'var(--text-primary)', cursor: 'pointer',
+              textAlign: 'center', textDecoration: 'none', display: 'block',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.background = 'var(--surface-2)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'transparent' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--border-strong)'; (e.currentTarget as HTMLAnchorElement).style.background = 'var(--surface-2)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--border-default)'; (e.currentTarget as HTMLAnchorElement).style.background = 'transparent' }}
           >
             Edit
-          </button>
+          </a>
           {gallery.visibility !== 'private' && (
             <button
               type="button"
@@ -1202,7 +1201,6 @@ export default function GalleriesClient({
   compImages:    CompImage[]
 }) {
   const [createOpen,   setCreateOpen]   = useState(false)
-  const [editGallery,  setEditGallery]  = useState<GalleryData | null>(null)
   const [delGallery,   setDelGallery]   = useState<GalleryData | null>(null)
   const [shareGallery, setShareGallery] = useState<GalleryData | null>(null)
 
@@ -1261,7 +1259,6 @@ export default function GalleriesClient({
               clubSlug={clubSlug}
               userId={userId}
               displayName={displayName}
-              onEdit={setEditGallery}
               onDelete={setDelGallery}
               onShare={setShareGallery}
             />
@@ -1312,12 +1309,6 @@ export default function GalleriesClient({
         onClose={() => setCreateOpen(false)}
         libraryImages={libraryImages}
         compImages={compImages}
-      />
-      <EditGalleryDialog
-        gallery={editGallery}
-        libraryImages={libraryImages}
-        compImages={compImages}
-        onClose={() => setEditGallery(null)}
       />
       <DeleteDialog
         gallery={delGallery}
