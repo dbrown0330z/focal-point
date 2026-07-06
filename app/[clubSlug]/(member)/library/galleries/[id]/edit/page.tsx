@@ -7,9 +7,10 @@ import EditGalleryPage        from './EditGalleryPage'
 export const dynamic = 'force-dynamic'
 
 export type GalleryItem = {
-  id:        string
-  title:     string
-  publicUrl: string
+  id:         string
+  title:      string
+  publicUrl:  string
+  created_at: string
 }
 
 export type EditableGallery = {
@@ -52,17 +53,18 @@ export default async function EditGalleryRoute({
   if (imageIds.length > 0) {
     const { data: imgs } = await admin
       .from('images')
-      .select('id, title, storage_path')
+      .select('id, title, storage_path, created_at')
       .in('id', imageIds)
 
-    const imgMap = new Map((imgs ?? []).map((i: { id: string; title: string; storage_path: string }) => [i.id, i]))
+    const imgMap = new Map((imgs ?? []).map((i: { id: string; title: string; storage_path: string; created_at: string }) => [i.id, i]))
     for (const imgId of imageIds) {
-      const img = imgMap.get(imgId) as { id: string; title: string; storage_path: string } | undefined
+      const img = imgMap.get(imgId) as { id: string; title: string; storage_path: string; created_at: string } | undefined
       if (!img) continue
       initialItems.push({
-        id:        img.id,
-        title:     img.title as string,
-        publicUrl: admin.storage.from('images').getPublicUrl(img.storage_path as string).data.publicUrl,
+        id:         img.id,
+        title:      img.title as string,
+        publicUrl:  admin.storage.from('images').getPublicUrl(img.storage_path as string).data.publicUrl,
+        created_at: img.created_at as string,
       })
     }
   }
@@ -75,10 +77,11 @@ export default async function EditGalleryRoute({
     .eq('club_id', ctx!.clubId)
     .order('created_at', { ascending: false })
 
-  const libraryImages: GalleryItem[] = (libRaw ?? []).map((img: { id: string; title: string; storage_path: string }) => ({
-    id:        img.id as string,
-    title:     img.title as string,
-    publicUrl: admin.storage.from('images').getPublicUrl(img.storage_path as string).data.publicUrl,
+  const libraryImages: GalleryItem[] = (libRaw ?? []).map((img: { id: string; title: string; storage_path: string; created_at: string }) => ({
+    id:         img.id as string,
+    title:      img.title as string,
+    publicUrl:  admin.storage.from('images').getPublicUrl(img.storage_path as string).data.publicUrl,
+    created_at: img.created_at as string,
   }))
 
   return (

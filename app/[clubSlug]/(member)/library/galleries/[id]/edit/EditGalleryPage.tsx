@@ -26,14 +26,6 @@ import type { GalleryItem, EditableGallery } from './page'
 
 // ─── SVG icons ────────────────────────────────────────────────────────────────
 
-function IconDragHandle() {
-  return (
-    <svg viewBox="0 0 20 20" fill="currentColor" width={16} height={16}>
-      <path d="M7 4a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm6 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 10a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm6 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 16a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm6 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-    </svg>
-  )
-}
-
 function IconStar({ filled }: { filled: boolean }) {
   return (
     <svg viewBox="0 0 24 24" width={15} height={15}
@@ -143,38 +135,38 @@ function SortableTile({
   } = useSortable({ id: item.id })
 
   const style: React.CSSProperties = {
-    transform:  CSS.Transform.toString(transform),
+    transform:   CSS.Transform.toString(transform),
     transition,
-    zIndex:     isDragging ? 50 : 1,
-    opacity:    isDragging ? 0.85 : 1,
-    position:   'relative',
+    zIndex:      isDragging ? 50 : 1,
+    opacity:     isDragging ? 0.85 : 1,
+    position:    'relative',
     aspectRatio: '1',
     borderRadius: 10,
-    overflow:   'hidden',
-    border:     isCover ? '2.5px solid var(--action-primary)' : '2px solid var(--border-default)',
-    cursor:     isDragging ? 'grabbing' : 'default',
-    boxShadow:  isDragging ? '0 8px 24px rgba(0,0,0,0.35)' : 'none',
+    overflow:    'hidden',
+    border:      isCover ? '2.5px solid var(--action-primary)' : '2px solid var(--border-default)',
+    cursor:      isDragging ? 'grabbing' : 'grab',
+    boxShadow:   isDragging ? '0 8px 24px rgba(0,0,0,0.35)' : 'none',
   }
 
   return (
-    <div ref={setNodeRef} style={style}>
-      {/* Cover image */}
+    // Entire tile is the drag target
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={item.publicUrl}
         alt={item.title}
-        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', userSelect: 'none' }}
+        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', userSelect: 'none', pointerEvents: 'none' }}
         draggable={false}
       />
 
       {/* Bottom gradient + title */}
       <div style={{
-        position:   'absolute',
-        bottom:     0,
-        left:       0,
-        right:      0,
-        padding:    '24px 8px 8px',
-        background: 'linear-gradient(transparent, rgba(0,0,0,0.72))',
+        position:      'absolute',
+        bottom:        0,
+        left:          0,
+        right:         0,
+        padding:       '24px 8px 8px',
+        background:    'linear-gradient(transparent, rgba(0,0,0,0.72))',
         pointerEvents: 'none',
       }}>
         <p style={{ fontSize: 11, fontWeight: 600, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -182,50 +174,27 @@ function SortableTile({
         </p>
       </div>
 
-      {/* Drag handle — top left */}
-      <div
-        {...attributes}
-        {...listeners}
-        style={{
-          position:   'absolute',
-          top:        6,
-          left:       6,
-          width:      28,
-          height:     28,
-          borderRadius: 6,
-          background: 'rgba(255,255,255,0.18)',
-          backdropFilter: 'blur(4px)',
-          display:    'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color:      '#fff',
-          cursor:     'grab',
-        }}
-        title="Drag to reorder"
-      >
-        <IconDragHandle />
-      </div>
-
-      {/* Star — top right */}
+      {/* Star — top right (needs pointer-events so clicks work through the drag listener) */}
       <Tooltip title="Set as cover image" placement="top">
         <button
           type="button"
-          onClick={onSetCover}
+          onPointerDown={e => e.stopPropagation()}
+          onClick={e => { e.stopPropagation(); onSetCover() }}
           style={{
-            position:   'absolute',
-            top:        6,
-            right:      6,
-            width:      28,
-            height:     28,
-            borderRadius: 6,
-            background: isCover ? 'var(--action-primary)' : 'rgba(255,255,255,0.18)',
-            backdropFilter: 'blur(4px)',
-            border:     'none',
-            display:    'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color:      isCover ? '#fff' : 'rgba(255,255,255,0.85)',
-            cursor:     'pointer',
+            position:      'absolute',
+            top:           6,
+            right:         6,
+            width:         28,
+            height:        28,
+            borderRadius:  6,
+            background:    isCover ? 'var(--action-primary)' : 'rgba(255,255,255,0.72)',
+            backdropFilter:'blur(4px)',
+            border:        'none',
+            display:       'flex',
+            alignItems:    'center',
+            justifyContent:'center',
+            color:         isCover ? '#fff' : 'rgba(0,0,0,0.55)',
+            cursor:        'pointer',
           }}
         >
           <IconStar filled={isCover} />
@@ -235,23 +204,24 @@ function SortableTile({
       {/* Remove — bottom right */}
       <button
         type="button"
-        onClick={onRemove}
+        onPointerDown={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); onRemove() }}
         title="Remove from gallery"
         style={{
-          position:   'absolute',
-          bottom:     6,
-          right:      6,
-          width:      24,
-          height:     24,
-          borderRadius: 6,
-          background: 'rgba(211,47,47,0.85)',
-          backdropFilter: 'blur(4px)',
-          border:     'none',
-          display:    'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color:      '#fff',
-          cursor:     'pointer',
+          position:      'absolute',
+          bottom:        6,
+          right:         6,
+          width:         24,
+          height:        24,
+          borderRadius:  6,
+          background:    'rgba(211,47,47,0.85)',
+          backdropFilter:'blur(4px)',
+          border:        'none',
+          display:       'flex',
+          alignItems:    'center',
+          justifyContent:'center',
+          color:         '#fff',
+          cursor:        'pointer',
         }}
       >
         <IconX size={11} />
@@ -261,6 +231,28 @@ function SortableTile({
 }
 
 // ─── Add Photos modal ─────────────────────────────────────────────────────────
+
+type SortKey = 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc'
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: 'date-desc', label: 'Date added (new–old)' },
+  { value: 'date-asc',  label: 'Date added (old–new)' },
+  { value: 'name-asc',  label: 'Name (A–Z)' },
+  { value: 'name-desc', label: 'Name (Z–A)' },
+]
+
+function applySortAndFilter(images: GalleryItem[], search: string, sort: SortKey): GalleryItem[] {
+  const q = search.toLowerCase()
+  const filtered = q ? images.filter(i => i.title.toLowerCase().includes(q)) : images
+  return [...filtered].sort((a, b) => {
+    switch (sort) {
+      case 'date-desc': return b.created_at.localeCompare(a.created_at)
+      case 'date-asc':  return a.created_at.localeCompare(b.created_at)
+      case 'name-asc':  return a.title.localeCompare(b.title)
+      case 'name-desc': return b.title.localeCompare(a.title)
+    }
+  })
+}
 
 function AddPhotosModal({
   open,
@@ -273,27 +265,26 @@ function AddPhotosModal({
   onClose:       () => void
   libraryImages: GalleryItem[]
   currentIds:    Set<string>
-  onConfirm:     (selected: Set<string>) => void
+  onConfirm:     (newIds: Set<string>) => void
 }) {
+  // `selected` tracks only NEW additions — existing gallery images are locked
   const [search,   setSearch]   = useState('')
-  const [selected, setSelected] = useState<Set<string>>(new Set(currentIds))
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [sort,     setSort]     = useState<SortKey>('date-desc')
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
-  // Re-sync when modal opens
-  const prevOpenRef = useRef(false)
-  if (open && !prevOpenRef.current) {
-    // reset on open
-    prevOpenRef.current = true
-    // (useState initialiser ran; need effect-like reset — handled via key on modal below)
-  }
-  if (!open && prevOpenRef.current) prevOpenRef.current = false
+  const displayed = useMemo(
+    () => applySortAndFilter(libraryImages, search, sort),
+    [libraryImages, search, sort],
+  )
 
-  const filtered = useMemo(
-    () => libraryImages.filter(img => img.title.toLowerCase().includes(search.toLowerCase())),
-    [libraryImages, search],
+  // Only non-gallery images can be selected
+  const selectableImages = useMemo(
+    () => libraryImages.filter(i => !currentIds.has(i.id)),
+    [libraryImages, currentIds],
   )
 
   function toggle(id: string) {
+    if (currentIds.has(id)) return // locked
     setSelected(prev => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id); else next.add(id)
@@ -306,14 +297,14 @@ function AddPhotosModal({
   return (
     <div
       style={{
-        position:   'fixed',
-        inset:      0,
-        zIndex:     1200,
-        display:    'flex',
-        alignItems: 'center',
+        position:       'fixed',
+        inset:          0,
+        zIndex:         1200,
+        display:        'flex',
+        alignItems:     'center',
         justifyContent: 'center',
-        padding:    24,
-        background: 'rgba(0,0,0,0.75)',
+        padding:        '5vh 24px',
+        background:     'rgba(0,0,0,0.75)',
         backdropFilter: 'blur(3px)',
       }}
       onClick={onClose}
@@ -321,18 +312,18 @@ function AddPhotosModal({
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          width:        '100%',
-          maxWidth:     760,
-          maxHeight:    'calc(100vh - 48px)',
-          borderRadius: 18,
-          background:   'var(--surface-1)',
-          border:       '1px solid var(--border-default)',
-          display:      'flex',
-          flexDirection:'column',
-          overflow:     'hidden',
+          width:         '100%',
+          maxWidth:      800,
+          height:        '90vh',           // fixed height — never jumps
+          borderRadius:  18,
+          background:    'var(--surface-1)',
+          border:        '1px solid var(--border-default)',
+          display:       'flex',
+          flexDirection: 'column',
+          overflow:      'hidden',
         }}
       >
-        {/* Header */}
+        {/* ── Header ── */}
         <div style={{ padding: '22px 24px 16px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
             <div>
@@ -354,32 +345,41 @@ function AddPhotosModal({
             </button>
           </div>
 
-          {/* Search + bulk actions row */}
+          {/* Search + sort + bulk actions */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
-              ref={inputRef}
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search your photos…"
               autoFocus
               style={{
-                flex:         1,
-                height:       38,
-                borderRadius: 8,
-                border:       '1.5px solid var(--border-default)',
-                background:   'var(--surface-2)',
-                color:        'var(--text-primary)',
-                padding:      '0 12px',
-                fontSize:     14,
-                outline:      'none',
+                flex: 1, height: 38, borderRadius: 8,
+                border: '1.5px solid var(--border-default)',
+                background: 'var(--surface-2)', color: 'var(--text-primary)',
+                padding: '0 12px', fontSize: 14, outline: 'none',
               }}
               onFocus={e => (e.target.style.borderColor = 'var(--action-primary)')}
               onBlur={e => (e.target.style.borderColor = 'var(--border-default)')}
             />
+            {/* Sort dropdown */}
+            <select
+              value={sort}
+              onChange={e => setSort(e.target.value as SortKey)}
+              style={{
+                height: 38, borderRadius: 8, padding: '0 10px',
+                border: '1.5px solid var(--border-default)',
+                background: 'var(--surface-2)', color: 'var(--text-primary)',
+                fontSize: 13, outline: 'none', cursor: 'pointer',
+              }}
+            >
+              {SORT_OPTIONS.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
             <button
               type="button"
-              onClick={() => setSelected(new Set(libraryImages.map(i => i.id)))}
+              onClick={() => setSelected(new Set(selectableImages.map(i => i.id)))}
               style={{
                 padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
                 background: 'var(--surface-2)', border: '1.5px solid var(--border-default)',
@@ -402,19 +402,17 @@ function AddPhotosModal({
           </div>
         </div>
 
-        {/* Image grid */}
+        {/* ── Image grid (scrollable, fixed height) ── */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px', scrollbarWidth: 'thin' }}>
-          {filtered.length === 0 ? (
+          {displayed.length === 0 ? (
             <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 14, padding: '40px 0' }}>
               No photos match your search.
             </p>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
-              {filtered.map(img => {
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, alignContent: 'start' }}>
+              {displayed.map(img => {
                 const inGallery  = currentIds.has(img.id)
                 const isSelected = selected.has(img.id)
-                // "In gallery but deselected" means user is removing it
-                const removing = inGallery && !isSelected
 
                 return (
                   <div
@@ -425,15 +423,13 @@ function AddPhotosModal({
                       aspectRatio: '1',
                       borderRadius: 8,
                       overflow:    'hidden',
-                      cursor:      'pointer',
-                      border:      isSelected
+                      cursor:      inGallery ? 'default' : 'pointer',
+                      border:      inGallery
                         ? '2px solid var(--action-primary)'
-                        : removing
-                        ? '2px solid var(--status-error)'
+                        : isSelected
+                        ? '2px solid var(--action-primary)'
                         : '2px solid var(--border-default)',
-                      boxShadow: isSelected ? '0 0 0 3px rgba(26,111,196,0.20)' : 'none',
-                      opacity:   removing ? 0.45 : 1,
-                      transition: 'opacity 0.15s, border-color 0.15s',
+                      boxShadow:   isSelected && !inGallery ? '0 0 0 3px rgba(26,111,196,0.20)' : 'none',
                     }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -442,8 +438,9 @@ function AddPhotosModal({
                       alt={img.title}
                       style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     />
-                    {/* Selected checkmark */}
-                    {isSelected && (
+
+                    {/* Newly selected checkmark */}
+                    {isSelected && !inGallery && (
                       <div style={{
                         position: 'absolute', top: 5, left: 5,
                         width: 20, height: 20, borderRadius: '50%',
@@ -453,34 +450,30 @@ function AddPhotosModal({
                         <IconCheck size={11} />
                       </div>
                     )}
-                    {/* "In gallery" badge for already-included images */}
-                    {inGallery && isSelected && (
-                      <div style={{
-                        position:     'absolute',
-                        bottom:       4,
-                        left:         4,
-                        right:        4,
-                        background:   'rgba(0,0,0,0.58)',
-                        borderRadius: 4,
-                        padding:      '2px 5px',
-                        textAlign:    'center',
-                      }}>
-                        <span style={{ fontSize: 9, fontWeight: 700, color: '#fff', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                          In gallery
-                        </span>
-                      </div>
-                    )}
-                    {/* Removing indicator */}
-                    {removing && (
-                      <div style={{
-                        position: 'absolute', inset: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: 'rgba(211,47,47,0.15)',
-                      }}>
-                        <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--status-error)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                          Removing
-                        </span>
-                      </div>
+
+                    {/* Already-in-gallery: frosted overlay + badge */}
+                    {inGallery && (
+                      <>
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          background: 'rgba(26,111,196,0.22)',
+                        }} />
+                        <div style={{
+                          position:       'absolute',
+                          bottom:         0, left: 0, right: 0,
+                          padding:        '14px 6px 6px',
+                          background:     'linear-gradient(transparent, rgba(26,111,196,0.70))',
+                          display:        'flex',
+                          justifyContent: 'center',
+                        }}>
+                          <span style={{
+                            fontSize: 9, fontWeight: 700, color: '#fff',
+                            letterSpacing: '0.06em', textTransform: 'uppercase',
+                          }}>
+                            In gallery
+                          </span>
+                        </div>
+                      </>
                     )}
                   </div>
                 )
@@ -489,14 +482,14 @@ function AddPhotosModal({
           )}
         </div>
 
-        {/* Footer */}
+        {/* ── Footer ── */}
         <div style={{
-          padding:      '14px 24px 20px',
-          borderTop:    '1px solid var(--border-subtle)',
-          display:      'flex',
-          gap:          10,
+          padding:        '14px 24px 20px',
+          borderTop:      '1px solid var(--border-subtle)',
+          display:        'flex',
+          gap:            10,
           justifyContent: 'flex-end',
-          flexShrink:   0,
+          flexShrink:     0,
         }}>
           <button
             type="button"
@@ -518,7 +511,7 @@ function AddPhotosModal({
               color: '#fff', cursor: 'pointer',
             }}
           >
-            Add Photos {selected.size > 0 && `(${selected.size})`}
+            {selected.size > 0 ? `Add ${selected.size} Photo${selected.size !== 1 ? 's' : ''}` : 'Add Photos'}
           </button>
         </div>
       </div>
@@ -578,16 +571,10 @@ export default function EditGalleryPage({
     }
   }
 
-  function handleAddConfirm(selected: Set<string>) {
+  function handleAddConfirm(newSelected: Set<string>) {
     const libraryMap = new Map(libraryImages.map(i => [i.id, i]))
-    const currentIds = new Set(items.map(i => i.id))
-    const kept    = items.filter(i => selected.has(i.id))
-    const newOnes = libraryImages.filter(i => selected.has(i.id) && !currentIds.has(i.id))
-    const next    = [...kept, ...newOnes]
-    setItems(next)
-    if (coverId && !selected.has(coverId)) {
-      setCoverId(next[0]?.id ?? null)
-    }
+    const newOnes = libraryImages.filter(i => newSelected.has(i.id))
+    setItems(prev => [...prev, ...newOnes.filter(n => !prev.some(p => p.id === n.id))])
     void libraryMap
     setAddOpen(false)
   }
