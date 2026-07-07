@@ -199,8 +199,7 @@ export type DynamicFilters = {
   scoreMin:   number
   scoreMax:   number
   categories: string[]
-  dateFrom:   string | null
-  dateTo:     string | null
+  timeframe:  'this_year' | 'all_years'
 }
 
 export async function updateDynamicFilters(
