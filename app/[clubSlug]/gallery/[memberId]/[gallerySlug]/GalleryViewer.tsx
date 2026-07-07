@@ -35,9 +35,18 @@ const CORNER_RADIUS: Record<DisplaySettings['corners'], number> = {
 
 // ─── Display panel ────────────────────────────────────────────────────────────
 
-type Section<T extends string> = { label: string; options: { value: T; label: string }[] }
+const LABEL_STYLE: React.CSSProperties = {
+  fontSize:      10,
+  fontWeight:    700,
+  letterSpacing: '0.09em',
+  textTransform: 'uppercase',
+  color:         'rgba(255,255,255,0.38)',
+  margin:        '0 0 7px',
+  whiteSpace:    'nowrap',
+}
 
-function SegmentedControl<T extends string>({
+/** Connected button group — conveys mutual exclusivity */
+function ButtonGroup<T extends string>({
   value,
   options,
   onChange,
@@ -47,24 +56,30 @@ function SegmentedControl<T extends string>({
   onChange: (v: T) => void
 }) {
   return (
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-      {options.map(opt => {
+    <div style={{ display: 'flex' }}>
+      {options.map((opt, i) => {
         const active = opt.value === value
+        const first  = i === 0
+        const last   = i === options.length - 1
         return (
           <button
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
             style={{
-              padding:      '7px 14px',
-              borderRadius: 8,
+              padding:      '6px 13px',
               fontSize:     13,
               fontWeight:   600,
-              border:       `1.5px solid ${active ? 'var(--action-primary)' : 'rgba(255,255,255,0.15)'}`,
-              background:   active ? 'var(--action-primary)' : 'transparent',
-              color:        active ? '#fff' : 'rgba(255,255,255,0.60)',
+              border:       `1px solid ${active ? 'var(--toggle-selected)' : 'rgba(255,255,255,0.18)'}`,
+              borderRadius: first ? '6px 0 0 6px' : last ? '0 6px 6px 0' : '0',
+              marginLeft:   first ? 0 : -1,
+              background:   active ? 'var(--toggle-selected)' : 'transparent',
+              color:        active ? '#fff' : 'rgba(255,255,255,0.55)',
               cursor:       'pointer',
-              transition:   'background 0.12s, color 0.12s, border-color 0.12s',
+              position:     'relative',
+              zIndex:       active ? 1 : 0,
+              transition:   'background 0.12s, color 0.12s',
+              whiteSpace:   'nowrap',
             }}
           >
             {opt.label}
@@ -75,7 +90,8 @@ function SegmentedControl<T extends string>({
   )
 }
 
-function ToggleButton({
+/** Independent toggle — for Display options (not mutually exclusive) */
+function IndependentToggle({
   active,
   label,
   onClick,
@@ -89,19 +105,32 @@ function ToggleButton({
       type="button"
       onClick={onClick}
       style={{
-        padding:      '7px 14px',
-        borderRadius: 8,
-        fontSize:     13,
-        fontWeight:   600,
-        border:       `1.5px solid ${active ? 'var(--action-primary)' : 'rgba(255,255,255,0.15)'}`,
-        background:   active ? 'var(--action-primary)' : 'transparent',
-        color:        active ? '#fff' : 'rgba(255,255,255,0.60)',
-        cursor:       'pointer',
-        transition:   'background 0.12s, color 0.12s, border-color 0.12s',
+        padding:    '6px 13px',
+        borderRadius: 6,
+        fontSize:   13,
+        fontWeight: 600,
+        border:     `1px solid ${active ? 'var(--toggle-selected)' : 'rgba(255,255,255,0.18)'}`,
+        background: active ? 'var(--toggle-selected)' : 'transparent',
+        color:      active ? '#fff' : 'rgba(255,255,255,0.55)',
+        cursor:     'pointer',
+        transition: 'background 0.12s, color 0.12s',
+        whiteSpace: 'nowrap',
       }}
     >
       {label}
     </button>
+  )
+}
+
+function VDivider() {
+  return (
+    <div style={{
+      width:      1,
+      alignSelf:  'stretch',
+      background: 'rgba(255,255,255,0.10)',
+      flexShrink: 0,
+      margin:     '0 4px',
+    }} />
   )
 }
 
@@ -120,39 +149,6 @@ function DisplayPanel({
     onChange({ ...settings, [key]: value })
   }
 
-  const sections: Section<string>[] = [
-    {
-      label: 'Layout',
-      options: [
-        { value: 'grid',    label: 'Grid' },
-        { value: 'masonry', label: 'Masonry' },
-      ],
-    },
-    {
-      label: 'Density',
-      options: [
-        { value: 'compact',  label: 'Compact' },
-        { value: 'default',  label: 'Default' },
-        { value: 'spacious', label: 'Spacious' },
-      ],
-    },
-    {
-      label: 'Spacing',
-      options: [
-        { value: 'none',     label: 'None' },
-        { value: 'small',    label: 'Small' },
-        { value: 'standard', label: 'Standard' },
-      ],
-    },
-    {
-      label: 'Corners',
-      options: [
-        { value: 'rounded', label: 'Rounded' },
-        { value: 'square',  label: 'Square' },
-      ],
-    },
-  ]
-
   return (
     <div
       ref={panelRef}
@@ -161,73 +157,107 @@ function DisplayPanel({
         top:          64,
         right:        24,
         zIndex:       200,
-        width:        280,
+        width:        'max-content',
+        maxWidth:     'calc(100vw - 48px)',
         borderRadius: 16,
         background:   '#1E1E1E',
         border:       '1px solid rgba(255,255,255,0.12)',
-        padding:      '20px 20px 18px',
+        padding:      '20px 24px 18px',
         boxShadow:    '0 8px 32px rgba(0,0,0,0.60)',
       }}
     >
-      {sections.map(sec => (
-        <div key={sec.label} style={{ marginBottom: 18 }}>
-          <p style={{
-            fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
-            textTransform: 'uppercase', color: 'rgba(255,255,255,0.40)',
-            margin: '0 0 10px',
-          }}>
-            {sec.label}
-          </p>
-          <SegmentedControl
-            value={settings[sec.label.toLowerCase() as keyof DisplaySettings] as string}
-            options={sec.options as { value: string; label: string }[]}
-            onChange={v => set(sec.label.toLowerCase() as keyof DisplaySettings, v as never)}
+      {/* Header */}
+      <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: '0 0 3px' }}>
+        Customize Gallery Display
+      </p>
+      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.42)', margin: '0 0 18px', lineHeight: 1.45, maxWidth: 460 }}>
+        Only you have access to these controls, which will affect how all viewers see this gallery.
+      </p>
+
+      {/* Controls — one horizontal row */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, flexWrap: 'nowrap' }}>
+
+        {/* Layout */}
+        <div>
+          <p style={LABEL_STYLE}>Layout</p>
+          <ButtonGroup
+            value={settings.layout}
+            options={[{ value: 'grid', label: 'Grid' }, { value: 'masonry', label: 'Masonry' }]}
+            onChange={v => set('layout', v)}
           />
         </div>
-      ))}
 
-      {/* Display toggles */}
-      <div style={{ marginBottom: 18 }}>
-        <p style={{
-          fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
-          textTransform: 'uppercase', color: 'rgba(255,255,255,0.40)',
-          margin: '0 0 10px',
-        }}>
-          Display
-        </p>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <ToggleButton
-            active={settings.showTitle}
-            label="Title"
-            onClick={() => set('showTitle', !settings.showTitle)}
-          />
-          <ToggleButton
-            active={settings.showScore}
-            label="Score"
-            onClick={() => set('showScore', !settings.showScore)}
+        <VDivider />
+
+        {/* Density */}
+        <div>
+          <p style={LABEL_STYLE}>Density</p>
+          <ButtonGroup
+            value={settings.density}
+            options={[{ value: 'compact', label: 'Compact' }, { value: 'default', label: 'Default' }, { value: 'spacious', label: 'Spacious' }]}
+            onChange={v => set('density', v)}
           />
         </div>
-      </div>
 
-      {/* Done */}
-      <div style={{ paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.10)' }}>
-        <button
-          type="button"
-          onClick={onClose}
-          style={{
-            width:        '100%',
-            padding:      '9px 0',
-            borderRadius: 8,
-            fontSize:     13,
-            fontWeight:   700,
-            background:   'var(--action-primary)',
-            color:        '#fff',
-            border:       'none',
-            cursor:       'pointer',
-          }}
-        >
-          Done
-        </button>
+        <VDivider />
+
+        {/* Spacing */}
+        <div>
+          <p style={LABEL_STYLE}>Spacing</p>
+          <ButtonGroup
+            value={settings.spacing}
+            options={[{ value: 'none', label: 'None' }, { value: 'small', label: 'Small' }, { value: 'standard', label: 'Standard' }]}
+            onChange={v => set('spacing', v)}
+          />
+        </div>
+
+        <VDivider />
+
+        {/* Corners */}
+        <div>
+          <p style={LABEL_STYLE}>Corners</p>
+          <ButtonGroup
+            value={settings.corners ?? 'rounded'}
+            options={[{ value: 'rounded', label: 'Rounded' }, { value: 'square', label: 'Square' }]}
+            onChange={v => set('corners', v)}
+          />
+        </div>
+
+        <VDivider />
+
+        {/* Display — independent toggles */}
+        <div>
+          <p style={LABEL_STYLE}>Display</p>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <IndependentToggle active={settings.showTitle} label="Title" onClick={() => set('showTitle', !settings.showTitle)} />
+            <IndependentToggle active={settings.showScore} label="Score" onClick={() => set('showScore', !settings.showScore)} />
+          </div>
+        </div>
+
+        <VDivider />
+
+        {/* Done */}
+        <div style={{ paddingBottom: 0 }}>
+          <p style={{ ...LABEL_STYLE, opacity: 0 }}>Done</p>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              padding:    '6px 18px',
+              borderRadius: 6,
+              fontSize:   13,
+              fontWeight: 700,
+              background: 'rgba(255,255,255,0.12)',
+              color:      '#fff',
+              border:     '1px solid rgba(255,255,255,0.18)',
+              cursor:     'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Done
+          </button>
+        </div>
+
       </div>
     </div>
   )
