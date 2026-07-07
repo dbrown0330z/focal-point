@@ -5,12 +5,23 @@ import type { ProfileData, HistoryEntry } from '@/app/[clubSlug]/(member)/profil
 
 type AwardTierRaw = { id: string; label: string }
 
+export type MemberGallery = {
+  id:            string
+  name:          string
+  slug:          string
+  coverImageUrl: string | null
+  imageCount:    number
+}
+
 export async function getMemberPublicProfile(memberId: string): Promise<{
   profile:        ProfileData | null
   historyEntries: HistoryEntry[]
   showScores:     boolean
+  galleries:      MemberGallery[]
 }> {
   const admin = createServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminAny = admin as any
 
   const [{ data: profileRaw }, { data: subsRaw }] = await Promise.all([
     admin
@@ -33,7 +44,7 @@ export async function getMemberPublicProfile(memberId: string): Promise<{
       .eq('status', 'submitted'),
   ])
 
-  if (!profileRaw) return { profile: null, historyEntries: [], showScores: false }
+  if (!profileRaw) return { profile: null, historyEntries: [], showScores: false, galleries: [] }
 
   // Check score visibility preference (default true)
   const showScores = (profileRaw as Record<string, unknown>).pref_show_scores_publicly !== false
@@ -72,5 +83,40 @@ export async function getMemberPublicProfile(memberId: string): Promise<{
     }]
   })
 
-  return { profile: profileRaw as ProfileData, historyEntries, showScores }
+  // Fetch member's shared galleries (members_only or public)
+  const { data: galleriesRaw } = await adminAny
+    .from('member_galleries')
+    .select('id, name, slug, cover_image_id, image_ids, gallery_type')
+    .eq('member_id', memberId)
+    .in('visibility', ['members_only', 'public'])
+    .order('created_at', { ascending: false })
+
+  const galleries: MemberGallery[] = []
+  for (const g of (galleriesRaw ?? []) as {
+    id: string; name: string; slug: string;
+    cover_image_id: string | null; image_ids: string[] | null
+  }[]) {
+    let coverImageUrl: string | null = null
+    if (g.cover_image_id) {
+      const { data: imgRaw } = await admin
+        .from('images')
+        .select('storage_path')
+        .eq('id', g.cover_image_id)
+        .single()
+      if (imgRaw?.storage_path) {
+        coverImageUrl = admin.storage
+          .from('images')
+          .getPublicUrl(imgRaw.storage_path as string).data.publicUrl
+      }
+    }
+    galleries.push({
+      id:            g.id,
+      name:          g.name,
+      slug:          g.slug,
+      coverImageUrl,
+      imageCount:    (g.image_ids ?? []).length,
+    })
+  }
+
+  return { profile: profileRaw as ProfileData, historyEntries, showScores, galleries }
 }

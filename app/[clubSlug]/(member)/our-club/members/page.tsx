@@ -49,7 +49,7 @@ export default async function MembersPage() {
   const userIds = (memberships ?? []).map(m => m.user_id)
 
   if (userIds.length === 0) {
-    return <MembersClient members={[]} directoryVisible={visible} />
+    return <MembersClient members={[]} directoryVisible={visible} clubSlug={ctx?.clubSlug ?? ''} />
   }
 
   const thisYear      = new Date().getFullYear()
@@ -107,6 +107,7 @@ export default async function MembersPage() {
     <MembersClient
       members={members}
       directoryVisible={visible}
+      clubSlug={ctx?.clubSlug ?? ''}
     />
   )
 }

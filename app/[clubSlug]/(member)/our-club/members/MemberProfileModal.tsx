@@ -13,6 +13,7 @@ import IconButton   from '@mui/material/IconButton'
 import type { MemberRow } from './page'
 import type { ProfileData, HistoryEntry } from '@/app/[clubSlug]/(member)/profile/page'
 import { getMemberPublicProfile } from './actions'
+import type { MemberGallery } from './actions'
 import { avatarGradient as getAvatarGradient, avatarInitials } from '@/lib/avatar'
 import { skillLabel, skillFull } from '@/lib/profile-options'
 
@@ -56,26 +57,22 @@ function CloseIcon() {
 
 const ENTRIES_PER_PAGE = 15
 
-// ─── Highlight thumbnail ──────────────────────────────────────────────────────
-
-function HighlightThumb({ entry, onClick }: { entry: HistoryEntry; onClick: () => void }) {
-  return (
-    <div onClick={onClick} className="highlight-thumb-wrap" style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '4/3', cursor: 'pointer', background: 'var(--surface-1)' }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={entry.imageUrl} alt={entry.imageTitle} className="highlight-thumb-img" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }} />
-      <div className="highlight-overlay" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.82) 0%, transparent 55%)', opacity: 0, transition: 'opacity 0.3s', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 14 }}>
-        {entry.score !== null && <p style={{ fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 500, color: 'white', lineHeight: 1 }}>{entry.score}</p>}
-        {entry.awardLabel && <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--action-primary)', marginTop: 2 }}>{entry.awardLabel}</p>}
-      </div>
-    </div>
-  )
-}
-
 // ─── Read-only profile body ───────────────────────────────────────────────────
 
-function ProfileBody({ profile, historyEntries }: { profile: ProfileData; historyEntries: HistoryEntry[] }) {
+function ProfileBody({
+  profile,
+  historyEntries,
+  clubSlug,
+  memberId,
+  galleries,
+}: {
+  profile:        ProfileData
+  historyEntries: HistoryEntry[]
+  clubSlug:       string
+  memberId:       string
+  galleries:      MemberGallery[]
+}) {
   const [lightbox,    setLightbox]    = useState<HistoryEntry | null>(null)
-  const [hlSeason,    setHlSeason]    = useState<'this' | 'all'>('all')
   const [activeSeason, setActiveSeason] = useState<number>(() => {
     const years = historyEntries.map(e => e.seasonYear)
     return years.length ? Math.max(...years) : new Date().getFullYear()
@@ -90,9 +87,6 @@ function ProfileBody({ profile, historyEntries }: { profile: ProfileData; histor
   const surfaceColor = 'var(--surface-1)'
 
   const scoredEntries = historyEntries.filter(e => e.score !== null)
-  const thisYear      = new Date().getFullYear()
-  const hlEntries     = hlSeason === 'this' ? scoredEntries.filter(e => e.seasonYear === thisYear) : scoredEntries
-  const highlights    = [...hlEntries].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 9)
 
   const stats = {
     entered:   new Set(historyEntries.map(e => e.competitionId)).size,
@@ -215,26 +209,41 @@ function ProfileBody({ profile, historyEntries }: { profile: ProfileData; histor
         )}
       </div>
 
-      {/* Highlights gallery */}
-      {scoredEntries.length > 0 && (
-        <div style={{ background: 'var(--surface-0)', margin: '0 -28px 40px', padding: '40px 28px', borderTop: `1px solid ${borderColor}`, borderBottom: `1px solid ${borderColor}` }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 20 }}>
-            <h3 style={{ fontFamily: serifFont, fontSize: 24, fontWeight: 400, color: accentColor }}>Highlights</h3>
-            <div style={{ display: 'flex', background: surfaceColor, border: `1px solid ${borderColor}`, borderRadius: 6, overflow: 'hidden' }}>
-              {(['all', 'this'] as const).map(s => (
-                <button key={s} onClick={() => setHlSeason(s)} style={{ padding: '5px 14px', fontSize: 13, fontWeight: 500, cursor: 'pointer', border: 'none', fontFamily: 'inherit', background: hlSeason === s ? accentColor : 'transparent', color: hlSeason === s ? 'white' : 'var(--text-secondary)', transition: 'all 0.2s' }}>
-                  {s === 'all' ? 'All time' : 'This season'}
-                </button>
-              ))}
-            </div>
+      {/* Galleries */}
+      {galleries.length > 0 && (
+        <div style={{ marginBottom: 40 }}>
+          <h3 style={{ fontFamily: serifFont, fontSize: 24, fontWeight: 400, color: accentColor, marginBottom: 16 }}>Galleries</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+            {galleries.map(gallery => (
+              <div key={gallery.id} style={{ borderRadius: 12, overflow: 'hidden', background: 'var(--surface-1)', border: '1px solid var(--border-default)' }}>
+                <a
+                  href={`/${clubSlug}/gallery/${memberId}/${gallery.slug}`}
+                  style={{ display: 'block', aspectRatio: '4/3', overflow: 'hidden' }}
+                >
+                  {gallery.coverImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={gallery.coverImageUrl}
+                      alt={gallery.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.25s ease' }}
+                      onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.03)')}
+                      onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                    />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-0)' }}>
+                      <span style={{ fontSize: 13, color: 'var(--text-disabled)' }}>No images yet</span>
+                    </div>
+                  )}
+                </a>
+                <div style={{ padding: 12 }}>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{gallery.name}</p>
+                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '3px 0 0' }}>
+                    {gallery.imageCount} photo{gallery.imageCount !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
-          {highlights.length === 0 ? (
-            <p style={{ fontSize: 14, color: 'var(--text-secondary)', textAlign: 'center', padding: '32px 0' }}>No scored images for this season yet.</p>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
-              {highlights.map(entry => <HighlightThumb key={entry.submissionId} entry={entry} onClick={() => setLightbox(entry)} />)}
-            </div>
-          )}
         </div>
       )}
 
@@ -337,13 +346,15 @@ interface MemberProfileModalProps {
   index:    number
   onClose:  () => void
   onNav:    (i: number) => void
+  clubSlug: string
 }
 
-export default function MemberProfileModal({ members, index, onClose, onNav }: MemberProfileModalProps) {
+export default function MemberProfileModal({ members, index, onClose, onNav, clubSlug }: MemberProfileModalProps) {
   const member = members[index]
-  const [profile,  setProfile]  = useState<ProfileData | null>(null)
-  const [history,  setHistory]  = useState<HistoryEntry[]>([])
-  const [loading,  setLoading]  = useState(true)
+  const [profile,   setProfile]   = useState<ProfileData | null>(null)
+  const [history,   setHistory]   = useState<HistoryEntry[]>([])
+  const [galleries, setGalleries] = useState<MemberGallery[]>([])
+  const [loading,   setLoading]   = useState(true)
 
   // Fetch on mount and whenever the displayed member changes
   useEffect(() => {
@@ -351,10 +362,12 @@ export default function MemberProfileModal({ members, index, onClose, onNav }: M
     setLoading(true)
     setProfile(null)
     setHistory([])
-    getMemberPublicProfile(member.id).then(({ profile, historyEntries }) => {
+    setGalleries([])
+    getMemberPublicProfile(member.id).then(({ profile, historyEntries, galleries }) => {
       if (cancelled) return
       setProfile(profile)
       setHistory(historyEntries)
+      setGalleries(galleries)
       setLoading(false)
     })
     return () => { cancelled = true }
@@ -415,7 +428,7 @@ export default function MemberProfileModal({ members, index, onClose, onNav }: M
               Loading…
             </div>
           ) : profile ? (
-            <ProfileBody profile={profile} historyEntries={history} />
+            <ProfileBody profile={profile} historyEntries={history} clubSlug={clubSlug} memberId={member.id} galleries={galleries} />
           ) : (
             <div style={{ padding: '80px 0', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 14 }}>
               Profile not available.

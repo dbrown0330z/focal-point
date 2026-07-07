@@ -181,6 +181,28 @@ function ShareModal({
           Choose who can see this gallery
         </p>
 
+        {!clubChecked && !publicChecked && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '13px 16px', borderRadius: 10, marginBottom: 16,
+            background: 'var(--surface-2)',
+            border: '2px solid var(--border-default)',
+          }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              strokeLinecap="round" strokeLinejoin="round" width={20} height={20}
+              style={{ color: 'var(--text-secondary)', flexShrink: 0 }}>
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Private</p>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '2px 0 0' }}>
+                Only visible to you in My Galleries
+              </p>
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
           {/* Club card */}
           <label style={checkStyle(clubChecked)}>
@@ -250,12 +272,6 @@ function ShareModal({
               {copied ? 'Copied!' : 'Copy'}
             </button>
           </div>
-        )}
-
-        {!clubChecked && !publicChecked && (
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 20px', fontStyle: 'italic' }}>
-            Gallery will be private — only visible to you.
-          </p>
         )}
 
         <button

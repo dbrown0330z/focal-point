@@ -107,9 +107,11 @@ function ColHead({
 export default function MembersClient({
   members,
   directoryVisible,
+  clubSlug,
 }: {
   members: MemberRow[]
   directoryVisible: boolean
+  clubSlug: string
 }) {
   const [search,         setSearch]     = useState('')
   const [skillFilter,    setSkill]      = useState('')
@@ -338,6 +340,7 @@ export default function MembersClient({
           index={modalIndex}
           onClose={closeModal}
           onNav={navModal}
+          clubSlug={clubSlug}
         />
       )}
     </div>
