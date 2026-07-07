@@ -401,9 +401,12 @@ function SortableTile({
           justifyContent:'center',
           color:         '#ff6b6b',
           cursor:        'pointer',
+          transition:    'background 0.15s, border-color 0.15s',
         }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(211,47,47,0.75)'; e.currentTarget.style.borderColor = 'rgba(255,120,120,0.8)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.45)';    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)' }}
       >
-        <IconX size={11} />
+        <IconX size={14} />
       </button>
     </div>
   )

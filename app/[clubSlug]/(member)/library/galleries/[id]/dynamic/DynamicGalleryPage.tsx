@@ -516,10 +516,12 @@ export default function DynamicGalleryPage({
                   width: 26, height: 26, borderRadius: 6,
                   background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
                   border: '1.5px solid rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#ff6b6b', cursor: 'pointer',
+                  color: '#ff6b6b', cursor: 'pointer', transition: 'background 0.15s, border-color 0.15s',
                 }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(211,47,47,0.75)'; e.currentTarget.style.borderColor = 'rgba(255,120,120,0.8)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.45)';    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)' }}
               >
-                <IconX size={10} />
+                <IconX size={14} />
               </button>
 
               {/* Title + category */}
