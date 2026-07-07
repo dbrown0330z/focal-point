@@ -512,11 +512,11 @@ export default function DynamicGalleryPage({
                 onClick={() => removeFromPreview(img.id)}
                 title="Remove from gallery"
                 style={{
-                  position: 'absolute', top: 6, right: 6,
-                  width: 24, height: 24, borderRadius: 6,
-                  background: 'rgba(211,47,47,0.85)', backdropFilter: 'blur(4px)',
-                  border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', cursor: 'pointer',
+                  position: 'absolute', bottom: 6, right: 6,
+                  width: 26, height: 26, borderRadius: 6,
+                  background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
+                  border: '1.5px solid rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#ff6b6b', cursor: 'pointer',
                 }}
               >
                 <IconX size={10} />
