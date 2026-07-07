@@ -17,11 +17,12 @@ export type ScoredImage = {
 }
 
 export type DynamicGalleryRecord = {
-  id:      string
-  name:    string
-  slug:    string
-  filters: DynamicFilters | null
-  clubName: string
+  id:         string
+  name:       string
+  slug:       string
+  visibility: 'public' | 'members_only' | 'private'
+  filters:    DynamicFilters | null
+  clubName:   string
 }
 
 export default async function DynamicGalleryRoute({
@@ -42,7 +43,7 @@ export default async function DynamicGalleryRoute({
   // ── Gallery record ────────────────────────────────────────────────────────
   const { data: gallery } = await admin
     .from('member_galleries')
-    .select('id, name, slug, filters')
+    .select('id, name, slug, visibility, filters')
     .eq('id', id)
     .eq('member_id', user.id)
     .eq('gallery_type', 'dynamic')
@@ -88,11 +89,12 @@ export default async function DynamicGalleryRoute({
   }
 
   const galleryRecord: DynamicGalleryRecord = {
-    id:       gallery.id as string,
-    name:     gallery.name as string,
-    slug:     gallery.slug as string,
-    filters:  (gallery.filters as DynamicFilters | null) ?? null,
-    clubName: ctx?.clubName ?? '',
+    id:         gallery.id as string,
+    name:       gallery.name as string,
+    slug:       gallery.slug as string,
+    visibility: (gallery.visibility as 'public' | 'members_only' | 'private') ?? 'private',
+    filters:    (gallery.filters as DynamicFilters | null) ?? null,
+    clubName:   ctx?.clubName ?? '',
   }
 
   return (

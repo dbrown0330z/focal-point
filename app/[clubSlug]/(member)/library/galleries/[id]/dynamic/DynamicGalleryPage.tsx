@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import { useRouter }  from 'next/navigation'
 import Link           from 'next/link'
 import Slider         from '@mui/material/Slider'
-import { updateDynamicFilters } from '../../actions'
+import { updateDynamicFilters, updateGalleryMeta } from '../../actions'
 import type { DynamicFilters }  from '../../actions'
 import type { ScoredImage, DynamicGalleryRecord } from './page'
 
@@ -16,6 +16,91 @@ function clubYearRange(): { from: string; to: string } {
   const year  = now.getFullYear()
   const start = month >= 9 ? year : year - 1
   return { from: `${start}-09-01`, to: `${start + 1}-08-31` }
+}
+
+// ─── Visibility chip ─────────────────────────────────────────────────────────
+
+const VISIBILITY_CHIP_LABEL: Record<string, string> = {
+  public:       'Public',
+  members_only: 'Members only',
+  private:      'Private',
+}
+
+function VisibilityChip({ value }: { value: string }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      padding: '3px 11px', borderRadius: 9999,
+      fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase',
+      background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(6px)',
+      border: '1px solid var(--border-default)', color: 'var(--text-secondary)', whiteSpace: 'nowrap',
+    }}>
+      {VISIBILITY_CHIP_LABEL[value] ?? value}
+    </span>
+  )
+}
+
+// ─── Share modal ──────────────────────────────────────────────────────────────
+
+const SHARE_OPTIONS: Array<{
+  value: 'private' | 'members_only' | 'public'
+  label: string
+  subFn: (clubName: string) => string
+}> = [
+  { value: 'private',      label: 'Private',  subFn: ()       => 'Only you can see this gallery' },
+  { value: 'members_only', label: 'Club Only', subFn: cn       => `Visible to ${cn} members` },
+  { value: 'public',       label: 'Public',   subFn: ()       => 'Anyone with the link can view' },
+]
+
+function ShareModal({
+  open, onClose, galleryName, clubName, currentVisibility, galleryUrl, onSave,
+}: {
+  open: boolean; onClose: () => void; galleryName: string; clubName: string
+  currentVisibility: 'public' | 'members_only' | 'private'
+  galleryUrl: string; onSave: (v: 'public' | 'members_only' | 'private') => void
+}) {
+  const [selected, setSelected] = useState(currentVisibility)
+  const [copied,   setCopied]   = useState(false)
+  const prevOpen = useRef(false)
+  if (open  && !prevOpen.current) { setSelected(currentVisibility); prevOpen.current = true }
+  if (!open) prevOpen.current = false
+
+  function handleCopy() {
+    navigator.clipboard.writeText(galleryUrl).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+  }
+
+  if (!open) return null
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(0,0,0,0.70)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 540, borderRadius: 20, background: 'var(--surface-1)', border: '1px solid var(--border-default)', padding: '28px 28px 24px' }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px' }}>Share &ldquo;{galleryName}&rdquo;</h2>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 20px' }}>Choose who can view this gallery</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+          {SHARE_OPTIONS.map(opt => {
+            const active = selected === opt.value
+            return (
+              <button key={opt.value} type="button" onClick={() => setSelected(opt.value)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderRadius: 12, border: `1.5px solid ${active ? 'var(--action-primary)' : 'var(--border-default)'}`, background: active ? 'rgba(26,111,196,0.08)' : 'var(--surface-2)', cursor: 'pointer', textAlign: 'left' }}>
+                <div>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{opt.label}</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '2px 0 0' }}>{opt.subFn(clubName)}</p>
+                </div>
+                {active && <svg viewBox="0 0 24 24" fill="none" stroke="var(--action-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width={18} height={18} style={{ flexShrink: 0 }}><path d="M20 6L9 17l-5-5"/></svg>}
+              </button>
+            )
+          })}
+        </div>
+        {selected !== 'private' && (
+          <div style={{ display: 'flex', marginBottom: 20, background: 'var(--surface-2)', border: '1.5px solid var(--border-default)', borderRadius: 10, overflow: 'hidden' }}>
+            <input readOnly value={galleryUrl} style={{ flex: 1, padding: '10px 14px', background: 'transparent', border: 'none', outline: 'none', fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-code)' }} />
+            <button type="button" onClick={handleCopy} style={{ padding: '10px 18px', background: 'var(--surface-1)', border: 'none', borderLeft: '1.5px solid var(--border-default)', fontSize: 13, fontWeight: 700, color: copied ? 'var(--status-success)' : 'var(--text-primary)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+        )}
+        <button type="button" onClick={() => { onSave(selected); onClose() }} style={{ width: '100%', padding: '13px 0', borderRadius: 10, fontSize: 15, fontWeight: 700, background: 'var(--action-primary)', color: '#fff', border: 'none', cursor: 'pointer' }}>Done</button>
+      </div>
+    </div>
+  )
 }
 
 // ─── Filter logic ─────────────────────────────────────────────────────────────
@@ -80,8 +165,19 @@ export default function DynamicGalleryPage({
   const [applied,    setApplied]    = useState<DynamicFilters>(saved)
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set())
 
+  const [visibility,  setVisibility]  = useState(gallery.visibility)
+  const [shareOpen,   setShareOpen]   = useState(false)
   const [saving, setSaving] = useState(false)
   const [error,  setError]  = useState<string | null>(null)
+
+  const galleryUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/${clubSlug}/gallery/${gallery.id}/${gallery.slug}`
+    : `/${clubSlug}/gallery/${gallery.id}/${gallery.slug}`
+
+  async function handleVisibilitySave(v: 'public' | 'members_only' | 'private') {
+    setVisibility(v)
+    await updateGalleryMeta(gallery.id, { name: gallery.name, visibility: v })
+  }
 
   const availableCategories = useMemo(
     () => [...new Set(images.filter(i => i.categoryName).map(i => i.categoryName!))].sort(),
@@ -129,6 +225,17 @@ export default function DynamicGalleryPage({
         <div style={{ flex: 1 }} />
         <button
           type="button"
+          onClick={() => setShareOpen(true)}
+          style={{
+            padding: '6px 16px', borderRadius: 9999, fontSize: 13, fontWeight: 600,
+            background: 'var(--surface-2)', border: '1.5px solid var(--border-default)',
+            color: 'var(--text-primary)', cursor: 'pointer',
+          }}
+        >
+          Share
+        </button>
+        <button
+          type="button"
           onClick={handleDone}
           disabled={saving}
           style={{
@@ -158,6 +265,7 @@ export default function DynamicGalleryPage({
         }}>
           Dynamic
         </span>
+        <VisibilityChip value={visibility} />
       </div>
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 24px' }}>
         Adjust filters and click Apply — click Done to save.
@@ -393,6 +501,17 @@ export default function DynamicGalleryPage({
           ))}
         </div>
       )}
+
+      {/* ── Share modal ── */}
+      <ShareModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        galleryName={gallery.name}
+        clubName={gallery.clubName}
+        currentVisibility={visibility}
+        galleryUrl={galleryUrl}
+        onSave={handleVisibilitySave}
+      />
     </div>
   )
 }

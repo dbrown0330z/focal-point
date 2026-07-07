@@ -195,6 +195,34 @@ export async function setCoverImage(galleryId: string, imageId: string): Promise
   return { error: null }
 }
 
+export type DisplaySettings = {
+  layout:    'grid' | 'masonry'
+  density:   'compact' | 'default' | 'spacious'
+  spacing:   'none' | 'small' | 'standard'
+  showTitle: boolean
+  showScore: boolean
+}
+
+export async function updateDisplaySettings(
+  galleryId: string,
+  settings:  DisplaySettings,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const clubSlug = await requireClubSlug()
+  if (!user) redirect(`/${clubSlug}/login`)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = createServiceClient() as any
+  const { error } = await db.from('member_galleries')
+    .update({ display_settings: settings })
+    .eq('id', galleryId)
+    .eq('member_id', user.id)
+
+  if (error) return { error: (error as { message: string }).message }
+  return { error: null }
+}
+
 export type DynamicFilters = {
   scoreMin:   number
   scoreMax:   number

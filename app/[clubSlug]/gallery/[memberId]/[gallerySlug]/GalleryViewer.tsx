@@ -1,79 +1,482 @@
 'use client'
 
-import { useState } from 'react'
-import { Box, Typography } from '@mui/material'
+import { useState, useEffect, useRef, useTransition } from 'react'
 import { Lightbox, type LightboxImage } from '@/components/ui/Lightbox'
+import { updateDisplaySettings } from '@/app/[clubSlug]/(member)/library/galleries/actions'
+import type { DisplaySettings } from '@/app/[clubSlug]/(member)/library/galleries/actions'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type GalleryImage = {
+  id:       string
+  title:    string
+  publicUrl: string
+  score:    number | null
+}
+
+// ─── Layout helpers ───────────────────────────────────────────────────────────
+
+const COLUMN_COUNT: Record<DisplaySettings['density'], number> = {
+  compact:  5,
+  default:  4,
+  spacious: 3,
+}
+
+const GAP_PX: Record<DisplaySettings['spacing'], number> = {
+  none:     0,
+  small:    6,
+  standard: 14,
+}
+
+// ─── Display panel ────────────────────────────────────────────────────────────
+
+type Section<T extends string> = { label: string; options: { value: T; label: string }[] }
+
+function SegmentedControl<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value:    T
+  options:  { value: T; label: string }[]
+  onChange: (v: T) => void
+}) {
+  return (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      {options.map(opt => {
+        const active = opt.value === value
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            style={{
+              padding:      '7px 14px',
+              borderRadius: 8,
+              fontSize:     13,
+              fontWeight:   600,
+              border:       `1.5px solid ${active ? 'var(--action-primary)' : 'rgba(255,255,255,0.15)'}`,
+              background:   active ? 'var(--action-primary)' : 'transparent',
+              color:        active ? '#fff' : 'rgba(255,255,255,0.60)',
+              cursor:       'pointer',
+              transition:   'background 0.12s, color 0.12s, border-color 0.12s',
+            }}
+          >
+            {opt.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function ToggleButton({
+  active,
+  label,
+  onClick,
+}: {
+  active:  boolean
+  label:   string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding:      '7px 14px',
+        borderRadius: 8,
+        fontSize:     13,
+        fontWeight:   600,
+        border:       `1.5px solid ${active ? 'var(--action-primary)' : 'rgba(255,255,255,0.15)'}`,
+        background:   active ? 'var(--action-primary)' : 'transparent',
+        color:        active ? '#fff' : 'rgba(255,255,255,0.60)',
+        cursor:       'pointer',
+        transition:   'background 0.12s, color 0.12s, border-color 0.12s',
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
+function DisplayPanel({
+  settings,
+  onChange,
+  onClose,
+  panelRef,
+}: {
+  settings:  DisplaySettings
+  onChange:  (s: DisplaySettings) => void
+  onClose:   () => void
+  panelRef:  React.RefObject<HTMLDivElement | null>
+}) {
+  function set<K extends keyof DisplaySettings>(key: K, value: DisplaySettings[K]) {
+    onChange({ ...settings, [key]: value })
+  }
+
+  const sections: Section<string>[] = [
+    {
+      label: 'Layout',
+      options: [
+        { value: 'grid',    label: 'Grid' },
+        { value: 'masonry', label: 'Masonry' },
+      ],
+    },
+    {
+      label: 'Density',
+      options: [
+        { value: 'compact',  label: 'Compact' },
+        { value: 'default',  label: 'Default' },
+        { value: 'spacious', label: 'Spacious' },
+      ],
+    },
+    {
+      label: 'Spacing',
+      options: [
+        { value: 'none',     label: 'None' },
+        { value: 'small',    label: 'Small' },
+        { value: 'standard', label: 'Standard' },
+      ],
+    },
+  ]
+
+  return (
+    <div
+      ref={panelRef}
+      style={{
+        position:     'fixed',
+        top:          64,
+        right:        24,
+        zIndex:       200,
+        width:        280,
+        borderRadius: 16,
+        background:   '#1E1E1E',
+        border:       '1px solid rgba(255,255,255,0.12)',
+        padding:      '20px 20px 18px',
+        boxShadow:    '0 8px 32px rgba(0,0,0,0.60)',
+      }}
+    >
+      {sections.map(sec => (
+        <div key={sec.label} style={{ marginBottom: 18 }}>
+          <p style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+            textTransform: 'uppercase', color: 'rgba(255,255,255,0.40)',
+            margin: '0 0 10px',
+          }}>
+            {sec.label}
+          </p>
+          <SegmentedControl
+            value={settings[sec.label.toLowerCase() as keyof DisplaySettings] as string}
+            options={sec.options as { value: string; label: string }[]}
+            onChange={v => set(sec.label.toLowerCase() as keyof DisplaySettings, v as never)}
+          />
+        </div>
+      ))}
+
+      {/* Display toggles */}
+      <div>
+        <p style={{
+          fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+          textTransform: 'uppercase', color: 'rgba(255,255,255,0.40)',
+          margin: '0 0 10px',
+        }}>
+          Display
+        </p>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <ToggleButton
+            active={settings.showTitle}
+            label="Title"
+            onClick={() => set('showTitle', !settings.showTitle)}
+          />
+          <ToggleButton
+            active={settings.showScore}
+            label="Score"
+            onClick={() => set('showScore', !settings.showScore)}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Image tile ───────────────────────────────────────────────────────────────
+
+function ImageTile({
+  img,
+  layout,
+  showTitle,
+  showScore,
+  onClick,
+}: {
+  img:       GalleryImage
+  layout:    'grid' | 'masonry'
+  showTitle: boolean
+  showScore: boolean
+  onClick:   () => void
+}) {
+  const [hovered, setHovered] = useState(false)
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        position:     'relative',
+        borderRadius: 12,
+        overflow:     'hidden',
+        cursor:       'pointer',
+        aspectRatio:  layout === 'grid' ? '1' : undefined,
+        display:      layout === 'grid' ? 'block' : undefined,
+        breakInside:  'avoid',
+        marginBottom: 0,
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={img.publicUrl}
+        alt={img.title}
+        style={{
+          width:      '100%',
+          display:    'block',
+          height:     layout === 'grid' ? '100%' : undefined,
+          objectFit:  layout === 'grid' ? 'cover' : undefined,
+          transition: 'transform 0.25s ease',
+          transform:  hovered ? 'scale(1.03)' : 'scale(1)',
+        }}
+      />
+
+      {/* Score badge — top-right */}
+      {showScore && img.score !== null && (
+        <div style={{
+          position:       'absolute',
+          top:            10,
+          right:          10,
+          background:     'rgba(0,0,0,0.62)',
+          backdropFilter: 'blur(6px)',
+          borderRadius:   6,
+          padding:        '3px 8px',
+          fontSize:       12,
+          fontWeight:     700,
+          color:          '#fff',
+        }}>
+          {img.score}
+        </div>
+      )}
+
+      {/* Title overlay — bottom gradient */}
+      {showTitle && (
+        <div style={{
+          position:   'absolute',
+          bottom:     0,
+          left:       0,
+          right:      0,
+          padding:    '28px 12px 10px',
+          background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
+          opacity:    hovered ? 1 : 0.85,
+          transition: 'opacity 0.2s',
+        }}>
+          <p style={{
+            fontSize:     13,
+            fontWeight:   600,
+            color:        '#fff',
+            margin:       0,
+            overflow:     'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace:   'nowrap',
+          }}>
+            {img.title}
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Main viewer ──────────────────────────────────────────────────────────────
 
 export default function GalleryViewer({
+  galleryId,
   galleryName,
+  clubSlug,
   ownerName,
   images,
+  isOwner,
+  initialDisplaySettings,
 }: {
-  galleryName: string
-  ownerName:   string
-  images:      { id: string; title: string; publicUrl: string; exifData: Record<string, unknown> | null }[]
+  galleryId:              string
+  galleryName:            string
+  clubSlug:               string
+  ownerName:              string
+  images:                 GalleryImage[]
+  isOwner:                boolean
+  initialDisplaySettings: DisplaySettings
 }) {
+  const [settings,      setSettings]      = useState<DisplaySettings>(initialDisplaySettings)
+  const [panelOpen,     setPanelOpen]     = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [, startTransition]               = useTransition()
+
+  const panelRef  = useRef<HTMLDivElement>(null)
+  const btnRef    = useRef<HTMLButtonElement>(null)
+
+  // Close panel on outside click
+  useEffect(() => {
+    if (!panelOpen) return
+    function handler(e: MouseEvent) {
+      if (
+        panelRef.current  && !panelRef.current.contains(e.target as Node) &&
+        btnRef.current    && !btnRef.current.contains(e.target as Node)
+      ) {
+        setPanelOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [panelOpen])
+
+  function handleSettingsChange(next: DisplaySettings) {
+    setSettings(next)
+    startTransition(() => {
+      updateDisplaySettings(galleryId, next).catch(console.error)
+    })
+  }
+
+  const cols = COLUMN_COUNT[settings.density]
+  const gap  = GAP_PX[settings.spacing]
 
   const lightboxImages: LightboxImage[] = images.map(img => ({
     src:   img.publicUrl,
     title: img.title,
   }))
 
-  if (images.length === 0) {
-    return (
-      <Box sx={{ textAlign: 'center', py: 8 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>{galleryName}</Typography>
-        <Typography color="text.secondary">This gallery has no images yet.</Typography>
-      </Box>
-    )
-  }
-
   return (
-    <Box>
-      {/* Page header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h1" sx={{
-          fontSize:      'var(--text-page-title-size)',
-          fontWeight:    'var(--text-page-title-weight)',
-          letterSpacing: 'var(--text-page-title-ls)',
-          mb:            0.5,
-        }}>
-          {galleryName}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          by {ownerName} · {images.length} image{images.length !== 1 ? 's' : ''}
-        </Typography>
-      </Box>
-
-      {/* Masonry-ish grid */}
-      <Box sx={{
-        columns:     { xs: 2, sm: 3, md: 4 },
-        gap:         '12px',
-        '& > *': { breakInside: 'avoid', mb: '12px' },
+    <div style={{
+      minHeight:  '100vh',
+      background: '#161616',
+      color:      '#fff',
+    }}>
+      {/* ── Top bar ── */}
+      <div style={{
+        display:        'flex',
+        alignItems:     'center',
+        justifyContent: 'space-between',
+        padding:        '20px 32px 0',
+        position:       'relative',
+        zIndex:         100,
       }}>
-        {images.map((img, i) => (
-          <Box
-            key={img.id}
-            onClick={() => setLightboxIndex(i)}
-            sx={{
-              cursor:        'pointer',
-              borderRadius:  2,
-              overflow:      'hidden',
-              display:       'block',
-              '&:hover img': { transform: 'scale(1.03)', transition: 'transform 0.2s' },
+        {/* Title block */}
+        <div>
+          <h1 style={{
+            fontFamily:    'var(--font-lora, Georgia, serif)',
+            fontSize:      'clamp(28px, 4vw, 52px)',
+            fontWeight:    700,
+            letterSpacing: '-0.025em',
+            lineHeight:    1.1,
+            color:         '#fff',
+            margin:        0,
+          }}>
+            {galleryName}
+          </h1>
+          <p style={{
+            fontSize:   14,
+            color:      'rgba(255,255,255,0.45)',
+            margin:     '6px 0 0',
+            fontWeight: 400,
+          }}>
+            by {ownerName}&nbsp;·&nbsp;{images.length} photo{images.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+
+        {/* Display button — owner only */}
+        {isOwner && (
+          <button
+            ref={btnRef}
+            type="button"
+            onClick={() => setPanelOpen(v => !v)}
+            style={{
+              display:        'flex',
+              alignItems:     'center',
+              gap:            7,
+              padding:        '9px 18px',
+              borderRadius:   9999,
+              fontSize:       13,
+              fontWeight:     600,
+              background:     panelOpen ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.08)',
+              border:         '1px solid rgba(255,255,255,0.18)',
+              color:          '#fff',
+              cursor:         'pointer',
+              transition:     'background 0.12s',
+              flexShrink:     0,
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={img.publicUrl}
-              alt={img.title}
-              style={{ width: '100%', display: 'block', transition: 'transform 0.2s' }}
-            />
-          </Box>
-        ))}
-      </Box>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+              strokeLinecap="round" strokeLinejoin="round" width={15} height={15}>
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+            Display
+          </button>
+        )}
+      </div>
 
+      {/* ── Gallery grid ── */}
+      <div style={{ padding: `24px 32px 48px` }}>
+        {images.length === 0 ? (
+          <div style={{ textAlign: 'center', paddingTop: 80 }}>
+            <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>
+              This gallery has no images yet.
+            </p>
+          </div>
+        ) : settings.layout === 'masonry' ? (
+          <div style={{
+            columns:   cols,
+            gap:       `${gap}px`,
+          }}>
+            {images.map((img, i) => (
+              <div key={img.id} style={{ marginBottom: `${gap}px` }}>
+                <ImageTile
+                  img={img}
+                  layout="masonry"
+                  showTitle={settings.showTitle}
+                  showScore={settings.showScore}
+                  onClick={() => setLightboxIndex(i)}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            display:             'grid',
+            gridTemplateColumns: `repeat(${cols}, 1fr)`,
+            gap:                 `${gap}px`,
+          }}>
+            {images.map((img, i) => (
+              <ImageTile
+                key={img.id}
+                img={img}
+                layout="grid"
+                showTitle={settings.showTitle}
+                showScore={settings.showScore}
+                onClick={() => setLightboxIndex(i)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Display panel ── */}
+      {isOwner && panelOpen && (
+        <DisplayPanel
+          settings={settings}
+          onChange={handleSettingsChange}
+          onClose={() => setPanelOpen(false)}
+          panelRef={panelRef}
+        />
+      )}
+
+      {/* ── Lightbox ── */}
       {lightboxIndex !== null && (
         <Lightbox
           images={lightboxImages}
@@ -82,6 +485,6 @@ export default function GalleryViewer({
           contextTitle={galleryName}
         />
       )}
-    </Box>
+    </div>
   )
 }

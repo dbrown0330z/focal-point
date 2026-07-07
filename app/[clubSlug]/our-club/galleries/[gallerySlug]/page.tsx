@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getClubContext } from '@/lib/club-context'
 import GalleryViewer from '@/app/[clubSlug]/gallery/[memberId]/[gallerySlug]/GalleryViewer'
+import { DEFAULT_DISPLAY_SETTINGS } from '@/app/[clubSlug]/(member)/library/galleries/gallery-defaults'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,15 +58,19 @@ export default async function ClubGalleryPage({
       id:        img.id,
       title:     img.title,
       publicUrl: admin.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
-      exifData:  img.exif_data ?? null,
+      score:     null,
     }
-  }).filter(Boolean) as { id: string; title: string; publicUrl: string; exifData: Record<string, unknown> | null }[]
+  }).filter(Boolean) as { id: string; title: string; publicUrl: string; score: number | null }[]
 
   return (
     <GalleryViewer
+      galleryId={gallery.id as string}
       galleryName={gallery.name as string}
+      clubSlug={ctx!.clubSlug}
       ownerName="Club gallery"
       images={images}
+      isOwner={false}
+      initialDisplaySettings={DEFAULT_DISPLAY_SETTINGS}
     />
   )
 }
