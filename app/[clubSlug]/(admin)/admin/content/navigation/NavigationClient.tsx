@@ -68,7 +68,7 @@ const SYSTEM_NAV: SysItem[] = [
     label: 'Images', href: '/library', dynamic: true, parentKey: 'images',
     children: [
       { label: 'My images',   href: '/library',           dynamic: true },
-      { label: 'My galleries', href: '/library/galleries', dynamic: true },
+      { label: 'My Galleries', href: '/library/galleries', dynamic: true },
     ],
   },
   {

@@ -578,7 +578,7 @@ export default function GalleriesClient({
       {/* Header */}
       <Box sx={{ mb: 6 }}>
         <h1 className="font-[family-name:var(--font-lora)] text-[28px] font-bold leading-tight tracking-[-0.02em] text-content-primary">
-          My galleries
+          My Galleries
         </h1>
         {galleries.length > 0 && (
           <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
