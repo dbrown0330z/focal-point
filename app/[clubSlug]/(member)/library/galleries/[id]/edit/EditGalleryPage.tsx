@@ -65,50 +65,219 @@ function IconPlus() {
   )
 }
 
-// ─── Visibility helpers ───────────────────────────────────────────────────────
+// ─── Visibility chip (inline beside title) ────────────────────────────────────
 
-const VISIBILITY_CYCLE: Array<'public' | 'members_only' | 'private'> = ['public', 'members_only', 'private']
-
-const VISIBILITY_CONFIG = {
-  public:       { label: 'Public',       color: '#fff', bg: 'var(--action-primary)' },
-  members_only: { label: 'Members only', color: '#fff', bg: '#5A7A96' },
-  private:      { label: 'Private',      color: 'var(--text-secondary)', bg: 'var(--surface-2)' },
+const VISIBILITY_CHIP_LABEL: Record<string, string> = {
+  public:       'Public',
+  members_only: 'Members only',
+  private:      'Private',
 }
 
-function VisibilityToggle({
-  value,
-  onChange,
-}: {
-  value:    'public' | 'members_only' | 'private'
-  onChange: (v: 'public' | 'members_only' | 'private') => void
-}) {
-  const cfg   = VISIBILITY_CONFIG[value]
-  const cycle = () => {
-    const idx = VISIBILITY_CYCLE.indexOf(value)
-    onChange(VISIBILITY_CYCLE[(idx + 1) % VISIBILITY_CYCLE.length])
-  }
+function VisibilityChip({ value }: { value: string }) {
   return (
-    <Tooltip title="Click to change visibility">
-      <button
-        type="button"
-        onClick={cycle}
+    <span style={{
+      display:        'inline-flex',
+      alignItems:     'center',
+      padding:        '3px 11px',
+      borderRadius:   9999,
+      fontSize:       11,
+      fontWeight:     600,
+      letterSpacing:  '0.05em',
+      textTransform:  'uppercase',
+      background:     'rgba(255,255,255,0.10)',
+      backdropFilter: 'blur(6px)',
+      border:         '1px solid var(--border-default)',
+      color:          'var(--text-secondary)',
+      whiteSpace:     'nowrap',
+    }}>
+      {VISIBILITY_CHIP_LABEL[value] ?? value}
+    </span>
+  )
+}
+
+// ─── Share modal ──────────────────────────────────────────────────────────────
+
+const SHARE_OPTIONS: Array<{
+  value:   'private' | 'members_only' | 'public'
+  label:   string
+  subFn:   (clubName: string) => string
+}> = [
+  { value: 'private',      label: 'Private',   subFn: ()        => 'Only you can see this gallery' },
+  { value: 'members_only', label: 'Club Only',  subFn: clubName  => `Visible to ${clubName} members` },
+  { value: 'public',       label: 'Public',     subFn: ()        => 'Anyone with the link can view' },
+]
+
+function ShareModal({
+  open,
+  onClose,
+  galleryName,
+  clubName,
+  currentVisibility,
+  galleryUrl,
+  onSave,
+}: {
+  open:              boolean
+  onClose:           () => void
+  galleryName:       string
+  clubName:          string
+  currentVisibility: 'public' | 'members_only' | 'private'
+  galleryUrl:        string
+  onSave:            (v: 'public' | 'members_only' | 'private') => void
+}) {
+  const [selected, setSelected] = useState(currentVisibility)
+  const [copied,   setCopied]   = useState(false)
+
+  // Re-sync if parent visibility changes while modal is closed
+  const prevOpen = useRef(false)
+  if (open && !prevOpen.current) { setSelected(currentVisibility); prevOpen.current = true }
+  if (!open) prevOpen.current = false
+
+  function handleCopy() {
+    navigator.clipboard.writeText(galleryUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  if (!open) return null
+
+  return (
+    <div
+      style={{
+        position:       'fixed', inset: 0, zIndex: 1300,
+        display:        'flex', alignItems: 'center', justifyContent: 'center',
+        padding:        24,
+        background:     'rgba(0,0,0,0.70)',
+        backdropFilter: 'blur(4px)',
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
         style={{
-          padding:      '5px 14px',
-          borderRadius: 9999,
-          fontSize:     11,
-          fontWeight:   700,
-          letterSpacing:'0.07em',
-          textTransform:'uppercase',
-          background:   cfg.bg,
-          color:        cfg.color,
-          border:       value === 'private' ? '1.5px solid var(--border-default)' : 'none',
-          cursor:       'pointer',
-          whiteSpace:   'nowrap',
+          width:        '100%',
+          maxWidth:     540,
+          borderRadius: 20,
+          background:   'var(--surface-1)',
+          border:       '1px solid var(--border-default)',
+          overflow:     'hidden',
+          padding:      '28px 28px 24px',
         }}
       >
-        {cfg.label}
-      </button>
-    </Tooltip>
+        {/* Header */}
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px' }}>
+          Share &ldquo;{galleryName}&rdquo;
+        </h2>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 20px' }}>
+          Choose who can view this gallery
+        </p>
+
+        {/* Visibility options */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+          {SHARE_OPTIONS.map(opt => {
+            const active = selected === opt.value
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setSelected(opt.value)}
+                style={{
+                  display:        'flex',
+                  alignItems:     'center',
+                  justifyContent: 'space-between',
+                  padding:        '14px 18px',
+                  borderRadius:   12,
+                  border:         active ? '1.5px solid var(--action-primary)' : '1.5px solid var(--border-default)',
+                  background:     active ? 'rgba(26,111,196,0.08)' : 'var(--surface-2)',
+                  cursor:         'pointer',
+                  textAlign:      'left',
+                  transition:     'border-color 0.12s, background 0.12s',
+                }}
+              >
+                <div>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                    {opt.label}
+                  </p>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '2px 0 0' }}>
+                    {opt.subFn(clubName)}
+                  </p>
+                </div>
+                {active && (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="var(--action-primary)" strokeWidth="2.5"
+                    strokeLinecap="round" strokeLinejoin="round" width={18} height={18} style={{ flexShrink: 0 }}>
+                    <path d="M20 6L9 17l-5-5"/>
+                  </svg>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* URL row — only when not private */}
+        {selected !== 'private' && (
+          <div style={{
+            display:      'flex',
+            gap:          8,
+            marginBottom: 20,
+            background:   'var(--surface-2)',
+            border:       '1.5px solid var(--border-default)',
+            borderRadius: 10,
+            overflow:     'hidden',
+          }}>
+            <input
+              readOnly
+              value={galleryUrl}
+              style={{
+                flex:       1,
+                padding:    '10px 14px',
+                background: 'transparent',
+                border:     'none',
+                outline:    'none',
+                fontSize:   13,
+                color:      'var(--text-secondary)',
+                fontFamily: 'var(--font-code)',
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleCopy}
+              style={{
+                padding:    '10px 18px',
+                background: 'var(--surface-1)',
+                border:     'none',
+                borderLeft: '1.5px solid var(--border-default)',
+                fontSize:   13,
+                fontWeight: 700,
+                color:      copied ? 'var(--status-success)' : 'var(--text-primary)',
+                cursor:     'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+        )}
+
+        {/* Done */}
+        <button
+          type="button"
+          onClick={() => { onSave(selected); onClose() }}
+          style={{
+            width:        '100%',
+            padding:      '13px 0',
+            borderRadius: 10,
+            fontSize:     15,
+            fontWeight:   700,
+            background:   'var(--action-primary)',
+            color:        '#fff',
+            border:       'none',
+            cursor:       'pointer',
+          }}
+        >
+          Done
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -542,9 +711,9 @@ export default function EditGalleryPage({
   const [visibility,  setVisibility]  = useState(gallery.visibility)
   const [editingName, setEditingName] = useState(false)
   const [addOpen,     setAddOpen]     = useState(false)
+  const [shareOpen,   setShareOpen]   = useState(false)
   const [saving,      setSaving]      = useState(false)
   const [error,       setError]       = useState<string | null>(null)
-  const [copied,      setCopied]      = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
 
   const sensors = useSensors(
@@ -590,14 +759,9 @@ export default function EditGalleryPage({
     router.refresh()
   }
 
-  function handleShare() {
-    if (visibility === 'private') return
-    const url = `${window.location.origin}/${clubSlug}/gallery/${userId}/${gallery.slug}`
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
+  const galleryUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/${clubSlug}/gallery/${userId}/${gallery.slug}`
+    : `/${clubSlug}/gallery/${userId}/${gallery.slug}`
 
   const currentIds = useMemo(() => new Set(items.map(i => i.id)), [items])
   const effectiveCover = coverId ?? items[0]?.id ?? null
@@ -647,21 +811,17 @@ export default function EditGalleryPage({
           Add Photos
         </button>
 
-        <VisibilityToggle value={visibility} onChange={setVisibility} />
-
-        {visibility !== 'private' && (
-          <button
-            type="button"
-            onClick={handleShare}
-            style={{
-              padding: '6px 16px', borderRadius: 9999, fontSize: 13, fontWeight: 600,
-              background: 'var(--surface-2)', border: '1.5px solid var(--border-default)',
-              color: 'var(--text-primary)', cursor: 'pointer',
-            }}
-          >
-            {copied ? 'Copied!' : 'Share'}
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setShareOpen(true)}
+          style={{
+            padding: '6px 16px', borderRadius: 9999, fontSize: 13, fontWeight: 600,
+            background: 'var(--surface-2)', border: '1.5px solid var(--border-default)',
+            color: 'var(--text-primary)', cursor: 'pointer',
+          }}
+        >
+          Share
+        </button>
 
         <button
           type="button"
@@ -710,24 +870,27 @@ export default function EditGalleryPage({
             }}
           />
         ) : (
-          <Tooltip title="Click to rename" placement="right">
-            <h1
-              onClick={() => setEditingName(true)}
-              style={{
-                fontSize:     32,
-                fontWeight:   700,
-                fontFamily:   'var(--font-lora)',
-                letterSpacing:'-0.02em',
-                lineHeight:   1.2,
-                color:        'var(--text-primary)',
-                margin:       0,
-                cursor:       'text',
-                display:      'inline-block',
-              }}
-            >
-              {name}
-            </h1>
-          </Tooltip>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <Tooltip title="Click to rename" placement="right">
+              <h1
+                onClick={() => setEditingName(true)}
+                style={{
+                  fontSize:     32,
+                  fontWeight:   700,
+                  fontFamily:   'var(--font-lora)',
+                  letterSpacing:'-0.02em',
+                  lineHeight:   1.2,
+                  color:        'var(--text-primary)',
+                  margin:       0,
+                  cursor:       'text',
+                  display:      'inline-block',
+                }}
+              >
+                {name}
+              </h1>
+            </Tooltip>
+            <VisibilityChip value={visibility} />
+          </div>
         )}
       </div>
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 28px' }}>
@@ -821,6 +984,17 @@ export default function EditGalleryPage({
         libraryImages={libraryImages}
         currentIds={currentIds}
         onConfirm={handleAddConfirm}
+      />
+
+      {/* ── Share modal ── */}
+      <ShareModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        galleryName={name}
+        clubName={gallery.clubName}
+        currentVisibility={visibility}
+        galleryUrl={galleryUrl}
+        onSave={setVisibility}
       />
     </div>
   )

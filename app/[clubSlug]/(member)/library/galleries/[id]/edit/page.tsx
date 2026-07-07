@@ -19,6 +19,7 @@ export type EditableGallery = {
   slug:           string
   visibility:     'public' | 'members_only' | 'private'
   cover_image_id: string | null
+  clubName:       string
 }
 
 export default async function EditGalleryRoute({
@@ -94,6 +95,7 @@ export default async function EditGalleryRoute({
         slug:           gallery.slug as string,
         visibility:     gallery.visibility as 'public' | 'members_only' | 'private',
         cover_image_id: gallery.cover_image_id as string | null,
+        clubName:       ctx?.clubName ?? '',
       }}
       initialItems={initialItems}
       libraryImages={libraryImages}
