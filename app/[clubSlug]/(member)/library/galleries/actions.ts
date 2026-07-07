@@ -30,11 +30,12 @@ async function uniqueSlug(base: string, memberId: string, clubId: string, exclud
 }
 
 export async function createGallery(data: {
-  name:       string
-  visibility: 'public' | 'members_only' | 'private'
-  imageIds:   string[]
-  coverId:    string | null
-}): Promise<{ error: string | null; id?: string }> {
+  name:         string
+  visibility:   'public' | 'members_only' | 'private'
+  imageIds:     string[]
+  coverId:      string | null
+  gallery_type?: 'standard' | 'dynamic'
+}): Promise<{ error: string | null; id?: string; gallery_type?: 'standard' | 'dynamic' }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const clubSlug = await requireClubSlug()
@@ -55,6 +56,7 @@ export async function createGallery(data: {
   const name = data.name.trim()
   if (!name) return { error: 'Gallery name is required.' }
 
+  const type = data.gallery_type ?? 'standard'
   const base = slugify(name)
   const slug = await uniqueSlug(base, user.id, ctx.clubId)
 
@@ -64,6 +66,7 @@ export async function createGallery(data: {
     name,
     slug,
     visibility:     data.visibility,
+    gallery_type:   type,
     cover_image_id: data.coverId ?? data.imageIds[0] ?? null,
     image_ids:      data.imageIds,
   }).select('id').single()
@@ -71,7 +74,7 @@ export async function createGallery(data: {
   if (error) return { error: (error as { message: string }).message }
 
   revalidatePath(`/${clubSlug}/library/galleries`)
-  return { error: null, id: gallery.id }
+  return { error: null, id: gallery.id, gallery_type: type }
 }
 
 export async function updateGalleryMeta(galleryId: string, data: {
@@ -184,6 +187,40 @@ export async function setCoverImage(galleryId: string, imageId: string): Promise
   const db = createServiceClient() as any
   const { error } = await db.from('member_galleries')
     .update({ cover_image_id: imageId })
+    .eq('id', galleryId)
+    .eq('member_id', user.id)
+
+  if (error) return { error: (error as { message: string }).message }
+  revalidatePath(`/${clubSlug}/library/galleries`)
+  return { error: null }
+}
+
+export type DynamicFilters = {
+  scoreMin:   number
+  scoreMax:   number
+  categories: string[]
+  dateFrom:   string | null
+  dateTo:     string | null
+}
+
+export async function updateDynamicFilters(
+  galleryId: string,
+  filters:   DynamicFilters,
+  imageIds:  string[],
+): Promise<{ error: string | null }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const clubSlug = await requireClubSlug()
+  if (!user) redirect(`/${clubSlug}/login`)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = createServiceClient() as any
+  const { error } = await db.from('member_galleries')
+    .update({
+      filters,
+      image_ids:      imageIds,
+      cover_image_id: imageIds[0] ?? null,
+    })
     .eq('id', galleryId)
     .eq('member_id', user.id)
 
