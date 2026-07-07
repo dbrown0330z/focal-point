@@ -218,6 +218,8 @@ function ProfileBody({
               <div key={gallery.id} style={{ borderRadius: 12, overflow: 'hidden', background: 'var(--surface-1)', border: '1px solid var(--border-default)' }}>
                 <a
                   href={`/${clubSlug}/gallery/${memberId}/${gallery.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   style={{ display: 'block', aspectRatio: '4/3', overflow: 'hidden' }}
                 >
                   {gallery.coverImageUrl ? (
