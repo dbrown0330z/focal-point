@@ -157,107 +157,90 @@ function DisplayPanel({
         top:          64,
         right:        24,
         zIndex:       200,
-        width:        'max-content',
-        maxWidth:     'calc(100vw - 48px)',
+        width:        300,
         borderRadius: 16,
         background:   '#1E1E1E',
         border:       '1px solid rgba(255,255,255,0.12)',
-        padding:      '20px 24px 18px',
+        padding:      '20px 20px 18px',
         boxShadow:    '0 8px 32px rgba(0,0,0,0.60)',
       }}
     >
       {/* Header */}
-      <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: '0 0 3px' }}>
+      <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: '0 0 4px' }}>
         Customize Gallery Display
       </p>
-      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.42)', margin: '0 0 18px', lineHeight: 1.45, maxWidth: 460 }}>
+      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.42)', margin: '0 0 20px', lineHeight: 1.5 }}>
         Only you have access to these controls, which will affect how all viewers see this gallery.
       </p>
 
-      {/* Controls — one horizontal row */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, flexWrap: 'nowrap' }}>
+      {/* Layout */}
+      <div style={{ marginBottom: 16 }}>
+        <p style={LABEL_STYLE}>Layout</p>
+        <ButtonGroup
+          value={settings.layout}
+          options={[{ value: 'grid', label: 'Grid' }, { value: 'masonry', label: 'Masonry' }]}
+          onChange={v => set('layout', v)}
+        />
+      </div>
 
-        {/* Layout */}
-        <div>
-          <p style={LABEL_STYLE}>Layout</p>
-          <ButtonGroup
-            value={settings.layout}
-            options={[{ value: 'grid', label: 'Grid' }, { value: 'masonry', label: 'Masonry' }]}
-            onChange={v => set('layout', v)}
-          />
+      {/* Density */}
+      <div style={{ marginBottom: 16 }}>
+        <p style={LABEL_STYLE}>Density</p>
+        <ButtonGroup
+          value={settings.density}
+          options={[{ value: 'compact', label: 'Compact' }, { value: 'default', label: 'Default' }, { value: 'spacious', label: 'Spacious' }]}
+          onChange={v => set('density', v)}
+        />
+      </div>
+
+      {/* Spacing */}
+      <div style={{ marginBottom: 16 }}>
+        <p style={LABEL_STYLE}>Spacing</p>
+        <ButtonGroup
+          value={settings.spacing}
+          options={[{ value: 'none', label: 'None' }, { value: 'small', label: 'Small' }, { value: 'standard', label: 'Standard' }]}
+          onChange={v => set('spacing', v)}
+        />
+      </div>
+
+      {/* Corners */}
+      <div style={{ marginBottom: 16 }}>
+        <p style={LABEL_STYLE}>Corners</p>
+        <ButtonGroup
+          value={settings.corners ?? 'rounded'}
+          options={[{ value: 'rounded', label: 'Rounded' }, { value: 'square', label: 'Square' }]}
+          onChange={v => set('corners', v)}
+        />
+      </div>
+
+      {/* Display — independent toggles */}
+      <div style={{ marginBottom: 20 }}>
+        <p style={LABEL_STYLE}>Display</p>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <IndependentToggle active={settings.showTitle} label="Title" onClick={() => set('showTitle', !settings.showTitle)} />
+          <IndependentToggle active={settings.showScore} label="Score" onClick={() => set('showScore', !settings.showScore)} />
         </div>
+      </div>
 
-        <VDivider />
-
-        {/* Density */}
-        <div>
-          <p style={LABEL_STYLE}>Density</p>
-          <ButtonGroup
-            value={settings.density}
-            options={[{ value: 'compact', label: 'Compact' }, { value: 'default', label: 'Default' }, { value: 'spacious', label: 'Spacious' }]}
-            onChange={v => set('density', v)}
-          />
-        </div>
-
-        <VDivider />
-
-        {/* Spacing */}
-        <div>
-          <p style={LABEL_STYLE}>Spacing</p>
-          <ButtonGroup
-            value={settings.spacing}
-            options={[{ value: 'none', label: 'None' }, { value: 'small', label: 'Small' }, { value: 'standard', label: 'Standard' }]}
-            onChange={v => set('spacing', v)}
-          />
-        </div>
-
-        <VDivider />
-
-        {/* Corners */}
-        <div>
-          <p style={LABEL_STYLE}>Corners</p>
-          <ButtonGroup
-            value={settings.corners ?? 'rounded'}
-            options={[{ value: 'rounded', label: 'Rounded' }, { value: 'square', label: 'Square' }]}
-            onChange={v => set('corners', v)}
-          />
-        </div>
-
-        <VDivider />
-
-        {/* Display — independent toggles */}
-        <div>
-          <p style={LABEL_STYLE}>Display</p>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <IndependentToggle active={settings.showTitle} label="Title" onClick={() => set('showTitle', !settings.showTitle)} />
-            <IndependentToggle active={settings.showScore} label="Score" onClick={() => set('showScore', !settings.showScore)} />
-          </div>
-        </div>
-
-        <VDivider />
-
-        {/* Done */}
-        <div style={{ paddingBottom: 0 }}>
-          <p style={{ ...LABEL_STYLE, opacity: 0 }}>Done</p>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              padding:    '6px 18px',
-              borderRadius: 6,
-              fontSize:   13,
-              fontWeight: 700,
-              background: 'rgba(255,255,255,0.12)',
-              color:      '#fff',
-              border:     '1px solid rgba(255,255,255,0.18)',
-              cursor:     'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Done
-          </button>
-        </div>
-
+      {/* Done */}
+      <div style={{ paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.10)' }}>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            width:        '100%',
+            padding:      '9px 0',
+            borderRadius: 8,
+            fontSize:     13,
+            fontWeight:   700,
+            background:   'var(--action-primary)',
+            color:        '#fff',
+            border:       'none',
+            cursor:       'pointer',
+          }}
+        >
+          Done
+        </button>
       </div>
     </div>
   )
