@@ -28,6 +28,11 @@ const GAP_PX: Record<DisplaySettings['spacing'], number> = {
   standard: 14,
 }
 
+const CORNER_RADIUS: Record<DisplaySettings['corners'], number> = {
+  rounded: 12,
+  square:  0,
+}
+
 // ─── Display panel ────────────────────────────────────────────────────────────
 
 type Section<T extends string> = { label: string; options: { value: T; label: string }[] }
@@ -139,6 +144,13 @@ function DisplayPanel({
         { value: 'standard', label: 'Standard' },
       ],
     },
+    {
+      label: 'Corners',
+      options: [
+        { value: 'rounded', label: 'Rounded' },
+        { value: 'square',  label: 'Square' },
+      ],
+    },
   ]
 
   return (
@@ -175,7 +187,7 @@ function DisplayPanel({
       ))}
 
       {/* Display toggles */}
-      <div>
+      <div style={{ marginBottom: 18 }}>
         <p style={{
           fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
           textTransform: 'uppercase', color: 'rgba(255,255,255,0.40)',
@@ -196,6 +208,27 @@ function DisplayPanel({
           />
         </div>
       </div>
+
+      {/* Done */}
+      <div style={{ paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.10)' }}>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            width:        '100%',
+            padding:      '9px 0',
+            borderRadius: 8,
+            fontSize:     13,
+            fontWeight:   700,
+            background:   'var(--action-primary)',
+            color:        '#fff',
+            border:       'none',
+            cursor:       'pointer',
+          }}
+        >
+          Done
+        </button>
+      </div>
     </div>
   )
 }
@@ -207,15 +240,18 @@ function ImageTile({
   layout,
   showTitle,
   showScore,
+  corners,
   onClick,
 }: {
   img:       GalleryImage
   layout:    'grid' | 'masonry'
   showTitle: boolean
   showScore: boolean
+  corners:   'rounded' | 'square'
   onClick:   () => void
 }) {
   const [hovered, setHovered] = useState(false)
+  const radius = CORNER_RADIUS[corners]
 
   return (
     <div
@@ -224,7 +260,7 @@ function ImageTile({
       onMouseLeave={() => setHovered(false)}
       style={{
         position:     'relative',
-        borderRadius: 12,
+        borderRadius: radius,
         overflow:     'hidden',
         cursor:       'pointer',
         aspectRatio:  layout === 'grid' ? '1' : undefined,
@@ -294,6 +330,18 @@ function ImageTile({
   )
 }
 
+// ─── Gear icon ────────────────────────────────────────────────────────────────
+
+function GearIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" width={15} height={15}>
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  )
+}
+
 // ─── Main viewer ──────────────────────────────────────────────────────────────
 
 export default function GalleryViewer({
@@ -343,8 +391,11 @@ export default function GalleryViewer({
     })
   }
 
-  const cols = COLUMN_COUNT[settings.density]
-  const gap  = GAP_PX[settings.spacing]
+  const cols   = COLUMN_COUNT[settings.density]
+  const gap    = GAP_PX[settings.spacing]
+  const void_  = clubSlug // suppress unused warning
+
+  void void_
 
   const lightboxImages: LightboxImage[] = images.map(img => ({
     src:   img.publicUrl,
@@ -411,11 +462,7 @@ export default function GalleryViewer({
               flexShrink:     0,
             }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
-              strokeLinecap="round" strokeLinejoin="round" width={15} height={15}>
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-            </svg>
+            <GearIcon />
             Display
           </button>
         )}
@@ -431,8 +478,8 @@ export default function GalleryViewer({
           </div>
         ) : settings.layout === 'masonry' ? (
           <div style={{
-            columns:   cols,
-            gap:       `${gap}px`,
+            columns: cols,
+            gap:     `${gap}px`,
           }}>
             {images.map((img, i) => (
               <div key={img.id} style={{ marginBottom: `${gap}px` }}>
@@ -441,6 +488,7 @@ export default function GalleryViewer({
                   layout="masonry"
                   showTitle={settings.showTitle}
                   showScore={settings.showScore}
+                  corners={settings.corners ?? 'rounded'}
                   onClick={() => setLightboxIndex(i)}
                 />
               </div>
@@ -459,6 +507,7 @@ export default function GalleryViewer({
                 layout="grid"
                 showTitle={settings.showTitle}
                 showScore={settings.showScore}
+                corners={settings.corners ?? 'rounded'}
                 onClick={() => setLightboxIndex(i)}
               />
             ))}

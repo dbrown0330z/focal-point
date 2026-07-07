@@ -1,14 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Box, Button, Dialog, DialogTitle, DialogContent, DialogActions,
   Typography, Tooltip, CircularProgress, Alert,
 } from '@mui/material'
+// (Dialog/DialogTitle/DialogContent/DialogActions/Typography kept for DeleteDialog)
 import AddIcon from '@mui/icons-material/Add'
 import type { GalleryData } from './page'
-import { createGallery, deleteGallery } from './actions'
+import { createGallery, deleteGallery, updateGalleryMeta } from './actions'
 
 const GALLERY_LIMIT = 3
 
@@ -272,56 +273,126 @@ function DeleteDialog({
   )
 }
 
-// ─── Share dialog ─────────────────────────────────────────────────────────────
+// ─── Share / visibility modal ─────────────────────────────────────────────────
+
+function deriveVisibility(club: boolean, pub: boolean): 'private' | 'members_only' | 'public' {
+  if (pub)  return 'public'
+  if (club) return 'members_only'
+  return 'private'
+}
 
 function ShareDialog({
   gallery,
   clubSlug,
   userId,
   onClose,
+  onSaved,
 }: {
-  gallery:  GalleryData | null
-  clubSlug: string
-  userId:   string
-  onClose:  () => void
+  gallery:   GalleryData | null
+  clubSlug:  string
+  userId:    string
+  onClose:   () => void
+  onSaved:   (id: string, visibility: 'private' | 'members_only' | 'public') => void
 }) {
-  const [copied, setCopied] = useState(false)
+  const [clubChecked,   setClubChecked]   = useState(false)
+  const [publicChecked, setPublicChecked] = useState(false)
+  const [copied,        setCopied]        = useState(false)
+  const [saving,        setSaving]        = useState(false)
+  const prevId = useRef<string | null>(null)
+
+  if (gallery && gallery.id !== prevId.current) {
+    setClubChecked(gallery.visibility !== 'private')
+    setPublicChecked(gallery.visibility === 'public')
+    prevId.current = gallery.id
+  }
+  if (!gallery) prevId.current = null
+
   if (!gallery) return null
 
   const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/${clubSlug}/gallery/${userId}/${gallery.slug}`
 
   function handleCopy() {
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
+    navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
   }
 
+  async function handleDone() {
+    const v = deriveVisibility(clubChecked, publicChecked)
+    setSaving(true)
+    await updateGalleryMeta(gallery!.id, { name: gallery!.name, visibility: v })
+    setSaving(false)
+    onSaved(gallery!.id, v)
+    onClose()
+  }
+
+  const checkStyle = (checked: boolean): React.CSSProperties => ({
+    display: 'flex', alignItems: 'flex-start', gap: 14,
+    padding: '16px 18px', borderRadius: 12, cursor: 'pointer',
+    border: checked ? '1.5px solid var(--action-primary)' : '1.5px solid var(--border-default)',
+    background: checked ? 'rgba(26,111,196,0.08)' : 'var(--surface-2)',
+    textAlign: 'left', transition: 'border-color 0.12s, background 0.12s', userSelect: 'none',
+  })
+
   return (
-    <Dialog open onClose={onClose} maxWidth="sm" fullWidth sx={{ '& .MuiPaper-root': { borderRadius: 3 } }}>
-      <DialogTitle>Share gallery</DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {gallery.visibility === 'public'
-            ? 'Anyone with this link can view your gallery.'
-            : 'Club members with this link can view your gallery.'}
-        </Typography>
-        <Box sx={{
-          display: 'flex', gap: 1,
-          bgcolor: 'var(--surface-1)', borderRadius: 2, p: 1.5, alignItems: 'center',
-        }}>
-          <Typography variant="body2" sx={{ flex: 1, wordBreak: 'break-all', fontFamily: 'monospace', fontSize: 12 }}>
-            {url}
-          </Typography>
-          <Button variant="contained" size="small" onClick={handleCopy} sx={{ flexShrink: 0 }}>
-            {copied ? 'Copied!' : 'Copy'}
-          </Button>
-        </Box>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button variant="outlined" color="secondary" onClick={onClose}>Close</Button>
-      </DialogActions>
-    </Dialog>
+    <div
+      style={{ position: 'fixed', inset: 0, zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(0,0,0,0.70)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 520, borderRadius: 20, background: 'var(--surface-1)', border: '1px solid var(--border-default)', padding: '28px 28px 24px' }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px' }}>
+          Share &ldquo;{gallery.name}&rdquo;
+        </h2>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 20px' }}>
+          Choose who can see this gallery
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+          <label style={checkStyle(clubChecked)}>
+            <input type="checkbox" checked={clubChecked} onChange={e => setClubChecked(e.target.checked)}
+              style={{ width: 17, height: 17, accentColor: 'var(--action-primary)', flexShrink: 0, marginTop: 1, cursor: 'pointer' }} />
+            <div>
+              <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Club members</p>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '2px 0 0', lineHeight: 1.4 }}>
+                Visible on your member profile page
+              </p>
+            </div>
+          </label>
+          <label style={checkStyle(publicChecked)}>
+            <input type="checkbox" checked={publicChecked} onChange={e => setPublicChecked(e.target.checked)}
+              style={{ width: 17, height: 17, accentColor: 'var(--action-primary)', flexShrink: 0, marginTop: 1, cursor: 'pointer' }} />
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Anyone with the link</p>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '2px 0 0', lineHeight: 1.4 }}>
+                Visible publicly — share via the link below
+              </p>
+            </div>
+          </label>
+        </div>
+
+        {publicChecked && (
+          <div style={{ display: 'flex', marginBottom: 20, background: 'var(--surface-2)', border: '1.5px solid var(--border-default)', borderRadius: 10, overflow: 'hidden' }}>
+            <input readOnly value={url} style={{ flex: 1, padding: '10px 14px', background: 'transparent', border: 'none', outline: 'none', fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-code)' }} />
+            <button type="button" onClick={handleCopy} style={{ padding: '10px 18px', background: 'var(--surface-1)', border: 'none', borderLeft: '1.5px solid var(--border-default)', fontSize: 13, fontWeight: 700, color: copied ? 'var(--status-success)' : 'var(--text-primary)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+        )}
+
+        {!clubChecked && !publicChecked && (
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 20px', fontStyle: 'italic' }}>
+            Gallery will be private — only visible to you.
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={handleDone}
+          disabled={saving}
+          style={{ width: '100%', padding: '13px 0', borderRadius: 10, fontSize: 15, fontWeight: 700, background: saving ? 'var(--border-default)' : 'var(--action-primary)', color: '#fff', border: 'none', cursor: saving ? 'not-allowed' : 'pointer' }}
+        >
+          {saving ? 'Saving…' : 'Done'}
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -424,21 +495,19 @@ function GalleryCard({
           >
             Edit
           </a>
-          {gallery.visibility !== 'private' && (
-            <button
-              type="button"
-              onClick={() => onShare(gallery)}
-              style={{
-                flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                background: 'transparent', border: '1.5px solid var(--border-default)',
-                color: 'var(--text-primary)', cursor: 'pointer',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.background = 'var(--surface-2)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'transparent' }}
-            >
-              Share
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => onShare(gallery)}
+            style={{
+              flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 13, fontWeight: 600,
+              background: 'transparent', border: '1.5px solid var(--border-default)',
+              color: 'var(--text-primary)', cursor: 'pointer',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.background = 'var(--surface-2)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'transparent' }}
+          >
+            Share
+          </button>
           <button
             type="button"
             onClick={() => onDelete(gallery)}
@@ -479,6 +548,12 @@ export default function GalleriesClient({
   const [createOpen,   setCreateOpen]   = useState(false)
   const [delGallery,   setDelGallery]   = useState<GalleryData | null>(null)
   const [shareGallery, setShareGallery] = useState<GalleryData | null>(null)
+  // Track visibility overrides locally after saves (avoids full page reload)
+  const [visibilityOverrides, setVisibilityOverrides] = useState<Record<string, GalleryData['visibility']>>({})
+
+  function handleVisibilitySaved(id: string, v: 'private' | 'members_only' | 'public') {
+    setVisibilityOverrides(prev => ({ ...prev, [id]: v }))
+  }
 
   const atLimit = galleries.length >= GALLERY_LIMIT
 
@@ -533,7 +608,7 @@ export default function GalleriesClient({
           {galleries.map(g => (
             <GalleryCard
               key={g.id}
-              gallery={g}
+              gallery={{ ...g, visibility: visibilityOverrides[g.id] ?? g.visibility }}
               clubSlug={clubSlug}
               userId={userId}
               onDelete={setDelGallery}
@@ -596,6 +671,7 @@ export default function GalleriesClient({
         clubSlug={clubSlug}
         userId={userId}
         onClose={() => setShareGallery(null)}
+        onSaved={handleVisibilitySaved}
       />
     </Box>
   )

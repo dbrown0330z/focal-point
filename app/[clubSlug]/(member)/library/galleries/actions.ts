@@ -199,6 +199,7 @@ export type DisplaySettings = {
   layout:    'grid' | 'masonry'
   density:   'compact' | 'default' | 'spacious'
   spacing:   'none' | 'small' | 'standard'
+  corners:   'rounded' | 'square'
   showTitle: boolean
   showScore: boolean
 }

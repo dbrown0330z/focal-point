@@ -42,15 +42,11 @@ function VisibilityChip({ value }: { value: string }) {
 
 // ─── Share modal ──────────────────────────────────────────────────────────────
 
-const SHARE_OPTIONS: Array<{
-  value: 'private' | 'members_only' | 'public'
-  label: string
-  subFn: (clubName: string) => string
-}> = [
-  { value: 'private',      label: 'Private',  subFn: ()       => 'Only you can see this gallery' },
-  { value: 'members_only', label: 'Club Only', subFn: cn       => `Visible to ${cn} members` },
-  { value: 'public',       label: 'Public',   subFn: ()       => 'Anyone with the link can view' },
-]
+function deriveVisibility(club: boolean, pub: boolean): 'private' | 'members_only' | 'public' {
+  if (pub)  return 'public'
+  if (club) return 'members_only'
+  return 'private'
+}
 
 function ShareModal({
   open, onClose, galleryName, clubName, currentVisibility, galleryUrl, onSave,
@@ -59,10 +55,15 @@ function ShareModal({
   currentVisibility: 'public' | 'members_only' | 'private'
   galleryUrl: string; onSave: (v: 'public' | 'members_only' | 'private') => void
 }) {
-  const [selected, setSelected] = useState(currentVisibility)
-  const [copied,   setCopied]   = useState(false)
+  const [clubChecked,   setClubChecked]   = useState(currentVisibility !== 'private')
+  const [publicChecked, setPublicChecked] = useState(currentVisibility === 'public')
+  const [copied,        setCopied]        = useState(false)
   const prevOpen = useRef(false)
-  if (open  && !prevOpen.current) { setSelected(currentVisibility); prevOpen.current = true }
+  if (open && !prevOpen.current) {
+    setClubChecked(currentVisibility !== 'private')
+    setPublicChecked(currentVisibility === 'public')
+    prevOpen.current = true
+  }
   if (!open) prevOpen.current = false
 
   function handleCopy() {
@@ -70,26 +71,43 @@ function ShareModal({
   }
 
   if (!open) return null
+
+  const checkStyle = (checked: boolean): React.CSSProperties => ({
+    display: 'flex', alignItems: 'flex-start', gap: 14,
+    padding: '16px 18px', borderRadius: 12, cursor: 'pointer',
+    border: checked ? '1.5px solid var(--action-primary)' : '1.5px solid var(--border-default)',
+    background: checked ? 'rgba(26,111,196,0.08)' : 'var(--surface-2)',
+    textAlign: 'left', transition: 'border-color 0.12s, background 0.12s', userSelect: 'none',
+  })
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(0,0,0,0.70)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 540, borderRadius: 20, background: 'var(--surface-1)', border: '1px solid var(--border-default)', padding: '28px 28px 24px' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 520, borderRadius: 20, background: 'var(--surface-1)', border: '1px solid var(--border-default)', padding: '28px 28px 24px' }}>
         <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px' }}>Share &ldquo;{galleryName}&rdquo;</h2>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 20px' }}>Choose who can view this gallery</p>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 20px' }}>Choose who can see this gallery</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-          {SHARE_OPTIONS.map(opt => {
-            const active = selected === opt.value
-            return (
-              <button key={opt.value} type="button" onClick={() => setSelected(opt.value)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderRadius: 12, border: `1.5px solid ${active ? 'var(--action-primary)' : 'var(--border-default)'}`, background: active ? 'rgba(26,111,196,0.08)' : 'var(--surface-2)', cursor: 'pointer', textAlign: 'left' }}>
-                <div>
-                  <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{opt.label}</p>
-                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '2px 0 0' }}>{opt.subFn(clubName)}</p>
-                </div>
-                {active && <svg viewBox="0 0 24 24" fill="none" stroke="var(--action-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width={18} height={18} style={{ flexShrink: 0 }}><path d="M20 6L9 17l-5-5"/></svg>}
-              </button>
-            )
-          })}
+          <label style={checkStyle(clubChecked)}>
+            <input type="checkbox" checked={clubChecked} onChange={e => setClubChecked(e.target.checked)}
+              style={{ width: 17, height: 17, accentColor: 'var(--action-primary)', flexShrink: 0, marginTop: 1, cursor: 'pointer' }} />
+            <div>
+              <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Club members</p>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '2px 0 0', lineHeight: 1.4 }}>
+                Visible on your member profile page — {clubName} members only
+              </p>
+            </div>
+          </label>
+          <label style={checkStyle(publicChecked)}>
+            <input type="checkbox" checked={publicChecked} onChange={e => setPublicChecked(e.target.checked)}
+              style={{ width: 17, height: 17, accentColor: 'var(--action-primary)', flexShrink: 0, marginTop: 1, cursor: 'pointer' }} />
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Anyone with the link</p>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '2px 0 0', lineHeight: 1.4 }}>
+                Visible publicly — share via the link below
+              </p>
+            </div>
+          </label>
         </div>
-        {selected !== 'private' && (
+        {publicChecked && (
           <div style={{ display: 'flex', marginBottom: 20, background: 'var(--surface-2)', border: '1.5px solid var(--border-default)', borderRadius: 10, overflow: 'hidden' }}>
             <input readOnly value={galleryUrl} style={{ flex: 1, padding: '10px 14px', background: 'transparent', border: 'none', outline: 'none', fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-code)' }} />
             <button type="button" onClick={handleCopy} style={{ padding: '10px 18px', background: 'var(--surface-1)', border: 'none', borderLeft: '1.5px solid var(--border-default)', fontSize: 13, fontWeight: 700, color: copied ? 'var(--status-success)' : 'var(--text-primary)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -97,7 +115,10 @@ function ShareModal({
             </button>
           </div>
         )}
-        <button type="button" onClick={() => { onSave(selected); onClose() }} style={{ width: '100%', padding: '13px 0', borderRadius: 10, fontSize: 15, fontWeight: 700, background: 'var(--action-primary)', color: '#fff', border: 'none', cursor: 'pointer' }}>Done</button>
+        {!clubChecked && !publicChecked && (
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 20px', fontStyle: 'italic' }}>Gallery will be private — only visible to you.</p>
+        )}
+        <button type="button" onClick={() => { onSave(deriveVisibility(clubChecked, publicChecked)); onClose() }} style={{ width: '100%', padding: '13px 0', borderRadius: 10, fontSize: 15, fontWeight: 700, background: 'var(--action-primary)', color: '#fff', border: 'none', cursor: 'pointer' }}>Done</button>
       </div>
     </div>
   )
@@ -129,8 +150,6 @@ function applyFilters(images: ScoredImage[], f: DynamicFilters): ScoredImage[] {
   })
 }
 
-function scoreLabel(v: number) { return v === 10 ? '10' : v.toFixed(1) }
-
 // ─── Remove button ────────────────────────────────────────────────────────────
 
 function IconX({ size = 10 }: { size?: number }) {
@@ -157,7 +176,7 @@ export default function DynamicGalleryPage({
   const saved  = gallery.filters ?? DEFAULT_FILTERS
 
   // Pending filter state (not yet applied)
-  const [scoreRange,  setScoreRange]  = useState<[number, number]>([saved.scoreMin, saved.scoreMax])
+  const [scoreMin,    setScoreMin]    = useState(saved.scoreMin)
   const [categories,  setCategories]  = useState<string[]>(saved.categories)
   const [timeframe,   setTimeframe]   = useState<'this_year' | 'all_years'>(saved.timeframe)
 
@@ -191,7 +210,7 @@ export default function DynamicGalleryPage({
 
   function handleApply() {
     setRemovedIds(new Set())
-    setApplied({ scoreMin: scoreRange[0], scoreMax: scoreRange[1], categories, timeframe })
+    setApplied({ scoreMin, scoreMax: 10, categories, timeframe })
   }
 
   const toggleCategory = useCallback((cat: string) => {
@@ -286,27 +305,31 @@ export default function DynamicGalleryPage({
 
         {/* Score slider */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-            Score
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+            Min score: {scoreMin > 0 ? scoreMin : 'any'}
           </span>
-          <div style={{ width: 180, paddingInline: 4 }}>
+          <div style={{ width: 120, paddingInline: 4 }}>
             <Slider
-              value={scoreRange}
-              onChange={(_, v) => setScoreRange(v as [number, number])}
-              min={0} max={10} step={0.5}
-              valueLabelDisplay="auto"
-              valueLabelFormat={scoreLabel}
+              value={scoreMin}
+              onChange={(_, v) => setScoreMin(v as number)}
+              min={0} max={10} step={1}
+              size="small"
               sx={{
                 color: 'var(--action-primary)',
                 padding: '10px 0',
                 '& .MuiSlider-thumb': { width: 16, height: 16 },
-                '& .MuiSlider-valueLabel': { fontSize: 11 },
               }}
             />
           </div>
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap', minWidth: 60 }}>
-            {scoreLabel(scoreRange[0])}–{scoreLabel(scoreRange[1])}
-          </span>
+          {scoreMin > 0 && (
+            <button
+              type="button"
+              onClick={() => setScoreMin(0)}
+              style={{ fontSize: 13, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
+            >
+              Clear
+            </button>
+          )}
         </div>
 
         {/* Divider */}
