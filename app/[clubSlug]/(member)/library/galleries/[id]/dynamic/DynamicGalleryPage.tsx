@@ -178,9 +178,11 @@ function ShareModal({
         <p
           aria-live="polite"
           style={{
-            fontSize: 14, color: 'var(--text-secondary)',
-            margin: '0 0 20px', lineHeight: 1.4,
-            transition: 'opacity 0.15s ease',
+            fontSize: 14,
+            color:      !clubOn && !publicOn ? 'var(--action-primary)' : 'var(--text-secondary)',
+            fontWeight: !clubOn && !publicOn ? 600 : 400,
+            margin: '12px 0 20px', lineHeight: 1.4,
+            transition: 'opacity 0.15s ease, color 0.2s ease',
             opacity: statusOpacity,
           }}
         >
