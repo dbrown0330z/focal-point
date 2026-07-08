@@ -49,17 +49,12 @@ export default async function ClubGalleriesPage() {
   return (
     <Box>
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h1" sx={{
-          fontSize:      'var(--text-h1-size)',
-          fontWeight:    'var(--text-h1-weight)',
-          letterSpacing: 'var(--text-h1-ls)',
-          mb:            0.5,
-        }}>
-          Club galleries
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 4px' }}>
+          Club Galleries
+        </h1>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>
           Curated image collections from our club.
-        </Typography>
+        </p>
       </Box>
 
       {(!galleries || galleries.length === 0) ? (

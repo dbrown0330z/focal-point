@@ -170,7 +170,7 @@ export default function MembersClient({
     <div>
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="mb-0 font-bold text-content-primary" style={{ fontFamily: 'var(--font-heading)', fontSize: 28, letterSpacing: '-0.02em' }}>Members</h1>
+        <h1 className="mb-0 font-bold text-content-primary" style={{ fontFamily: 'var(--font-heading)', fontSize: 28, letterSpacing: '-0.02em' }}>Member Directory</h1>
       </div>
 
       {!directoryVisible ? (

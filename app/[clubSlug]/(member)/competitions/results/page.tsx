@@ -57,7 +57,7 @@ export default async function CompetitionResultsIndexPage() {
       <div className="mb-8">
         <h1
           className="text-[28px] font-bold leading-tight tracking-[-0.02em]"
-          style={{ fontFamily: 'var(--font-primary)', color: 'var(--text-primary)' }}
+          style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
         >
           Competition Results
         </h1>

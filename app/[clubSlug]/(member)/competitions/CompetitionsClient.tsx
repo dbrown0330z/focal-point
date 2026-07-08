@@ -1403,7 +1403,7 @@ export default function CompetitionsClient({
         className="mb-6 text-[28px] font-bold tracking-[-0.02em]"
         style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', marginTop: 0 }}
       >
-        Competitions
+        Current Competitions
       </h1>
 
       <div className="space-y-8">
