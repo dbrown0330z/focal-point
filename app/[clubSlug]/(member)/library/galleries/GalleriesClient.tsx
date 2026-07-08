@@ -415,7 +415,7 @@ function ShareDialog({
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
           <h2 style={{
-            fontFamily: 'var(--font-primary)',
+            fontFamily: 'var(--font-heading)',
             fontSize: 22, fontWeight: 400,
             color: 'var(--text-primary)',
             margin: 0,
