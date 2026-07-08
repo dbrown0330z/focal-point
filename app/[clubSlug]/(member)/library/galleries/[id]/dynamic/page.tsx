@@ -23,6 +23,7 @@ export type DynamicGalleryRecord = {
   visibility: 'public' | 'members_only' | 'private'
   filters:    DynamicFilters | null
   clubName:   string
+  memberId:   string
 }
 
 export default async function DynamicGalleryRoute({
@@ -95,6 +96,7 @@ export default async function DynamicGalleryRoute({
     visibility: (gallery.visibility as 'public' | 'members_only' | 'private') ?? 'private',
     filters:    (gallery.filters as DynamicFilters | null) ?? null,
     clubName:   ctx?.clubName ?? '',
+    memberId:   user.id,
   }
 
   return (
