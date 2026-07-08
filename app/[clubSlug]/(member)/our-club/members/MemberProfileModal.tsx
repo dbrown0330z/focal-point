@@ -408,8 +408,7 @@ export default function MemberProfileModal({ members, index, onClose, onNav, clu
         style={{
           background:  'var(--surface-2)',
           border:      '1px solid var(--border-default)',
-          maxHeight:   '80vh',
-          minHeight:   280,
+          height:      '80vh',
         }}
         onClick={e => e.stopPropagation()}
       >
