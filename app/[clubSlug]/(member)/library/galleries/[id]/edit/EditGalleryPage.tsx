@@ -220,14 +220,29 @@ function ShareModal({
           paddingBottom: isMobile ? 'max(24px, env(safe-area-inset-bottom, 16px))' : 24,
         }}
       >
-        <h2 style={{
-          fontFamily: 'var(--font-primary)',
-          fontSize: 22, fontWeight: 400,
-          color: 'var(--text-primary)',
-          margin: '0 0 4px',
-        }}>
-          Share &ldquo;{galleryName}&rdquo;
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
+          <h2 style={{
+            fontFamily: 'var(--font-primary)',
+            fontSize: 22, fontWeight: 400,
+            color: 'var(--text-primary)',
+            margin: 0,
+          }}>
+            Share &ldquo;{galleryName}&rdquo;
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              width: 32, height: 32, borderRadius: 8, border: 'none', flexShrink: 0,
+              background: 'var(--surface-2)', color: 'var(--text-secondary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-0)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+          >
+            <IconX size={14} />
+          </button>
+        </div>
 
         <p
           aria-live="polite"
