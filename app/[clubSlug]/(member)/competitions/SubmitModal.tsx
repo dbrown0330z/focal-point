@@ -39,7 +39,7 @@ type Step = 0 | 1 | 2  // 0=source, 1=upload/library/detail, 2=confirm
 
 function IconClose() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width={14} height={14}>
       <path d="M18 6L6 18M6 6l12 12"/>
     </svg>
   )
@@ -748,7 +748,7 @@ export default function SubmitModal({
           <div style={{ padding: '22px 28px 0', borderBottom: '1px solid var(--border-default)', flexShrink: 0 }}>
             <div className="flex items-start justify-between pb-0">
               <div>
-                <h2 className="text-[22px] font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                <h2 style={{ fontFamily: 'var(--font-primary)', fontSize: 22, fontWeight: 400, color: 'var(--text-primary)', margin: 0 }}>
                   Submit an image
                 </h2>
                 <p className="mt-0.5 text-[14px] font-semibold" style={{ color: 'var(--action-primary)' }}>
@@ -756,11 +756,15 @@ export default function SubmitModal({
                 </p>
               </div>
               <button
-                type="button" onClick={handleClose}
-                className="flex h-[34px] w-[34px] items-center justify-center rounded-lg transition-colors"
-                style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)' }}
-                onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-0)')}
-                onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-2)')}
+                type="button"
+                onClick={handleClose}
+                style={{
+                  width: 32, height: 32, borderRadius: 8, border: 'none',
+                  background: 'var(--surface-2)', color: 'var(--text-secondary)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-0)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface-2)')}
               >
                 <IconClose />
               </button>
