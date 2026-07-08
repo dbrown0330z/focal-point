@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -103,6 +103,38 @@ function deriveVisibility(club: boolean, pub: boolean): 'private' | 'members_onl
   return 'private'
 }
 
+function getStatusText(club: boolean, pub: boolean): string {
+  if (club && pub)  return 'Visible to club members and anyone with the link'
+  if (club)         return 'Visible to club members on your profile'
+  if (pub)          return 'Anyone with the link can view this'
+  return 'Private — only visible to you'
+}
+
+function Toggle({ on, onChange, id }: { on: boolean; onChange: (v: boolean) => void; id: string }) {
+  return (
+    <button
+      id={id}
+      role="switch"
+      aria-checked={on}
+      type="button"
+      onClick={() => onChange(!on)}
+      style={{
+        width: 44, height: 24, borderRadius: 12,
+        background: on ? 'var(--action-primary)' : 'var(--border-strong)',
+        border: 'none', padding: 0, cursor: 'pointer',
+        position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+      }}
+    >
+      <span style={{
+        position: 'absolute', top: 2, left: on ? 22 : 2,
+        width: 20, height: 20, borderRadius: '50%',
+        background: '#fff', transition: 'left 0.2s',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+      }} />
+    </button>
+  )
+}
+
 function ShareModal({
   open,
   onClose,
@@ -120,17 +152,37 @@ function ShareModal({
   galleryUrl:        string
   onSave:            (v: 'public' | 'members_only' | 'private') => void
 }) {
-  const [clubChecked,   setClubChecked]   = useState(currentVisibility !== 'private')
-  const [publicChecked, setPublicChecked] = useState(currentVisibility === 'public')
-  const [copied,        setCopied]        = useState(false)
+  const [clubOn,   setClubOn]   = useState(currentVisibility !== 'private')
+  const [publicOn, setPublicOn] = useState(currentVisibility === 'public')
+  const [copied,   setCopied]   = useState(false)
 
   const prevOpen = useRef(false)
   if (open && !prevOpen.current) {
-    setClubChecked(currentVisibility !== 'private')
-    setPublicChecked(currentVisibility === 'public')
+    setClubOn(currentVisibility !== 'private')
+    setPublicOn(currentVisibility === 'public')
     prevOpen.current = true
   }
   if (!open) prevOpen.current = false
+
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
+  const [statusOpacity,    setStatusOpacity]    = useState(1)
+  const [displayedStatus,  setDisplayedStatus]  = useState(() => getStatusText(clubOn, publicOn))
+
+  useEffect(() => {
+    setStatusOpacity(0)
+    const t = setTimeout(() => {
+      setDisplayedStatus(getStatusText(clubOn, publicOn))
+      setStatusOpacity(1)
+    }, 120)
+    return () => clearTimeout(t)
+  }, [clubOn, publicOn])
 
   function handleCopy() {
     navigator.clipboard.writeText(galleryUrl).then(() => {
@@ -141,147 +193,153 @@ function ShareModal({
 
   if (!open) return null
 
-  const checkStyle = (checked: boolean): React.CSSProperties => ({
-    display:        'flex',
-    alignItems:     'flex-start',
-    gap:            14,
-    padding:        '16px 18px',
-    borderRadius:   12,
-    border:         checked ? '1.5px solid var(--action-primary)' : '1.5px solid var(--border-default)',
-    background:     checked ? 'rgba(26,111,196,0.08)' : 'var(--surface-2)',
-    cursor:         'pointer',
-    textAlign:      'left',
-    transition:     'border-color 0.12s, background 0.12s',
-    userSelect:     'none',
-  })
+  void clubName
 
   return (
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 1300,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 24,
-        background: 'rgba(0,0,0,0.70)', backdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: isMobile ? 'flex-end' : 'center',
+        justifyContent: 'center',
+        padding: isMobile ? 0 : 24,
+        background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(4px)',
       }}
       onClick={onClose}
     >
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          width: '100%', maxWidth: 520,
-          borderRadius: 20,
-          background: 'var(--surface-1)', border: '1px solid var(--border-default)',
-          padding: '28px 28px 24px',
+          width: '100%',
+          maxWidth: isMobile ? '100%' : 480,
+          borderRadius: isMobile ? '20px 20px 0 0' : 20,
+          background: 'var(--surface-1)',
+          border: '1px solid var(--border-default)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
+          padding: '28px 24px 24px',
+          paddingBottom: isMobile ? 'max(24px, env(safe-area-inset-bottom, 16px))' : 24,
         }}
       >
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px' }}>
+        <h2 style={{
+          fontFamily: 'var(--font-primary)',
+          fontSize: 22, fontWeight: 400,
+          color: 'var(--text-primary)',
+          margin: '0 0 4px',
+        }}>
           Share &ldquo;{galleryName}&rdquo;
         </h2>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 20px' }}>
-          Choose who can see this gallery
+
+        <p
+          aria-live="polite"
+          style={{
+            fontSize: 14, color: 'var(--text-secondary)',
+            margin: '0 0 20px', lineHeight: 1.4,
+            transition: 'opacity 0.15s ease',
+            opacity: statusOpacity,
+          }}
+        >
+          {displayedStatus}
         </p>
 
-        {!clubChecked && !publicChecked && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '13px 16px', borderRadius: 10, marginBottom: 16,
-            background: 'var(--surface-2)',
-            border: '2px solid var(--border-default)',
+        <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />
+
+        {/* Club members row */}
+        <div style={{
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', gap: 16,
+          padding: '16px 0',
+        }}>
+          <label htmlFor="toggle-club" style={{
+            fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer',
           }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-              strokeLinecap="round" strokeLinejoin="round" width={20} height={20}
-              style={{ color: 'var(--text-secondary)', flexShrink: 0 }}>
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-            <div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Private</p>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '2px 0 0' }}>
-                Only visible to you in My Galleries
-              </p>
-            </div>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-          {/* Club card */}
-          <label style={checkStyle(clubChecked)}>
-            <input
-              type="checkbox"
-              checked={clubChecked}
-              onChange={e => setClubChecked(e.target.checked)}
-              style={{ width: 17, height: 17, accentColor: 'var(--action-primary)', flexShrink: 0, marginTop: 1, cursor: 'pointer' }}
-            />
-            <div>
-              <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                Club members
-              </p>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '2px 0 0', lineHeight: 1.4 }}>
-                Visible on your member profile page — {clubName} members only
-              </p>
-            </div>
+            Share with club members
           </label>
-
-          {/* Public card */}
-          <label style={checkStyle(publicChecked)}>
-            <input
-              type="checkbox"
-              checked={publicChecked}
-              onChange={e => setPublicChecked(e.target.checked)}
-              style={{ width: 17, height: 17, accentColor: 'var(--action-primary)', flexShrink: 0, marginTop: 1, cursor: 'pointer' }}
-            />
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                Anyone with the link
-              </p>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '2px 0 0', lineHeight: 1.4 }}>
-                Visible publicly — share via the link below
-              </p>
-            </div>
-          </label>
+          <Toggle id="toggle-club" on={clubOn} onChange={setClubOn} />
         </div>
 
-        {/* URL row — only when public */}
-        {publicChecked && (
+        <p style={{
+          fontSize: 13, color: 'var(--text-secondary)',
+          margin: '0 0 16px', lineHeight: 1.5,
+        }}>
+          Visible on your member profile page to other logged-in members.
+        </p>
+
+        <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />
+
+        {/* Public link row */}
+        <div style={{
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', gap: 16,
+          padding: '16px 0',
+        }}>
+          <label htmlFor="toggle-public" style={{
+            fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer',
+          }}>
+            Share with a public link
+          </label>
+          <Toggle id="toggle-public" on={publicOn} onChange={setPublicOn} />
+        </div>
+
+        <p style={{
+          fontSize: 13, color: 'var(--text-secondary)',
+          margin: '0 0 16px', lineHeight: 1.5,
+        }}>
+          Anyone with the link can view this gallery — no login required.
+        </p>
+
+        {/* Animated link field */}
+        <div style={{
+          overflow: 'hidden',
+          maxHeight: publicOn ? 72 : 0,
+          opacity: publicOn ? 1 : 0,
+          transition: 'max-height 0.25s ease, opacity 0.2s ease',
+          marginTop: publicOn ? 12 : 0,
+        }}>
           <div style={{
-            display: 'flex', marginBottom: 20,
-            background: 'var(--surface-2)', border: '1.5px solid var(--border-default)',
-            borderRadius: 10, overflow: 'hidden',
+            display: 'flex',
+            background: 'var(--surface-2)',
+            border: '1.5px solid var(--border-default)',
+            borderRadius: 10,
+            overflow: 'hidden',
+            marginBottom: 4,
           }}>
             <input
               readOnly
               value={galleryUrl}
               style={{
-                flex: 1, padding: '10px 14px',
+                flex: 1, padding: '10px 12px',
                 background: 'transparent', border: 'none', outline: 'none',
-                fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-code)',
+                fontSize: 12, color: 'var(--text-secondary)',
+                fontFamily: 'var(--font-code)',
               }}
             />
             <button
               type="button"
               onClick={handleCopy}
               style={{
-                padding: '10px 18px',
+                padding: '10px 16px',
                 background: 'var(--surface-1)', border: 'none',
                 borderLeft: '1.5px solid var(--border-default)',
-                fontSize: 13, fontWeight: 700,
+                fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
                 color: copied ? 'var(--status-success)' : 'var(--text-primary)',
-                cursor: 'pointer', whiteSpace: 'nowrap',
+                cursor: 'pointer',
               }}
             >
-              {copied ? 'Copied!' : 'Copy'}
+              {copied ? '✓ Copied' : 'Copy link'}
             </button>
           </div>
-        )}
+        </div>
+
+        <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />
 
         <button
           type="button"
-          onClick={() => { onSave(deriveVisibility(clubChecked, publicChecked)); onClose() }}
+          onClick={() => { onSave(deriveVisibility(clubOn, publicOn)); onClose() }}
           style={{
             width: '100%', padding: '13px 0', borderRadius: 10,
             fontSize: 15, fontWeight: 700,
             background: 'var(--action-primary)', color: '#fff',
-            border: 'none', cursor: 'pointer',
+            border: 'none', cursor: 'pointer', marginTop: 20,
           }}
         >
           Done
