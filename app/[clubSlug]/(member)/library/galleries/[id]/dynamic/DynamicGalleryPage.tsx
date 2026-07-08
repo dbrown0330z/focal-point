@@ -460,7 +460,7 @@ export default function DynamicGalleryPage({
         <VisibilityChip value={visibility} />
       </div>
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 24px' }}>
-        Adjust filters and click Apply — click Done to save.
+        Create galleries of images you&apos;ve submitted to competitions. Adjust filters and click Apply — click Done to save.
       </p>
 
       {/* ── Filter bar ── */}
