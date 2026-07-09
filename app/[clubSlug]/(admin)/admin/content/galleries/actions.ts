@@ -33,10 +33,18 @@ async function uniqueSlug(base: string, clubId: string, excludeId?: string) {
   }
 }
 
-export async function createClubGallery(data: {
-  name:        string
-  description: string
-  visibility:  'public' | 'members_only'
+export type AdminGalleryFilters = {
+  memberIds:  'all' | string[]
+  scoreMin:   number
+  categories: string[]
+  timeframe:  'all_years' | 'this_year'
+}
+
+export async function createAdminGallery(data: {
+  name:     string
+  filters:  AdminGalleryFilters
+  imageIds: string[]
+  coverId:  string | null
 }): Promise<{ error: string | null; id?: string }> {
   const { clubSlug } = await requireAdmin()
   const ctx = await getClubContext()
@@ -47,11 +55,12 @@ export async function createClubGallery(data: {
   const db   = createServiceClient() as any
   const slug = await uniqueSlug(slugify(name), ctx.clubId)
   const { data: gallery, error } = await db.from('club_galleries').insert({
-    club_id:     ctx.clubId,
+    club_id:    ctx.clubId,
     name,
     slug,
-    description: data.description.trim() || null,
-    visibility:  data.visibility,
+    visibility: 'draft',
+    filters:    data.filters,
+    image_ids:  data.imageIds,
   }).select('id').single()
   if (error) return { error: (error as { message: string }).message }
   revalidatePath(`/${clubSlug}/admin/content/navigation`)
@@ -59,11 +68,9 @@ export async function createClubGallery(data: {
   return { error: null, id: gallery.id }
 }
 
-export async function updateClubGalleryMeta(galleryId: string, data: {
-  name:                 string
-  description:          string
-  visibility:           'public' | 'members_only'
-  featured_on_homepage: boolean
+export async function updateAdminGalleryMeta(galleryId: string, data: {
+  name:       string
+  visibility: 'draft' | 'members_only' | 'public'
 }): Promise<{ error: string | null }> {
   const { clubSlug } = await requireAdmin()
   const ctx  = await getClubContext()
@@ -73,7 +80,7 @@ export async function updateClubGalleryMeta(galleryId: string, data: {
   const db   = createServiceClient() as any
   const slug = await uniqueSlug(slugify(name), ctx!.clubId, galleryId)
   const { error } = await db.from('club_galleries')
-    .update({ name, slug, description: data.description.trim() || null, visibility: data.visibility, featured_on_homepage: data.featured_on_homepage })
+    .update({ name, slug, visibility: data.visibility })
     .eq('id', galleryId)
     .eq('club_id', ctx!.clubId)
   if (error) return { error: (error as { message: string }).message }
@@ -82,13 +89,20 @@ export async function updateClubGalleryMeta(galleryId: string, data: {
   return { error: null }
 }
 
-export async function archiveClubGallery(galleryId: string): Promise<{ error: string | null }> {
+export async function updateAdminGalleryFilters(galleryId: string, data: {
+  filters:  AdminGalleryFilters
+  imageIds: string[]
+  coverId:  string | null
+}): Promise<{ error: string | null }> {
   const { clubSlug } = await requireAdmin()
   const ctx = await getClubContext()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db  = createServiceClient() as any
   const { error } = await db.from('club_galleries')
-    .update({ archived_at: new Date().toISOString(), featured_on_homepage: false })
+    .update({
+      filters:   data.filters,
+      image_ids: data.imageIds,
+    })
     .eq('id', galleryId)
     .eq('club_id', ctx!.clubId)
   if (error) return { error: (error as { message: string }).message }
@@ -97,7 +111,7 @@ export async function archiveClubGallery(galleryId: string): Promise<{ error: st
   return { error: null }
 }
 
-export async function deleteClubGallery(galleryId: string): Promise<{ error: string | null }> {
+export async function deleteAdminGallery(galleryId: string): Promise<{ error: string | null }> {
   const { clubSlug } = await requireAdmin()
   const ctx = await getClubContext()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -109,54 +123,5 @@ export async function deleteClubGallery(galleryId: string): Promise<{ error: str
   if (error) return { error: (error as { message: string }).message }
   revalidatePath(`/${clubSlug}/admin/content/navigation`)
   revalidatePath(`/${clubSlug}/our-club/galleries`)
-  return { error: null }
-}
-
-export async function setClubGalleryCover(galleryId: string, submissionId: string | null): Promise<{ error: string | null }> {
-  const { clubSlug } = await requireAdmin()
-  const ctx = await getClubContext()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db  = createServiceClient() as any
-  const { error } = await db.from('club_galleries')
-    .update({ cover_submission_id: submissionId })
-    .eq('id', galleryId)
-    .eq('club_id', ctx!.clubId)
-  if (error) return { error: (error as { message: string }).message }
-  revalidatePath(`/${clubSlug}/admin/content/navigation`)
-  return { error: null }
-}
-
-export async function addImagesToClubGallery(galleryId: string, submissionIds: string[]): Promise<{ error: string | null }> {
-  const { clubSlug } = await requireAdmin()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db  = createServiceClient() as any
-
-  const { data: existing } = await db.from('club_gallery_images')
-    .select('sort_order')
-    .eq('gallery_id', galleryId)
-    .order('sort_order', { ascending: false })
-    .limit(1)
-  const base = ((existing as { sort_order: number }[] | null)?.[0]?.sort_order ?? -1) + 1
-
-  const rows = submissionIds.map((id, i) => ({
-    gallery_id:    galleryId,
-    submission_id: id,
-    sort_order:    base + i,
-  }))
-
-  const { error } = await db.from('club_gallery_images')
-    .upsert(rows, { onConflict: 'gallery_id,submission_id', ignoreDuplicates: true })
-  if (error) return { error: (error as { message: string }).message }
-  revalidatePath(`/${clubSlug}/admin/content/navigation`)
-  return { error: null }
-}
-
-export async function removeFromClubGallery(galleryImageId: string): Promise<{ error: string | null }> {
-  const { clubSlug } = await requireAdmin()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = createServiceClient() as any
-  const { error } = await db.from('club_gallery_images').delete().eq('id', galleryImageId)
-  if (error) return { error: (error as { message: string }).message }
-  revalidatePath(`/${clubSlug}/admin/content/navigation`)
   return { error: null }
 }

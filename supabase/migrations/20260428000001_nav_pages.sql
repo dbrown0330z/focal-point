@@ -29,13 +29,17 @@ create table if not exists public.nav_custom_pages (
 
 -- RLS
 alter table public.nav_custom_tabs enable row level security;
+drop policy if exists "public read nav tabs" on public.nav_custom_tabs;
 create policy "public read nav tabs"   on public.nav_custom_tabs for select using (true);
+drop policy if exists "admin write nav tabs" on public.nav_custom_tabs;
 create policy "admin write nav tabs"   on public.nav_custom_tabs for all
   using (exists(select 1 from public.profiles where id = auth.uid() and role = 'admin'))
   with check (exists(select 1 from public.profiles where id = auth.uid() and role = 'admin'));
 
 alter table public.nav_custom_pages enable row level security;
+drop policy if exists "public read nav pages" on public.nav_custom_pages;
 create policy "public read nav pages"  on public.nav_custom_pages for select using (true);
+drop policy if exists "admin write nav pages" on public.nav_custom_pages;
 create policy "admin write nav pages"  on public.nav_custom_pages for all
   using (exists(select 1 from public.profiles where id = auth.uid() and role = 'admin'))
   with check (exists(select 1 from public.profiles where id = auth.uid() and role = 'admin'));

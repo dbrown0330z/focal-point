@@ -19,7 +19,7 @@ import HomepageEditor from './HomepageEditor'
 import type { ContentBlock } from '@/lib/homepage/types'
 import AboutPageEditor from '../about/AboutPageEditor'
 import CustomPageEditorComponent from './[pageId]/CustomPageEditor'
-import ClubGalleriesTab, { type ClubGalleryData, type SubmissionOption } from '../galleries/ClubGalleriesTab'
+import ClubGalleriesTab, { type AdminGalleryData, type ClubMember } from '../galleries/ClubGalleriesTab'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1032,13 +1032,13 @@ export default function NavigationClient({
   customTabs:  initialTabs,
   initialHomepageBlocks,
   initialGalleries = [],
-  submissions = [],
+  members = [],
 }: {
   customPages:            CustomPage[]
   customTabs:             CustomTab[]
   initialHomepageBlocks?: ContentBlock[]
-  initialGalleries?:      ClubGalleryData[]
-  submissions?:           SubmissionOption[]
+  initialGalleries?:      AdminGalleryData[]
+  members?:               ClubMember[]
 }) {
   const params = useParams()
   const clubSlug = typeof params.clubSlug === 'string' ? params.clubSlug : ''
@@ -1297,7 +1297,8 @@ export default function NavigationClient({
       {activeTab === 'galleries' && (
         <ClubGalleriesTab
           galleries={initialGalleries}
-          submissions={submissions}
+          members={members}
+          clubSlug={clubSlug}
         />
       )}
 

@@ -16,10 +16,12 @@ create unique index if not exists pages_slug_idx on public.pages (slug);
 -- RLS: public read, admin write
 alter table public.pages enable row level security;
 
+drop policy if exists "pages: public read" on public.pages;
 create policy "pages: public read"
   on public.pages for select
   using (true);
 
+drop policy if exists "pages: admin write" on public.pages;
 create policy "pages: admin write"
   on public.pages for all
   using (is_admin())

@@ -2,9 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getClubContext } from '@/lib/club-context'
 import Link from 'next/link'
-import { Box, Typography, Chip } from '@mui/material'
-import PublicIcon      from '@mui/icons-material/Public'
-import PeopleIcon from '@mui/icons-material/People'
+import { Box, Typography } from '@mui/material'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,40 +14,53 @@ export default async function ClubGalleriesPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminAny = admin as any
 
-  // Fetch non-archived club galleries readable by current user
-  let q = adminAny
+  // Fetch published club galleries (members_only or public)
+  const { data: galleriesRaw } = await adminAny
     .from('club_galleries')
-    .select(`
-      id, name, slug, description, visibility, featured_on_homepage,
-      cover_submission_id,
-      submissions!club_galleries_cover_submission_id_fkey(
-        images!submissions_image_id_fkey(storage_path)
-      )
-    `)
+    .select('id, name, slug, description, image_ids, visibility')
     .eq('club_id', ctx!.clubId)
+    .in('visibility', user ? ['members_only', 'public'] : ['public'])
     .is('archived_at', null)
-    .order('featured_on_homepage', { ascending: false })
     .order('created_at', { ascending: false })
 
-  if (!user) {
-    q = q.eq('visibility', 'public')
-  }
+  // Build gallery list with cover URL from first image_id
+  const galleries = await Promise.all(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ((galleriesRaw ?? []) as any[]).map(async (g: any) => {
+      const imageIds: string[] = Array.isArray(g.image_ids) ? g.image_ids : []
+      let coverUrl: string | null = null
 
-  const { data: galleries } = await q
+      if (imageIds.length > 0) {
+        const { data: imgRow } = await adminAny
+          .from('images')
+          .select('storage_path')
+          .eq('id', imageIds[0])
+          .single()
+        if (imgRow?.storage_path) {
+          coverUrl = admin.storage.from('images').getPublicUrl(imgRow.storage_path as string).data.publicUrl
+        }
+      }
 
-  function coverUrl(g: {
-    cover_submission_id: string | null
-    submissions?: { images?: { storage_path?: string } | null } | null
-  }) {
-    const path = g.submissions?.images?.storage_path
-    if (!path) return null
-    return admin.storage.from('images').getPublicUrl(path).data.publicUrl
-  }
+      return {
+        id:          g.id as string,
+        name:        g.name as string,
+        slug:        g.slug as string,
+        description: g.description as string | null,
+        imageCount:  imageIds.length,
+        coverUrl,
+        visibility:  g.visibility as string,
+      }
+    })
+  )
 
   return (
     <Box>
       <Box sx={{ mb: 4 }}>
-        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 4px' }}>
+        <h1 style={{
+          fontFamily: 'var(--font-primary)',
+          fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em',
+          color: 'var(--text-primary)', margin: '0 0 4px',
+        }}>
           Club Galleries
         </h1>
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>
@@ -57,69 +68,82 @@ export default async function ClubGalleriesPage() {
         </p>
       </Box>
 
-      {(!galleries || galleries.length === 0) ? (
+      {galleries.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
           <Typography>No galleries published yet.</Typography>
         </Box>
       ) : (
-        <Box sx={{
-          display:             'grid',
+        <div style={{
+          display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-          gap:                 3,
+          gap: 24,
         }}>
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(galleries as any[]).map((g: any) => {
-            const url = coverUrl(g as Parameters<typeof coverUrl>[0])
-            return (
-              <Link
-                key={g.id as string}
-                href={`/${ctx!.clubSlug}/our-club/galleries/${g.slug}`}
-                style={{ textDecoration: 'none' }}
+          {galleries.map(g => (
+            <Link
+              key={g.id}
+              href={`/${ctx!.clubSlug}/our-club/galleries/${g.slug}`}
+              style={{ textDecoration: 'none' }}
+            >
+              <div style={{
+                borderRadius: 14,
+                overflow: 'hidden',
+                border: '1px solid var(--border-default)',
+                background: 'var(--surface-1)',
+                cursor: 'pointer',
+                transition: 'box-shadow 0.15s',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)')}
+                onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
               >
-                <Box sx={{
-                  borderRadius: 2,
-                  overflow:     'hidden',
-                  border:       '1px solid var(--border-default)',
-                  bgcolor:      'background.paper',
-                  cursor:       'pointer',
-                  transition:   'box-shadow 0.15s',
-                  '&:hover':    { boxShadow: 3 },
-                }}>
-                  {/* Cover */}
-                  <Box sx={{ aspectRatio: '4/3', bgcolor: 'var(--surface-1)', position: 'relative' }}>
-                    {url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={url} alt={g.name as string} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                    ) : (
-                      <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Typography variant="caption" color="text.disabled">No cover</Typography>
-                      </Box>
-                    )}
-                    {g.featured_on_homepage && (
-                      <Chip label="Featured" size="small" color="primary" sx={{ position: 'absolute', top: 8, left: 8, fontSize: 11 }} />
-                    )}
-                    {g.visibility === 'members_only' && (
-                      <Box sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(0,0,0,0.55)', borderRadius: 1, px: 0.75, py: 0.25, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <PeopleIcon sx={{ fontSize: 12, color: '#fff' }} />
-                        <Typography sx={{ fontSize: 11, color: '#fff' }}>Members</Typography>
-                      </Box>
-                    )}
-                  </Box>
+                {/* Cover */}
+                <div style={{ aspectRatio: '3/2', background: 'var(--surface-0)', position: 'relative', overflow: 'hidden' }}>
+                  {g.coverUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={g.coverUrl}
+                      alt={g.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: 13, color: 'var(--text-disabled)' }}>No cover</span>
+                    </div>
+                  )}
+                  {/* Members-only badge */}
+                  {g.visibility === 'members_only' && (
+                    <div style={{
+                      position: 'absolute', top: 10, right: 10,
+                      borderRadius: 9999, padding: '3px 10px',
+                      fontSize: 11, fontWeight: 700, letterSpacing: '0.05em',
+                      textTransform: 'uppercase', backdropFilter: 'blur(4px)',
+                      background: 'rgba(0,0,0,0.55)', color: '#fff',
+                    }}>
+                      Members only
+                    </div>
+                  )}
+                </div>
 
-                  {/* Info */}
-                  <Box sx={{ p: 2 }}>
-                    <Typography sx={{ fontWeight: 600, fontSize: 15, mb: 0.5 }}>{g.name as string}</Typography>
-                    {g.description && (
-                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: 13, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                        {g.description as string}
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
-              </Link>
-            )
-          })}
-        </Box>
+                {/* Info */}
+                <div style={{ padding: '14px 16px' }}>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px', lineHeight: 1.2 }}>
+                    {g.name}
+                  </p>
+                  {g.description && (
+                    <p style={{
+                      fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 6px',
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    }}>
+                      {g.description}
+                    </p>
+                  )}
+                  <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', margin: 0 }}>
+                    {g.imageCount} photo{g.imageCount !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
       )}
     </Box>
   )

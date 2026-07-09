@@ -2,6 +2,7 @@
 -- The images bucket already has INSERT and DELETE policies scoped to the
 -- owner's folder; UPDATE was missing, causing upsert to fail on re-upload.
 
+drop policy if exists "Members can update own images" on storage.objects;
 create policy "Members can update own images"
   on storage.objects for update
   to authenticated

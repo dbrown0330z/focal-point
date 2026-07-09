@@ -24,10 +24,12 @@ create unique index if not exists about_page_content_key_idx
 -- RLS: public read, admin write
 alter table public.about_page_content enable row level security;
 
+drop policy if exists "about_page_content: public read" on public.about_page_content;
 create policy "about_page_content: public read"
   on public.about_page_content for select
   using (true);
 
+drop policy if exists "about_page_content: admin write" on public.about_page_content;
 create policy "about_page_content: admin write"
   on public.about_page_content for all
   using (is_admin())
@@ -42,10 +44,12 @@ create table if not exists public.document_categories (
 
 alter table public.document_categories enable row level security;
 
+drop policy if exists "document_categories: member read" on public.document_categories;
 create policy "document_categories: member read"
   on public.document_categories for select
   using (is_approved_member() or is_admin());
 
+drop policy if exists "document_categories: admin write" on public.document_categories;
 create policy "document_categories: admin write"
   on public.document_categories for all
   using (is_admin())
@@ -72,6 +76,7 @@ create table if not exists public.documents (
 alter table public.documents enable row level security;
 
 -- Members can read non-deleted documents
+drop policy if exists "documents: member read" on public.documents;
 create policy "documents: member read"
   on public.documents for select
   using (
@@ -82,6 +87,7 @@ create policy "documents: member read"
     )
   );
 
+drop policy if exists "documents: admin write" on public.documents;
 create policy "documents: admin write"
   on public.documents for all
   using (is_admin())
@@ -94,6 +100,7 @@ insert into storage.buckets (id, name, public)
   on conflict (id) do nothing;
 
 -- Members can download from the documents bucket
+drop policy if exists "documents bucket: member read" on storage.objects;
 create policy "documents bucket: member read"
   on storage.objects for select
   using (
@@ -105,14 +112,17 @@ create policy "documents bucket: member read"
   );
 
 -- Admins can upload/delete documents
+drop policy if exists "documents bucket: admin write" on storage.objects;
 create policy "documents bucket: admin write"
   on storage.objects for insert
   with check (bucket_id = 'documents' and is_admin());
 
+drop policy if exists "documents bucket: admin delete" on storage.objects;
 create policy "documents bucket: admin delete"
   on storage.objects for delete
   using (bucket_id = 'documents' and is_admin());
 
+drop policy if exists "documents bucket: admin update" on storage.objects;
 create policy "documents bucket: admin update"
   on storage.objects for update
   using (bucket_id = 'documents' and is_admin())

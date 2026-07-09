@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getClubContext } from '@/lib/club-context'
 import NavigationClient, { type CustomPage, type CustomTab } from './NavigationClient'
-import type { ClubGalleryData, SubmissionOption } from '../galleries/ClubGalleriesTab'
+import type { AdminGalleryData, ClubMember } from '../galleries/ClubGalleriesTab'
 import { DEFAULT_BLOCKS, mergeBlocks, type ContentBlock } from '@/lib/homepage/types'
 
 export const dynamic = 'force-dynamic'
@@ -26,92 +26,64 @@ export default async function NavigationPage() {
   // ── Club galleries ──────────────────────────────────────────────────────────
   const { data: galleriesRaw } = await adminAny
     .from('club_galleries')
-    .select(`
-      id, name, slug, description, visibility,
-      featured_on_homepage, archived_at, cover_submission_id,
-      cover_sub:submissions!club_galleries_cover_submission_id_fkey(
-        images!submissions_image_id_fkey(storage_path)
-      ),
-      club_gallery_images(
-        id, submission_id, sort_order,
-        submissions!club_gallery_images_submission_id_fkey(
-          images!submissions_image_id_fkey(id, title, storage_path)
-        )
-      )
-    `)
+    .select('id, name, slug, visibility, filters, image_ids, cover_submission_id, created_at')
     .eq('club_id', ctx!.clubId)
     .order('created_at', { ascending: false })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const galleries: ClubGalleryData[] = ((galleriesRaw ?? []) as any[]).map((g: any) => {
-    const raw = g as {
-      id: string; name: string; slug: string; description: string | null;
-      visibility: string; featured_on_homepage: boolean; archived_at: string | null;
-      cover_submission_id: string | null;
-      cover_sub?: { images?: { storage_path?: string } | null } | null;
-      club_gallery_images?: {
-        id: string; submission_id: string; sort_order: number;
-        submissions?: { images?: { id: string; title: string; storage_path: string } | null } | null
-      }[]
-    }
-    const coverPath = raw.cover_sub?.images?.storage_path ?? null
-    const coverUrl  = coverPath ? admin.storage.from('images').getPublicUrl(coverPath).data.publicUrl : null
-    const imgs = (raw.club_gallery_images ?? [])
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map(row => {
-        const img = row.submissions?.images
-        if (!img) return null
-        return {
-          galleryImageId: row.id,
-          submissionId:   row.submission_id,
-          imageUrl:       admin.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
-          title:          img.title,
-          sortOrder:      row.sort_order,
+  // For each gallery, resolve cover URL from first image_id
+  const galleries: AdminGalleryData[] = await Promise.all(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ((galleriesRaw ?? []) as any[]).map(async (g: any) => {
+      const imageIds: string[] = Array.isArray(g.image_ids) ? g.image_ids : []
+      let coverUrl: string | null = null
+
+      if (imageIds.length > 0) {
+        const firstId = imageIds[0]
+        const { data: imgRow } = await adminAny
+          .from('images')
+          .select('storage_path')
+          .eq('id', firstId)
+          .single()
+        if (imgRow?.storage_path) {
+          coverUrl = admin.storage.from('images').getPublicUrl(imgRow.storage_path as string).data.publicUrl
         }
-      }).filter(Boolean) as ClubGalleryData['images']
-    return {
-      id:                   raw.id,
-      name:                 raw.name,
-      slug:                 raw.slug,
-      description:          raw.description,
-      visibility:           raw.visibility as 'public' | 'members_only',
-      featured_on_homepage: raw.featured_on_homepage,
-      archived_at:          raw.archived_at,
-      cover_submission_id:  raw.cover_submission_id,
-      coverUrl,
-      imageCount:           imgs.length,
-      images:               imgs,
-    }
-  })
+      }
 
-  // ── All competition submissions (for adding to club galleries) ────────────
-  const { data: subsRaw } = await adminAny
-    .from('submissions')
-    .select(`
-      id,
-      images!submissions_image_id_fkey(title, storage_path),
-      competitions!submissions_competition_id_fkey(title),
-      profiles!submissions_member_id_fkey(display_name)
-    `)
+      return {
+        id:         g.id as string,
+        name:       g.name as string,
+        slug:       g.slug as string,
+        visibility: (g.visibility as 'draft' | 'members_only' | 'public') ?? 'draft',
+        filters:    g.filters ?? null,
+        imageIds,
+        coverUrl,
+        imageCount: imageIds.length,
+      } satisfies AdminGalleryData
+    })
+  )
+
+  // ── Club members ────────────────────────────────────────────────────────────
+  const { data: membershipRows } = await adminAny
+    .from('club_memberships')
+    .select('user_id')
     .eq('club_id', ctx!.clubId)
-    .order('submitted_at', { ascending: false })
+    .eq('membership_status', 'active')
 
-  const submissions: SubmissionOption[] = ((subsRaw ?? []) as any[]).map((s: any) => {
-    const sub = s as {
-      id: string
-      images?: { title: string; storage_path: string } | null
-      competitions?: { title: string } | null
-      profiles?: { display_name: string } | null
-    }
-    if (!sub.images) return null
-    return {
-      id:              sub.id,
-      imageUrl:        admin.storage.from('images').getPublicUrl(sub.images.storage_path).data.publicUrl,
-      title:           sub.images.title,
-      competitionName: sub.competitions?.title ?? '',
-      memberName:      sub.profiles?.display_name ?? '',
-    }
-  }).filter(Boolean) as SubmissionOption[]
+  const memberIds = ((membershipRows ?? []) as { user_id: string }[]).map(m => m.user_id)
+  let members: ClubMember[] = []
+
+  if (memberIds.length > 0) {
+    const { data: memberProfiles } = await adminAny
+      .from('profiles')
+      .select('id, first_name, last_name, display_name')
+      .in('id', memberIds)
+
+    members = ((memberProfiles ?? []) as { id: string; first_name?: string; last_name?: string; display_name?: string }[]).map(p => ({
+      id:          p.id,
+      displayName: p.display_name
+        ?? ([p.first_name, p.last_name].filter(Boolean).join(' ') || 'Member'),
+    }))
+  }
 
   return (
     <NavigationClient
@@ -119,7 +91,7 @@ export default async function NavigationPage() {
       customTabs={(customTabs ?? []) as unknown as CustomTab[]}
       initialHomepageBlocks={homepageBlocks}
       initialGalleries={galleries}
-      submissions={submissions}
+      members={members}
     />
   )
 }
