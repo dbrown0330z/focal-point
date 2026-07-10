@@ -372,6 +372,8 @@ export default function GalleryViewer({
   isOwner,
   isAdmin,
   subtitle,
+  backUrl,
+  clubName,
   onSaveSettings,
   initialDisplaySettings,
 }: {
