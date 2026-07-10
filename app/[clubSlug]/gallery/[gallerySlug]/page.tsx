@@ -10,10 +10,13 @@ export const dynamic = 'force-dynamic'
 
 export default async function ClubGalleryPage({
   params,
+  searchParams,
 }: {
-  params: Promise<{ clubSlug: string; gallerySlug: string }>
+  params:       Promise<{ clubSlug: string; gallerySlug: string }>
+  searchParams: Promise<{ exitUrl?: string }>
 }) {
   const { clubSlug, gallerySlug } = await params
+  const { exitUrl } = await searchParams
   const ctx      = await getClubContext()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -91,6 +94,8 @@ export default async function ClubGalleryPage({
       images={images}
       isOwner={false}
       isAdmin={isAdmin}
+      backUrl={isAdmin && exitUrl ? exitUrl : undefined}
+      clubName={clubName}
       onSaveSettings={isAdmin ? saveDisplaySettings : undefined}
       subtitle={
         <>

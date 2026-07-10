@@ -349,9 +349,10 @@ export default function AdminDynamicGalleryPage({
   const [saving,           setSaving]           = useState(false)
   const [error,            setError]            = useState<string | null>(null)
 
+  const editUrl    = `/${clubSlug}/admin/content/galleries/${gallery.id}/edit`
   const galleryUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/${clubSlug}/gallery/${gallery.slug}`
-    : `/${clubSlug}/gallery/${gallery.slug}`
+    ? `${window.location.origin}/${clubSlug}/gallery/${gallery.slug}?exitUrl=${encodeURIComponent(editUrl)}`
+    : `/${clubSlug}/gallery/${gallery.slug}?exitUrl=${encodeURIComponent(editUrl)}`
 
   const availableCategories = useMemo(
     () => [...new Set(images.filter(i => i.categoryName).map(i => i.categoryName!))].sort(),

@@ -358,9 +358,10 @@ export default function DynamicGalleryPage({
   const [saving, setSaving] = useState(false)
   const [error,  setError]  = useState<string | null>(null)
 
+  const dynamicEditUrl = `/${clubSlug}/library/galleries/${gallery.id}/dynamic`
   const galleryUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/${clubSlug}/gallery/${gallery.memberId}/${gallery.slug}`
-    : `/${clubSlug}/gallery/${gallery.memberId}/${gallery.slug}`
+    ? `${window.location.origin}/${clubSlug}/gallery/${gallery.memberId}/${gallery.slug}?exitUrl=${encodeURIComponent(dynamicEditUrl)}`
+    : `/${clubSlug}/gallery/${gallery.memberId}/${gallery.slug}?exitUrl=${encodeURIComponent(dynamicEditUrl)}`
 
   async function handleVisibilitySave(v: 'public' | 'members_only' | 'private') {
     setVisibility(v)
@@ -419,8 +420,6 @@ export default function DynamicGalleryPage({
         </button>
         <a
           href={galleryUrl}
-          target="_blank"
-          rel="noopener noreferrer"
           style={{
             padding: '6px 16px', borderRadius: 9999, fontSize: 13, fontWeight: 600,
             background: 'var(--surface-2)', border: '1.5px solid var(--border-default)',
@@ -428,12 +427,6 @@ export default function DynamicGalleryPage({
             display: 'inline-flex', alignItems: 'center', gap: 6,
           }}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-            strokeLinecap="round" strokeLinejoin="round" width={13} height={13}>
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/>
-            <line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
           Preview
         </a>
         <button

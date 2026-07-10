@@ -847,9 +847,10 @@ export default function EditGalleryPage({
     router.refresh()
   }
 
+  const editUrl    = `/${clubSlug}/library/galleries/${gallery.id}/edit`
   const galleryUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/${clubSlug}/gallery/${userId}/${gallery.slug}`
-    : `/${clubSlug}/gallery/${userId}/${gallery.slug}`
+    ? `${window.location.origin}/${clubSlug}/gallery/${userId}/${gallery.slug}?exitUrl=${encodeURIComponent(editUrl)}`
+    : `/${clubSlug}/gallery/${userId}/${gallery.slug}?exitUrl=${encodeURIComponent(editUrl)}`
 
   const currentIds = useMemo(() => new Set(items.map(i => i.id)), [items])
   const effectiveCover = coverId ?? items[0]?.id ?? null
@@ -913,8 +914,6 @@ export default function EditGalleryPage({
 
         <a
           href={galleryUrl}
-          target="_blank"
-          rel="noopener noreferrer"
           style={{
             padding: '6px 16px', borderRadius: 9999, fontSize: 13, fontWeight: 600,
             background: 'var(--surface-2)', border: '1.5px solid var(--border-default)',
@@ -922,12 +921,6 @@ export default function EditGalleryPage({
             display: 'inline-flex', alignItems: 'center', gap: 6,
           }}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-            strokeLinecap="round" strokeLinejoin="round" width={13} height={13}>
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/>
-            <line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
           Preview
         </a>
         <button

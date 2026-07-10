@@ -10,10 +10,13 @@ export const dynamic = 'force-dynamic'
 
 export default async function PublicGalleryPage({
   params,
+  searchParams,
 }: {
-  params: Promise<{ clubSlug: string; memberId: string; gallerySlug: string }>
+  params:       Promise<{ clubSlug: string; memberId: string; gallerySlug: string }>
+  searchParams: Promise<{ exitUrl?: string }>
 }) {
   const { clubSlug, memberId, gallerySlug } = await params
+  const { exitUrl } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const ctx      = await getClubContext()
@@ -40,12 +43,12 @@ export default async function PublicGalleryPage({
 
   const isOwner = user?.id === memberId
 
-  // ── Member profile ────────────────────────────────────────────────────────
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('display_name')
-    .eq('id', memberId)
-    .single()
+  // ── Member profile + club name ────────────────────────────────────────────
+  const [{ data: profile }, { data: clubSettings }] = await Promise.all([
+    admin.from('profiles').select('display_name').eq('id', memberId).single(),
+    admin.from('club_settings').select('club_name').eq('club_id', ctx!.clubId).single(),
+  ])
+  const clubName = (clubSettings as { club_name?: string } | null)?.club_name ?? ''
 
   // ── Images in stored order ────────────────────────────────────────────────
   const imageIds = (gallery.image_ids as string[]) ?? []
@@ -100,6 +103,8 @@ export default async function PublicGalleryPage({
       ownerName={profile?.display_name ?? 'Unknown member'}
       images={imageList}
       isOwner={isOwner}
+      backUrl={isOwner && exitUrl ? exitUrl : undefined}
+      clubName={clubName}
       initialDisplaySettings={displaySettings}
     />
   )

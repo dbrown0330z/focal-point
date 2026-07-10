@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Lightbox, type LightboxImage } from '@/components/ui/Lightbox'
 import { updateDisplaySettings } from '@/app/[clubSlug]/(member)/library/galleries/actions'
 import type { DisplaySettings } from '@/app/[clubSlug]/(member)/library/galleries/actions'
@@ -382,9 +383,12 @@ export default function GalleryViewer({
   isOwner:                boolean
   isAdmin?:               boolean
   subtitle?:              React.ReactNode
+  backUrl?:               string
+  clubName?:              string
   onSaveSettings?:        (s: DisplaySettings) => Promise<void>
   initialDisplaySettings: DisplaySettings
 }) {
+  const router = useRouter()
   const [settings,      setSettings]      = useState<DisplaySettings>(initialDisplaySettings)
   const [panelOpen,     setPanelOpen]     = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
@@ -443,12 +447,12 @@ export default function GalleryViewer({
         zIndex:         100,
         gap:            16,
       }}>
-        {/* Left — Exit Preview button for admins, spacer otherwise */}
+        {/* Left — Exit Preview button when backUrl is set */}
         <div>
-          {isAdmin && (
+          {backUrl && (isOwner || isAdmin) && (
             <button
               type="button"
-              onClick={() => window.history.back()}
+              onClick={() => router.push(backUrl)}
               style={{
                 display:     'inline-flex', alignItems: 'center', gap: 6,
                 padding:     '7px 14px', borderRadius: 9999,
@@ -577,6 +581,30 @@ export default function GalleryViewer({
           panelRef={panelRef}
           isAdmin={isAdmin}
         />
+      )}
+
+      {/* ── Footer ── */}
+      {clubName && (
+        <div style={{ padding: '0 32px 48px' }}>
+          <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.10)', margin: '0 0 32px' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center' }}>
+            <a href="https://focalpointhq.com" target="_blank" rel="noopener noreferrer"
+              style={{ display: 'inline-block', opacity: 0.55, transition: 'opacity 0.2s', lineHeight: 0 }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '0.55')}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/fp-logo-dark.svg" alt="Focal Point" width={100} height={34} style={{ display: 'block' }} />
+            </a>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', margin: 0, lineHeight: 1.5 }}>
+              © {new Date().getFullYear()}{' '}
+              <a href={`/${clubSlug}`} style={{ color: 'rgba(255,255,255,0.50)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                {clubName}
+              </a>
+              {' '}· Powered by Focal Point
+            </p>
+          </div>
+        </div>
       )}
 
       {/* ── Lightbox ── */}
