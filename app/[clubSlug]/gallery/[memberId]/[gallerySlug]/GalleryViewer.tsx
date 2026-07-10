@@ -364,6 +364,8 @@ export default function GalleryViewer({
   ownerName,
   images,
   isOwner,
+  isAdmin,
+  subtitle,
   initialDisplaySettings,
 }: {
   galleryId:              string
@@ -372,6 +374,8 @@ export default function GalleryViewer({
   ownerName:              string
   images:                 GalleryImage[]
   isOwner:                boolean
+  isAdmin?:               boolean
+  subtitle?:              React.ReactNode
   initialDisplaySettings: DisplaySettings
 }) {
   const [settings,      setSettings]      = useState<DisplaySettings>(initialDisplaySettings)
@@ -423,15 +427,19 @@ export default function GalleryViewer({
     }}>
       {/* ── Top bar ── */}
       <div style={{
-        display:        'flex',
+        display:        'grid',
+        gridTemplateColumns: '1fr auto 1fr',
         alignItems:     'center',
-        justifyContent: 'space-between',
-        padding:        '20px 32px 0',
+        padding:        '40px 32px 24px',
         position:       'relative',
         zIndex:         100,
+        gap:            16,
       }}>
-        {/* Title block */}
-        <div>
+        {/* Left spacer — mirrors Display button width for visual balance */}
+        <div />
+
+        {/* Title block — centered */}
+        <div style={{ textAlign: 'center' }}>
           <h1 style={{
             fontFamily:    'var(--font-lora, Georgia, serif)',
             fontSize:      'clamp(28px, 4vw, 52px)',
@@ -446,15 +454,16 @@ export default function GalleryViewer({
           <p style={{
             fontSize:   14,
             color:      'rgba(255,255,255,0.45)',
-            margin:     '6px 0 0',
+            margin:     '8px 0 0',
             fontWeight: 400,
           }}>
-            by {ownerName}&nbsp;·&nbsp;{images.length} photo{images.length !== 1 ? 's' : ''}
+            {subtitle ?? <>by {ownerName}&nbsp;·&nbsp;{images.length} photo{images.length !== 1 ? 's' : ''}</>}
           </p>
         </div>
 
-        {/* Display button — owner only */}
-        {isOwner && (
+        {/* Display button — owner or admin */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        {(isOwner || isAdmin) && (
           <button
             ref={btnRef}
             type="button"
@@ -479,6 +488,7 @@ export default function GalleryViewer({
             Display
           </button>
         )}
+        </div>
       </div>
 
       {/* ── Gallery grid ── */}

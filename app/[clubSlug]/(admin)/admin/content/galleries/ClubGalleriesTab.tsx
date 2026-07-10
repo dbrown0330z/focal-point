@@ -497,7 +497,8 @@ function GalleryCard({
   onDelete: (g: AdminGalleryData) => void
   onShare:  (g: AdminGalleryData) => void
 }) {
-  const editUrl = `/${clubSlug}/admin/content/galleries/${gallery.id}/edit`
+  const editUrl    = `/${clubSlug}/admin/content/galleries/${gallery.id}/edit`
+  const galleryUrl = `/${clubSlug}/our-club/galleries/${gallery.slug}`
 
   return (
     <div style={{
@@ -508,10 +509,13 @@ function GalleryCard({
       display:      'flex',
       flexDirection: 'column',
     }}>
-      {/* Cover image — clicking navigates to edit */}
+      {/* Cover image — clicking opens gallery in new tab */}
       <a
-        href={editUrl}
-        style={{ display: 'block', position: 'relative', aspectRatio: '3/2', overflow: 'hidden', flexShrink: 0 }}
+        href={gallery.visibility !== 'draft' ? galleryUrl : undefined}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={gallery.visibility !== 'draft' ? 'View this gallery' : 'Gallery is draft — not yet published'}
+        style={{ display: 'block', position: 'relative', aspectRatio: '3/2', overflow: 'hidden', flexShrink: 0, cursor: gallery.visibility === 'draft' ? 'default' : 'pointer' }}
       >
         {gallery.coverUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -639,7 +643,6 @@ export default function ClubGalleriesTab({
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 4 }}>
         <Box>
-          <Typography sx={{ fontWeight: 700, fontSize: 16, mb: 0.5 }}>Club galleries</Typography>
           <Typography variant="body2" color="text.secondary">
             Dynamic galleries curated from competition submissions and published to members or the public.
           </Typography>

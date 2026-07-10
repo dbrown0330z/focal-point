@@ -595,6 +595,7 @@ function GalleryCard({
         href={galleryUrl}
         target="_blank"
         rel="noopener noreferrer"
+        title="View this gallery"
         style={{ display: 'block', position: 'relative', aspectRatio: '4/3', overflow: 'hidden', flexShrink: 0 }}
       >
         {gallery.coverImageUrl ? (

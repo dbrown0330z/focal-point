@@ -12,7 +12,7 @@ export default async function ClubGalleryPage({
 }: {
   params: Promise<{ clubSlug: string; gallerySlug: string }>
 }) {
-  const { gallerySlug } = await params
+  const { clubSlug, gallerySlug } = await params
   const ctx      = await getClubContext()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -33,6 +33,13 @@ export default async function ClubGalleryPage({
   if (!gallery) notFound()
   if (gallery.visibility === 'members_only' && !user) notFound()
   if (gallery.visibility === 'draft') notFound()
+
+  // Check if current user is a club admin
+  let isAdmin = false
+  if (user) {
+    const { data: profile } = await admin.from('profiles').select('role').eq('id', user.id).single()
+    isAdmin = (profile as { role?: string } | null)?.role === 'admin'
+  }
 
   // Fetch images from image_ids JSONB array
   const imageIds: string[] = Array.isArray(gallery.image_ids) ? gallery.image_ids as string[] : []
@@ -64,14 +71,29 @@ export default async function ClubGalleryPage({
     }
   }
 
+  const clubName = ctx!.clubName
+  const memberSiteUrl = `/${clubSlug}`
+
   return (
     <GalleryViewer
       galleryId={gallery.id as string}
       galleryName={gallery.name as string}
       clubSlug={ctx!.clubSlug}
-      ownerName="Club gallery"
+      ownerName={clubName}
       images={images}
       isOwner={false}
+      isAdmin={isAdmin}
+      subtitle={
+        <>
+          {images.length} photo{images.length !== 1 ? 's' : ''}&nbsp;·&nbsp;
+          <a
+            href={memberSiteUrl}
+            style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'underline', textUnderlineOffset: 3 }}
+          >
+            {clubName}
+          </a>
+        </>
+      }
       initialDisplaySettings={DEFAULT_DISPLAY_SETTINGS}
     />
   )
