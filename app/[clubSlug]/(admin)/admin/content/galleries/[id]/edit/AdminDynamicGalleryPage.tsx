@@ -167,7 +167,7 @@ function AdminShareModal({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
-          <h2 style={{ fontFamily: 'var(--font-primary)', fontSize: 22, fontWeight: 400, color: 'var(--text-primary)', margin: 0 }}>
+          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 400, color: 'var(--text-primary)', margin: 0 }}>
             Share &ldquo;{galleryName}&rdquo;
           </h2>
           <button type="button" onClick={onClose}
@@ -189,7 +189,7 @@ function AdminShareModal({
           <label htmlFor="s-toggle-members" style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}>
             Share with members
           </label>
-          <Toggle id="s-toggle-members" on={membersOn} onChange={v => { setMembersOn(v); if (!v) setPublicOn(false) }} />
+          <Toggle id="s-toggle-members" on={membersOn} onChange={setMembersOn} />
         </div>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
           Visible on the Club Galleries page and available for homepage blocks.
@@ -201,7 +201,7 @@ function AdminShareModal({
           <label htmlFor="s-toggle-public" style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}>
             Share with a public link
           </label>
-          <Toggle id="s-toggle-public" on={publicOn} onChange={v => { setPublicOn(v); if (v) setMembersOn(true) }} />
+          <Toggle id="s-toggle-public" on={publicOn} onChange={setPublicOn} />
         </div>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
           Anyone with the link can view this gallery — no login required.
@@ -421,9 +421,7 @@ export default function AdminDynamicGalleryPage({
         </button>
         <a
           href={visibility !== 'draft' ? galleryUrl : undefined}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={visibility === 'draft' ? 'Preview not available for draft galleries' : 'Preview gallery'}
+          title={visibility === 'draft' ? 'Publish gallery to preview it' : 'Preview gallery'}
           style={{
             padding: '6px 16px', borderRadius: 9999, fontSize: 13, fontWeight: 600,
             background: 'var(--surface-2)', border: '1.5px solid var(--border-default)',
@@ -434,12 +432,6 @@ export default function AdminDynamicGalleryPage({
             pointerEvents: visibility === 'draft' ? 'none' : 'auto',
           }}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-            strokeLinecap="round" strokeLinejoin="round" width={13} height={13}>
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/>
-            <line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
           Preview
         </a>
         <button

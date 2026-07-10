@@ -139,11 +139,13 @@ function DisplayPanel({
   onChange,
   onClose,
   panelRef,
+  isAdmin,
 }: {
   settings:  DisplaySettings
   onChange:  (s: DisplaySettings) => void
   onClose:   () => void
   panelRef:  React.RefObject<HTMLDivElement | null>
+  isAdmin?:  boolean
 }) {
   function set<K extends keyof DisplaySettings>(key: K, value: DisplaySettings[K]) {
     onChange({ ...settings, [key]: value })
@@ -170,7 +172,10 @@ function DisplayPanel({
         Customize Gallery Display
       </p>
       <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.42)', margin: '0 0 20px', lineHeight: 1.5 }}>
-        Only you have access to these controls, which will affect how all viewers see this gallery.
+        {isAdmin
+          ? 'Only admins have access to these controls, which will affect how all viewers see this gallery.'
+          : 'Only you have access to these controls, which will affect how all viewers see this gallery.'
+        }
       </p>
 
       {/* Layout */}
@@ -438,8 +443,30 @@ export default function GalleryViewer({
         zIndex:         100,
         gap:            16,
       }}>
-        {/* Left spacer — mirrors Display button width for visual balance */}
-        <div />
+        {/* Left — Exit Preview button for admins, spacer otherwise */}
+        <div>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              style={{
+                display:     'inline-flex', alignItems: 'center', gap: 6,
+                padding:     '7px 14px', borderRadius: 9999,
+                fontSize:    13, fontWeight: 600,
+                background:  'rgba(255,255,255,0.08)',
+                border:      '1px solid rgba(255,255,255,0.14)',
+                color:       'rgba(255,255,255,0.75)',
+                cursor:      'pointer',
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                strokeLinecap="round" strokeLinejoin="round" width={13} height={13}>
+                <path d="M19 12H5M12 5l-7 7 7 7"/>
+              </svg>
+              Exit Preview
+            </button>
+          )}
+        </div>
 
         {/* Title block — centered */}
         <div style={{ textAlign: 'center' }}>
@@ -548,6 +575,7 @@ export default function GalleryViewer({
           onChange={handleSettingsChange}
           onClose={() => setPanelOpen(false)}
           panelRef={panelRef}
+          isAdmin={isAdmin}
         />
       )}
 

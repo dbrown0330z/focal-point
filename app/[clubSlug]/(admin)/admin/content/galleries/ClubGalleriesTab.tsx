@@ -191,7 +191,7 @@ function AdminShareModal({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
-          <h2 style={{ fontFamily: 'var(--font-primary)', fontSize: 22, fontWeight: 400, color: 'var(--text-primary)', margin: 0 }}>
+          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 400, color: 'var(--text-primary)', margin: 0 }}>
             Share &ldquo;{gallery.name}&rdquo;
           </h2>
           <button
@@ -228,7 +228,7 @@ function AdminShareModal({
           <label htmlFor="admin-toggle-members" style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}>
             Share with members
           </label>
-          <Toggle id="admin-toggle-members" on={membersOn} onChange={v => { setMembersOn(v); if (!v) setPublicOn(false) }} />
+          <Toggle id="admin-toggle-members" on={membersOn} onChange={setMembersOn} />
         </div>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
           Visible on the Club Galleries page and available for homepage blocks.
@@ -241,7 +241,7 @@ function AdminShareModal({
           <label htmlFor="admin-toggle-public" style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}>
             Share with a public link
           </label>
-          <Toggle id="admin-toggle-public" on={publicOn} onChange={v => { setPublicOn(v); if (v) setMembersOn(true) }} />
+          <Toggle id="admin-toggle-public" on={publicOn} onChange={setPublicOn} />
         </div>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
           Anyone with the link can view this gallery — no login required.
@@ -680,6 +680,38 @@ export default function ClubGalleriesTab({
               onShare={handleShareOpen}
             />
           ))}
+          {/* New Gallery placeholder card */}
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            style={{
+              borderRadius:   16,
+              border:         '2px dashed var(--border-default)',
+              background:     'transparent',
+              cursor:         'pointer',
+              display:        'flex',
+              flexDirection:  'column',
+              alignItems:     'center',
+              justifyContent: 'center',
+              gap:            10,
+              minHeight:      260,
+              transition:     'border-color 0.15s, background 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--action-primary)'; e.currentTarget.style.background = 'rgba(30,77,140,0.04)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'transparent' }}
+          >
+            <div style={{
+              width: 44, height: 44, borderRadius: '50%',
+              border: '1.5px dashed var(--border-strong)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--text-tertiary)',
+            }}>
+              <AddIcon sx={{ fontSize: 22 }} />
+            </div>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>
+              New Gallery
+            </span>
+          </button>
         </div>
       )}
 
