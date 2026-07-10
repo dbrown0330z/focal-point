@@ -148,8 +148,8 @@ function AdminShareModal({
   if (!open || !gallery) return null
 
   const url = typeof window !== 'undefined'
-    ? `${window.location.origin}/${clubSlug}/our-club/galleries/${gallery.slug}`
-    : `/${clubSlug}/our-club/galleries/${gallery.slug}`
+    ? `${window.location.origin}/${clubSlug}/gallery/${gallery.slug}`
+    : `/${clubSlug}/gallery/${gallery.slug}`
 
   function handleCopy() {
     navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
@@ -498,7 +498,7 @@ function GalleryCard({
   onShare:  (g: AdminGalleryData) => void
 }) {
   const editUrl    = `/${clubSlug}/admin/content/galleries/${gallery.id}/edit`
-  const galleryUrl = `/${clubSlug}/our-club/galleries/${gallery.slug}`
+  const galleryUrl = `/${clubSlug}/gallery/${gallery.slug}`
 
   return (
     <div style={{

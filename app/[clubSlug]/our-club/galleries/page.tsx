@@ -81,7 +81,7 @@ export default async function ClubGalleriesPage() {
           {galleries.map(g => (
             <Link
               key={g.id}
-              href={`/${ctx!.clubSlug}/our-club/galleries/${g.slug}`}
+              href={`/${ctx!.clubSlug}/gallery/${g.slug}`}
               style={{ textDecoration: 'none' }}
             >
               <div style={{

@@ -350,8 +350,8 @@ export default function AdminDynamicGalleryPage({
   const [error,            setError]            = useState<string | null>(null)
 
   const galleryUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/${clubSlug}/our-club/galleries/${gallery.slug}`
-    : `/${clubSlug}/our-club/galleries/${gallery.slug}`
+    ? `${window.location.origin}/${clubSlug}/gallery/${gallery.slug}`
+    : `/${clubSlug}/gallery/${gallery.slug}`
 
   const availableCategories = useMemo(
     () => [...new Set(images.filter(i => i.categoryName).map(i => i.categoryName!))].sort(),

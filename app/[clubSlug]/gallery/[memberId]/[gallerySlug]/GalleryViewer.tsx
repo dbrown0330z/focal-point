@@ -376,6 +376,7 @@ export default function GalleryViewer({
   isOwner:                boolean
   isAdmin?:               boolean
   subtitle?:              React.ReactNode
+  onSaveSettings?:        (s: DisplaySettings) => Promise<void>
   initialDisplaySettings: DisplaySettings
 }) {
   const [settings,      setSettings]      = useState<DisplaySettings>(initialDisplaySettings)
@@ -404,7 +405,8 @@ export default function GalleryViewer({
   function handleSettingsChange(next: DisplaySettings) {
     setSettings(next)
     startTransition(() => {
-      updateDisplaySettings(galleryId, next).catch(console.error)
+      const save = onSaveSettings ?? ((s: DisplaySettings) => updateDisplaySettings(galleryId, s))
+      save(next).catch(console.error)
     })
   }
 
@@ -539,7 +541,7 @@ export default function GalleryViewer({
       </div>
 
       {/* ── Display panel ── */}
-      {isOwner && panelOpen && (
+      {(isOwner || isAdmin) && panelOpen && (
         <DisplayPanel
           settings={settings}
           onChange={handleSettingsChange}
