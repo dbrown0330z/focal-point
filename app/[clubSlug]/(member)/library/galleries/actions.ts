@@ -196,12 +196,13 @@ export async function setCoverImage(galleryId: string, imageId: string): Promise
 }
 
 export type DisplaySettings = {
-  layout:    'grid' | 'masonry'
-  density:   'compact' | 'default' | 'spacious'
-  spacing:   'none' | 'small' | 'standard'
-  corners:   'rounded' | 'square'
-  showTitle: boolean
-  showScore: boolean
+  layout:         'grid' | 'masonry'
+  density:        'compact' | 'default' | 'spacious'
+  spacing:        'none' | 'small' | 'standard'
+  corners:        'rounded' | 'square'
+  showTitle:      boolean
+  showScore:      boolean
+  showMakerName?: boolean
 }
 
 export async function updateDisplaySettings(

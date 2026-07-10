@@ -9,10 +9,11 @@ import type { DisplaySettings } from '@/app/[clubSlug]/(member)/library/gallerie
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type GalleryImage = {
-  id:       string
-  title:    string
+  id:        string
+  title:     string
   publicUrl: string
-  score:    number | null
+  score:     number | null
+  makerName?: string
 }
 
 // ─── Layout helpers ───────────────────────────────────────────────────────────
@@ -222,9 +223,12 @@ function DisplayPanel({
       {/* Display — independent toggles */}
       <div style={{ marginBottom: 20 }}>
         <p style={LABEL_STYLE}>Display</p>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <IndependentToggle active={settings.showTitle} label="Title" onClick={() => set('showTitle', !settings.showTitle)} />
           <IndependentToggle active={settings.showScore} label="Score" onClick={() => set('showScore', !settings.showScore)} />
+          {isAdmin && (
+            <IndependentToggle active={!!settings.showMakerName} label="Maker" onClick={() => set('showMakerName', !settings.showMakerName)} />
+          )}
         </div>
       </div>
 
@@ -259,15 +263,17 @@ function ImageTile({
   layout,
   showTitle,
   showScore,
+  showMakerName,
   corners,
   onClick,
 }: {
-  img:       GalleryImage
-  layout:    'grid' | 'masonry'
-  showTitle: boolean
-  showScore: boolean
-  corners:   'rounded' | 'square'
-  onClick:   () => void
+  img:           GalleryImage
+  layout:        'grid' | 'masonry'
+  showTitle:     boolean
+  showScore:     boolean
+  showMakerName: boolean
+  corners:       'rounded' | 'square'
+  onClick:       () => void
 }) {
   const [hovered, setHovered] = useState(false)
   const radius = CORNER_RADIUS[corners]
@@ -320,8 +326,8 @@ function ImageTile({
         </div>
       )}
 
-      {/* Title overlay — bottom gradient */}
-      {showTitle && (
+      {/* Title / maker overlay — bottom gradient */}
+      {(showTitle || (showMakerName && img.makerName)) && (
         <div style={{
           position:   'absolute',
           bottom:     0,
@@ -332,17 +338,32 @@ function ImageTile({
           opacity:    hovered ? 1 : 0.85,
           transition: 'opacity 0.2s',
         }}>
-          <p style={{
-            fontSize:     13,
-            fontWeight:   600,
-            color:        '#fff',
-            margin:       0,
-            overflow:     'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace:   'nowrap',
-          }}>
-            {img.title}
-          </p>
+          {showTitle && (
+            <p style={{
+              fontSize:     13,
+              fontWeight:   600,
+              color:        '#fff',
+              margin:       showMakerName && img.makerName ? '0 0 2px' : 0,
+              overflow:     'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace:   'nowrap',
+            }}>
+              {img.title}
+            </p>
+          )}
+          {showMakerName && img.makerName && (
+            <p style={{
+              fontSize:     11,
+              fontWeight:   500,
+              color:        'rgba(255,255,255,0.70)',
+              margin:       0,
+              overflow:     'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace:   'nowrap',
+            }}>
+              {img.makerName}
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -547,6 +568,7 @@ export default function GalleryViewer({
                   layout="masonry"
                   showTitle={settings.showTitle}
                   showScore={settings.showScore}
+                  showMakerName={!!settings.showMakerName}
                   corners={settings.corners ?? 'rounded'}
                   onClick={() => setLightboxIndex(i)}
                 />
@@ -566,6 +588,7 @@ export default function GalleryViewer({
                 layout="grid"
                 showTitle={settings.showTitle}
                 showScore={settings.showScore}
+                showMakerName={!!settings.showMakerName}
                 corners={settings.corners ?? 'rounded'}
                 onClick={() => setLightboxIndex(i)}
               />
