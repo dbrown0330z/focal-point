@@ -366,6 +366,7 @@ export default function GalleryViewer({
   isOwner,
   isAdmin,
   subtitle,
+  onSaveSettings,
   initialDisplaySettings,
 }: {
   galleryId:              string
