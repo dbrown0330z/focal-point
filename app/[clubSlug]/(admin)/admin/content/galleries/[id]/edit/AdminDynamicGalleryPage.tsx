@@ -337,14 +337,10 @@ export default function AdminDynamicGalleryPage({
   const router = useRouter()
   const saved  = gallery.filters ?? DEFAULT_FILTERS
 
-  // Pending filter state
   const [memberIds,   setMemberIds]   = useState<'all' | string[]>(saved.memberIds)
   const [scoreMin,    setScoreMin]    = useState(saved.scoreMin)
   const [categories,  setCategories]  = useState<string[]>(saved.categories)
   const [timeframe,   setTimeframe]   = useState<'this_year' | 'all_years'>(saved.timeframe)
-
-  // Applied (drives the preview)
-  const [applied,    setApplied]    = useState<AdminGalleryFilters>(saved)
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set())
 
   const [visibility,       setVisibility]       = useState(gallery.visibility)
@@ -363,14 +359,9 @@ export default function AdminDynamicGalleryPage({
   )
 
   const preview = useMemo(
-    () => applyFilters(images, applied).filter(i => !removedIds.has(i.id)),
-    [images, applied, removedIds],
+    () => applyFilters(images, { memberIds, scoreMin, categories, timeframe }).filter(i => !removedIds.has(i.id)),
+    [images, memberIds, scoreMin, categories, timeframe, removedIds],
   )
-
-  function handleApply() {
-    setRemovedIds(new Set())
-    setApplied({ memberIds, scoreMin, categories, timeframe })
-  }
 
   const toggleCategory = useCallback((cat: string) => {
     setCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat])
@@ -395,7 +386,7 @@ export default function AdminDynamicGalleryPage({
     })
     setSaving(false)
     if (res.error) { setError(res.error); return }
-    router.push(`/${clubSlug}/admin/content/navigation`)
+    router.push(`/${clubSlug}/admin/content/navigation?tab=galleries`)
     router.refresh()
   }
 
@@ -411,7 +402,7 @@ export default function AdminDynamicGalleryPage({
       {/* ── Top bar ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
         <Link
-          href={`/${clubSlug}/admin/content/navigation`}
+          href={`/${clubSlug}/admin/content/navigation?tab=galleries`}
           style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)', textDecoration: 'none' }}
         >
           ← Back to Galleries
@@ -478,7 +469,7 @@ export default function AdminDynamicGalleryPage({
         <VisibilityChip value={visibility} />
       </div>
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 24px' }}>
-        Curate images from competition submissions across all members. Adjust filters and click Apply — click Done to save.
+        Curate images from competition submissions across all members. Adjust filters to update the preview — click Done to save.
       </p>
 
       {/* ── Filter bar ── */}
@@ -585,16 +576,6 @@ export default function AdminDynamicGalleryPage({
           </>
         )}
 
-        {/* Spacer + Apply */}
-        <div style={{ flex: 1, minWidth: 12 }} />
-        <button type="button" onClick={handleApply}
-          style={{
-            padding: '8px 22px', borderRadius: 9999, flexShrink: 0,
-            fontSize: 13, fontWeight: 700,
-            background: 'var(--action-primary)', color: '#fff',
-            border: 'none', cursor: 'pointer',
-          }}
-        >Apply</button>
       </div>
 
       {/* ── Error ── */}
@@ -615,7 +596,7 @@ export default function AdminDynamicGalleryPage({
           {preview.length} photo{preview.length !== 1 ? 's' : ''}
           {removedIds.size > 0 && (
             <span style={{ color: 'var(--text-tertiary)' }}>
-              {' '}· {removedIds.size} removed — click Apply to reset
+              {' '}· {removedIds.size} manually removed
             </span>
           )}
         </p>

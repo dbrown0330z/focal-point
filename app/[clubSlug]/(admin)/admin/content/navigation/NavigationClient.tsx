@@ -13,7 +13,7 @@ import {
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import HomepageEditor from './HomepageEditor'
 import type { ContentBlock } from '@/lib/homepage/types'
@@ -1041,9 +1041,12 @@ export default function NavigationClient({
   members?:               ClubMember[]
 }) {
   const params = useParams()
+  const searchParams = useSearchParams()
   const clubSlug = typeof params.clubSlug === 'string' ? params.clubSlug : ''
 
-  const [activeTab, setActiveTab] = useState<MainTab>('homepage')
+  const [activeTab, setActiveTab] = useState<MainTab>(
+    (searchParams.get('tab') as MainTab | null) ?? 'homepage'
+  )
   const [pages,     setPages]     = useState<CustomPage[]>(initialPages)
   const [tabs,      setTabs]      = useState<CustomTab[]>(initialTabs)
   const [pending, startTrans]     = useTransition()

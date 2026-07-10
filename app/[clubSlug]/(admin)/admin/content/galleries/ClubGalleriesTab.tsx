@@ -557,6 +557,19 @@ function GalleryCard({
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 'auto' }}>
+          <a
+            href={editUrl}
+            style={{
+              flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 13, fontWeight: 600,
+              background: 'transparent', border: '1.5px solid var(--border-default)',
+              color: 'var(--text-primary)', cursor: 'pointer', textDecoration: 'none',
+              textAlign: 'center', display: 'block',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface-1)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-default)'; (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+          >
+            Edit
+          </a>
           <button
             type="button"
             onClick={() => onShare(gallery)}

@@ -348,13 +348,9 @@ export default function DynamicGalleryPage({
   const router = useRouter()
   const saved  = gallery.filters ?? DEFAULT_FILTERS
 
-  // Pending filter state (not yet applied)
   const [scoreMin,    setScoreMin]    = useState(saved.scoreMin)
   const [categories,  setCategories]  = useState<string[]>(saved.categories)
   const [timeframe,   setTimeframe]   = useState<'this_year' | 'all_years'>(saved.timeframe)
-
-  // Applied (drives the preview)
-  const [applied,    setApplied]    = useState<DynamicFilters>(saved)
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set())
 
   const [visibility,  setVisibility]  = useState(gallery.visibility)
@@ -377,14 +373,9 @@ export default function DynamicGalleryPage({
   )
 
   const preview = useMemo(
-    () => applyFilters(images, applied).filter(i => !removedIds.has(i.id)),
-    [images, applied, removedIds],
+    () => applyFilters(images, { scoreMin, scoreMax: 10, categories, timeframe }).filter(i => !removedIds.has(i.id)),
+    [images, scoreMin, categories, timeframe, removedIds],
   )
-
-  function handleApply() {
-    setRemovedIds(new Set())
-    setApplied({ scoreMin, scoreMax: 10, categories, timeframe })
-  }
 
   const toggleCategory = useCallback((cat: string) => {
     setCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat])
@@ -396,7 +387,7 @@ export default function DynamicGalleryPage({
 
   async function handleDone() {
     setSaving(true); setError(null)
-    const res = await updateDynamicFilters(gallery.id, applied, preview.map(i => i.id))
+    const res = await updateDynamicFilters(gallery.id, { scoreMin, scoreMax: 10, categories, timeframe }, preview.map(i => i.id))
     setSaving(false)
     if (res.error) { setError(res.error); return }
     router.push(`/${clubSlug}/library/galleries`)
@@ -479,7 +470,7 @@ export default function DynamicGalleryPage({
         <VisibilityChip value={visibility} />
       </div>
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 24px' }}>
-        Create galleries of images you&apos;ve submitted to competitions. Adjust filters and click Apply — click Done to save.
+        Create galleries of images you&apos;ve submitted to competitions. Adjust filters to update the preview — click Done to save.
       </p>
 
       {/* ── Filter bar ── */}
@@ -580,20 +571,6 @@ export default function DynamicGalleryPage({
           )
         })}
 
-        {/* Spacer + Apply */}
-        <div style={{ flex: 1, minWidth: 12 }} />
-        <button
-          type="button"
-          onClick={handleApply}
-          style={{
-            padding: '8px 22px', borderRadius: 9999, flexShrink: 0,
-            fontSize: 13, fontWeight: 700,
-            background: 'var(--action-primary)', color: '#fff',
-            border: 'none', cursor: 'pointer',
-          }}
-        >
-          Apply
-        </button>
       </div>
 
       {/* ── Error ── */}
@@ -616,7 +593,7 @@ export default function DynamicGalleryPage({
           {preview.length} photo{preview.length !== 1 ? 's' : ''}
           {removedIds.size > 0 && (
             <span style={{ color: 'var(--text-tertiary)' }}>
-              {' '}· {removedIds.size} removed — click Apply to reset
+              {' '}· {removedIds.size} manually removed
             </span>
           )}
         </p>
