@@ -337,7 +337,7 @@ function NewGalleryModal({
     setSaving(true); setError(null)
     const res = await createAdminGallery({
       name:     trimmed,
-      filters:  { memberIds: 'all', scoreMin: 0, categories: [], timeframe: 'all_years' },
+      filters:  { memberIds: 'all', scoreMin: 0, categories: [], years: [] },
       imageIds: [],
       coverId:  null,
     })

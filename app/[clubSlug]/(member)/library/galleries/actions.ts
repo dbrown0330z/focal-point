@@ -227,9 +227,8 @@ export async function updateDisplaySettings(
 
 export type DynamicFilters = {
   scoreMin:   number
-  scoreMax:   number
   categories: string[]
-  timeframe:  'this_year' | 'all_years'
+  years:      string[]   // empty = all years; e.g. ['2026/27', '2025/26']
 }
 
 export async function updateDynamicFilters(

@@ -37,7 +37,7 @@ export type AdminGalleryFilters = {
   memberIds:  'all' | string[]
   scoreMin:   number
   categories: string[]
-  timeframe:  'all_years' | 'this_year'
+  years:      string[]   // empty = all years; e.g. ['2026/27', '2025/26']
 }
 
 export async function createAdminGallery(data: {

@@ -1,24 +1,18 @@
 'use client'
 
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Slider from '@mui/material/Slider'
-import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, CircularProgress,
-} from '@mui/material'
+import { CircularProgress } from '@mui/material'
 import { updateAdminGalleryFilters, updateAdminGalleryMeta } from '../../actions'
 import type { AdminGalleryFilters } from '../../actions'
 import type { AdminScoredImage, AdminGalleryRecord } from './page'
+import { DynamicFilterBar, generateClubYears, currentClubYear } from '@/components/ui/DynamicFilterBar'
 
 // ─── Club-year date range (Sep – Aug) ────────────────────────────────────────
 
-function clubYearRange(): { from: string; to: string } {
-  const now   = new Date()
-  const month = now.getMonth() + 1
-  const year  = now.getFullYear()
-  const start = month >= 9 ? year : year - 1
+function yearToRange(label: string): { from: string; to: string } {
+  const start = parseInt(label.split('/')[0])
   return { from: `${start}-09-01`, to: `${start + 1}-08-31` }
 }
 
@@ -228,97 +222,54 @@ function AdminShareModal({
   )
 }
 
-// ─── Member Picker Modal ──────────────────────────────────────────────────────
-
-function MemberPickerModal({
-  open,
-  onClose,
-  members,
-  selected,
-  onConfirm,
-}: {
-  open:      boolean
-  onClose:   () => void
-  members:   { id: string; displayName: string }[]
-  selected:  string[]
-  onConfirm: (ids: string[]) => void
-}) {
-  const [local, setLocal] = useState<string[]>(selected)
-
-  // Sync when opened
-  const prevOpen = useRef(false)
-  if (open && !prevOpen.current) { setLocal(selected); prevOpen.current = true }
-  if (!open) prevOpen.current = false
-
-  function toggle(id: string) {
-    setLocal(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
-  }
-
-  if (!open) return null
-
-  return (
-    <Dialog open onClose={onClose} maxWidth="xs" fullWidth sx={{ '& .MuiPaper-root': { borderRadius: 3 } }}>
-      <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>Select members</DialogTitle>
-      <DialogContent sx={{ pt: '8px !important', pb: 1 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 340, overflowY: 'auto' }}>
-          {members.length === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '8px 0' }}>No active members found.</p>
-          ) : (
-            members.map(m => (
-              <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', cursor: 'pointer', borderRadius: 6 }}>
-                <input
-                  type="checkbox"
-                  checked={local.includes(m.id)}
-                  onChange={() => toggle(m.id)}
-                  style={{ width: 16, height: 16, accentColor: 'var(--action-primary)', cursor: 'pointer', flexShrink: 0 }}
-                />
-                <span style={{ fontSize: 14, color: 'var(--text-primary)' }}>{m.displayName}</span>
-              </label>
-            ))
-          )}
-        </div>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-        <Button variant="outlined" color="secondary" onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={() => { onConfirm(local); onClose() }}>
-          {local.length === 0 ? 'All members' : `${local.length} member${local.length !== 1 ? 's' : ''}`}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  )
-}
-
 // ─── Default filters ──────────────────────────────────────────────────────────
+
+const ALL_YEARS = generateClubYears()
 
 const DEFAULT_FILTERS: AdminGalleryFilters = {
   memberIds:  'all',
   scoreMin:   0,
   categories: [],
-  timeframe:  'all_years',
+  years:      [],
 }
 
 // ─── Apply filters ────────────────────────────────────────────────────────────
 
 function applyFilters(images: AdminScoredImage[], f: AdminGalleryFilters): AdminScoredImage[] {
-  const cy = f.timeframe === 'this_year' ? clubYearRange() : null
   return images.filter(img => {
-    // Member filter
     if (f.memberIds !== 'all' && !f.memberIds.includes(img.memberId)) return false
-    // Score filter
     if (img.score !== null) {
       if (img.score < f.scoreMin) return false
     } else {
       if (f.scoreMin > 0) return false
     }
-    // Category filter
     if (f.categories.length > 0 && !f.categories.includes(img.categoryName ?? '')) return false
-    // Timeframe filter
-    if (cy) {
+    if (f.years.length > 0) {
       const d = img.createdAt.slice(0, 10)
-      if (d < cy.from || d > cy.to) return false
+      const inYear = f.years.some(y => {
+        const r = yearToRange(y)
+        return d >= r.from && d <= r.to
+      })
+      if (!inYear) return false
     }
     return true
   })
+}
+
+// ─── Migrate saved filters (backward compat with old timeframe field) ─────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function migrateFilters(raw: any): AdminGalleryFilters {
+  if (!raw) return DEFAULT_FILTERS
+  const years: string[] = Array.isArray(raw.years)
+    ? raw.years
+    : raw.timeframe === 'this_year' ? [currentClubYear()] : []
+  return {
+    memberIds:  raw.memberIds  ?? 'all',
+    scoreMin:   raw.scoreMin   ?? 0,
+    categories: raw.categories ?? [],
+    years,
+  }
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -335,19 +286,21 @@ export default function AdminDynamicGalleryPage({
   members:  { id: string; displayName: string }[]
 }) {
   const router = useRouter()
-  const saved  = gallery.filters ?? DEFAULT_FILTERS
+  const saved  = migrateFilters(gallery.filters)
 
-  const [memberIds,   setMemberIds]   = useState<'all' | string[]>(saved.memberIds)
+  // Filter state — selectedMemberIds: empty = all members
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(
+    saved.memberIds === 'all' ? [] : (saved.memberIds as string[])
+  )
   const [scoreMin,    setScoreMin]    = useState(saved.scoreMin)
   const [categories,  setCategories]  = useState<string[]>(saved.categories)
-  const [timeframe,   setTimeframe]   = useState<'this_year' | 'all_years'>(saved.timeframe)
-  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set())
+  const [years,       setYears]       = useState<string[]>(saved.years)
+  const [removedIds,  setRemovedIds]  = useState<Set<string>>(new Set())
 
-  const [visibility,       setVisibility]       = useState(gallery.visibility)
-  const [shareOpen,        setShareOpen]        = useState(false)
-  const [memberPickerOpen, setMemberPickerOpen] = useState(false)
-  const [saving,           setSaving]           = useState(false)
-  const [error,            setError]            = useState<string | null>(null)
+  const [visibility,  setVisibility]  = useState(gallery.visibility)
+  const [shareOpen,   setShareOpen]   = useState(false)
+  const [saving,      setSaving]      = useState(false)
+  const [error,       setError]       = useState<string | null>(null)
 
   const editUrl    = `/${clubSlug}/admin/content/galleries/${gallery.id}/edit`
   const galleryUrl = typeof window !== 'undefined'
@@ -359,14 +312,18 @@ export default function AdminDynamicGalleryPage({
     [images],
   )
 
-  const preview = useMemo(
-    () => applyFilters(images, { memberIds, scoreMin, categories, timeframe }).filter(i => !removedIds.has(i.id)),
-    [images, memberIds, scoreMin, categories, timeframe, removedIds],
-  )
+  // Build filter object for applyFilters (convert empty selectedMemberIds back to 'all')
+  const filterObj = useMemo<AdminGalleryFilters>(() => ({
+    memberIds:  selectedMemberIds.length === 0 ? 'all' : selectedMemberIds,
+    scoreMin,
+    categories,
+    years,
+  }), [selectedMemberIds, scoreMin, categories, years])
 
-  const toggleCategory = useCallback((cat: string) => {
-    setCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat])
-  }, [])
+  const preview = useMemo(
+    () => applyFilters(images, filterObj).filter(i => !removedIds.has(i.id)),
+    [images, filterObj, removedIds],
+  )
 
   function removeFromPreview(id: string) {
     setRemovedIds(prev => new Set([...prev, id]))
@@ -379,7 +336,12 @@ export default function AdminDynamicGalleryPage({
 
   async function handleDone() {
     setSaving(true); setError(null)
-    const filters: AdminGalleryFilters = { memberIds, scoreMin, categories, timeframe }
+    const filters: AdminGalleryFilters = {
+      memberIds:  selectedMemberIds.length === 0 ? 'all' : selectedMemberIds,
+      scoreMin,
+      categories,
+      years,
+    }
     const res = await updateAdminGalleryFilters(gallery.id, {
       filters,
       imageIds: preview.map(i => i.id),
@@ -390,12 +352,6 @@ export default function AdminDynamicGalleryPage({
     router.push(`/${clubSlug}/admin/content/navigation?tab=galleries`)
     router.refresh()
   }
-
-  const membersLabel = memberIds === 'all'
-    ? 'All members'
-    : `${memberIds.length} member${memberIds.length !== 1 ? 's' : ''}`
-
-  const membersActive = memberIds !== 'all'
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -466,110 +422,19 @@ export default function AdminDynamicGalleryPage({
       </p>
 
       {/* ── Filter bar ── */}
-      <div style={{
-        display:      'flex',
-        flexWrap:     'wrap',
-        alignItems:   'center',
-        gap:          '10px 20px',
-        background:   'var(--surface-1)',
-        border:       '1px solid var(--border-default)',
-        borderRadius: 12,
-        padding:      '14px 20px',
-        marginBottom: 28,
-      }}>
-
-        {/* Members filter */}
-        <button
-          type="button"
-          onClick={() => setMemberPickerOpen(true)}
-          style={{
-            padding: '5px 13px', borderRadius: 9999,
-            fontSize: 13, fontWeight: 600, flexShrink: 0,
-            background: membersActive ? 'var(--action-primary)' : 'var(--surface-2)',
-            color:      membersActive ? '#fff' : 'var(--text-secondary)',
-            border:     `1.5px solid ${membersActive ? 'var(--action-primary)' : 'var(--border-default)'}`,
-            cursor: 'pointer',
-            transition: 'background 0.12s, color 0.12s, border-color 0.12s',
-          }}
-        >
-          {membersLabel}
-        </button>
-
-        <div style={{ width: 1, height: 22, background: 'var(--border-default)', flexShrink: 0 }} />
-
-        {/* Score slider */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-            Min score: {scoreMin > 0 ? scoreMin : 'any'}
-          </span>
-          <div style={{ width: 120, paddingInline: 4 }}>
-            <Slider
-              value={scoreMin}
-              onChange={(_, v) => setScoreMin(v as number)}
-              min={0} max={10} step={1}
-              size="small"
-              sx={{
-                color: 'var(--action-primary)',
-                padding: '10px 0',
-                '& .MuiSlider-thumb': { width: 16, height: 16 },
-              }}
-            />
-          </div>
-          {scoreMin > 0 && (
-            <button type="button" onClick={() => setScoreMin(0)}
-              style={{ fontSize: 13, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
-            >Clear</button>
-          )}
-        </div>
-
-        <div style={{ width: 1, height: 22, background: 'var(--border-default)', flexShrink: 0 }} />
-
-        {/* Timeframe radios */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
-          {([
-            { value: 'this_year', label: 'This club year' },
-            { value: 'all_years', label: 'All years' },
-          ] as const).map(opt => (
-            <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}>
-              <input
-                type="radio"
-                name="admin-timeframe"
-                value={opt.value}
-                checked={timeframe === opt.value}
-                onChange={() => setTimeframe(opt.value)}
-                style={{ width: 15, height: 15, accentColor: 'var(--action-primary)', cursor: 'pointer', flexShrink: 0 }}
-              />
-              <span style={{ fontSize: 13, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{opt.label}</span>
-            </label>
-          ))}
-        </div>
-
-        {/* Category chips */}
-        {availableCategories.length > 0 && (
-          <>
-            <div style={{ width: 1, height: 22, background: 'var(--border-default)', flexShrink: 0 }} />
-            {availableCategories.map(cat => {
-              const active = categories.includes(cat)
-              return (
-                <button key={cat} type="button" onClick={() => toggleCategory(cat)}
-                  style={{
-                    padding: '5px 13px', borderRadius: 9999,
-                    fontSize: 13, fontWeight: 600,
-                    background: active ? 'var(--action-primary)' : 'var(--surface-2)',
-                    color:      active ? '#fff' : 'var(--text-secondary)',
-                    border:     `1.5px solid ${active ? 'var(--action-primary)' : 'var(--border-default)'}`,
-                    cursor: 'pointer', flexShrink: 0,
-                    transition: 'background 0.12s, color 0.12s, border-color 0.12s',
-                  }}
-                >
-                  {cat}
-                </button>
-              )
-            })}
-          </>
-        )}
-
-      </div>
+      <DynamicFilterBar
+        scoreMin={scoreMin}
+        onScoreMin={setScoreMin}
+        selectedYears={years}
+        availableYears={ALL_YEARS}
+        onYears={setYears}
+        selectedCategories={categories}
+        availableCategories={availableCategories}
+        onCategories={setCategories}
+        selectedMemberIds={selectedMemberIds}
+        members={members}
+        onMemberIds={setSelectedMemberIds}
+      />
 
       {/* ── Error ── */}
       {error && (
@@ -611,7 +476,7 @@ export default function AdminDynamicGalleryPage({
             No photos match your current filters
           </p>
           <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>
-            Try adjusting the score, member, category, or timeframe filters.
+            Try adjusting the score, member, category, or year filters.
           </p>
         </div>
       ) : (
@@ -684,15 +549,6 @@ export default function AdminDynamicGalleryPage({
         galleryUrl={galleryUrl}
         currentVisibility={visibility}
         onSave={handleVisibilitySave}
-      />
-
-      {/* ── Member picker ── */}
-      <MemberPickerModal
-        open={memberPickerOpen}
-        onClose={() => setMemberPickerOpen(false)}
-        members={members}
-        selected={memberIds === 'all' ? [] : memberIds}
-        onConfirm={ids => setMemberIds(ids.length === 0 ? 'all' : ids)}
       />
     </div>
   )

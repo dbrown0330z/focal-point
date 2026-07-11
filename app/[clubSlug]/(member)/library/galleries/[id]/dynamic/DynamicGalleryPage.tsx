@@ -1,20 +1,17 @@
 'use client'
 
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter }  from 'next/navigation'
 import Link           from 'next/link'
-import Slider         from '@mui/material/Slider'
 import { updateDynamicFilters, updateGalleryMeta } from '../../actions'
 import type { DynamicFilters }  from '../../actions'
 import type { ScoredImage, DynamicGalleryRecord } from './page'
+import { DynamicFilterBar, generateClubYears, currentClubYear } from '@/components/ui/DynamicFilterBar'
 
 // ─── Club-year date range (Sep – Aug) ────────────────────────────────────────
 
-function clubYearRange(): { from: string; to: string } {
-  const now   = new Date()
-  const month = now.getMonth() + 1          // 1-based
-  const year  = now.getFullYear()
-  const start = month >= 9 ? year : year - 1
+function yearToRange(label: string): { from: string; to: string } {
+  const start = parseInt(label.split('/')[0])
   return { from: `${start}-09-01`, to: `${start + 1}-08-31` }
 }
 
@@ -80,10 +77,19 @@ function Toggle({ on, onChange, id }: { on: boolean; onChange: (v: boolean) => v
   )
 }
 
+function IconX({ size = 10 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+      strokeLinecap="round" strokeLinejoin="round" width={size} height={size}>
+      <path d="M18 6L6 18M6 6l12 12"/>
+    </svg>
+  )
+}
+
 function ShareModal({
-  open, onClose, galleryName, clubName, currentVisibility, galleryUrl, onSave,
+  open, onClose, galleryName, currentVisibility, galleryUrl, onSave,
 }: {
-  open: boolean; onClose: () => void; galleryName: string; clubName: string
+  open: boolean; onClose: () => void; galleryName: string
   currentVisibility: 'public' | 'members_only' | 'private'
   galleryUrl: string; onSave: (v: 'public' | 'members_only' | 'private') => void
 }) {
@@ -124,8 +130,6 @@ function ShareModal({
 
   if (!open) return null
 
-  void clubName
-
   return (
     <div
       style={{
@@ -152,22 +156,11 @@ function ShareModal({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
-          <h2 style={{
-            fontFamily: 'var(--font-heading)',
-            fontSize: 22, fontWeight: 400,
-            color: 'var(--text-primary)',
-            margin: 0,
-          }}>
+          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 400, color: 'var(--text-primary)', margin: 0 }}>
             Share &ldquo;{galleryName}&rdquo;
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              width: 32, height: 32, borderRadius: 8, border: 'none', flexShrink: 0,
-              background: 'var(--surface-2)', color: 'var(--text-secondary)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-            }}
+          <button type="button" onClick={onClose}
+            style={{ width: 32, height: 32, borderRadius: 8, border: 'none', flexShrink: 0, background: 'var(--surface-2)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-0)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface-2)')}
           >
@@ -175,163 +168,105 @@ function ShareModal({
           </button>
         </div>
 
-        <p
-          aria-live="polite"
-          style={{
-            fontSize: 14,
-            color:      !clubOn && !publicOn ? 'var(--action-primary)' : 'var(--text-secondary)',
-            fontWeight: !clubOn && !publicOn ? 600 : 400,
-            margin: '12px 0 20px', lineHeight: 1.4,
-            transition: 'opacity 0.15s ease, color 0.2s ease',
-            opacity: statusOpacity,
-          }}
-        >
+        <p aria-live="polite" style={{
+          fontSize: 14,
+          color:      !clubOn && !publicOn ? 'var(--action-primary)' : 'var(--text-secondary)',
+          fontWeight: !clubOn && !publicOn ? 600 : 400,
+          margin: '12px 0 20px', lineHeight: 1.4,
+          transition: 'opacity 0.15s ease, color 0.2s ease', opacity: statusOpacity,
+        }}>
           {displayedStatus}
         </p>
 
         <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />
 
-        {/* Club members row */}
-        <div style={{
-          display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', gap: 16,
-          padding: '16px 0',
-        }}>
-          <label htmlFor="toggle-club" style={{
-            fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer',
-          }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '16px 0' }}>
+          <label htmlFor="toggle-club" style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}>
             Share with club members
           </label>
           <Toggle id="toggle-club" on={clubOn} onChange={setClubOn} />
         </div>
-
-        <p style={{
-          fontSize: 13, color: 'var(--text-secondary)',
-          margin: '0 0 16px', lineHeight: 1.5,
-        }}>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
           Visible on your member profile page to other logged-in members.
         </p>
 
         <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />
 
-        {/* Public link row */}
-        <div style={{
-          display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', gap: 16,
-          padding: '16px 0',
-        }}>
-          <label htmlFor="toggle-public" style={{
-            fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer',
-          }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '16px 0' }}>
+          <label htmlFor="toggle-public" style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}>
             Share with a public link
           </label>
           <Toggle id="toggle-public" on={publicOn} onChange={setPublicOn} />
         </div>
-
-        <p style={{
-          fontSize: 13, color: 'var(--text-secondary)',
-          margin: '0 0 16px', lineHeight: 1.5,
-        }}>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
           Anyone with the link can view this gallery — no login required.
         </p>
 
-        {/* Animated link field */}
         <div style={{
-          overflow: 'hidden',
-          maxHeight: publicOn ? 72 : 0,
-          opacity: publicOn ? 1 : 0,
-          transition: 'max-height 0.25s ease, opacity 0.2s ease',
-          marginTop: publicOn ? 12 : 0,
+          overflow: 'hidden', maxHeight: publicOn ? 72 : 0, opacity: publicOn ? 1 : 0,
+          transition: 'max-height 0.25s ease, opacity 0.2s ease', marginTop: publicOn ? 12 : 0,
         }}>
-          <div style={{
-            display: 'flex',
-            background: 'var(--surface-2)',
-            border: '1.5px solid var(--border-default)',
-            borderRadius: 10,
-            overflow: 'hidden',
-            marginBottom: 4,
-          }}>
-            <input
-              readOnly
-              value={galleryUrl}
-              style={{
-                flex: 1, padding: '10px 12px',
-                background: 'transparent', border: 'none', outline: 'none',
-                fontSize: 12, color: 'var(--text-secondary)',
-                fontFamily: 'var(--font-code)',
-              }}
+          <div style={{ display: 'flex', background: 'var(--surface-2)', border: '1.5px solid var(--border-default)', borderRadius: 10, overflow: 'hidden', marginBottom: 4 }}>
+            <input readOnly value={galleryUrl}
+              style={{ flex: 1, padding: '10px 12px', background: 'transparent', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-code)' }}
             />
-            <button
-              type="button"
-              onClick={handleCopy}
-              style={{
-                padding: '10px 16px',
-                background: 'var(--surface-1)', border: 'none',
-                borderLeft: '1.5px solid var(--border-default)',
-                fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
-                color: copied ? 'var(--status-success)' : 'var(--text-primary)',
-                cursor: 'pointer',
-              }}
-            >
-              {copied ? '✓ Copied' : 'Copy link'}
-            </button>
+            <button type="button" onClick={handleCopy}
+              style={{ padding: '10px 16px', background: 'var(--surface-1)', border: 'none', borderLeft: '1.5px solid var(--border-default)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', color: copied ? 'var(--status-success)' : 'var(--text-primary)', cursor: 'pointer' }}
+            >{copied ? '✓ Copied' : 'Copy link'}</button>
           </div>
         </div>
 
         <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />
 
-        <button
-          type="button"
-          onClick={() => { onSave(deriveVisibility(clubOn, publicOn)); onClose() }}
-          style={{
-            width: '100%', padding: '13px 0', borderRadius: 10,
-            fontSize: 15, fontWeight: 700,
-            background: 'var(--action-primary)', color: '#fff',
-            border: 'none', cursor: 'pointer', marginTop: 20,
-          }}
-        >
-          Done
-        </button>
+        <button type="button" onClick={() => { onSave(deriveVisibility(clubOn, publicOn)); onClose() }}
+          style={{ width: '100%', padding: '13px 0', borderRadius: 10, fontSize: 15, fontWeight: 700, background: 'var(--action-primary)', color: '#fff', border: 'none', cursor: 'pointer', marginTop: 20 }}
+        >Done</button>
       </div>
     </div>
   )
 }
 
-// ─── Filter logic ─────────────────────────────────────────────────────────────
+// ─── Filter defaults + logic ──────────────────────────────────────────────────
+
+const ALL_YEARS = generateClubYears()
 
 const DEFAULT_FILTERS: DynamicFilters = {
   scoreMin:   0,
-  scoreMax:   10,
   categories: [],
-  timeframe:  'all_years',
+  years:      [],
 }
 
 function applyFilters(images: ScoredImage[], f: DynamicFilters): ScoredImage[] {
-  const cy = f.timeframe === 'this_year' ? clubYearRange() : null
   return images.filter(img => {
     if (img.score !== null) {
-      if (img.score < f.scoreMin || img.score > f.scoreMax) return false
+      if (img.score < f.scoreMin) return false
     } else {
       if (f.scoreMin > 0) return false
     }
     if (f.categories.length > 0 && !f.categories.includes(img.categoryName ?? '')) return false
-    if (cy) {
+    if (f.years.length > 0) {
       const d = img.createdAt.slice(0, 10)
-      if (d < cy.from || d > cy.to) return false
+      const inYear = f.years.some(y => {
+        const r = yearToRange(y)
+        return d >= r.from && d <= r.to
+      })
+      if (!inYear) return false
     }
     return true
   })
 }
 
-// ─── Remove button ────────────────────────────────────────────────────────────
-
-function IconX({ size = 10 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-      strokeLinecap="round" strokeLinejoin="round" width={size} height={size}>
-      <path d="M18 6L6 18M6 6l12 12"/>
-    </svg>
-  )
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function migrateFilters(raw: any): DynamicFilters {
+  if (!raw) return DEFAULT_FILTERS
+  const years: string[] = Array.isArray(raw.years)
+    ? raw.years
+    : raw.timeframe === 'this_year' ? [currentClubYear()] : []
+  return {
+    scoreMin:   raw.scoreMin   ?? 0,
+    categories: raw.categories ?? [],
+    years,
+  }
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -346,17 +281,17 @@ export default function DynamicGalleryPage({
   images:   ScoredImage[]
 }) {
   const router = useRouter()
-  const saved  = gallery.filters ?? DEFAULT_FILTERS
+  const saved  = migrateFilters(gallery.filters)
 
   const [scoreMin,    setScoreMin]    = useState(saved.scoreMin)
   const [categories,  setCategories]  = useState<string[]>(saved.categories)
-  const [timeframe,   setTimeframe]   = useState<'this_year' | 'all_years'>(saved.timeframe)
-  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set())
+  const [years,       setYears]       = useState<string[]>(saved.years)
+  const [removedIds,  setRemovedIds]  = useState<Set<string>>(new Set())
 
   const [visibility,  setVisibility]  = useState(gallery.visibility)
   const [shareOpen,   setShareOpen]   = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [error,  setError]  = useState<string | null>(null)
+  const [saving,      setSaving]      = useState(false)
+  const [error,       setError]       = useState<string | null>(null)
 
   const dynamicEditUrl = `/${clubSlug}/library/galleries/${gallery.id}/dynamic`
   const galleryUrl = typeof window !== 'undefined'
@@ -374,13 +309,9 @@ export default function DynamicGalleryPage({
   )
 
   const preview = useMemo(
-    () => applyFilters(images, { scoreMin, scoreMax: 10, categories, timeframe }).filter(i => !removedIds.has(i.id)),
-    [images, scoreMin, categories, timeframe, removedIds],
+    () => applyFilters(images, { scoreMin, categories, years }).filter(i => !removedIds.has(i.id)),
+    [images, scoreMin, categories, years, removedIds],
   )
-
-  const toggleCategory = useCallback((cat: string) => {
-    setCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat])
-  }, [])
 
   function removeFromPreview(id: string) {
     setRemovedIds(prev => new Set([...prev, id]))
@@ -388,7 +319,7 @@ export default function DynamicGalleryPage({
 
   async function handleDone() {
     setSaving(true); setError(null)
-    const res = await updateDynamicFilters(gallery.id, { scoreMin, scoreMax: 10, categories, timeframe }, preview.map(i => i.id))
+    const res = await updateDynamicFilters(gallery.id, { scoreMin, categories, years }, preview.map(i => i.id))
     setSaving(false)
     if (res.error) { setError(res.error); return }
     router.push(`/${clubSlug}/library/galleries`)
@@ -467,104 +398,16 @@ export default function DynamicGalleryPage({
       </p>
 
       {/* ── Filter bar ── */}
-      <div style={{
-        display:      'flex',
-        flexWrap:     'wrap',
-        alignItems:   'center',
-        gap:          '10px 20px',
-        background:   'var(--surface-1)',
-        border:       '1px solid var(--border-default)',
-        borderRadius: 12,
-        padding:      '14px 20px',
-        marginBottom: 28,
-      }}>
-
-        {/* Score slider */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-            Min score: {scoreMin > 0 ? scoreMin : 'any'}
-          </span>
-          <div style={{ width: 120, paddingInline: 4 }}>
-            <Slider
-              value={scoreMin}
-              onChange={(_, v) => setScoreMin(v as number)}
-              min={0} max={10} step={1}
-              size="small"
-              sx={{
-                color: 'var(--action-primary)',
-                padding: '10px 0',
-                '& .MuiSlider-thumb': { width: 16, height: 16 },
-              }}
-            />
-          </div>
-          {scoreMin > 0 && (
-            <button
-              type="button"
-              onClick={() => setScoreMin(0)}
-              style={{ fontSize: 13, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
-            >
-              Clear
-            </button>
-          )}
-        </div>
-
-        {/* Divider */}
-        <div style={{ width: 1, height: 22, background: 'var(--border-default)', flexShrink: 0 }} />
-
-        {/* Timeframe radios */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
-          {([
-            { value: 'this_year', label: 'This club year' },
-            { value: 'all_years', label: 'All years' },
-          ] as const).map(opt => (
-            <label
-              key={opt.value}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}
-            >
-              <input
-                type="radio"
-                name="timeframe"
-                value={opt.value}
-                checked={timeframe === opt.value}
-                onChange={() => setTimeframe(opt.value)}
-                style={{ width: 15, height: 15, accentColor: 'var(--action-primary)', cursor: 'pointer', flexShrink: 0 }}
-              />
-              <span style={{ fontSize: 13, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                {opt.label}
-              </span>
-            </label>
-          ))}
-        </div>
-
-        {/* Divider — only if there are categories */}
-        {availableCategories.length > 0 && (
-          <div style={{ width: 1, height: 22, background: 'var(--border-default)', flexShrink: 0 }} />
-        )}
-
-        {/* Category chips */}
-        {availableCategories.map(cat => {
-          const active = categories.includes(cat)
-          return (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => toggleCategory(cat)}
-              style={{
-                padding: '5px 13px', borderRadius: 9999,
-                fontSize: 13, fontWeight: 600,
-                background: active ? 'var(--action-primary)' : 'var(--surface-2)',
-                color:      active ? '#fff' : 'var(--text-secondary)',
-                border:     `1.5px solid ${active ? 'var(--action-primary)' : 'var(--border-default)'}`,
-                cursor: 'pointer', flexShrink: 0,
-                transition: 'background 0.12s, color 0.12s, border-color 0.12s',
-              }}
-            >
-              {cat}
-            </button>
-          )
-        })}
-
-      </div>
+      <DynamicFilterBar
+        scoreMin={scoreMin}
+        onScoreMin={setScoreMin}
+        selectedYears={years}
+        availableYears={ALL_YEARS}
+        onYears={setYears}
+        selectedCategories={categories}
+        availableCategories={availableCategories}
+        onCategories={setCategories}
+      />
 
       {/* ── Error ── */}
       {error && (
@@ -594,11 +437,7 @@ export default function DynamicGalleryPage({
 
       {/* ── Preview grid ── */}
       {images.length === 0 ? (
-        <div style={{
-          padding: '60px 24px', borderRadius: 14,
-          background: 'var(--surface-1)', border: '1px solid var(--border-default)',
-          textAlign: 'center',
-        }}>
+        <div style={{ padding: '60px 24px', borderRadius: 14, background: 'var(--surface-1)', border: '1px solid var(--border-default)', textAlign: 'center' }}>
           <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 8px' }}>
             No competition submissions yet
           </p>
@@ -607,16 +446,12 @@ export default function DynamicGalleryPage({
           </p>
         </div>
       ) : preview.length === 0 ? (
-        <div style={{
-          padding: '60px 24px', borderRadius: 14,
-          background: 'var(--surface-1)', border: '1px solid var(--border-default)',
-          textAlign: 'center',
-        }}>
+        <div style={{ padding: '60px 24px', borderRadius: 14, background: 'var(--surface-1)', border: '1px solid var(--border-default)', textAlign: 'center' }}>
           <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 8px' }}>
             No photos match your current filters
           </p>
           <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>
-            Try adjusting the score range, category, or timeframe.
+            Try adjusting the score range, category, or year filters.
           </p>
         </div>
       ) : (
@@ -643,8 +478,7 @@ export default function DynamicGalleryPage({
                   position: 'absolute', top: 6, left: 6,
                   borderRadius: 6, padding: '2px 7px',
                   fontSize: 11, fontWeight: 700,
-                  background: 'rgba(0,0,0,0.60)', backdropFilter: 'blur(4px)',
-                  color: '#fff',
+                  background: 'rgba(0,0,0,0.60)', backdropFilter: 'blur(4px)', color: '#fff',
                 }}>
                   {img.score}
                 </div>
@@ -694,7 +528,6 @@ export default function DynamicGalleryPage({
         open={shareOpen}
         onClose={() => setShareOpen(false)}
         galleryName={gallery.name}
-        clubName={gallery.clubName}
         currentVisibility={visibility}
         galleryUrl={galleryUrl}
         onSave={handleVisibilitySave}
