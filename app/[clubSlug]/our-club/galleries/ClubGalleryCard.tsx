@@ -109,9 +109,9 @@ export default function ClubGalleryCard({
                   onMouseEnter={() => setTipVisible(true)}
                   onMouseLeave={() => setTipVisible(false)}
                   style={{
-                    fontSize: 11, fontWeight: 600, letterSpacing: '0.05em',
-                    textTransform: 'uppercase', color: 'var(--action-primary)',
-                    cursor: 'default', borderBottom: '1px dashed var(--action-primary)',
+                    fontSize: 11, fontWeight: 600, letterSpacing: '0.06em',
+                    textTransform: 'uppercase', color: 'var(--text-tertiary)',
+                    cursor: 'default', borderBottom: '1px dashed var(--text-tertiary)',
                     paddingBottom: 1,
                   }}
                 >
