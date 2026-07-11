@@ -68,6 +68,11 @@ export default async function ClubGalleriesPage() {
         </p>
       </Box>
 
+      <style>{`
+        .club-gallery-card { transition: box-shadow 0.15s; }
+        .club-gallery-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+      `}</style>
+
       {galleries.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
           <Typography>No galleries published yet.</Typography>
@@ -84,17 +89,13 @@ export default async function ClubGalleriesPage() {
               href={`/${ctx!.clubSlug}/gallery/${g.slug}`}
               style={{ textDecoration: 'none' }}
             >
-              <div style={{
+              <div className="club-gallery-card" style={{
                 borderRadius: 14,
                 overflow: 'hidden',
                 border: '1px solid var(--border-default)',
                 background: 'var(--surface-1)',
                 cursor: 'pointer',
-                transition: 'box-shadow 0.15s',
-              }}
-                onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)')}
-                onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
-              >
+              }}>
                 {/* Cover */}
                 <div style={{ aspectRatio: '3/2', background: 'var(--surface-0)', position: 'relative', overflow: 'hidden' }}>
                   {g.coverUrl ? (
