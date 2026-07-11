@@ -106,6 +106,7 @@ export default async function ClubGalleryPage({
       images={images}
       isOwner={false}
       isAdmin={isAdmin}
+      isPublic={gallery.visibility === 'public'}
       backUrl={isAdmin && exitUrl ? exitUrl : undefined}
       clubName={clubName}
       onSaveSettings={isAdmin ? saveDisplaySettings : undefined}

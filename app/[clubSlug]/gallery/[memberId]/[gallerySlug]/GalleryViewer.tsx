@@ -395,6 +395,7 @@ export default function GalleryViewer({
   subtitle,
   backUrl,
   clubName,
+  isPublic,
   onSaveSettings,
   initialDisplaySettings,
 }: {
@@ -408,6 +409,7 @@ export default function GalleryViewer({
   subtitle?:              React.ReactNode
   backUrl?:               string
   clubName?:              string
+  isPublic?:              boolean
   onSaveSettings?:        (s: DisplaySettings) => Promise<void>
   initialDisplaySettings: DisplaySettings
 }) {
@@ -415,6 +417,7 @@ export default function GalleryViewer({
   const [settings,      setSettings]      = useState<DisplaySettings>(initialDisplaySettings)
   const [panelOpen,     setPanelOpen]     = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [copied,        setCopied]        = useState(false)
   const [, startTransition]               = useTransition()
 
   const panelRef  = useRef<HTMLDivElement>(null)
@@ -450,8 +453,10 @@ export default function GalleryViewer({
   void void_
 
   const lightboxImages: LightboxImage[] = images.map(img => ({
-    src:   img.publicUrl,
-    title: img.title,
+    src:       img.publicUrl,
+    title:     img.title,
+    score:     settings.showScore     ? img.score     : null,
+    makerName: settings.showMakerName ? img.makerName : undefined,
   }))
 
   return (
@@ -518,33 +523,79 @@ export default function GalleryViewer({
           </p>
         </div>
 
-        {/* Display button — owner or admin */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        {(isOwner || isAdmin) && (
-          <button
-            ref={btnRef}
-            type="button"
-            onClick={() => setPanelOpen(v => !v)}
-            style={{
-              display:        'flex',
-              alignItems:     'center',
-              gap:            7,
-              padding:        '9px 18px',
-              borderRadius:   9999,
-              fontSize:       13,
-              fontWeight:     600,
-              background:     panelOpen ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.08)',
-              border:         '1px solid rgba(255,255,255,0.18)',
-              color:          '#fff',
-              cursor:         'pointer',
-              transition:     'background 0.12s',
-              flexShrink:     0,
-            }}
-          >
-            <GearIcon />
-            Display
-          </button>
-        )}
+        {/* Right — share + display buttons */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+          {isPublic && (
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href).then(() => {
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2200)
+                })
+              }}
+              style={{
+                display:      'flex',
+                alignItems:   'center',
+                gap:          6,
+                padding:      '9px 16px',
+                borderRadius: 9999,
+                fontSize:     13,
+                fontWeight:   600,
+                background:   copied ? 'rgba(46,125,50,0.30)' : 'rgba(255,255,255,0.08)',
+                border:       copied ? '1px solid rgba(46,125,50,0.55)' : '1px solid rgba(255,255,255,0.18)',
+                color:        copied ? 'rgba(150,230,160,0.95)' : '#fff',
+                cursor:       'pointer',
+                transition:   'background 0.2s, border-color 0.2s, color 0.2s',
+                flexShrink:   0,
+              }}
+            >
+              {copied ? (
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                    strokeLinecap="round" strokeLinejoin="round" width={13} height={13}>
+                    <path d="M20 6L9 17l-5-5"/>
+                  </svg>
+                  Copied
+                </>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round" width={13} height={13}>
+                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                  </svg>
+                  Share
+                </>
+              )}
+            </button>
+          )}
+          {(isOwner || isAdmin) && (
+            <button
+              ref={btnRef}
+              type="button"
+              onClick={() => setPanelOpen(v => !v)}
+              style={{
+                display:        'flex',
+                alignItems:     'center',
+                gap:            7,
+                padding:        '9px 18px',
+                borderRadius:   9999,
+                fontSize:       13,
+                fontWeight:     600,
+                background:     panelOpen ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.08)',
+                border:         '1px solid rgba(255,255,255,0.18)',
+                color:          '#fff',
+                cursor:         'pointer',
+                transition:     'background 0.12s',
+                flexShrink:     0,
+              }}
+            >
+              <GearIcon />
+              Display
+            </button>
+          )}
         </div>
       </div>
 
@@ -638,6 +689,8 @@ export default function GalleryViewer({
           images={lightboxImages}
           startIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
+          galleryName={galleryName}
+          imageCount={images.length}
           contextTitle={galleryName}
         />
       )}

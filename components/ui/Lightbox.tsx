@@ -15,6 +15,8 @@ export type LightboxImage = {
   src:          string
   title?:       string
   subtitle?:    string
+  score?:       number | null
+  makerName?:   string
   exifData?:    Record<string, unknown> | null
   submission?:  LightboxSubmission
 }
@@ -231,11 +233,15 @@ export function Lightbox({
   startIndex = 0,
   onClose,
   contextTitle,
+  galleryName,
+  imageCount,
 }: {
   images:        LightboxImage[]
   startIndex?:   number
   onClose:       () => void
   contextTitle?: string
+  galleryName?:  string
+  imageCount?:   number
 }) {
   const [index, setIndex] = useState(startIndex)
   const current = images[index]
@@ -296,9 +302,18 @@ export function Lightbox({
           zIndex:         10,
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.65)' }}>
-          {contextTitle ?? ''}
-        </span>
+        <div>
+          {(galleryName || contextTitle) && (
+            <p style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.90)', margin: 0, lineHeight: 1.2 }}>
+              {galleryName ?? contextTitle}
+            </p>
+          )}
+          {imageCount != null && (
+            <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.35)', margin: '2px 0 0', letterSpacing: '0.04em' }}>
+              {imageCount} photo{imageCount !== 1 ? 's' : ''}
+            </p>
+          )}
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.35)' }}>
             ESC
@@ -400,16 +415,34 @@ export function Lightbox({
           </div>
 
           {/* Caption */}
-          {(current.title || current.subtitle) && (
+          {(current.title || current.subtitle || current.score != null || current.makerName) && (
             <div style={{ textAlign: 'center', maxWidth: 600, lineHeight: 1.4 }}>
-              {current.title && (
-                <p style={{ fontSize: 17, fontWeight: 600, color: 'rgba(255,255,255,0.95)', margin: 0 }}>
-                  {current.title}
-                </p>
-              )}
-              {current.subtitle && (
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', marginTop: 4, marginBottom: 0 }}>
-                  {current.subtitle}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+                {current.title && (
+                  <p style={{ fontSize: 17, fontWeight: 600, color: 'rgba(255,255,255,0.95)', margin: 0 }}>
+                    {current.title}
+                  </p>
+                )}
+                {current.score != null && (
+                  <span style={{
+                    display:      'inline-flex',
+                    alignItems:   'center',
+                    gap:          4,
+                    background:   'rgba(255,255,255,0.12)',
+                    border:       '1px solid rgba(255,255,255,0.18)',
+                    borderRadius: 6,
+                    padding:      '2px 9px',
+                    fontSize:     13,
+                    fontWeight:   700,
+                    color:        'rgba(255,255,255,0.90)',
+                  }}>
+                    {current.score}
+                  </span>
+                )}
+              </div>
+              {(current.makerName || current.subtitle) && (
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.50)', marginTop: 5, marginBottom: 0 }}>
+                  {current.makerName ? `by ${current.makerName}` : current.subtitle}
                 </p>
               )}
             </div>
