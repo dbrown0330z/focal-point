@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import { getClubContext } from '@/lib/club-context'
 
 export type FooterVariant = 'auth' | 'app' | 'judge'
 
@@ -10,9 +11,13 @@ const LOGO_DARK  = '/fp-logo-dark.svg'
 const MARKETING_URL = `https://${process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'focalpointhq.com'}?ref=app`
 
 export async function AppFooter({ variant }: { variant: FooterVariant }) {
+  const ctx     = await getClubContext()
   const service = createServiceClient()
-  const { data } = await service.from('club_settings').select('club_name').single()
-  const clubName  = data?.club_name ?? 'Our Camera Club'
+  let clubName = 'Our Camera Club'
+  if (ctx?.clubId) {
+    const { data } = await service.from('club_settings').select('club_name').eq('club_id', ctx.clubId).single()
+    clubName = data?.club_name ?? clubName
+  }
   const year      = new Date().getFullYear()
   const showLinks = variant !== 'judge'
 
