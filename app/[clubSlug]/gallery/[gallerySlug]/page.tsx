@@ -52,15 +52,15 @@ export default async function ClubGalleryPage({
   if (imageIds.length > 0) {
     const { data: imageRows } = await adminAny
       .from('images')
-      .select('id, title, storage_path, member_id')
+      .select('id, title, storage_path, owner_id')
       .in('id', imageIds)
 
-    // Collect unique member IDs and fetch their display names
+    // Collect unique owner IDs and fetch their display names
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const memberIds = [...new Set(((imageRows ?? []) as any[]).map((r: any) => r.member_id as string).filter(Boolean))]
+    const ownerIds = [...new Set(((imageRows ?? []) as any[]).map((r: any) => r.owner_id as string).filter(Boolean))]
     const makerMap = new Map<string, string>()
-    if (memberIds.length > 0) {
-      const { data: profiles } = await admin.from('profiles').select('id, display_name').in('id', memberIds)
+    if (ownerIds.length > 0) {
+      const { data: profiles } = await admin.from('profiles').select('id, display_name').in('id', ownerIds)
       for (const p of (profiles ?? []) as { id: string; display_name: string }[]) {
         makerMap.set(p.id, p.display_name)
       }
@@ -79,7 +79,7 @@ export default async function ClubGalleryPage({
         title:     row.title as string,
         publicUrl: admin.storage.from('images').getPublicUrl(row.storage_path as string).data.publicUrl,
         score:     null,
-        makerName: makerMap.get(row.member_id as string),
+        makerName: makerMap.get(row.owner_id as string),
       })
     }
   }
