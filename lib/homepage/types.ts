@@ -7,13 +7,22 @@ export interface WelcomeContent {
   heading: string; body: string; ctaLabel: string; ctaLink: string
 }
 export interface LargeImageSettings {
-  gallerySource: GallerySource; intervalSeconds: number
+  // gallerySource is a GallerySource OR 'club:<galleryId>' for a specific club gallery
+  gallerySource: string; intervalSeconds: number
 }
 export interface Grid6Settings {
   gallerySource: GallerySource; criteria: 'latest' | 'top-rated' | 'competition-winners'
 }
 export interface Strip8Settings {
   gallerySource: GallerySource; criteria: 'latest' | 'top-rated' | 'competition-winners'
+}
+export interface GalleryPreviewSettings {
+  galleryId:   string
+  gallerySlug: string
+  galleryName: string
+}
+export interface ClubGalleriesSettings {
+  galleryIds: string[]  // up to 3
 }
 export interface SpotlightSettings {
   mode: 'automatic' | 'manual'; memberName: string
@@ -64,6 +73,8 @@ export interface ContentBlock {
   largeImageSettings?:     LargeImageSettings
   grid6Settings?:          Grid6Settings
   strip8Settings?:         Strip8Settings
+  galleryPreviewSettings?: GalleryPreviewSettings
+  clubGalleriesSettings?:  ClubGalleriesSettings
   spotlightSettings?:      SpotlightSettings
   eventsSettings?:         EventsSettings
   customContentSettings?:  CustomContentSettings
@@ -90,16 +101,18 @@ export function mergeBlocks(saved: ContentBlock[], defaults: ContentBlock[]): Co
     const def = defaultMap.get(b.id)
     if (!def) return b
     const patch: Partial<ContentBlock> = {}
-    if (def.welcomeContent        && !b.welcomeContent)        patch.welcomeContent        = def.welcomeContent
-    if (def.largeImageSettings    && !b.largeImageSettings)    patch.largeImageSettings    = def.largeImageSettings
-    if (def.grid6Settings         && !b.grid6Settings)         patch.grid6Settings         = def.grid6Settings
-    if (def.strip8Settings        && !b.strip8Settings)        patch.strip8Settings        = def.strip8Settings
-    if (def.spotlightSettings     && !b.spotlightSettings)     patch.spotlightSettings     = def.spotlightSettings
-    if (def.eventsSettings        && !b.eventsSettings)        patch.eventsSettings        = def.eventsSettings
-    if (def.customContentSettings && !b.customContentSettings) patch.customContentSettings = def.customContentSettings
-    if (def.affiliationsSettings  && !b.affiliationsSettings)  patch.affiliationsSettings  = def.affiliationsSettings
-    if (def.dualPanelSettings     && !b.dualPanelSettings)     patch.dualPanelSettings     = def.dualPanelSettings
-    if (def.competitionsSettings  && !b.competitionsSettings)  patch.competitionsSettings  = def.competitionsSettings
+    if (def.welcomeContent          && !b.welcomeContent)          patch.welcomeContent          = def.welcomeContent
+    if (def.largeImageSettings      && !b.largeImageSettings)      patch.largeImageSettings      = def.largeImageSettings
+    if (def.grid6Settings           && !b.grid6Settings)           patch.grid6Settings           = def.grid6Settings
+    if (def.strip8Settings          && !b.strip8Settings)          patch.strip8Settings          = def.strip8Settings
+    if (def.galleryPreviewSettings  && !b.galleryPreviewSettings)  patch.galleryPreviewSettings  = def.galleryPreviewSettings
+    if (def.clubGalleriesSettings   && !b.clubGalleriesSettings)   patch.clubGalleriesSettings   = def.clubGalleriesSettings
+    if (def.spotlightSettings       && !b.spotlightSettings)       patch.spotlightSettings       = def.spotlightSettings
+    if (def.eventsSettings          && !b.eventsSettings)          patch.eventsSettings          = def.eventsSettings
+    if (def.customContentSettings   && !b.customContentSettings)   patch.customContentSettings   = def.customContentSettings
+    if (def.affiliationsSettings    && !b.affiliationsSettings)    patch.affiliationsSettings    = def.affiliationsSettings
+    if (def.dualPanelSettings       && !b.dualPanelSettings)       patch.dualPanelSettings       = def.dualPanelSettings
+    if (def.competitionsSettings    && !b.competitionsSettings)    patch.competitionsSettings    = def.competitionsSettings
     return Object.keys(patch).length > 0 ? { ...b, ...patch } : b
   })
 
@@ -144,12 +157,12 @@ export const DEFAULT_BLOCKS: ContentBlock[] = [
     customContentSettings: { columns: 3, previewLines: 4, notes: [] },
   },
   {
-    id: 'grid-6', name: '8-image grid', type: 'grid-6', enabled: true,
-    grid6Settings: { gallerySource: 'competition-winners', criteria: 'top-rated' },
+    id: 'gallery-preview', name: 'Gallery preview', type: 'gallery-preview', enabled: false,
+    galleryPreviewSettings: { galleryId: '', gallerySlug: '', galleryName: '' },
   },
   {
-    id: 'strip-8', name: '8-image strip', type: 'strip-8', enabled: true,
-    strip8Settings: { gallerySource: 'recent-uploads', criteria: 'latest' },
+    id: 'club-galleries', name: 'Club galleries', type: 'club-galleries', enabled: false,
+    clubGalleriesSettings: { galleryIds: [] },
   },
   {
     id: 'upcoming-events', name: 'Upcoming events', type: 'upcoming-events', enabled: true,

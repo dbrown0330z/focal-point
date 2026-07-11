@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import HeroSlideshow from './HeroSlideshow'
+import HeroSlideshow, { type Slide } from './HeroSlideshow'
 import CustomContentNote from './CustomContentNote'
 import { Grid8Gallery, Strip8Gallery, SpotlightImageLightbox, type GalleryImage } from './ImageGallery'
 import CompetitionsBlock from './CompetitionsBlock'
@@ -14,6 +14,8 @@ import type {
   CustomContentSettings,
   AffiliationsSettings,
   SpotlightSettings,
+  GalleryPreviewSettings,
+  ClubGalleriesSettings,
 } from '@/lib/homepage/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -600,24 +602,151 @@ function AffiliationsBlock({ settings }: { settings: AffiliationsSettings }) {
   )
 }
 
+// ─── Gallery preview block ────────────────────────────────────────────────────
+
+type GalleryPreviewImage = { id: string; publicUrl: string }
+
+function GalleryPreviewBlock({
+  settings,
+  images,
+  imageCount,
+  clubSlug,
+}: {
+  settings:   GalleryPreviewSettings
+  images:     GalleryPreviewImage[]
+  imageCount: number
+  clubSlug:   string
+}) {
+  const href = `/${clubSlug}/gallery/${settings.gallerySlug}`
+  return (
+    <Section>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div>
+          <SectionHeading>{settings.galleryName || 'Gallery preview'}</SectionHeading>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: -8, marginBottom: 0, fontWeight: 500 }}>
+            {imageCount} photo{imageCount !== 1 ? 's' : ''}
+          </p>
+        </div>
+        <Link
+          href={href}
+          style={{ fontSize: 13, fontWeight: 500, color: 'var(--action-primary)', whiteSpace: 'nowrap', marginLeft: 16 }}
+        >
+          View full gallery →
+        </Link>
+      </div>
+      {images.length > 0 ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+          {images.slice(0, 4).map(img => (
+            <div key={img.id} style={{ aspectRatio: '1', borderRadius: 8, overflow: 'hidden', background: 'var(--surface-1)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={img.publicUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={tintedBox}>
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic', margin: 0 }}>No images in this gallery yet.</p>
+        </div>
+      )}
+    </Section>
+  )
+}
+
+// ─── Club galleries block ─────────────────────────────────────────────────────
+
+type ClubGalleryItem = {
+  id:         string
+  name:       string
+  slug:       string
+  imageCount: number
+  coverUrl:   string | null
+}
+
+function ClubGalleriesBlock({
+  settings,
+  galleries,
+  clubSlug,
+}: {
+  settings:  ClubGalleriesSettings
+  galleries: ClubGalleryItem[]
+  clubSlug:  string
+}) {
+  if (galleries.length === 0) return (
+    <Section>
+      <SectionHeading>Club galleries</SectionHeading>
+      <div style={tintedBox}>
+        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic', margin: 0 }}>No galleries configured yet.</p>
+      </div>
+    </Section>
+  )
+
+  return (
+    <Section>
+      <SectionHeading>Club galleries</SectionHeading>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
+        {galleries.map(g => (
+          <a
+            key={g.id}
+            href={`/${clubSlug}/gallery/${g.slug}`}
+            style={{ textDecoration: 'none', display: 'block' }}
+          >
+            <div style={{
+              borderRadius:  14,
+              overflow:      'hidden',
+              border:        '1px solid var(--border-default)',
+              background:    'var(--surface-1)',
+            }}>
+              <div style={{ aspectRatio: '3/2', background: 'var(--surface-0)', position: 'relative', overflow: 'hidden' }}>
+                {g.coverUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={g.coverUrl}
+                    alt={g.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 13, color: 'var(--text-disabled)' }}>No cover</span>
+                  </div>
+                )}
+              </div>
+              <div style={{ padding: '14px 16px' }}>
+                <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px', lineHeight: 1.2 }}>
+                  {g.name}
+                </p>
+                <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', margin: 0 }}>
+                  {g.imageCount} photo{g.imageCount !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </Section>
+  )
+}
+
 // ─── Main renderer (server component) ────────────────────────────────────────
 
 export default async function HomepageRenderer({
   blocks,
   clubName,
   clubId,
+  clubSlug,
   isGuest = false,
 }: {
-  blocks:   ContentBlock[]
-  clubName: string
-  clubId:   string
-  isGuest?: boolean
+  blocks:    ContentBlock[]
+  clubName:  string
+  clubId:    string
+  clubSlug:  string
+  isGuest?:  boolean
 }) {
   const supabaseRaw = await createClient()
   const supabase    = supabaseRaw
   // Service client for public gallery data — images are club content visible to all visitors,
   // not subject to the per-member RLS that would hide other members' images.
-  const svcSupabase = createServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const svcSupabase = createServiceClient() as any
   const enabled     = blocks.filter(b => b.enabled)
 
   // ── Fetch events if the block is on ──────────────────────────────────────
@@ -664,69 +793,110 @@ export default async function HomepageRenderer({
     events = all.slice(0, limit)
   }
 
-  // ── Fetch images for grid-6 / strip-8 ────────────────────────────────────
-  const needsImages = enabled.some(b => ['grid-6', 'strip-8'].includes(b.type))
-  let galleryImages: GalleryImage[] = []
-  if (needsImages) {
-    const grid6Block     = enabled.find(b => b.type === 'grid-6')
-    const gallerySource  = grid6Block?.grid6Settings?.gallerySource ?? 'recent-uploads'
-    const isWinners      = gallerySource === 'competition-winners'
+  // ── Fetch images for large-image block when a club gallery is selected ───────
+  let heroSlides: Slide[] = []
+  const largeImageBlock = enabled.find(b => b.type === 'large-image')
+  const largeImageGallerySource = largeImageBlock?.largeImageSettings?.gallerySource ?? ''
+  if (largeImageBlock && largeImageGallerySource.startsWith('club:')) {
+    const galleryId = largeImageGallerySource.slice(5)
+    type GalleryRow = { image_ids: string[] | null }
+    const { data: galleryRow } = await svcSupabase
+      .from('club_galleries')
+      .select('image_ids')
+      .eq('id', galleryId)
+      .eq('club_id', clubId)
+      .maybeSingle() as { data: GalleryRow | null }
 
-    if (isWinners) {
-      // For competition winners: pull top-scored submissions with image + category + score.
-      // Uses service client so all members' images are visible (gallery is public club content).
-      const { data: scoredRows } = await svcSupabase
-        .from('scores')
-        .select('score, submissions!inner(image_id, competition_categories(name), competitions(closes_at), images(id, title, storage_path, profiles!images_owner_id_fkey(display_name)))')
-        .order('score', { ascending: false })
-        .limit(12) // fetch extra to deduplicate by image
+    const imageIds = (galleryRow?.image_ids ?? []).slice(0, 12)
+    if (imageIds.length > 0) {
+      type ImgRow = { id: string; storage_path: string; title: string; profiles: { display_name: string } | null }
+      const { data: imgRows } = await svcSupabase
+        .from('images')
+        .select('id, storage_path, title, profiles!images_owner_id_fkey(display_name)')
+        .in('id', imageIds)
+      const rowMap = new Map((imgRows ?? [] as ImgRow[]).map((r: ImgRow) => [r.id, r]))
+      for (const id of imageIds) {
+        const r = rowMap.get(id) as ImgRow | undefined
+        if (!r) continue
+        heroSlides.push({
+          src:   supabaseRaw.storage.from('images').getPublicUrl(r.storage_path).data.publicUrl,
+          title: r.title,
+          maker: r.profiles?.display_name ?? '',
+        })
+      }
+    }
+  }
 
-      type ScoredRow = {
-        score: number
-        submissions: {
-          image_id: string
-          competition_categories: { name: string } | null
-          competitions: { closes_at: string | null } | null
-          images: { id: string; title: string; storage_path: string; profiles: { display_name: string } | null } | null
+  // ── Fetch gallery-preview block data ──────────────────────────────────────
+  const galleryPreviewBlock = enabled.find(b => b.type === 'gallery-preview')
+  let galleryPreviewImages: GalleryPreviewImage[] = []
+  let galleryPreviewImageCount = 0
+  if (galleryPreviewBlock?.galleryPreviewSettings?.galleryId) {
+    const { galleryId } = galleryPreviewBlock.galleryPreviewSettings
+    type GalleryRow = { image_ids: string[] | null }
+    const { data: gRow } = await svcSupabase
+      .from('club_galleries')
+      .select('image_ids')
+      .eq('id', galleryId)
+      .eq('club_id', clubId)
+      .maybeSingle() as { data: GalleryRow | null }
+
+    const imageIds = gRow?.image_ids ?? []
+    galleryPreviewImageCount = imageIds.length
+    const previewIds = imageIds.slice(0, 4)
+    if (previewIds.length > 0) {
+      type ImgRow = { id: string; storage_path: string }
+      const { data: imgRows } = await svcSupabase
+        .from('images')
+        .select('id, storage_path')
+        .in('id', previewIds)
+      const rowMap = new Map((imgRows ?? [] as ImgRow[]).map((r: ImgRow) => [r.id, r]))
+      for (const id of previewIds) {
+        const r = rowMap.get(id) as ImgRow | undefined
+        if (!r) continue
+        galleryPreviewImages.push({
+          id:        r.id,
+          publicUrl: supabaseRaw.storage.from('images').getPublicUrl(r.storage_path).data.publicUrl,
+        })
+      }
+    }
+  }
+
+  // ── Fetch club-galleries block data ───────────────────────────────────────
+  const clubGalleriesBlock = enabled.find(b => b.type === 'club-galleries')
+  let clubGalleriesItems: ClubGalleryItem[] = []
+  if (clubGalleriesBlock?.clubGalleriesSettings?.galleryIds?.length) {
+    const ids = clubGalleriesBlock.clubGalleriesSettings.galleryIds.slice(0, 3)
+    type GalleryRow = { id: string; name: string; slug: string; image_ids: string[] | null; cover_image_id: string | null }
+    const { data: galleryRows } = await svcSupabase
+      .from('club_galleries')
+      .select('id, name, slug, image_ids, cover_image_id')
+      .in('id', ids)
+      .eq('club_id', clubId) as { data: GalleryRow[] | null }
+
+    const rowMap = new Map((galleryRows ?? []).map(r => [r.id, r]))
+    for (const id of ids) {
+      const r = rowMap.get(id)
+      if (!r) continue
+      let coverUrl: string | null = null
+      const coverId = r.cover_image_id ?? r.image_ids?.[0] ?? null
+      if (coverId) {
+        const { data: imgRow } = await svcSupabase
+          .from('images')
+          .select('storage_path')
+          .eq('id', coverId)
+          .maybeSingle()
+        if (imgRow?.storage_path) {
+          coverUrl = supabaseRaw.storage.from('images').getPublicUrl(imgRow.storage_path).data.publicUrl
         }
       }
-
-      const seen = new Set<string>()
-      for (const row of (scoredRows ?? []) as ScoredRow[]) {
-        const img = row.submissions?.images
-        if (!img || seen.has(img.id)) continue
-        seen.add(img.id)
-        const closesAt   = row.submissions?.competitions?.closes_at
-        const monthYear  = closesAt
-          ? new Date(closesAt).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })
-          : undefined
-        galleryImages.push({
-          id:       img.id,
-          title:    img.title,
-          maker:    img.profiles?.display_name ?? undefined,
-          date:     monthYear,
-          category: row.submissions?.competition_categories?.name ?? undefined,
-          score:    row.score,
-          publicUrl: supabaseRaw.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
-        })
-        if (galleryImages.length >= 6) break
-      }
-    } else {
-      // Recent uploads or other sources: images with upload date.
-      // Uses service client so all members' images are visible (gallery is public club content).
-      const { data } = await svcSupabase
-        .from('images')
-        .select('id, storage_path, title, created_at, profiles!images_owner_id_fkey(display_name)')
-        .order('created_at', { ascending: false })
-        .limit(8)
-      type ImgRow = { id: string; storage_path: string; title: string; created_at: string; profiles: { display_name: string } | null }
-      galleryImages = (data ?? []).map((img: ImgRow) => ({
-        id:       img.id,
-        title:    img.title,
-        maker:    img.profiles?.display_name ?? undefined,
-        date:     new Date(img.created_at).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' }),
-        publicUrl: supabaseRaw.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
-      }))
+      clubGalleriesItems.push({
+        id:         r.id,
+        name:       r.name,
+        slug:       r.slug,
+        imageCount: r.image_ids?.length ?? 0,
+        coverUrl,
+      })
     }
   }
 
@@ -770,12 +940,13 @@ export default async function HomepageRenderer({
         .eq('member_id', spotlightMember.id)
         .eq('status', 'submitted')
 
-      const subIds = (memberSubs ?? []).map(s => s.id)
+      type SubRow = { id: string; category_id: string; image_id: string; competition_categories: { name: string } | null }
+      const subIds = ((memberSubs ?? []) as SubRow[]).map(s => s.id)
 
       // Category counts
       const catMap: Record<string, { name: string; count: number }> = {}
-      for (const sub of memberSubs ?? []) {
-        const catName = (sub.competition_categories as { name: string } | null)?.name ?? 'Uncategorised'
+      for (const sub of (memberSubs ?? []) as SubRow[]) {
+        const catName = sub.competition_categories?.name ?? 'Uncategorised'
         if (!catMap[sub.category_id]) catMap[sub.category_id] = { name: catName, count: 0 }
         catMap[sub.category_id].count++
       }
@@ -792,22 +963,23 @@ export default async function HomepageRenderer({
         ])
 
         if (allScores?.length) {
-          const vals = allScores.map(s => s.score)
+          const vals = (allScores as { score: number }[]).map(s => s.score)
           avgScore  = vals.reduce((a, b) => a + b, 0) / vals.length
           bestScore = Math.max(...vals)
         }
 
         // Get the image for the best-scored submission
         if (topScoreRow) {
-          const bestSub = (memberSubs ?? []).find(s => s.id === topScoreRow.submission_id)
+          const tsr = topScoreRow as { score: number; submission_id: string }
+          const bestSub = ((memberSubs ?? []) as SubRow[]).find(s => s.id === tsr.submission_id)
           if (bestSub?.image_id) {
             const { data: imgRow } = await svcSupabase
               .from('images')
               .select('storage_path')
               .eq('id', bestSub.image_id)
               .single()
-            if (imgRow?.storage_path) {
-              bestImageUrl = supabaseRaw.storage.from('images').getPublicUrl(imgRow.storage_path).data.publicUrl
+            if ((imgRow as { storage_path?: string } | null)?.storage_path) {
+              bestImageUrl = supabaseRaw.storage.from('images').getPublicUrl((imgRow as { storage_path: string }).storage_path).data.publicUrl
             }
           }
         }
@@ -822,8 +994,8 @@ export default async function HomepageRenderer({
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle()
-        if (imgData?.storage_path) {
-          bestImageUrl = supabaseRaw.storage.from('images').getPublicUrl(imgData.storage_path).data.publicUrl
+        if ((imgData as { storage_path?: string } | null)?.storage_path) {
+          bestImageUrl = supabaseRaw.storage.from('images').getPublicUrl((imgData as { storage_path: string }).storage_path).data.publicUrl
         }
       }
 
@@ -851,9 +1023,30 @@ export default async function HomepageRenderer({
           case 'large-image':
             return (
               <div key={block.id} className="mx-auto w-full max-w-6xl px-4 pt-4">
-                <HeroSlideshow clubName={clubName} />
+                <HeroSlideshow clubName={clubName} slides={heroSlides.length > 0 ? heroSlides : undefined} />
               </div>
             )
+
+          case 'gallery-preview':
+            return block.galleryPreviewSettings?.galleryId ? (
+              <GalleryPreviewBlock
+                key={block.id}
+                settings={block.galleryPreviewSettings}
+                images={galleryPreviewImages}
+                imageCount={galleryPreviewImageCount}
+                clubSlug={clubSlug}
+              />
+            ) : null
+
+          case 'club-galleries':
+            return block.clubGalleriesSettings ? (
+              <ClubGalleriesBlock
+                key={block.id}
+                settings={block.clubGalleriesSettings}
+                galleries={clubGalleriesItems}
+                clubSlug={clubSlug}
+              />
+            ) : null
 
           case 'custom-content':
             return block.customContentSettings ? (
@@ -866,12 +1059,6 @@ export default async function HomepageRenderer({
 
           case 'upcoming-events':
             return <UpcomingEventsBlock key={block.id} events={events} limit={eventsLimit} />
-
-          case 'grid-6':
-            return <Grid8Block key={block.id} images={galleryImages.slice(0, 6)} block={block} />
-
-          case 'strip-8':
-            return <Strip8Block key={block.id} images={galleryImages} />
 
           case 'member-spotlight':
             return spotlightMember && block.spotlightSettings ? (

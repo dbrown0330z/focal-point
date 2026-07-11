@@ -30,6 +30,8 @@ import {
   type LargeImageSettings,
   type Grid6Settings,
   type Strip8Settings,
+  type GalleryPreviewSettings,
+  type ClubGalleriesSettings,
   type SpotlightSettings,
   type EventsSettings,
   type ContentNote,
@@ -40,6 +42,7 @@ import {
   type DualPanelSettings,
   type CompetitionsSettings,
 } from '@/lib/homepage/types'
+import type { AdminGalleryData } from '@/app/[clubSlug]/(admin)/admin/content/galleries/ClubGalleriesTab'
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -60,13 +63,13 @@ const MODAL_META: Record<string, { title: string; description: string }> = {
     title:       'Large image',
     description: 'A full-width rotating slideshow pulled from one of your image galleries. Configure which gallery to draw from and how quickly images cycle.',
   },
-  'grid-6': {
-    title:       '8-image grid',
-    description: 'A 4×2 grid of square images. Choose the gallery and the order in which images are selected.',
+  'gallery-preview': {
+    title:       'Gallery preview',
+    description: 'Highlights a single club gallery with its name, photo count, a strip of up to 4 preview images, and a link to the full gallery.',
   },
-  'strip-8': {
-    title:       '8-image strip',
-    description: 'A horizontal strip of 8 thumbnail images in a single row. Choose the gallery and the order in which images are selected.',
+  'club-galleries': {
+    title:       'Club galleries',
+    description: 'Showcases up to 3 club galleries as thumbnail cards. Choose which galleries to feature.',
   },
   'member-spotlight': {
     title:       'Member spotlight',
@@ -231,6 +234,44 @@ function GallerySelect({ value, onChange }: { value: GallerySource; onChange: (v
   )
 }
 
+function LargeImageGallerySelect({
+  value,
+  onChange,
+  galleries,
+}: {
+  value:     string
+  onChange:  (v: string) => void
+  galleries: AdminGalleryData[]
+}) {
+  const clubGalleries = galleries.filter(g => g.visibility !== 'draft')
+  return (
+    <FormControl size="small" fullWidth>
+      <InputLabel sx={{ fontSize: 13 }}>Gallery source</InputLabel>
+      <Select value={value} label="Gallery source" onChange={e => onChange(e.target.value)} sx={{ fontSize: 13 }}>
+        <MenuItem disabled sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'text.secondary', opacity: '1 !important', py: 0.5 }}>
+          Abstract sources
+        </MenuItem>
+        {GALLERY_OPTIONS.map(o => (
+          <MenuItem key={o.value} value={o.value} sx={{ fontSize: 13, pl: 2.5 }}>{o.label}</MenuItem>
+        ))}
+        {clubGalleries.length > 0 && [
+          <MenuItem key="__sep" disabled sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'text.secondary', opacity: '1 !important', py: 0.5, mt: 0.5 }}>
+            Club galleries
+          </MenuItem>,
+          ...clubGalleries.map(g => (
+            <MenuItem key={g.id} value={`club:${g.id}`} sx={{ fontSize: 13, pl: 2.5 }}>
+              {g.name}
+              <Typography component="span" sx={{ fontSize: 11, color: 'text.tertiary', ml: 1 }}>
+                ({g.imageCount} photos)
+              </Typography>
+            </MenuItem>
+          )),
+        ]}
+      </Select>
+    </FormControl>
+  )
+}
+
 function CriteriaSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <FormControl size="small" fullWidth>
@@ -274,16 +315,127 @@ function WelcomeModalBody({ block, onChange }: { block: ContentBlock; onChange: 
   )
 }
 
-function LargeImageModalBody({ block, onChange }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void }) {
+function LargeImageModalBody({ block, onChange, galleries }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void; galleries: AdminGalleryData[] }) {
   const s = block.largeImageSettings!
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-      <GallerySelect value={s.gallerySource} onChange={v => onChange({ largeImageSettings: { ...s, gallerySource: v } })} />
+      <LargeImageGallerySelect
+        value={s.gallerySource}
+        onChange={v => onChange({ largeImageSettings: { ...s, gallerySource: v } })}
+        galleries={galleries}
+      />
       <FieldRow label="Slide interval (seconds)">
         <TextField size="small" type="number" value={s.intervalSeconds}
           onChange={e => onChange({ largeImageSettings: { ...s, intervalSeconds: Number(e.target.value) } })}
           sx={{ ...inputSx, width: 110 }} slotProps={{ input: { min: 2, max: 30 } as any }} />
       </FieldRow>
+    </Box>
+  )
+}
+
+function GalleryPreviewModalBody({ block, onChange, galleries }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void; galleries: AdminGalleryData[] }) {
+  const s = block.galleryPreviewSettings ?? { galleryId: '', gallerySlug: '', galleryName: '' }
+  const publicGalleries = galleries.filter(g => g.visibility !== 'draft')
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      <FieldRow label="Gallery">
+        <FormControl size="small" fullWidth>
+          <InputLabel sx={{ fontSize: 13 }}>Select a gallery</InputLabel>
+          <Select
+            value={s.galleryId}
+            label="Select a gallery"
+            onChange={e => {
+              const selected = galleries.find(g => g.id === e.target.value)
+              onChange({ galleryPreviewSettings: {
+                galleryId:   selected?.id   ?? '',
+                gallerySlug: selected?.slug ?? '',
+                galleryName: selected?.name ?? '',
+              }})
+            }}
+            sx={{ fontSize: 13 }}
+          >
+            {publicGalleries.length === 0 && (
+              <MenuItem disabled sx={{ fontSize: 13 }}>No published galleries yet</MenuItem>
+            )}
+            {publicGalleries.map(g => (
+              <MenuItem key={g.id} value={g.id} sx={{ fontSize: 13 }}>
+                {g.name}
+                <Typography component="span" sx={{ fontSize: 11, color: 'text.tertiary', ml: 1 }}>
+                  ({g.imageCount} photos)
+                </Typography>
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </FieldRow>
+      {s.galleryId && (
+        <Typography sx={{ fontSize: 12, color: 'text.secondary', fontStyle: 'italic' }}>
+          Shows name, photo count, first 4 images, and a link to the full gallery.
+        </Typography>
+      )}
+    </Box>
+  )
+}
+
+function ClubGalleriesModalBody({ block, onChange, galleries }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void; galleries: AdminGalleryData[] }) {
+  const s = block.clubGalleriesSettings ?? { galleryIds: [] }
+  const publicGalleries = galleries.filter(g => g.visibility !== 'draft')
+  const MAX = 3
+
+  const toggle = (id: string) => {
+    const current = s.galleryIds
+    const next = current.includes(id)
+      ? current.filter(x => x !== id)
+      : current.length < MAX ? [...current, id] : current
+    onChange({ clubGalleriesSettings: { galleryIds: next } })
+  }
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
+        Select up to {MAX} galleries to feature. They appear as thumbnail cards identical to the Our Club &gt; Galleries page.
+      </Typography>
+      {publicGalleries.length === 0 ? (
+        <Typography sx={{ fontSize: 13, color: 'text.secondary', fontStyle: 'italic' }}>No published galleries yet.</Typography>
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {publicGalleries.map(g => {
+            const checked = s.galleryIds.includes(g.id)
+            const disabled = !checked && s.galleryIds.length >= MAX
+            return (
+              <Box
+                key={g.id}
+                onClick={() => !disabled && toggle(g.id)}
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 1.5,
+                  px: 1.5, py: 1, borderRadius: '6px',
+                  border: `1px solid ${checked ? 'var(--action-primary)' : 'var(--border-default)'}`,
+                  background: checked ? 'rgba(30,77,140,0.05)' : 'var(--surface-2)',
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  opacity: disabled ? 0.45 : 1,
+                  transition: 'all 0.1s',
+                }}
+              >
+                <Box sx={{
+                  width: 16, height: 16, borderRadius: '3px', flexShrink: 0,
+                  border: `2px solid ${checked ? 'var(--action-primary)' : 'var(--border-default)'}`,
+                  background: checked ? 'var(--action-primary)' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {checked && <span style={{ color: '#fff', fontSize: 10, fontWeight: 700, lineHeight: 1 }}>✓</span>}
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary', lineHeight: 1.3 }}>{g.name}</Typography>
+                  <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{g.imageCount} photos</Typography>
+                </Box>
+              </Box>
+            )
+          })}
+        </Box>
+      )}
+      <Typography sx={{ fontSize: 11, color: 'text.tertiary' }}>
+        {s.galleryIds.length}/{MAX} selected
+      </Typography>
     </Box>
   )
 }
@@ -646,12 +798,13 @@ function CompetitionsModalBody({ block, onChange }: { block: ContentBlock; onCha
 // ── Block edit modal ───────────────────────────────────────────────────────────
 
 function BlockEditModal({
-  block, onClose, onUpdate, onRemove,
+  block, onClose, onUpdate, onRemove, galleries,
 }: {
-  block:    ContentBlock | null
-  onClose:  () => void
-  onUpdate: (u: Partial<ContentBlock>) => void
+  block:     ContentBlock | null
+  onClose:   () => void
+  onUpdate:  (u: Partial<ContentBlock>) => void
   onRemove?: () => void
+  galleries: AdminGalleryData[]
 }) {
   if (!block) return null
   const meta = MODAL_META[block.type] ?? { title: block.label ?? block.name, description: '' }
@@ -689,12 +842,14 @@ function BlockEditModal({
           {meta.description}
         </Typography>
 
-        {block.type === 'welcome'          && <WelcomeModalBody          block={block} onChange={onUpdate} />}
-        {block.type === 'large-image'      && <LargeImageModalBody       block={block} onChange={onUpdate} />}
+        {block.type === 'welcome'           && <WelcomeModalBody          block={block} onChange={onUpdate} />}
+        {block.type === 'large-image'      && <LargeImageModalBody       block={block} onChange={onUpdate} galleries={galleries} />}
+        {block.type === 'gallery-preview'  && <GalleryPreviewModalBody   block={block} onChange={onUpdate} galleries={galleries} />}
+        {block.type === 'club-galleries'   && <ClubGalleriesModalBody    block={block} onChange={onUpdate} galleries={galleries} />}
         {block.type === 'grid-6'           && <Grid6ModalBody            block={block} onChange={onUpdate} />}
         {block.type === 'strip-8'          && <Strip8ModalBody           block={block} onChange={onUpdate} />}
         {block.type === 'member-spotlight' && <SpotlightModalBody        block={block} onChange={onUpdate} />}
-        {block.type === 'dual-panel'        && <DualPanelModalBody        block={block} onChange={onUpdate} />}
+        {block.type === 'dual-panel'       && <DualPanelModalBody        block={block} onChange={onUpdate} />}
         {block.type === 'upcoming-events'  && <EventsModalBody           block={block} onChange={onUpdate} />}
         {block.type === 'custom-content'   && <CustomContentModalBody    block={block} onChange={onUpdate} />}
         {block.type === 'affiliations'     && <AffiliationsModalBody     block={block} onChange={onUpdate} />}
@@ -716,14 +871,30 @@ const CRITERIA_LABEL: Record<string, string> = {
   'competition-winners': 'Competition winners',
 }
 
-function getBlockSubtitle(block: ContentBlock): string | null {
-  const gl = (src: GallerySource) => GALLERY_OPTIONS.find(o => o.value === src)?.label ?? src
+function getBlockSubtitle(block: ContentBlock, galleries?: AdminGalleryData[]): string | null {
+  const gl = (src: string) => {
+    if (src.startsWith('club:')) {
+      const id = src.slice(5)
+      return galleries?.find(g => g.id === id)?.name ?? 'Club gallery'
+    }
+    return GALLERY_OPTIONS.find(o => o.value === src)?.label ?? src
+  }
   const cl = (c: string) => CRITERIA_LABEL[c] ?? c
 
   switch (block.type) {
     case 'large-image': {
       const s = block.largeImageSettings; if (!s) return null
       return `${gl(s.gallerySource)} · every ${s.intervalSeconds}s`
+    }
+    case 'gallery-preview': {
+      const s = block.galleryPreviewSettings; if (!s?.galleryId) return 'No gallery selected'
+      return s.galleryName || 'Gallery selected'
+    }
+    case 'club-galleries': {
+      const s = block.clubGalleriesSettings; if (!s) return null
+      return s.galleryIds.length > 0
+        ? `${s.galleryIds.length} of 3 galleries`
+        : 'No galleries selected'
     }
     case 'grid-6': {
       const s = block.grid6Settings; if (!s) return null
@@ -768,7 +939,7 @@ function getBlockSubtitle(block: ContentBlock): string | null {
 // ── BlockCard ──────────────────────────────────────────────────────────────────
 
 function BlockCard({
-  block, onToggle, onEdit, onRemove, onDragStart, onDragOver,
+  block, onToggle, onEdit, onRemove, onDragStart, onDragOver, galleries,
 }: {
   block:       ContentBlock
   onToggle:    () => void
@@ -776,10 +947,11 @@ function BlockCard({
   onRemove?:   () => void
   onDragStart: () => void
   onDragOver:  (e: React.DragEvent) => void
+  galleries?:  AdminGalleryData[]
 }) {
-  const configOnly = ['large-image','grid-6','strip-8','dual-panel','upcoming-events','member-spotlight','competitions'].includes(block.type)
+  const configOnly = ['large-image','gallery-preview','club-galleries','dual-panel','upcoming-events','member-spotlight','competitions'].includes(block.type)
   const displayName = block.label ?? block.name
-  const subtitle    = getBlockSubtitle(block)
+  const subtitle    = getBlockSubtitle(block, galleries)
 
   return (
     <Box
@@ -860,15 +1032,25 @@ function getValidationIssues(blocks: ContentBlock[]): ValidationIssue[] {
             fix: 'Open block settings and add a headline.' })
         break
       }
-      case 'large-image':
-      case 'grid-6':
-      case 'strip-8': {
-        const src = (b.largeImageSettings ?? b.grid6Settings ?? b.strip8Settings)?.gallerySource
-        const gLabel = GALLERY_OPTIONS.find(o => o.value === src)?.label ?? src
-        if (gLabel)
+      case 'large-image': {
+        if (!b.largeImageSettings?.gallerySource)
           issues.push({ blockId: b.id, label: lbl, severity: 'info',
-            message: `Pulls from "${gLabel}"`,
-            fix: 'Make sure this gallery has images. If it\'s empty the block will not appear on the homepage.' })
+            message: 'No gallery source configured',
+            fix: 'Open block settings and select a gallery source.' })
+        break
+      }
+      case 'gallery-preview': {
+        if (!b.galleryPreviewSettings?.galleryId)
+          issues.push({ blockId: b.id, label: lbl, severity: 'warning',
+            message: 'No gallery selected',
+            fix: 'Open block settings and select a gallery to preview.' })
+        break
+      }
+      case 'club-galleries': {
+        if (!b.clubGalleriesSettings?.galleryIds?.length)
+          issues.push({ blockId: b.id, label: lbl, severity: 'warning',
+            message: 'No galleries selected',
+            fix: 'Open block settings and select at least one gallery.' })
         break
       }
       case 'member-spotlight': {
@@ -1084,7 +1266,7 @@ function Strip8Preview({ block, t, compact }: { block: ContentBlock; t: PreviewT
   )
 }
 
-function PreviewBlock({ block, audience, t, compact }: { block: ContentBlock; audience: AudienceFilter; t: PreviewTheme; compact: boolean }) {
+function PreviewBlock({ block, audience, t, compact, galleries }: { block: ContentBlock; audience: AudienceFilter; t: PreviewTheme; compact: boolean; galleries?: AdminGalleryData[] }) {
   if (!block.enabled) return null
 
   const ctaBtn: React.CSSProperties = {
@@ -1119,13 +1301,16 @@ function PreviewBlock({ block, audience, t, compact }: { block: ContentBlock; au
 
     case 'large-image': {
       const s = block.largeImageSettings!
+      const srcLabel = s.gallerySource.startsWith('club:')
+        ? (galleries?.find(g => g.id === s.gallerySource.slice(5))?.name ?? 'Club gallery')
+        : (GALLERY_OPTIONS.find(o => o.value === s.gallerySource)?.label ?? s.gallerySource)
       const overlay = (
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.45) 100%)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '12px 14px' }}>
           <div style={{ display: 'flex', gap: 6 }}>
             {[0,1,2,3].map(i => <div key={i} style={{ width: i === 0 ? 18 : 6, height: 6, borderRadius: 3, background: i === 0 ? '#fff' : 'rgba(255,255,255,0.4)' }} />)}
           </div>
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontFamily: t.fontSans }}>
-            Slides every {s.intervalSeconds}s · {GALLERY_OPTIONS.find(o => o.value === s.gallerySource)?.label}
+            Slides every {s.intervalSeconds}s · {srcLabel}
           </div>
         </div>
       )
@@ -1140,36 +1325,56 @@ function PreviewBlock({ block, audience, t, compact }: { block: ContentBlock; au
       )
     }
 
-    case 'grid-6': {
-      const gs = block.grid6Settings!
-      const srcLabel = GALLERY_OPTIONS.find(o => o.value === gs.gallerySource)?.label
-      const crtLabel = CRITERIA_LABEL[gs.criteria]
+    case 'gallery-preview': {
+      const s = block.galleryPreviewSettings
+      const name = s?.galleryName || 'Gallery name'
       return (
         <PbSection t={t}>
-          <PbHeading t={t}>8-image grid</PbHeading>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-            {compact
-              ? [0,1,2,3,4,5,6,7].map(i => (
-                  <div key={i} style={{ aspectRatio: '1', borderRadius: 6, overflow: 'hidden' }}>
-                    <PlaceholderImg idx={i} />
-                  </div>
-                ))
-              : GRID_IMGS.map((src, i) => (
-                  <div key={i} style={{ aspectRatio: '1', borderRadius: 6, overflow: 'hidden' }}>
-                    <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                  </div>
-                ))
-            }
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div>
+              <PbHeading t={t}>{name}</PbHeading>
+              <div style={{ fontSize: 10, color: t.textTertiary, fontFamily: t.fontSans, marginTop: -4 }}>N photos</div>
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 500, color: t.actionPrimary, fontFamily: t.fontSans, whiteSpace: 'nowrap', marginLeft: 8 }}>
+              View full gallery →
+            </div>
           </div>
-          <div style={{ marginTop: 8, fontSize: 10, color: t.textTertiary, fontFamily: t.fontSans }}>
-            {srcLabel} · {crtLabel}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+            {[0,1,2,3].map(i => (
+              <div key={i} style={{ aspectRatio: '1', borderRadius: 6, overflow: 'hidden' }}>
+                <PlaceholderImg idx={i} />
+              </div>
+            ))}
           </div>
         </PbSection>
       )
     }
 
-    case 'strip-8':
-      return <Strip8Preview block={block} t={t} compact={compact} />
+    case 'club-galleries': {
+      const s = block.clubGalleriesSettings
+      const count = s?.galleryIds?.length ?? 0
+      return (
+        <PbSection t={t}>
+          <PbHeading t={t}>Club galleries</PbHeading>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${count > 0 ? Math.min(count, 3) : 2}, 1fr)`, gap: 10 }}>
+            {(count > 0
+              ? galleries?.filter(g => s?.galleryIds.includes(g.id)).slice(0, 3) ?? []
+              : [{id:'a',name:'Gallery 1'},{id:'b',name:'Gallery 2'}]
+            ).map((g, i) => (
+              <div key={g.id ?? i} style={{ borderRadius: 8, overflow: 'hidden', border: `1px solid ${t.borderSubtle}`, background: t.surface1 }}>
+                <div style={{ aspectRatio: '3/2', overflow: 'hidden' }}>
+                  <PlaceholderImg idx={i + 1} />
+                </div>
+                <div style={{ padding: '8px 10px' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: t.textPrimary, fontFamily: t.fontSans }}>{g.name}</div>
+                  <div style={{ fontSize: 10, color: t.textTertiary, fontFamily: t.fontSans, marginTop: 2 }}>{(g as AdminGalleryData).imageCount ?? 0} photos</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </PbSection>
+      )
+    }
 
     case 'member-spotlight': {
       const ss = block.spotlightSettings!
@@ -1536,7 +1741,7 @@ function IssueStrip({ issues, compact }: { issues: ValidationIssue[]; compact: b
 
 // ── LivePreview ────────────────────────────────────────────────────────────────
 
-function LivePreview({ blocks, fullscreen = false }: { blocks: ContentBlock[]; fullscreen?: boolean }) {
+function LivePreview({ blocks, fullscreen = false, galleries }: { blocks: ContentBlock[]; fullscreen?: boolean; galleries?: AdminGalleryData[] }) {
   const [audience,  setAudience]  = useState<AudienceFilter>('visitor')
   const [device,    setDevice]    = useState<DeviceMode>('desktop')
   const [colorMode, setColorMode] = useState<ColorMode>('dark')
@@ -1601,7 +1806,7 @@ function LivePreview({ blocks, fullscreen = false }: { blocks: ContentBlock[]; f
         /* Compact: no fixed height — blocks render inline and page scrolls */
         <Box sx={{ border: '1px solid var(--border-default)', borderRadius: '8px', overflow: 'hidden', background: t.surface2, display: 'flex', justifyContent: device === 'mobile' ? 'center' : undefined }}>
           <Box sx={{ width: device === 'mobile' ? 375 : '100%', background: t.surface2 }}>
-            {blocks.map(b => <PreviewBlock key={b.id} block={b} audience={audience} t={t} compact={compact} />)}
+            {blocks.map(b => <PreviewBlock key={b.id} block={b} audience={audience} t={t} compact={compact} galleries={galleries} />)}
           </Box>
         </Box>
       ) : (
@@ -1617,7 +1822,7 @@ function LivePreview({ blocks, fullscreen = false }: { blocks: ContentBlock[]; f
           </Box>
           <Box sx={{ flex: 1, overflowY: 'auto', background: t.surface0, display: 'flex', justifyContent: device === 'mobile' ? 'center' : undefined }}>
             <Box sx={{ width: device === 'mobile' ? 375 : '100%', minHeight: '100%', background: t.surface2 }}>
-              {blocks.map(b => <PreviewBlock key={b.id} block={b} audience={audience} t={t} compact={compact} />)}
+              {blocks.map(b => <PreviewBlock key={b.id} block={b} audience={audience} t={t} compact={compact} galleries={galleries} />)}
             </Box>
           </Box>
         </Box>
@@ -1628,7 +1833,7 @@ function LivePreview({ blocks, fullscreen = false }: { blocks: ContentBlock[]; f
 
 // ── Main HomepageEditor ────────────────────────────────────────────────────────
 
-export default function HomepageEditor({ initialBlocks }: { initialBlocks?: ContentBlock[] }) {
+export default function HomepageEditor({ initialBlocks, galleries = [] }: { initialBlocks?: ContentBlock[]; galleries?: AdminGalleryData[] }) {
   const {
     blocks, hasChanges, showPublish, setShowPublish,
     saveStatus, isPending,
@@ -1715,6 +1920,7 @@ export default function HomepageEditor({ initialBlocks }: { initialBlocks?: Cont
                     onRemove={block.type === 'custom-content' ? () => requestDelete(block.id) : undefined}
                     onDragStart={() => handleDragStart(i)}
                     onDragOver={e => handleDragOver(e, i)}
+                    galleries={galleries}
                   />
                 </Box>
               </Fragment>
@@ -1745,7 +1951,7 @@ export default function HomepageEditor({ initialBlocks }: { initialBlocks?: Cont
 
         {/* Live preview — capped at 670px so it doesn't stretch on wider screens */}
         <Box sx={{ position: 'sticky', top: 24, maxWidth: 670, width: '100%' }}>
-          <LivePreview blocks={blocks} />
+          <LivePreview blocks={blocks} galleries={galleries} />
         </Box>
       </Box>
 
@@ -1755,13 +1961,14 @@ export default function HomepageEditor({ initialBlocks }: { initialBlocks?: Cont
         onClose={() => setEditingBlock(null)}
         onUpdate={u => { if (editingBlock) updateBlock(editingBlock.id, u) }}
         onRemove={syncedEditBlock?.type === 'custom-content' ? () => requestDelete(syncedEditBlock.id) : undefined}
+        galleries={galleries}
       />
 
       {/* Publish dialog */}
       {(() => {
         const pubIssues  = getValidationIssues(blocks)
         const pubWarnings = pubIssues.filter(i => i.severity === 'warning')
-        const hasGalleryBlocks = blocks.some(b => b.enabled && ['large-image', 'grid-6', 'strip-8'].includes(b.type))
+        const hasGalleryBlocks = blocks.some(b => b.enabled && ['large-image', 'gallery-preview', 'club-galleries'].includes(b.type))
         return (
           <Dialog open={showPublish} onClose={() => setShowPublish(false)} maxWidth="sm" fullWidth>
             <DialogTitle sx={{ fontSize: 16, fontWeight: 700 }}>Publish homepage?</DialogTitle>
@@ -1849,7 +2056,7 @@ export default function HomepageEditor({ initialBlocks }: { initialBlocks?: Cont
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
               <Button variant="outlined" color="secondary" size="small" onClick={() => setFullscreen(false)} sx={{ textTransform: 'none', fontSize: 13 }}>Close preview</Button>
             </Box>
-            <LivePreview blocks={blocks} fullscreen />
+            <LivePreview blocks={blocks} fullscreen galleries={galleries} />
           </Box>
         </Box>
       </Dialog>

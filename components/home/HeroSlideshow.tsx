@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 
-type Slide = {
+export type Slide = {
   src:     string
   title:   string
   maker:   string
@@ -107,7 +107,8 @@ function SlideLayer({
 
 // clubName prop kept for API compatibility
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function HeroSlideshow({ clubName }: { clubName: string }) {
+export default function HeroSlideshow({ clubName, slides: propSlides }: { clubName: string; slides?: Slide[] }) {
+  const activeSlides = (propSlides && propSlides.length > 0) ? propSlides : SLIDES
   const [activeIdx,      setActiveIdx]      = useState<number | null>(null)
   const [incomingIdx,    setIncomingIdx]    = useState<number | null>(null)
   const [isFading,       setIsFading]       = useState(false)
@@ -120,9 +121,10 @@ export default function HeroSlideshow({ clubName }: { clubName: string }) {
 
   // Pick random start slide on mount (avoids SSR hydration mismatch)
   useEffect(() => {
-    const initial = Math.floor(Math.random() * SLIDES.length)
+    const initial = Math.floor(Math.random() * activeSlides.length)
     activeIdxRef.current = initial
     setActiveIdx(initial)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Fade credits in after each slide settles (including the first)
@@ -137,10 +139,11 @@ export default function HeroSlideshow({ clubName }: { clubName: string }) {
   useEffect(() => {
     if (activeIdx === null) return
     for (let i = 1; i <= 2; i++) {
-      const idx = (activeIdx + i) % SLIDES.length
+      const idx = (activeIdx + i) % activeSlides.length
       const img = new window.Image()
-      img.src = SLIDES[idx].src
+      img.src = activeSlides[idx].src
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIdx])
 
   // Execute the crossfade for `next`. Called by either onSharpLoad or
@@ -172,7 +175,7 @@ export default function HeroSlideshow({ clubName }: { clubName: string }) {
     if (activeIdx === null) return
 
     const timer = setInterval(() => {
-      const next = (activeIdxRef.current + 1) % SLIDES.length
+      const next = (activeIdxRef.current + 1) % activeSlides.length
 
       // Reset fade guard for this advance cycle
       fadeStartedRef.current = false
@@ -192,8 +195,8 @@ export default function HeroSlideshow({ clubName }: { clubName: string }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIdx, startFade])
 
-  const activeSlide   = activeIdx   !== null ? SLIDES[activeIdx]   : null
-  const incomingSlide = incomingIdx !== null ? SLIDES[incomingIdx] : null
+  const activeSlide   = activeIdx   !== null ? activeSlides[activeIdx]   : null
+  const incomingSlide = incomingIdx !== null ? activeSlides[incomingIdx] : null
 
   return (
     <div

@@ -48,6 +48,7 @@ export default async function ClubHomePage({
               blocks={blocks}
               clubName={clubName}
               clubId={clubId ?? ''}
+              clubSlug={clubSlug}
               isGuest
             />
           </div>
@@ -133,7 +134,7 @@ export default async function ClubHomePage({
             userId={user.id}
           />
           <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-10">
-            <HomepageRenderer blocks={blocks} clubName={clubName} clubId={clubId} />
+            <HomepageRenderer blocks={blocks} clubName={clubName} clubId={clubId} clubSlug={clubSlug} />
           </div>
           <AppFooter variant="app" />
         </div>
