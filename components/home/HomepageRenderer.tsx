@@ -620,34 +620,47 @@ function GalleryPreviewBlock({
   const href = `/${clubSlug}/gallery/${settings.gallerySlug}`
   return (
     <Section>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
-        <div>
-          <SectionHeading>{settings.galleryName || 'Gallery preview'}</SectionHeading>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: -8, marginBottom: 0, fontWeight: 500 }}>
-            {imageCount} photo{imageCount !== 1 ? 's' : ''}
-          </p>
-        </div>
-        <Link
+      <SectionHeading>Gallery preview</SectionHeading>
+      <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '-8px 0 14px', fontWeight: 500 }}>
+        {settings.galleryName || 'Gallery'} · {imageCount} photo{imageCount !== 1 ? 's' : ''}
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+        {images.slice(0, 4).map(img => (
+          <div key={img.id} style={{ aspectRatio: '1', borderRadius: 8, overflow: 'hidden', background: 'var(--surface-1)' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={img.publicUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          </div>
+        ))}
+        {/* Pad empty image slots so the link cell always sits in column 5 */}
+        {Array.from({ length: Math.max(0, 4 - images.length) }).map((_, i) => (
+          <div key={`empty-${i}`} style={{ aspectRatio: '1', borderRadius: 8, background: 'var(--surface-1)' }} />
+        ))}
+        <a
           href={href}
-          style={{ fontSize: 13, fontWeight: 500, color: 'var(--action-primary)', whiteSpace: 'nowrap', marginLeft: 16 }}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            aspectRatio:    '1',
+            borderRadius:   8,
+            border:         '1px solid var(--border-default)',
+            background:     'var(--surface-1)',
+            display:        'flex',
+            flexDirection:  'column',
+            alignItems:     'center',
+            justifyContent: 'center',
+            gap:            6,
+            textDecoration: 'none',
+            color:          'var(--action-primary)',
+            fontSize:       13,
+            fontWeight:     500,
+            textAlign:      'center',
+            padding:        '8px',
+          }}
         >
-          View full gallery →
-        </Link>
+          <span style={{ fontSize: 22, lineHeight: 1 }}>→</span>
+          <span style={{ lineHeight: 1.3 }}>View full gallery</span>
+        </a>
       </div>
-      {images.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-          {images.slice(0, 4).map(img => (
-            <div key={img.id} style={{ aspectRatio: '1', borderRadius: 8, overflow: 'hidden', background: 'var(--surface-1)' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.publicUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div style={tintedBox}>
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic', margin: 0 }}>No images in this gallery yet.</p>
-        </div>
-      )}
     </Section>
   )
 }

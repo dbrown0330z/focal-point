@@ -64,8 +64,8 @@ const MODAL_META: Record<string, { title: string; description: string }> = {
     description: 'A full-width rotating slideshow pulled from one of your image galleries. Configure which gallery to draw from and how quickly images cycle.',
   },
   'gallery-preview': {
-    title:       'Gallery preview',
-    description: 'Highlights a single club gallery with its name, photo count, a strip of up to 4 preview images, and a link to the full gallery.',
+    title:       'Gallery preview (4 images)',
+    description: 'Highlights a single club gallery with its name, photo count, a strip of 4 preview images, and a link to the full gallery.',
   },
   'club-galleries': {
     title:       'Club galleries',
@@ -95,8 +95,12 @@ const MODAL_META: Record<string, { title: string; description: string }> = {
 
 // ── Hook ───────────────────────────────────────────────────────────────────────
 
+const REMOVED_BLOCK_TYPES = ['grid-6', 'strip-8']
+
 function useHomepageEditor(initialBlocks: ContentBlock[]) {
-  const [blocks,      setBlocks]      = useState<ContentBlock[]>(initialBlocks)
+  const [blocks,      setBlocks]      = useState<ContentBlock[]>(
+    initialBlocks.filter(b => !REMOVED_BLOCK_TYPES.includes(b.type))
+  )
   const [hasChanges,  setHasChanges]  = useState(false)
   const [showPublish, setShowPublish] = useState(false)
   const [saveStatus,  setSaveStatus]  = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -1330,21 +1334,30 @@ function PreviewBlock({ block, audience, t, compact, galleries }: { block: Conte
       const name = s?.galleryName || 'Gallery name'
       return (
         <PbSection t={t}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div>
-              <PbHeading t={t}>{name}</PbHeading>
-              <div style={{ fontSize: 10, color: t.textTertiary, fontFamily: t.fontSans, marginTop: -4 }}>N photos</div>
-            </div>
-            <div style={{ fontSize: 11, fontWeight: 500, color: t.actionPrimary, fontFamily: t.fontSans, whiteSpace: 'nowrap', marginLeft: 8 }}>
-              View full gallery →
-            </div>
+          <PbHeading t={t}>Gallery preview</PbHeading>
+          <div style={{ fontSize: 10, color: t.textSecondary, fontFamily: t.fontSans, marginTop: -6, marginBottom: 10 }}>
+            {name} · N photos
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 5 }}>
             {[0,1,2,3].map(i => (
               <div key={i} style={{ aspectRatio: '1', borderRadius: 6, overflow: 'hidden' }}>
                 <PlaceholderImg idx={i} />
               </div>
             ))}
+            <div style={{
+              aspectRatio:    '1',
+              borderRadius:   6,
+              border:         `1px solid ${t.borderDefault}`,
+              background:     t.surface1,
+              display:        'flex',
+              flexDirection:  'column',
+              alignItems:     'center',
+              justifyContent: 'center',
+              gap:            3,
+            }}>
+              <span style={{ fontSize: 14, color: t.actionPrimary, lineHeight: 1 }}>→</span>
+              <span style={{ fontSize: 8, fontWeight: 500, color: t.actionPrimary, fontFamily: t.fontSans, textAlign: 'center', lineHeight: 1.3 }}>View full gallery</span>
+            </div>
           </div>
         </PbSection>
       )
