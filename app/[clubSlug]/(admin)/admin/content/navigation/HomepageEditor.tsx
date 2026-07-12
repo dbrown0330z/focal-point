@@ -102,10 +102,14 @@ function useHomepageEditor(initialBlocks: ContentBlock[]) {
     const filtered = initialBlocks.filter(b => !REMOVED_BLOCK_TYPES.includes(b.type))
     // Migration: if upcoming-events was enabled and dual-panel is disabled, enable dual-panel
     const hadUpcomingEvents = initialBlocks.some(b => b.type === 'upcoming-events' && b.enabled)
-    if (hadUpcomingEvents) {
-      return filtered.map(b => b.type === 'dual-panel' && !b.enabled ? { ...b, enabled: true } : b)
-    }
-    return filtered
+    const migrated = hadUpcomingEvents
+      ? filtered.map(b => b.type === 'dual-panel' && !b.enabled ? { ...b, enabled: true } : b)
+      : filtered
+    // Ensure enabled blocks always precede disabled blocks (sort by enabled desc, fixed first)
+    const fixed    = migrated.filter(b => b.fixed)
+    const enabled  = migrated.filter(b => !b.fixed && b.enabled)
+    const disabled = migrated.filter(b => !b.fixed && !b.enabled)
+    return [...fixed, ...enabled, ...disabled]
   })
   const [hasChanges,  setHasChanges]  = useState(false)
   const [showPublish, setShowPublish] = useState(false)
@@ -143,23 +147,24 @@ function useHomepageEditor(initialBlocks: ContentBlock[]) {
     setHasChanges(true)
   }
 
-  const addCustomContent = () => {
+  const addCustomContent = (): ContentBlock | null => {
     const existing = blocks.filter(b => b.type === 'custom-content')
-    if (existing.length >= MAX_CUSTOM_CONTENT) return
+    if (existing.length >= MAX_CUSTOM_CONTENT) return null
     const num = existing.length + 1
-    const newBlock = {
+    const newBlock: ContentBlock = {
       id:    `custom-content-${Date.now()}`,
       name:  'Custom content',
       label: num === 1 ? undefined : `Custom content ${num}`,
       type:  'custom-content',
       enabled: true,
-      customContentSettings: { columns: 1 as const, previewLines: 4, notes: [] },
-    } as ContentBlock
+      customContentSettings: { columns: 1, previewLines: 4, notes: [] },
+    }
     setBlocks(bs => {
       const firstDisabledIdx = bs.findIndex(b => !b.enabled && !b.fixed)
       return firstDisabledIdx === -1 ? [...bs, newBlock] : [...bs.slice(0, firstDisabledIdx), newBlock, ...bs.slice(firstDisabledIdx)]
     })
     setHasChanges(true)
+    return newBlock
   }
 
   const removeBlock = (id: string) => {
@@ -215,6 +220,14 @@ function DragGrip({ disabled }: { disabled?: boolean }) {
         <circle cx="5.5" cy="12.5"  r="1.4" /><circle cx="10.5" cy="12.5" r="1.4" />
       </svg>
     </span>
+  )
+}
+
+function IconTrash() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
+      <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
+    </svg>
   )
 }
 
@@ -823,10 +836,11 @@ function CompetitionsModalBody({ block, onChange }: { block: ContentBlock; onCha
 // ── Block edit modal ───────────────────────────────────────────────────────────
 
 function BlockEditModal({
-  block, onClose, onUpdate, onRemove, galleries,
+  block, onClose, onCancel, onUpdate, onRemove, galleries,
 }: {
   block:     ContentBlock | null
   onClose:   () => void
+  onCancel:  () => void
   onUpdate:  (u: Partial<ContentBlock>) => void
   onRemove?: () => void
   galleries: AdminGalleryData[]
@@ -881,8 +895,9 @@ function BlockEditModal({
         {block.type === 'competitions'     && <CompetitionsModalBody     block={block} onChange={onUpdate} />}
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button variant="contained" onClick={onClose} sx={{ textTransform: 'none', fontSize: 13 }}>Done</Button>
+      <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+        <Button variant="outlined" color="secondary" onClick={onCancel} sx={{ textTransform: 'none', fontSize: 13 }}>Cancel</Button>
+        <Button variant="contained" onClick={onClose} sx={{ textTransform: 'none', fontSize: 13 }}>Save</Button>
       </DialogActions>
     </Dialog>
   )
@@ -1010,18 +1025,18 @@ function BlockCard({
           )}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, flexShrink: 0 }}>
+          {onRemove && (
+            <Tooltip title="Remove block">
+              <IconButton size="small" onClick={onRemove} sx={{ color: 'var(--text-tertiary)', mt: '-2px', '&:hover': { color: 'var(--status-error)' } }}>
+                <IconTrash />
+              </IconButton>
+            </Tooltip>
+          )}
           <Tooltip title="Edit">
             <IconButton size="small" onClick={onEdit} sx={{ color: 'text.secondary', mt: '-2px' }}>
               <EditOutlinedIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Tooltip>
-          {onRemove && (
-            <Tooltip title="Remove block">
-              <IconButton size="small" onClick={onRemove} sx={{ color: 'text.secondary', mt: '-2px' }}>
-                <DeleteOutlineIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            </Tooltip>
-          )}
           {!block.fixed && (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px', ml: 0.5 }}>
               <Switch checked={block.enabled} onChange={onToggle} size="small" />
@@ -1885,7 +1900,26 @@ export default function HomepageEditor({ initialBlocks, galleries = [] }: { init
   const clubSlug = pathname?.split('/')[1] ?? ''
 
   const [editingBlock,    setEditingBlock]    = useState<ContentBlock | null>(null)
+  const [editOriginal,    setEditOriginal]    = useState<ContentBlock | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
+  const openModal = (block: ContentBlock) => {
+    setEditingBlock(block)
+    setEditOriginal(block)
+  }
+  const cancelModal = () => {
+    if (editOriginal) updateBlock(editOriginal.id, editOriginal)
+    setEditingBlock(null)
+    setEditOriginal(null)
+  }
+  const closeModal = () => {
+    setEditingBlock(null)
+    setEditOriginal(null)
+  }
+  const handleAddCustomContent = () => {
+    const newBlock = addCustomContent()
+    if (newBlock) openModal(newBlock)
+  }
 
   const dragIdx  = useRef<number | null>(null)
   const [insertAt, setInsertAt] = useState<number | null>(null)
@@ -1893,7 +1927,7 @@ export default function HomepageEditor({ initialBlocks, galleries = [] }: { init
   const requestDelete = (id: string) => setConfirmDeleteId(id)
   const confirmDelete = () => {
     if (confirmDeleteId) {
-      if (editingBlock?.id === confirmDeleteId) setEditingBlock(null)
+      if (editingBlock?.id === confirmDeleteId) closeModal()
       removeBlock(confirmDeleteId)
     }
     setConfirmDeleteId(null)
@@ -1919,10 +1953,6 @@ export default function HomepageEditor({ initialBlocks, galleries = [] }: { init
 
   // Keep editingBlock in sync with blocks state
   const syncedEditBlock = editingBlock ? blocks.find(b => b.id === editingBlock.id) ?? null : null
-
-  // Section boundary tracking for rendering dividers
-  let shownCustomDivider = false
-  let shownHiddenDivider = false
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column' }}>
@@ -1966,80 +1996,111 @@ export default function HomepageEditor({ initialBlocks, galleries = [] }: { init
             Drag to reorder · changes take effect when published
           </Typography>
 
+          {/* Single drop zone containing all sections so DnD works across them */}
           <Box onDrop={handleDrop} onDragOver={e => e.preventDefault()} sx={{ display: 'flex', flexDirection: 'column' }}>
-            {blocks.map((block, i) => {
-              const isFirstCustom = !shownCustomDivider && !block.fixed && block.enabled && block.type === 'custom-content'
-              if (isFirstCustom) shownCustomDivider = true
-
-              const isFirstHidden = !shownHiddenDivider && !block.fixed && !block.enabled
-              if (isFirstHidden) shownHiddenDivider = true
+            {(() => {
+              const firstHiddenIdx = blocks.findIndex(b => !b.fixed && !b.enabled)
+              const activeBlocks   = firstHiddenIdx === -1 ? blocks : blocks.slice(0, firstHiddenIdx)
+              const hiddenBlocks   = firstHiddenIdx === -1 ? [] : blocks.slice(firstHiddenIdx)
+              let shownCustomDivider = false
 
               return (
-                <Fragment key={block.id}>
-                  {insertAt === i && dragIdx.current !== null && i >= 1 && <InsertionLine />}
-                  {isFirstCustom && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, my: 1.5 }}>
-                      <Box sx={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
-                      <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', flexShrink: 0 }}>
-                        Custom blocks
-                      </Typography>
-                      <Box sx={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
-                    </Box>
-                  )}
-                  {isFirstHidden && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, my: 1.5 }}>
-                      <Box sx={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
-                      <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', flexShrink: 0 }}>
-                        Hidden
-                      </Typography>
-                      <Box sx={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
-                    </Box>
-                  )}
-                  <Box sx={{ mb: 1 }}>
-                    <BlockCard
-                      block={block}
-                      onToggle={() => toggleBlock(block.id)}
-                      onEdit={() => setEditingBlock(block)}
-                      onRemove={block.type === 'custom-content' ? () => requestDelete(block.id) : undefined}
-                      onDragStart={() => handleDragStart(i)}
-                      onDragOver={e => handleDragOver(e, i)}
-                      galleries={galleries}
-                    />
-                  </Box>
-                  {/* Add custom content button appears after the last enabled custom block */}
-                  {block.type === 'custom-content' && block.enabled && (i === blocks.length - 1 || !blocks[i + 1]?.enabled || blocks[i + 1]?.type !== 'custom-content') && (
-                    customContentCount < MAX_CUSTOM_CONTENT ? (
-                      <Button startIcon={<AddIcon />} size="small" variant="outlined" color="secondary"
-                        onClick={addCustomContent}
-                        sx={{ textTransform: 'none', fontSize: 12, mb: 1, width: '100%' }}>
+                <>
+                  {/* ── Active blocks ── */}
+                  {activeBlocks.map((block, localI) => {
+                    const i = localI  // same as global index since active blocks come first
+                    const isFirstCustom = !shownCustomDivider && block.type === 'custom-content'
+                    if (isFirstCustom) shownCustomDivider = true
+                    return (
+                      <Fragment key={block.id}>
+                        {insertAt === i && dragIdx.current !== null && i >= 1 && <InsertionLine />}
+                        {isFirstCustom && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, my: 1.5 }}>
+                            <Box sx={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+                            <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', flexShrink: 0 }}>
+                              Custom blocks
+                            </Typography>
+                            <Box sx={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+                          </Box>
+                        )}
+                        <Box sx={{ mb: 1 }}>
+                          <BlockCard
+                            block={block}
+                            onToggle={() => toggleBlock(block.id)}
+                            onEdit={() => openModal(block)}
+                            onRemove={block.type === 'custom-content' ? () => requestDelete(block.id) : undefined}
+                            onDragStart={() => handleDragStart(i)}
+                            onDragOver={e => handleDragOver(e, i)}
+                            galleries={galleries}
+                          />
+                        </Box>
+                      </Fragment>
+                    )
+                  })}
+
+                  {/* ── Add custom content — between active and hidden ── */}
+                  <Box sx={{ my: 2, pt: 0.5 }}>
+                    {customContentCount < MAX_CUSTOM_CONTENT ? (
+                      <Button
+                        startIcon={<AddIcon />}
+                        size="small"
+                        variant="outlined"
+                        color="secondary"
+                        onClick={handleAddCustomContent}
+                        sx={{ textTransform: 'none', fontSize: 13, width: '100%' }}
+                      >
                         Add custom content block
-                        <Typography component="span" sx={{ fontSize: 10, color: 'text.tertiary', ml: 1 }}>
+                        <Typography component="span" sx={{ fontSize: 11, color: 'text.tertiary', ml: 1 }}>
                           ({customContentCount}/{MAX_CUSTOM_CONTENT})
                         </Typography>
                       </Button>
                     ) : (
-                      <Typography sx={{ fontSize: 11, color: 'text.tertiary', textAlign: 'center', mb: 1, fontStyle: 'italic' }}>
+                      <Typography sx={{ fontSize: 11, color: 'text.tertiary', textAlign: 'center', fontStyle: 'italic' }}>
                         Maximum of {MAX_CUSTOM_CONTENT} custom content blocks reached.
                       </Typography>
-                    )
+                    )}
+                  </Box>
+
+                  {/* ── Hidden blocks ── */}
+                  {hiddenBlocks.length > 0 && (
+                    <>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+                        <Box sx={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+                        <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', flexShrink: 0 }}>
+                          Hidden
+                        </Typography>
+                        <Box sx={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+                      </Box>
+                      {hiddenBlocks.map((block, localJ) => {
+                        const i = firstHiddenIdx + localJ
+                        return (
+                          <Fragment key={block.id}>
+                            {insertAt === i && dragIdx.current !== null && <InsertionLine />}
+                            <Box sx={{ mb: 1 }}>
+                              <BlockCard
+                                block={block}
+                                onToggle={() => toggleBlock(block.id)}
+                                onEdit={() => openModal(block)}
+                                onRemove={block.type === 'custom-content' ? () => requestDelete(block.id) : undefined}
+                                onDragStart={() => handleDragStart(i)}
+                                onDragOver={e => handleDragOver(e, i)}
+                                galleries={galleries}
+                              />
+                            </Box>
+                          </Fragment>
+                        )
+                      })}
+                    </>
                   )}
-                </Fragment>
+
+                  {insertAt === blocks.length && dragIdx.current !== null && <InsertionLine />}
+                </>
               )
-            })}
-            {insertAt === blocks.length && dragIdx.current !== null && <InsertionLine />}
+            })()}
           </Box>
 
           {/* Drop zone at bottom */}
           <Box onDragOver={e => { e.preventDefault(); if (dragIdx.current !== null) setInsertAt(blocks.length) }} onDrop={handleDrop} sx={{ height: 24 }} />
-
-          {/* Add custom content button if there are no custom blocks yet */}
-          {customContentCount === 0 && (
-            <Button startIcon={<AddIcon />} size="small" variant="outlined" color="secondary"
-              onClick={addCustomContent}
-              sx={{ textTransform: 'none', fontSize: 13, mt: 1, width: '100%' }}>
-              Add custom content block
-            </Button>
-          )}
         </Box>
 
         {/* Live preview — capped at 670px so it doesn't stretch on wider screens */}
@@ -2051,7 +2112,8 @@ export default function HomepageEditor({ initialBlocks, galleries = [] }: { init
       {/* Block edit modal */}
       <BlockEditModal
         block={syncedEditBlock}
-        onClose={() => setEditingBlock(null)}
+        onClose={closeModal}
+        onCancel={cancelModal}
         onUpdate={u => { if (editingBlock) updateBlock(editingBlock.id, u) }}
         onRemove={syncedEditBlock?.type === 'custom-content' ? () => requestDelete(syncedEditBlock.id) : undefined}
         galleries={galleries}
