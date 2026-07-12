@@ -878,19 +878,39 @@ export default async function HomepageRenderer({
   // ── Fetch club-galleries block data ───────────────────────────────────────
   const clubGalleriesBlock = enabled.find(b => b.type === 'club-galleries')
   let clubGalleriesItems: ClubGalleryItem[] = []
-  if (clubGalleriesBlock?.clubGalleriesSettings?.galleryIds?.length) {
-    const ids = clubGalleriesBlock.clubGalleriesSettings.galleryIds.slice(0, 3)
+  if (clubGalleriesBlock) {
     type GalleryRow = { id: string; name: string; slug: string; image_ids: string[] | null; cover_image_id: string | null }
-    const { data: galleryRows } = await svcSupabase
-      .from('club_galleries')
-      .select('id, name, slug, image_ids, cover_image_id')
-      .in('id', ids)
-      .eq('club_id', clubId) as { data: GalleryRow[] | null }
+    const configuredIds = clubGalleriesBlock.clubGalleriesSettings?.galleryIds ?? []
+    let galleryRows: GalleryRow[] | null = null
 
-    const rowMap = new Map((galleryRows ?? []).map(r => [r.id, r]))
-    for (const id of ids) {
-      const r = rowMap.get(id)
-      if (!r) continue
+    if (configuredIds.length > 0) {
+      // Admin has selected specific galleries — show those in the chosen order
+      const result = await svcSupabase
+        .from('club_galleries')
+        .select('id, name, slug, image_ids, cover_image_id')
+        .in('id', configuredIds.slice(0, 3))
+        .eq('club_id', clubId)
+        .in('visibility', ['public', 'members_only']) as { data: GalleryRow[] | null }
+      galleryRows = result.data
+    } else {
+      // No galleries configured — auto-show all visible galleries (up to 3)
+      const result = await svcSupabase
+        .from('club_galleries')
+        .select('id, name, slug, image_ids, cover_image_id')
+        .eq('club_id', clubId)
+        .in('visibility', ['public', 'members_only'])
+        .limit(3) as { data: GalleryRow[] | null }
+      galleryRows = result.data
+    }
+
+    const rows = configuredIds.length > 0
+      ? (() => {
+          const rowMap = new Map((galleryRows ?? []).map(r => [r.id, r]))
+          return configuredIds.slice(0, 3).map(id => rowMap.get(id)).filter(Boolean) as GalleryRow[]
+        })()
+      : (galleryRows ?? [])
+
+    for (const r of rows) {
       let coverUrl: string | null = null
       const coverId = r.cover_image_id ?? r.image_ids?.[0] ?? null
       if (coverId) {
