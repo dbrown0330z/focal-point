@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 // ─── Club-year helpers ────────────────────────────────────────────────────────
 
@@ -144,8 +144,26 @@ function PillDropdown({
   isOpen:        boolean
   onToggle:      () => void
 }) {
-  const [query, setQuery] = useState('')
-  const [hov, setHov]     = useState(false)
+  const [query, setQuery]           = useState('')
+  const [hov, setHov]               = useState(false)
+  const buttonRef                   = useRef<HTMLButtonElement>(null)
+  const [fixedTop,  setFixedTop]    = useState(0)
+  const [fixedLeft, setFixedLeft]   = useState(0)
+  const [fixedRight, setFixedRight] = useState<number | undefined>(undefined)
+
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setFixedTop(rect.bottom + 8)
+      if (align === 'right') {
+        setFixedLeft(0)
+        setFixedRight(window.innerWidth - rect.right)
+      } else {
+        setFixedLeft(rect.left)
+        setFixedRight(undefined)
+      }
+    }
+  }, [isOpen, align])
 
   const filtered = showSearch && query
     ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
@@ -174,6 +192,7 @@ function PillDropdown({
     <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0, position: 'relative' }}>
       <MicroLabel>{sectionLabel}</MicroLabel>
       <button
+        ref={buttonRef}
         type="button"
         id={`filter-pill-${id}`}
         onClick={onToggle}
@@ -206,9 +225,10 @@ function PillDropdown({
         <div
           onClick={e => e.stopPropagation()}
           style={{
-            position:     'absolute',
-            top:          'calc(100% + 8px)',
-            [align === 'right' ? 'right' : 'left']: 0,
+            position:     'fixed',
+            top:          fixedTop,
+            left:         fixedRight !== undefined ? undefined : fixedLeft,
+            right:        fixedRight,
             background:   K.popupBg,
             border:       K.popupBorder,
             borderRadius: 14,

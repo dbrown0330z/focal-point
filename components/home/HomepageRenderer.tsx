@@ -621,8 +621,11 @@ function GalleryPreviewBlock({
   return (
     <Section>
       <SectionHeading>Gallery preview</SectionHeading>
-      <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '-8px 0 14px', fontWeight: 500 }}>
-        {settings.galleryName || 'Gallery'} · {imageCount} photo{imageCount !== 1 ? 's' : ''}
+      <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '-8px 0 14px', fontWeight: 400 }}>
+        <strong style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+          {settings.galleryName || 'Gallery'}
+        </strong>
+        {' · '}{imageCount} photo{imageCount !== 1 ? 's' : ''}
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
         {images.slice(0, 4).map(img => (
