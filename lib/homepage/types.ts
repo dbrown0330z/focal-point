@@ -145,7 +145,7 @@ export const DEFAULT_BLOCKS: ContentBlock[] = [
     },
   },
   {
-    id: 'large-image', name: 'Large image', type: 'large-image', enabled: true,
+    id: 'large-image', name: 'Hero slideshow', type: 'large-image', enabled: true,
     largeImageSettings: { gallerySource: 'competition-winners', intervalSeconds: 5 },
   },
   {

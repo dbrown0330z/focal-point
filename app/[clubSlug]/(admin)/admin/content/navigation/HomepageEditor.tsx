@@ -1,6 +1,7 @@
 'use client'
 
 import { Fragment, useRef, useState, useTransition } from 'react'
+import { usePathname } from 'next/navigation'
 import {
   Box,
   Button,
@@ -19,7 +20,6 @@ import AddIcon              from '@mui/icons-material/Add'
 import DeleteOutlineIcon    from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon     from '@mui/icons-material/EditOutlined'
 import LockOutlinedIcon     from '@mui/icons-material/LockOutlined'
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
 import RichTextEditor       from '@/components/admin/RichTextEditor'
 import { saveHomepageBlocks } from './homepageActions'
 import {
@@ -60,7 +60,7 @@ const MODAL_META: Record<string, { title: string; description: string }> = {
     description: 'Controls the hero section visitors see on first arrival. Logged-in members see a compact greeting instead of the full hero — no config needed for that state.',
   },
   'large-image': {
-    title:       'Large image',
+    title:       'Hero slideshow',
     description: 'A full-width rotating slideshow pulled from one of your image galleries. Configure which gallery to draw from and how quickly images cycle.',
   },
   'gallery-preview': {
@@ -95,19 +95,36 @@ const MODAL_META: Record<string, { title: string; description: string }> = {
 
 // ── Hook ───────────────────────────────────────────────────────────────────────
 
-const REMOVED_BLOCK_TYPES = ['grid-6', 'strip-8']
+const REMOVED_BLOCK_TYPES = ['grid-6', 'strip-8', 'upcoming-events']
 
 function useHomepageEditor(initialBlocks: ContentBlock[]) {
-  const [blocks,      setBlocks]      = useState<ContentBlock[]>(
-    initialBlocks.filter(b => !REMOVED_BLOCK_TYPES.includes(b.type))
-  )
+  const [blocks,      setBlocks]      = useState<ContentBlock[]>(() => {
+    const filtered = initialBlocks.filter(b => !REMOVED_BLOCK_TYPES.includes(b.type))
+    // Migration: if upcoming-events was enabled and dual-panel is disabled, enable dual-panel
+    const hadUpcomingEvents = initialBlocks.some(b => b.type === 'upcoming-events' && b.enabled)
+    if (hadUpcomingEvents) {
+      return filtered.map(b => b.type === 'dual-panel' && !b.enabled ? { ...b, enabled: true } : b)
+    }
+    return filtered
+  })
   const [hasChanges,  setHasChanges]  = useState(false)
   const [showPublish, setShowPublish] = useState(false)
   const [saveStatus,  setSaveStatus]  = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [isPending,   startTransition] = useTransition()
 
   const toggleBlock = (id: string) => {
-    setBlocks(bs => bs.map(b => b.id === id ? { ...b, enabled: !b.enabled } : b))
+    setBlocks(bs => {
+      const block = bs.find(b => b.id === id)
+      if (!block) return bs
+      const newEnabled = !block.enabled
+      const others     = bs.filter(b => b.id !== id)
+      const toggled    = { ...block, enabled: newEnabled }
+      if (!newEnabled) {
+        return [...others, toggled]
+      }
+      const firstDisabledIdx = others.findIndex(b => !b.enabled && !b.fixed)
+      return firstDisabledIdx === -1 ? [...others, toggled] : [...others.slice(0, firstDisabledIdx), toggled, ...others.slice(firstDisabledIdx)]
+    })
     setHasChanges(true)
   }
 
@@ -130,14 +147,18 @@ function useHomepageEditor(initialBlocks: ContentBlock[]) {
     const existing = blocks.filter(b => b.type === 'custom-content')
     if (existing.length >= MAX_CUSTOM_CONTENT) return
     const num = existing.length + 1
-    setBlocks(bs => [...bs, {
+    const newBlock = {
       id:    `custom-content-${Date.now()}`,
       name:  'Custom content',
       label: num === 1 ? undefined : `Custom content ${num}`,
       type:  'custom-content',
       enabled: true,
-      customContentSettings: { columns: 1, previewLines: 4, notes: [] },
-    }])
+      customContentSettings: { columns: 1 as const, previewLines: 4, notes: [] },
+    } as ContentBlock
+    setBlocks(bs => {
+      const firstDisabledIdx = bs.findIndex(b => !b.enabled && !b.fixed)
+      return firstDisabledIdx === -1 ? [...bs, newBlock] : [...bs.slice(0, firstDisabledIdx), newBlock, ...bs.slice(firstDisabledIdx)]
+    })
     setHasChanges(true)
   }
 
@@ -184,11 +205,11 @@ function useHomepageEditor(initialBlocks: ContentBlock[]) {
 function DragGrip({ disabled }: { disabled?: boolean }) {
   return (
     <span style={{
-      color: 'var(--text-tertiary)', opacity: disabled ? 0.3 : 1,
+      color: 'var(--text-tertiary)', opacity: disabled ? 0.25 : 0.55,
       cursor: disabled ? 'default' : 'grab', flexShrink: 0,
       display: 'flex', alignItems: 'center',
     }}>
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
         <circle cx="5.5" cy="3.5"   r="1.4" /><circle cx="10.5" cy="3.5"  r="1.4" />
         <circle cx="5.5" cy="8"     r="1.4" /><circle cx="10.5" cy="8"    r="1.4" />
         <circle cx="5.5" cy="12.5"  r="1.4" /><circle cx="10.5" cy="12.5" r="1.4" />
@@ -867,6 +888,18 @@ function BlockEditModal({
   )
 }
 
+// ── Block display names (overrides stale saved names in DB) ───────────────────
+
+const BLOCK_DISPLAY_NAMES: Record<string, string> = {
+  'large-image':     'Hero slideshow',
+  'dual-panel':      'Events & competitions',
+  'gallery-preview': 'Gallery preview (4 images)',
+  'club-galleries':  'Club galleries',
+  'competitions':    'Competitions',
+  'member-spotlight':'Member spotlight',
+  'affiliations':    'Affiliations & links',
+}
+
 // ── Block subtitle ─────────────────────────────────────────────────────────────
 
 const CRITERIA_LABEL: Record<string, string> = {
@@ -888,37 +921,26 @@ function getBlockSubtitle(block: ContentBlock, galleries?: AdminGalleryData[]): 
   switch (block.type) {
     case 'large-image': {
       const s = block.largeImageSettings; if (!s) return null
-      return `${gl(s.gallerySource)} · every ${s.intervalSeconds}s`
+      return `${gl(s.gallerySource)} · slides every ${s.intervalSeconds}s`
     }
     case 'gallery-preview': {
-      const s = block.galleryPreviewSettings; if (!s?.galleryId) return 'No gallery selected'
-      return s.galleryName || 'Gallery selected'
+      const s = block.galleryPreviewSettings
+      if (!s?.galleryId) return 'No gallery selected — configure to activate'
+      return `Showcasing ${s.galleryName || 'gallery'}`
     }
     case 'club-galleries': {
       const s = block.clubGalleriesSettings; if (!s) return null
       return s.galleryIds.length > 0
-        ? `${s.galleryIds.length} of 3 galleries`
-        : 'No galleries selected'
-    }
-    case 'grid-6': {
-      const s = block.grid6Settings; if (!s) return null
-      return `${gl(s.gallerySource)} · ${cl(s.criteria)}`
-    }
-    case 'strip-8': {
-      const s = block.strip8Settings; if (!s) return null
-      return `${gl(s.gallerySource)} · ${cl(s.criteria)}`
+        ? `Showing ${s.galleryIds.length} of 3 galleries`
+        : 'Auto · showing all galleries'
     }
     case 'member-spotlight': {
       const s = block.spotlightSettings; if (!s) return null
-      return s.mode === 'manual' && s.memberName ? `Pinned: ${s.memberName}` : 'Auto-rotates each visit'
+      return s.mode === 'manual' && s.memberName ? `Pinned: ${s.memberName}` : 'Highlights a different member on each visit'
     }
     case 'dual-panel': {
       const s = block.dualPanelSettings; if (!s) return null
-      return `Next ${s.eventCount} events · live competition activity`
-    }
-    case 'upcoming-events': {
-      const s = block.eventsSettings; if (!s) return null
-      return `Next ${s.count} event${s.count === 1 ? '' : 's'}`
+      return `Two-column · next ${s.eventCount} events and current competition status`
     }
     case 'custom-content': {
       const s = block.customContentSettings; if (!s) return null
@@ -929,13 +951,15 @@ function getBlockSubtitle(block: ContentBlock, galleries?: AdminGalleryData[]): 
     case 'affiliations': {
       const s = block.affiliationsSettings; if (!s) return null
       return s.affiliations.length > 0
-        ? `${s.affiliations.length} entr${s.affiliations.length === 1 ? 'y' : 'ies'}`
-        : 'no entries yet'
+        ? `${s.affiliations.length} partner and federation link${s.affiliations.length === 1 ? '' : 's'}`
+        : 'No entries yet — configure to activate'
     }
     case 'competitions': {
       const s = block.competitionsSettings; if (!s) return null
-      return `Auto-fed · max ${s.maxOpenShown} open${s.showTopImages ? ` · ${s.topImageCount} cat` : ''}`
+      return `Auto-fed · up to ${s.maxOpenShown} open competition${s.maxOpenShown === 1 ? '' : 's'}`
     }
+    case 'welcome':
+      return 'Always shown first · visitor hero and member greeting'
     default: return null
   }
 }
@@ -953,8 +977,7 @@ function BlockCard({
   onDragOver:  (e: React.DragEvent) => void
   galleries?:  AdminGalleryData[]
 }) {
-  const configOnly = ['large-image','gallery-preview','club-galleries','dual-panel','upcoming-events','member-spotlight','competitions'].includes(block.type)
-  const displayName = block.label ?? block.name
+  const displayName = block.label ?? BLOCK_DISPLAY_NAMES[block.type] ?? block.name
   const subtitle    = getBlockSubtitle(block, galleries)
 
   return (
@@ -966,46 +989,49 @@ function BlockCard({
         border: '1px solid var(--border-default)',
         borderRadius: '6px',
         background: 'var(--surface-2)',
-        opacity: block.enabled ? 1 : 0.55,
+        opacity: block.enabled ? 1 : 0.6,
         transition: 'opacity 0.15s',
+        '&:hover': { borderColor: 'var(--border-strong)' },
       }}
     >
-      <Box sx={{ px: 1.5, py: 1.25, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <Box sx={{ px: 1.5, py: 1.25, display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
         {block.fixed
-          ? <Tooltip title="Locked — always first"><span style={{ display: 'flex', color: 'var(--text-tertiary)', opacity: 0.5, flexShrink: 0 }}><LockOutlinedIcon sx={{ fontSize: 14 }} /></span></Tooltip>
-          : <DragGrip />
+          ? <span style={{ display: 'flex', color: 'var(--text-tertiary)', opacity: 0.45, flexShrink: 0, paddingTop: 1 }}><LockOutlinedIcon sx={{ fontSize: 15 }} /></span>
+          : <Box sx={{ flexShrink: 0, pt: '1px' }}><DragGrip /></Box>
         }
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}>
             {displayName}
           </Typography>
           {subtitle && (
-            <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.25, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.4, lineHeight: 1.45 }}>
               {subtitle}
             </Typography>
           )}
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Tooltip title={configOnly ? 'Settings' : 'Edit content'}>
-            <IconButton size="small" onClick={onEdit} sx={{ color: 'text.secondary' }}>
-              {configOnly ? <SettingsOutlinedIcon sx={{ fontSize: 16 }} /> : <EditOutlinedIcon sx={{ fontSize: 16 }} />}
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, flexShrink: 0 }}>
+          <Tooltip title="Edit">
+            <IconButton size="small" onClick={onEdit} sx={{ color: 'text.secondary', mt: '-2px' }}>
+              <EditOutlinedIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Tooltip>
           {onRemove && (
             <Tooltip title="Remove block">
-              <IconButton size="small" onClick={onRemove} sx={{ color: 'text.secondary' }}>
+              <IconButton size="small" onClick={onRemove} sx={{ color: 'text.secondary', mt: '-2px' }}>
                 <DeleteOutlineIcon sx={{ fontSize: 16 }} />
               </IconButton>
             </Tooltip>
           )}
-          <Switch checked={block.enabled} onChange={onToggle} size="small" sx={{ ml: 0.5 }} />
+          {!block.fixed && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px', ml: 0.5 }}>
+              <Switch checked={block.enabled} onChange={onToggle} size="small" />
+              <Typography sx={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', color: block.enabled ? 'var(--action-primary)' : 'var(--text-tertiary)', lineHeight: 1 }}>
+                {block.enabled ? 'ON' : 'OFF'}
+              </Typography>
+            </Box>
+          )}
         </Box>
       </Box>
-      {block.fixed && (
-        <Box sx={{ px: 1.5, pb: 1 }}>
-          <Typography sx={{ fontSize: 11, color: 'text.tertiary', fontStyle: 'italic' }}>Locked — always shown first</Typography>
-        </Box>
-      )}
     </Box>
   )
 }
@@ -1855,8 +1881,10 @@ export default function HomepageEditor({ initialBlocks, galleries = [] }: { init
     saveDraft, publish,
   } = useHomepageEditor(initialBlocks ?? DEFAULT_BLOCKS)
 
-  const [fullscreen,     setFullscreen]     = useState(false)
-  const [editingBlock,   setEditingBlock]   = useState<ContentBlock | null>(null)
+  const pathname = usePathname()
+  const clubSlug = pathname?.split('/')[1] ?? ''
+
+  const [editingBlock,    setEditingBlock]    = useState<ContentBlock | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const dragIdx  = useRef<number | null>(null)
@@ -1892,24 +1920,38 @@ export default function HomepageEditor({ initialBlocks, galleries = [] }: { init
   // Keep editingBlock in sync with blocks state
   const syncedEditBlock = editingBlock ? blocks.find(b => b.id === editingBlock.id) ?? null : null
 
+  // Section boundary tracking for rendering dividers
+  let shownCustomDivider = false
+  let shownHiddenDivider = false
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column' }}>
       {/* Top bar */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1.5 }}>
         <Box sx={{ flex: 1 }}>
+          <Typography sx={{ fontSize: 20, fontWeight: 700, color: 'text.primary', letterSpacing: '-0.015em', lineHeight: 1.2 }}>
+            Homepage
+          </Typography>
           {saveStatus === 'saving' && (
-            <Typography sx={{ fontSize: 12, color: 'text.secondary', fontStyle: 'italic' }}>Saving…</Typography>
+            <Typography sx={{ fontSize: 11, color: 'text.secondary', fontStyle: 'italic', mt: 0.25 }}>Saving…</Typography>
           )}
           {saveStatus === 'saved' && (
-            <Typography sx={{ fontSize: 12, color: 'var(--status-success-text)' }}>✓ Saved</Typography>
+            <Typography sx={{ fontSize: 11, color: 'var(--status-success-text)', mt: 0.25 }}>✓ Saved</Typography>
           )}
           {saveStatus === 'error' && (
-            <Typography sx={{ fontSize: 12, color: 'var(--status-error)' }}>Save failed — please try again.</Typography>
+            <Typography sx={{ fontSize: 11, color: 'var(--status-error)', mt: 0.25 }}>Save failed — please try again.</Typography>
           )}
         </Box>
-        <Button variant="outlined" size="small" onClick={() => setFullscreen(true)} sx={{ textTransform: 'none', fontSize: 13, borderColor: 'var(--border-default)', color: 'text.secondary', '&:hover': { borderColor: 'var(--border-strong)' } }}>Preview</Button>
+        <Button variant="outlined" size="small"
+          onClick={() => window.open(`/${clubSlug}`, '_blank')}
+          sx={{ textTransform: 'none', fontSize: 13, borderColor: 'var(--border-default)', color: 'text.secondary', '&:hover': { borderColor: 'var(--border-strong)' } }}>
+          Preview
+        </Button>
         <Button variant="outlined" color="secondary" size="small" disabled={isPending} onClick={() => saveDraft(blocks)} sx={{ textTransform: 'none', fontSize: 13 }}>Save draft</Button>
-        <Button variant="contained" size="small" disabled={!hasChanges || isPending} onClick={() => setShowPublish(true)} sx={{ textTransform: 'none', fontSize: 13 }}>Publish changes</Button>
+        <Button variant="contained" size="small" disabled={!hasChanges || isPending} onClick={() => setShowPublish(true)} sx={{ textTransform: 'none', fontSize: 13, display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          {hasChanges && <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#FFCC00', flexShrink: 0 }} />}
+          Publish changes
+        </Button>
       </Box>
 
       {/* Two-column layout */}
@@ -1917,48 +1959,86 @@ export default function HomepageEditor({ initialBlocks, galleries = [] }: { init
 
         {/* Editor rail */}
         <Box>
-          <Typography sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'text.secondary', mb: 1.5 }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'text.secondary', mb: 0.5 }}>
             Content blocks
+          </Typography>
+          <Typography sx={{ fontSize: 11, color: 'text.tertiary', mb: 1.5 }}>
+            Drag to reorder · changes take effect when published
           </Typography>
 
           <Box onDrop={handleDrop} onDragOver={e => e.preventDefault()} sx={{ display: 'flex', flexDirection: 'column' }}>
-            {blocks.map((block, i) => (
-              <Fragment key={block.id}>
-                {insertAt === i && dragIdx.current !== null && i >= 1 && <InsertionLine />}
-                <Box sx={{ mb: 1 }}>
-                  <BlockCard
-                    block={block}
-                    onToggle={() => toggleBlock(block.id)}
-                    onEdit={() => setEditingBlock(block)}
-                    onRemove={block.type === 'custom-content' ? () => requestDelete(block.id) : undefined}
-                    onDragStart={() => handleDragStart(i)}
-                    onDragOver={e => handleDragOver(e, i)}
-                    galleries={galleries}
-                  />
-                </Box>
-              </Fragment>
-            ))}
+            {blocks.map((block, i) => {
+              const isFirstCustom = !shownCustomDivider && !block.fixed && block.enabled && block.type === 'custom-content'
+              if (isFirstCustom) shownCustomDivider = true
+
+              const isFirstHidden = !shownHiddenDivider && !block.fixed && !block.enabled
+              if (isFirstHidden) shownHiddenDivider = true
+
+              return (
+                <Fragment key={block.id}>
+                  {insertAt === i && dragIdx.current !== null && i >= 1 && <InsertionLine />}
+                  {isFirstCustom && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, my: 1.5 }}>
+                      <Box sx={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+                      <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', flexShrink: 0 }}>
+                        Custom blocks
+                      </Typography>
+                      <Box sx={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+                    </Box>
+                  )}
+                  {isFirstHidden && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, my: 1.5 }}>
+                      <Box sx={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+                      <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', flexShrink: 0 }}>
+                        Hidden
+                      </Typography>
+                      <Box sx={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+                    </Box>
+                  )}
+                  <Box sx={{ mb: 1 }}>
+                    <BlockCard
+                      block={block}
+                      onToggle={() => toggleBlock(block.id)}
+                      onEdit={() => setEditingBlock(block)}
+                      onRemove={block.type === 'custom-content' ? () => requestDelete(block.id) : undefined}
+                      onDragStart={() => handleDragStart(i)}
+                      onDragOver={e => handleDragOver(e, i)}
+                      galleries={galleries}
+                    />
+                  </Box>
+                  {/* Add custom content button appears after the last enabled custom block */}
+                  {block.type === 'custom-content' && block.enabled && (i === blocks.length - 1 || !blocks[i + 1]?.enabled || blocks[i + 1]?.type !== 'custom-content') && (
+                    customContentCount < MAX_CUSTOM_CONTENT ? (
+                      <Button startIcon={<AddIcon />} size="small" variant="outlined" color="secondary"
+                        onClick={addCustomContent}
+                        sx={{ textTransform: 'none', fontSize: 12, mb: 1, width: '100%' }}>
+                        Add custom content block
+                        <Typography component="span" sx={{ fontSize: 10, color: 'text.tertiary', ml: 1 }}>
+                          ({customContentCount}/{MAX_CUSTOM_CONTENT})
+                        </Typography>
+                      </Button>
+                    ) : (
+                      <Typography sx={{ fontSize: 11, color: 'text.tertiary', textAlign: 'center', mb: 1, fontStyle: 'italic' }}>
+                        Maximum of {MAX_CUSTOM_CONTENT} custom content blocks reached.
+                      </Typography>
+                    )
+                  )}
+                </Fragment>
+              )
+            })}
             {insertAt === blocks.length && dragIdx.current !== null && <InsertionLine />}
           </Box>
 
           {/* Drop zone at bottom */}
           <Box onDragOver={e => { e.preventDefault(); if (dragIdx.current !== null) setInsertAt(blocks.length) }} onDrop={handleDrop} sx={{ height: 24 }} />
 
-          {/* Add custom content button */}
-          {customContentCount < MAX_CUSTOM_CONTENT && (
+          {/* Add custom content button if there are no custom blocks yet */}
+          {customContentCount === 0 && (
             <Button startIcon={<AddIcon />} size="small" variant="outlined" color="secondary"
               onClick={addCustomContent}
               sx={{ textTransform: 'none', fontSize: 13, mt: 1, width: '100%' }}>
               Add custom content block
-              <Typography component="span" sx={{ fontSize: 11, color: 'text.tertiary', ml: 1 }}>
-                ({customContentCount}/{MAX_CUSTOM_CONTENT})
-              </Typography>
             </Button>
-          )}
-          {customContentCount >= MAX_CUSTOM_CONTENT && (
-            <Typography sx={{ fontSize: 12, color: 'text.tertiary', textAlign: 'center', mt: 1, fontStyle: 'italic' }}>
-              Maximum of {MAX_CUSTOM_CONTENT} custom content blocks reached.
-            </Typography>
           )}
         </Box>
 
@@ -2062,17 +2142,6 @@ export default function HomepageEditor({ initialBlocks, galleries = [] }: { init
         )
       })()}
 
-      {/* Full-screen preview */}
-      <Dialog open={fullscreen} onClose={() => setFullscreen(false)} fullScreen>
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: 3, background: 'var(--surface-0)' }}>
-          <Box sx={{ width: '100%', maxWidth: 1100, mx: 'auto', display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-              <Button variant="outlined" color="secondary" size="small" onClick={() => setFullscreen(false)} sx={{ textTransform: 'none', fontSize: 13 }}>Close preview</Button>
-            </Box>
-            <LivePreview blocks={blocks} fullscreen galleries={galleries} />
-          </Box>
-        </Box>
-      </Dialog>
     </Box>
   )
 }
