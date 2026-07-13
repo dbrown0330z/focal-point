@@ -63,7 +63,7 @@ type SysItem = {
 
 const SYSTEM_NAV: SysItem[] = [
   { label: 'Home',     href: '/',          dynamic: true },
-  { label: 'Calendar', href: '/calendar',  dynamic: true, parentKey: 'calendar' },
+  { label: 'Calendar', href: '/calendar',  dynamic: true },
   {
     label: 'Images', href: '/library', dynamic: true, parentKey: 'images',
     children: [
@@ -74,8 +74,9 @@ const SYSTEM_NAV: SysItem[] = [
   {
     label: 'Competitions', href: '/competitions', dynamic: true, parentKey: 'competitions',
     children: [
-      { label: 'Current competitions', href: '/competitions',         dynamic: true },
-      { label: 'Results',              href: '/competitions/results', dynamic: true },
+      { label: 'Current',   href: '/competitions',          dynamic: true },
+      { label: 'Results',   href: '/competitions/results',  dynamic: true },
+      { label: 'Standings', href: '/competitions/standings', dynamic: true },
     ],
   },
   {
@@ -260,16 +261,15 @@ function AddSubPageButton({ label, onClick }: { label: string; onClick: () => vo
 function SysSubRow({ item }: { item: SysItem }) {
   return (
     <div
-      className="flex items-center gap-3 py-2.5 pl-4 pr-4"
+      className="flex items-center gap-3 py-2 pl-10 pr-4"
       style={{ borderTop: '1px solid var(--border-subtle)' }}
     >
-      <DragHandle disabled />
-      <span className="flex-1 text-[13px]" style={{ color: 'var(--text-primary)' }}>
+      <span className="flex-1 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
         {item.label}
       </span>
       {item.dynamic ? (
         <span className="text-[11px] italic" style={{ color: 'var(--text-tertiary)' }}>
-          Content added dynamically
+          Auto-generated
         </span>
       ) : item.editHref ? (
         <Link
@@ -281,7 +281,6 @@ function SysSubRow({ item }: { item: SysItem }) {
         </Link>
       ) : null}
       <SystemChip />
-      <LiveBadge />
     </div>
   )
 }
@@ -312,10 +311,9 @@ function CustomSubRow({
         onDragOver={onDragOver}
         onDrop={onDrop}
         onDragEnd={onDragEnd}
-        className="flex items-center gap-3 py-2.5 pl-4 pr-4"
+        className="flex items-center gap-3 py-2 pl-10 pr-4"
         style={{
           borderTop: isDragOver ? '2px solid var(--action-primary)' : '1px solid var(--border-subtle)',
-          opacity: 1,
         }}
       >
         <DragHandle />
@@ -325,6 +323,16 @@ function CustomSubRow({
             /{page.slug}
           </span>
         </span>
+
+        {/* Status / visibility indicators */}
+        {page.visibility === 'hidden' ? (
+          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+            style={{ background: 'var(--surface-1)', color: 'var(--text-tertiary)', border: '1px solid var(--border-default)' }}>
+            Hidden
+          </span>
+        ) : page.status === 'draft' ? (
+          <DraftBadge />
+        ) : null}
 
         {/* Edit */}
         {page.page_type === 'rich_text' && (
@@ -345,7 +353,6 @@ function CustomSubRow({
             className="flex-shrink-0 rounded p-1 transition-colors hover:bg-surface-1"
             style={{ color: 'var(--text-tertiary)' }}
           >
-            {/* Trash icon */}
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -353,11 +360,7 @@ function CustomSubRow({
           </button>
         </Tooltip>
 
-        {/* CUSTOM chip */}
         <CustomChip />
-
-        {/* Status */}
-        <StatusBadge status={page.status === 'published' ? 'live' : 'draft'} />
       </div>
 
       {/* Delete confirmation dialog */}
@@ -471,13 +474,14 @@ function SysNavRow({
         }
         <span className="flex-1 text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>
           {item.label}
+          {totalCount > 0 && (
+            <span className="ml-1.5 text-[13px] font-normal" style={{ color: 'var(--text-tertiary)' }}>
+              ({totalCount})
+            </span>
+          )}
         </span>
         <div className="flex items-center gap-2.5 flex-shrink-0">
-          {item.parentKey && (
-            <SubPageCount count={totalCount} onAddOne={() => { setOpen(true); onAddSubPage(item.parentKey!) }} />
-          )}
           <SystemChip />
-          <LiveBadge />
         </div>
       </div>
 
@@ -522,6 +526,11 @@ function CustomTabRow({
   onEditPage,
   onDeleteTab,
   pending,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  isDragOver,
 }: {
   tab:            CustomTab
   customSubPages: CustomPage[]
@@ -530,6 +539,11 @@ function CustomTabRow({
   onEditPage:     (page: CustomPage) => void
   onDeleteTab:    (id: string) => void
   pending:        boolean
+  onDragStart:    () => void
+  onDragOver:     (e: React.DragEvent) => void
+  onDrop:         () => void
+  onDragEnd:      () => void
+  isDragOver:     boolean
 }) {
   const [open, setOpen] = useState(false)
   const [localPages, setLocalPages] = useState<CustomPage[]>(customSubPages)
@@ -538,10 +552,10 @@ function CustomTabRow({
 
   useEffect(() => setLocalPages(customSubPages), [customSubPages])
 
-  const onDragStart = (idx: number) => { dragIdx.current = idx }
-  const onDragOver  = (e: React.DragEvent, idx: number) => { e.preventDefault(); setDragOverIdx(idx) }
-  const onDragEnd   = () => { dragIdx.current = null; setDragOverIdx(null) }
-  const onDrop      = async (toIdx: number) => {
+  const onSubDragStart = (idx: number) => { dragIdx.current = idx }
+  const onSubDragOver  = (e: React.DragEvent, idx: number) => { e.preventDefault(); setDragOverIdx(idx) }
+  const onSubDragEnd   = () => { dragIdx.current = null; setDragOverIdx(null) }
+  const onSubDrop      = async (toIdx: number) => {
     const fromIdx = dragIdx.current
     dragIdx.current = null; setDragOverIdx(null)
     if (fromIdx === null || fromIdx === toIdx) return
@@ -556,20 +570,34 @@ function CustomTabRow({
   }
 
   return (
-    <div style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+    <div
+      draggable
+      onDragStart={e => { e.stopPropagation(); onDragStart() }}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      style={{
+        borderBottom: '1px solid var(--border-subtle)',
+        borderTop: isDragOver ? '2px solid var(--action-primary)' : undefined,
+      }}
+    >
       {/* Header row — div not button so nested interactive elements are valid HTML */}
       <div
         onClick={() => setOpen(o => !o)}
         className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-1 cursor-pointer"
       >
+        <DragHandle />
         <ChevronIcon open={open} />
         <span className="flex-1 text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>
           {tab.name}
+          {localPages.length > 0 && (
+            <span className="ml-1.5 text-[13px] font-normal" style={{ color: 'var(--text-tertiary)' }}>
+              ({localPages.length})
+            </span>
+          )}
         </span>
         <div className="flex items-center gap-2.5 flex-shrink-0">
-          <SubPageCount count={localPages.length} onAddOne={() => { setOpen(true); onAddSubPage(tab.id) }} />
           <CustomChip />
-          <LiveBadge />
           <Tooltip title="Delete tab and all its pages">
             <button
               disabled={pending}
@@ -590,10 +618,10 @@ function CustomTabRow({
           {localPages.map((page, idx) => (
             <CustomSubRow
               key={page.id} page={page} onDelete={onDeletePage} onEdit={onEditPage} pending={pending}
-              onDragStart={() => onDragStart(idx)}
-              onDragOver={e => onDragOver(e, idx)}
-              onDrop={() => onDrop(idx)}
-              onDragEnd={onDragEnd}
+              onDragStart={() => onSubDragStart(idx)}
+              onDragOver={e => onSubDragOver(e, idx)}
+              onDrop={() => onSubDrop(idx)}
+              onDragEnd={onSubDragEnd}
               isDragOver={dragOverIdx === idx}
             />
           ))}
@@ -845,7 +873,8 @@ const SYSTEM_PAGES_LIST = [
   { title: 'My images',            url: '/library',                    audience: 'All members',      editable: false },
   { title: 'Galleries',            url: '/library/galleries',          audience: 'All members',      editable: false },
   { title: 'Current competitions', url: '/competitions',               audience: 'All members',      editable: false },
-  { title: 'Competition results',  url: '/competitions/results',       audience: 'All members',      editable: false },
+  { title: 'Results',              url: '/competitions/results',       audience: 'All members',      editable: false },
+  { title: 'Standings',            url: '/competitions/standings',     audience: 'All members',      editable: false },
   { title: 'About our club',       url: '/our-club/about',             audience: 'All members',      editable: true  },
   { title: 'Member directory',     url: '/our-club/members',           audience: 'All members',      editable: false },
   { title: 'Standings',            url: '/our-club/members/standings', audience: 'All members',      editable: false },
@@ -1033,12 +1062,14 @@ export default function NavigationClient({
   initialHomepageBlocks,
   initialGalleries = [],
   members = [],
+  clubId,
 }: {
   customPages:            CustomPage[]
   customTabs:             CustomTab[]
   initialHomepageBlocks?: ContentBlock[]
   initialGalleries?:      AdminGalleryData[]
   members?:               ClubMember[]
+  clubId:                 string
 }) {
   const params = useParams()
   const searchParams = useSearchParams()
@@ -1050,6 +1081,26 @@ export default function NavigationClient({
   const [pages,     setPages]     = useState<CustomPage[]>(initialPages)
   const [tabs,      setTabs]      = useState<CustomTab[]>(initialTabs)
   const [pending, startTrans]     = useTransition()
+
+  // ── Custom tab drag/drop ──────────────────────────────────────────────────
+  const tabDragIdx = useRef<number | null>(null)
+  const [tabDragOverIdx, setTabDragOverIdx] = useState<number | null>(null)
+  const onTabDragStart = (idx: number) => { tabDragIdx.current = idx }
+  const onTabDragOver  = (e: React.DragEvent, idx: number) => { e.preventDefault(); setTabDragOverIdx(idx) }
+  const onTabDragEnd   = () => { tabDragIdx.current = null; setTabDragOverIdx(null) }
+  const onTabDrop      = async (toIdx: number) => {
+    const fromIdx = tabDragIdx.current
+    tabDragIdx.current = null; setTabDragOverIdx(null)
+    if (fromIdx === null || fromIdx === toIdx) return
+    const reordered = [...tabs]
+    const [moved] = reordered.splice(fromIdx, 1)
+    reordered.splice(toIdx, 0, moved)
+    setTabs(reordered)
+    const supabase = createClient()
+    await Promise.all(reordered.map((t, i) =>
+      supabase.from('nav_custom_tabs').update({ sort_order: i }).eq('id', t.id)
+    ))
+  }
   const [err,       setErr]       = useState<string | null>(null)
 
   // ── About page inline editor ──────────────────────────────────────────────
@@ -1118,12 +1169,13 @@ export default function NavigationClient({
     setErr(null)
     startTrans(async () => {
       const supabase = createClient()
-      const isSystem = (['images','competitions','our-club'] as string[]).includes(addPageParent)
+      const isSystem = (['calendar','images','competitions','our-club'] as string[]).includes(addPageParent)
       const { data, error } = await supabase.from('nav_custom_pages').insert({
-        title: title.trim(), slug,
+        club_id:      clubId,
+        title:        title.trim(), slug,
         page_type:    type,
         visibility:   vis,
-        status:       vis === 'hidden' ? 'draft' : 'draft',
+        status:       vis === 'hidden' ? 'draft' : 'published',
         external_url: type === 'external_link' ? url : null,
         sort_order:   pages.filter(p =>
           isSystem ? p.parent_system === addPageParent : p.tab_id === addPageParent
@@ -1155,7 +1207,7 @@ export default function NavigationClient({
     startTrans(async () => {
       const supabase = createClient()
       const { data, error } = await supabase.from('nav_custom_tabs')
-        .insert({ name: name.trim(), slug: slugify(name), sort_order: tabs.length })
+        .insert({ club_id: clubId, name: name.trim(), slug: slugify(name), sort_order: tabs.length })
         .select().single()
       if (error) { setErr(error.message); return }
       setTabs(prev => [...prev, data as CustomTab])
@@ -1225,7 +1277,7 @@ export default function NavigationClient({
                   pending={pending}
                 />
               ))}
-              {tabs.map(tab => (
+              {tabs.map((tab, tabIdx) => (
                 <CustomTabRow
                   key={tab.id}
                   tab={tab}
@@ -1235,6 +1287,11 @@ export default function NavigationClient({
                   onEditPage={openCustomPageEditor}
                   onDeleteTab={deleteTab}
                   pending={pending}
+                  onDragStart={() => onTabDragStart(tabIdx)}
+                  onDragOver={e => onTabDragOver(e, tabIdx)}
+                  onDrop={() => onTabDrop(tabIdx)}
+                  onDragEnd={onTabDragEnd}
+                  isDragOver={tabDragOverIdx === tabIdx}
                 />
               ))}
             </div>

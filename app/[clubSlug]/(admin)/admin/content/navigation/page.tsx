@@ -92,6 +92,7 @@ export default async function NavigationPage() {
       initialHomepageBlocks={homepageBlocks}
       initialGalleries={galleries}
       members={members}
+      clubId={ctx!.clubId}
     />
   )
 }
