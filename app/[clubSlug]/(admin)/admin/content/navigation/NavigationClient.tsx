@@ -1637,32 +1637,23 @@ export default function NavigationClient({
       {/* Custom page inline editor */}
       {editingCustomPage && (
         <Dialog open onClose={() => setEditingCustomPage(null)} fullScreen>
-          <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
-              <Button startIcon={<CloseIcon sx={{ fontSize: 16 }} />} variant="text" color="secondary" size="small"
-                onClick={() => setEditingCustomPage(null)}>
-                Back to Pages
-              </Button>
+          {customPageLoading ? (
+            <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CircularProgress size={32} />
             </Box>
-            {customPageLoading ? (
-              <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CircularProgress size={32} />
-              </Box>
-            ) : (
-              <Box sx={{ flex: 1, overflow: 'hidden' }}>
-                <CustomPageEditorComponent
-                  pageId={editingCustomPage.id}
-                  menuLabel={menuLocationLabel(editingCustomPage, tabs)}
-                  initialTitle={editingCustomPage.title}
-                  initialContent={customPageContent}
-                  initialVisibility={editingCustomPage.visibility}
-                  initialStatus={editingCustomPage.status}
-                  slug={editingCustomPage.slug}
-                  clubSlug={clubSlug}
-                />
-              </Box>
-            )}
-          </Box>
+          ) : (
+            <CustomPageEditorComponent
+              pageId={editingCustomPage.id}
+              menuLabel={menuLocationLabel(editingCustomPage, tabs)}
+              initialTitle={editingCustomPage.title}
+              initialContent={customPageContent}
+              initialVisibility={editingCustomPage.visibility}
+              initialStatus={editingCustomPage.status}
+              slug={editingCustomPage.slug}
+              clubSlug={clubSlug}
+              onBack={() => setEditingCustomPage(null)}
+            />
+          )}
         </Dialog>
       )}
     </div>

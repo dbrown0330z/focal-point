@@ -107,9 +107,9 @@ const btnSx = {
 } as const
 
 const VISIBILITY_OPTIONS: { value: Visibility; label: string }[] = [
+  { value: 'all_members',  label: 'Members + public' },
   { value: 'members_only', label: 'Members only' },
-  { value: 'all_members',  label: 'Public — all visitors' },
-  { value: 'hidden',       label: 'Hidden (draft)' },
+  { value: 'hidden',       label: 'Hidden' },
 ]
 
 // ── Toolbar sub-components ────────────────────────────────────────────────────
@@ -155,6 +155,7 @@ export default function CustomPageEditor({
   initialStatus,
   slug,
   clubSlug,
+  onBack,
 }: {
   pageId:            string
   menuLabel:         string
@@ -164,6 +165,7 @@ export default function CustomPageEditor({
   initialStatus:     Status
   slug:              string
   clubSlug:          string
+  onBack?:           () => void
 }) {
   const { theme: adminTheme } = useAdminTheme()
 
@@ -563,33 +565,66 @@ export default function CustomPageEditor({
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: onBack ? '100vh' : 'calc(100vh - 56px)', overflow: 'hidden' }}>
 
-      {/* ── Top bar: back + metadata + status ─────────────────────────────── */}
+      {/* ── Top bar: back nav + metadata + status ─────────────────────────── */}
       <Box sx={{
         flexShrink: 0, borderBottom: '1px solid', borderColor: 'divider',
         bgcolor: 'background.paper', px: 3, py: 2,
       }}>
-        {/* Row 1: back link + save indicator */}
+
+        {/* Row 1: back nav + preview toggle + save indicator */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Link
-              href={`/${clubSlug}/admin/content/navigation`}
-              style={{ display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', color: 'inherit' }}
+          {onBack ? (
+            <Button
+              startIcon={<ArrowBackIcon sx={{ fontSize: 16 }} />}
+              variant="text"
+              color="secondary"
+              size="small"
+              onClick={onBack}
+              sx={{ fontWeight: 500, px: 1 }}
             >
-              <ArrowBackIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Navigation &amp; Pages</Typography>
-            </Link>
-            <Typography sx={{ fontSize: 13, color: 'text.disabled' }}>/</Typography>
-            <Typography sx={{ fontSize: 13, color: 'text.primary', fontWeight: 500 }}>{menuLabel}</Typography>
+              Back to Pages
+            </Button>
+          ) : (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Link
+                href={`/${clubSlug}/admin/content/navigation`}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', color: 'inherit' }}
+              >
+                <ArrowBackIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Navigation &amp; Pages</Typography>
+              </Link>
+              <Typography sx={{ fontSize: 13, color: 'text.disabled' }}>/</Typography>
+              <Typography sx={{ fontSize: 13, color: 'text.primary', fontWeight: 500 }}>{menuLabel}</Typography>
+            </Box>
+          )}
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Typography sx={{ fontSize: 11, color: 'text.secondary', mr: 0.5, fontWeight: 500 }}>Preview</Typography>
+              <Tooltip title="Light mode">
+                <Box component="button" onMouseDown={e => { e.preventDefault(); setPreviewTheme('light') }}
+                  sx={{ ...btnSx, width: 28, height: 28, ...(previewTheme === 'light' ? { bgcolor: 'action.selected', color: 'text.primary' } : {}) }}>
+                  <LightModeIcon sx={{ fontSize: 16 }} />
+                </Box>
+              </Tooltip>
+              <Tooltip title="Dark mode">
+                <Box component="button" onMouseDown={e => { e.preventDefault(); setPreviewTheme('dark') }}
+                  sx={{ ...btnSx, width: 28, height: 28, ...(previewTheme === 'dark' ? { bgcolor: 'action.selected', color: 'text.primary' } : {}) }}>
+                  <DarkModeIcon sx={{ fontSize: 16 }} />
+                </Box>
+              </Tooltip>
+            </Box>
+            <SaveIndicator />
           </Box>
-          <SaveIndicator />
         </Box>
 
-        {/* Row 2: metadata controls */}
-        <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 2, flexWrap: 'wrap' }}>
+        {/* Row 2: metadata controls — all use label-above-control for consistent top alignment */}
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
+
           {/* Page display title */}
-          <Box sx={{ flex: '1 1 260px', maxWidth: 400 }}>
+          <Box sx={{ flex: '1 1 200px', maxWidth: 400 }}>
             <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Page title
             </Typography>
@@ -599,13 +634,11 @@ export default function CustomPageEditor({
               value={title}
               onChange={e => handleTitleChange(e.target.value)}
               placeholder="Title shown on the page"
-              helperText={title !== menuLabel ? `Menu label: "${menuLabel}"` : 'Matches menu label'}
-              slotProps={{ formHelperText: { sx: { fontSize: 11, mt: 0.5 } } }}
             />
           </Box>
 
           {/* Visibility */}
-          <Box sx={{ flex: '0 0 200px' }}>
+          <Box sx={{ flex: '0 0 180px' }}>
             <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Visibility
             </Typography>
@@ -622,65 +655,61 @@ export default function CustomPageEditor({
             </Select>
           </Box>
 
-          {/* Status + publish */}
-          <Box sx={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 1.5, pb: 0.25 }}>
-            {/* Status badge */}
-            <Box sx={{
-              display: 'inline-flex', alignItems: 'center', gap: 0.75,
-              px: 1.5, py: 0.5, borderRadius: '999px',
-              ...(status === 'published'
-                ? { bgcolor: 'rgba(46,125,50,0.10)', color: '#174A1A' }
-                : { bgcolor: 'rgba(0,0,0,0.06)', color: 'text.secondary' }
-              ),
-            }}>
+          {/* Status + actions */}
+          <Box sx={{ flex: '0 0 auto', ml: 'auto' }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Status
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Box sx={{
-                width: 6, height: 6, borderRadius: '50%',
-                bgcolor: status === 'published' ? '#2E7D32' : 'text.disabled',
-              }} />
-              <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
-                {status === 'published' ? 'Live' : 'Draft'}
-              </Typography>
-            </Box>
+                display: 'inline-flex', alignItems: 'center', gap: 0.75,
+                px: 1.5, py: 0.625, borderRadius: '999px', border: '1px solid',
+                ...(status === 'published'
+                  ? { bgcolor: 'var(--status-success-bg)', borderColor: 'var(--status-success)', color: 'var(--status-success-text)' }
+                  : { bgcolor: 'var(--surface-1)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }
+                ),
+              }}>
+                <Box sx={{
+                  width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                  bgcolor: status === 'published' ? 'var(--status-success)' : 'var(--text-disabled)',
+                }} />
+                <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'inherit', lineHeight: 1 }}>
+                  {status === 'published' ? 'Live' : 'Draft'}
+                </Typography>
+              </Box>
 
-            {/* Publish / Return to Draft button */}
-            {status === 'draft' ? (
-              <Button
-                variant="contained"
-                size="small"
-                disabled={publishing}
-                onClick={handleTogglePublish}
-                sx={{ fontWeight: 700, px: 2.5 }}
-              >
-                {publishing ? 'Publishing…' : 'Publish'}
-              </Button>
-            ) : (
               <Button
                 variant="outlined"
                 color="secondary"
                 size="small"
-                disabled={publishing}
-                onClick={handleTogglePublish}
+                disabled={saveState === 'saving'}
+                onClick={performSave}
               >
-                {publishing ? 'Updating…' : 'Return to Draft'}
+                Save
               </Button>
-            )}
-          </Box>
 
-          {/* Preview theme toggle */}
-          <Box sx={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 0.5, pb: 0.25 }}>
-            <Typography sx={{ fontSize: 11, color: 'text.secondary', mr: 0.5 }}>Preview</Typography>
-            <Tooltip title="Light mode">
-              <Box component="button" onMouseDown={e => { e.preventDefault(); setPreviewTheme('light') }}
-                sx={{ ...btnSx, width: 28, height: 28, ...(previewTheme === 'light' ? { bgcolor: 'action.selected', color: 'text.primary' } : {}) }}>
-                <LightModeIcon sx={{ fontSize: 16 }} />
-              </Box>
-            </Tooltip>
-            <Tooltip title="Dark mode">
-              <Box component="button" onMouseDown={e => { e.preventDefault(); setPreviewTheme('dark') }}
-                sx={{ ...btnSx, width: 28, height: 28, ...(previewTheme === 'dark' ? { bgcolor: 'action.selected', color: 'text.primary' } : {}) }}>
-                <DarkModeIcon sx={{ fontSize: 16 }} />
-              </Box>
-            </Tooltip>
+              {status === 'draft' ? (
+                <Button
+                  variant="contained"
+                  size="small"
+                  disabled={publishing}
+                  onClick={handleTogglePublish}
+                  sx={{ fontWeight: 700 }}
+                >
+                  {publishing ? 'Publishing…' : 'Publish'}
+                </Button>
+              ) : (
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  size="small"
+                  disabled={publishing}
+                  onClick={handleTogglePublish}
+                >
+                  {publishing ? 'Updating…' : 'Return to draft'}
+                </Button>
+              )}
+            </Box>
           </Box>
         </Box>
       </Box>
