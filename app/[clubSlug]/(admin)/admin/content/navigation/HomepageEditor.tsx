@@ -51,45 +51,45 @@ const MAX_CUSTOM_CONTENT = 4
 // ── Modal metadata ─────────────────────────────────────────────────────────────
 
 const MODAL_META: Record<string, { title: string; description: string }> = {
-  'dual-panel': {
-    title:       'Events & competitions (2 columns)',
-    description: 'A two-column panel showing your next upcoming events on the left and live competition activity on the right. Configure how many events appear in the list.',
-  },
   'welcome': {
-    title:       'Welcome block',
-    description: 'Controls the hero section visitors see on first arrival. Logged-in members see a compact greeting instead of the full hero — no config needed for that state.',
+    title:       'Welcome',
+    description: 'First thing every visitor sees — headline, intro, and a join or sign-in prompt.',
   },
   'large-image': {
     title:       'Hero slideshow',
-    description: 'A full-width rotating slideshow pulled from one of your image galleries. Configure which gallery to draw from and how quickly images cycle.',
+    description: 'Full-width rotating images that set the visual tone of the homepage.',
   },
-  'gallery-preview': {
-    title:       'Gallery showcase',
-    description: 'Highlights a single club gallery with its name, photo count, a grid of up to 7 preview images, and a link to the full gallery.',
-  },
-  'upcoming-events': {
-    title:       'Events (full width)',
-    description: 'A full-width chronological list of your next calendar events. Configure how many events to display.',
-  },
-  'club-galleries': {
-    title:       'Club galleries',
-    description: 'Showcases up to 3 club galleries as thumbnail cards. Choose which galleries to feature.',
-  },
-  'member-spotlight': {
-    title:       'Member spotlight',
-    description: 'Highlights a member with their featured image and key statistics. Set to automatic to rotate members on each visit, or pin it to a specific person.',
+  'dual-panel': {
+    title:       'Events & competitions (2 columns)',
+    description: 'Side-by-side view of upcoming events and open competitions.',
   },
   'custom-content': {
     title:       'Custom content',
-    description: 'Free-form content you write and format yourself. Choose how many columns to display (1–3), how many lines to show before a "Read more" prompt, and add rich text to each column.',
+    description: 'A flexible block for announcements, links, or anything the club wants to highlight.',
+  },
+  'gallery-preview': {
+    title:       'Gallery preview',
+    description: 'A curated selection of images from a single club gallery.',
+  },
+  'club-galleries': {
+    title:       'Gallery showcase',
+    description: 'Thumbnail previews of club galleries — click any to browse the full collection.',
+  },
+  'member-spotlight': {
+    title:       'Member spotlight',
+    description: 'Highlights a member — their photo, a little about them, and recent work.',
   },
   'affiliations': {
     title:       'Affiliations & links',
-    description: 'A row of logo badges linking to affiliated organisations, member societies, and social media accounts. Add up to 6 entries.',
+    description: 'Partner organisations, federation memberships, and external links.',
+  },
+  'upcoming-events': {
+    title:       'Events (full width)',
+    description: 'Full-width view of the club\'s next upcoming events.',
   },
   'competitions': {
     title:       'Competitions (full width)',
-    description: 'Auto-fed from your competition data. Shows open competitions with entry status, the most recently published results with score chart and top images, and upcoming competitions.',
+    description: 'Full-width view of open competitions and recent results.',
   },
 }
 
@@ -929,8 +929,8 @@ const BLOCK_DISPLAY_NAMES: Record<string, string> = {
   'large-image':      'Hero slideshow',
   'dual-panel':       'Events & competitions (2 columns)',
   'upcoming-events':  'Events (full width)',
-  'gallery-preview':  'Gallery showcase',
-  'club-galleries':   'Club galleries',
+  'gallery-preview':  'Gallery preview',
+  'club-galleries':   'Gallery showcase',
   'competitions':     'Competitions (full width)',
   'member-spotlight': 'Member spotlight',
   'affiliations':     'Affiliations & links',
@@ -944,64 +944,8 @@ const CRITERIA_LABEL: Record<string, string> = {
   'competition-winners': 'Competition winners',
 }
 
-function getBlockSubtitle(block: ContentBlock, galleries?: AdminGalleryData[]): string | null {
-  const gl = (src: string) => {
-    if (src.startsWith('club:')) {
-      const id = src.slice(5)
-      return galleries?.find(g => g.id === id)?.name ?? 'Club gallery'
-    }
-    return GALLERY_OPTIONS.find(o => o.value === src)?.label ?? src
-  }
-  const cl = (c: string) => CRITERIA_LABEL[c] ?? c
-
-  switch (block.type) {
-    case 'large-image': {
-      const s = block.largeImageSettings; if (!s) return null
-      return `${gl(s.gallerySource)} · slides every ${s.intervalSeconds}s`
-    }
-    case 'gallery-preview': {
-      const s = block.galleryPreviewSettings
-      if (!s?.galleryId) return 'No gallery selected — configure to activate'
-      return `Showcasing ${s.galleryName || 'gallery'} · up to 7 images`
-    }
-    case 'upcoming-events': {
-      const s = block.eventsSettings; if (!s) return null
-      return `Next ${s.count} event${s.count === 1 ? '' : 's'} · full width`
-    }
-    case 'club-galleries': {
-      const s = block.clubGalleriesSettings; if (!s) return null
-      return s.galleryIds.length > 0
-        ? `Showing ${s.galleryIds.length} of 3 galleries`
-        : 'Auto · showing all galleries'
-    }
-    case 'member-spotlight': {
-      const s = block.spotlightSettings; if (!s) return null
-      return s.mode === 'manual' && s.memberName ? `Pinned: ${s.memberName}` : 'Highlights a different member on each visit'
-    }
-    case 'dual-panel': {
-      const s = block.dualPanelSettings; if (!s) return null
-      return `Two-column · next ${s.eventCount} events and current competition status`
-    }
-    case 'custom-content': {
-      const s = block.customContentSettings; if (!s) return null
-      const cols = `${s.columns} col${s.columns === 1 ? '' : 's'}`
-      const items = s.notes.length > 0 ? `${s.notes.length} item${s.notes.length === 1 ? '' : 's'}` : 'no content yet'
-      return `${cols} · ${items}`
-    }
-    case 'affiliations': {
-      const s = block.affiliationsSettings; if (!s) return null
-      return s.affiliations.length > 0
-        ? `${s.affiliations.length} partner and federation link${s.affiliations.length === 1 ? '' : 's'}`
-        : 'No entries yet — configure to activate'
-    }
-    case 'competitions': {
-      const s = block.competitionsSettings; if (!s) return null
-      return `Auto-fed · up to ${s.maxOpenShown} open competition${s.maxOpenShown === 1 ? '' : 's'}`
-    }
-    case 'welcome':
-      return 'Always shown first · visitor hero and member greeting'
-    default: return null
-  }
+function getBlockSubtitle(block: ContentBlock): string | null {
+  return MODAL_META[block.type]?.description ?? null
 }
 
 // ── BlockCard ──────────────────────────────────────────────────────────────────
@@ -1018,7 +962,7 @@ function BlockCard({
   galleries?:  AdminGalleryData[]
 }) {
   const displayName = block.label ?? BLOCK_DISPLAY_NAMES[block.type] ?? block.name
-  const subtitle    = getBlockSubtitle(block, galleries)
+  const subtitle    = getBlockSubtitle(block)
 
   return (
     <Box
@@ -2045,7 +1989,7 @@ export default function HomepageEditor({ initialBlocks, galleries = [] }: { init
                     return (
                       <Fragment key={block.id}>
                         {insertAt === i && dragIdx.current !== null && i >= 1 && <InsertionLine />}
-                        <Box sx={{ mb: 1 }}>
+                        <Box sx={{ my: '5px' }}>
                           <BlockCard
                             block={block}
                             onToggle={() => toggleBlock(block.id)}

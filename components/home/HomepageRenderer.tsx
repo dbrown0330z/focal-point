@@ -620,7 +620,7 @@ function GalleryPreviewBlock({
   const href = `/${clubSlug}/gallery/${settings.gallerySlug}`
   return (
     <Section>
-      <SectionHeading>Gallery showcase</SectionHeading>
+      <SectionHeading>Gallery preview</SectionHeading>
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '-8px 0 14px', fontWeight: 400 }}>
         <strong style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
           {settings.galleryName || 'Gallery'}
@@ -691,7 +691,7 @@ function ClubGalleriesBlock({
 }) {
   if (galleries.length === 0) return (
     <Section>
-      <SectionHeading>Club galleries</SectionHeading>
+      <SectionHeading>Gallery showcase</SectionHeading>
       <div style={tintedBox}>
         <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic', margin: 0 }}>No galleries configured yet.</p>
       </div>
@@ -700,7 +700,7 @@ function ClubGalleriesBlock({
 
   return (
     <Section>
-      <SectionHeading>Club galleries</SectionHeading>
+      <SectionHeading>Gallery showcase</SectionHeading>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
         {galleries.map(g => (
           <a

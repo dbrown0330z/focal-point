@@ -158,11 +158,11 @@ export const DEFAULT_BLOCKS: ContentBlock[] = [
     customContentSettings: { columns: 3, previewLines: 4, notes: [] },
   },
   {
-    id: 'gallery-preview', name: 'Gallery showcase', type: 'gallery-preview', enabled: false,
+    id: 'gallery-preview', name: 'Gallery preview', type: 'gallery-preview', enabled: false,
     galleryPreviewSettings: { galleryId: '', gallerySlug: '', galleryName: '' },
   },
   {
-    id: 'club-galleries', name: 'Club galleries', type: 'club-galleries', enabled: false,
+    id: 'club-galleries', name: 'Gallery showcase', type: 'club-galleries', enabled: false,
     clubGalleriesSettings: { galleryIds: [] },
   },
   {
