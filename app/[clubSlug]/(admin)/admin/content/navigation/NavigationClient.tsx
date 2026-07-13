@@ -902,10 +902,10 @@ function NewPageDialog({
 }
 
 // Shared column layout for both tables:
-// Title | URL | Visibility | Menu location | Last updated | (edit icon) | Live
-const TABLE_COL = 'grid-cols-[minmax(0,1.6fr)_minmax(160px,1fr)_130px_130px_80px_36px_56px]'
+// Title | URL | Visibility | Menu location | Last updated | (edit icon) | (delete icon) | Live
+const TABLE_COL = 'grid-cols-[minmax(0,1.6fr)_minmax(160px,1fr)_130px_130px_80px_32px_32px_56px]'
 
-const TABLE_HEADERS = ['Title', 'URL', 'Visibility', 'Menu location', 'Last updated', '', '']
+const TABLE_HEADERS = ['Title', 'URL', 'Visibility', 'Menu location', 'Last updated', '', '', '']
 
 // ── Built-in pages table ──────────────────────────────────────────────────────
 
@@ -990,6 +990,9 @@ function BuiltinPagesTable({
                 <span />
               )}
 
+              {/* No delete for built-in pages */}
+              <span />
+
               {/* Live — always live for built-ins */}
               <LiveBadge />
             </div>
@@ -1017,6 +1020,9 @@ function PagesTable({
   onGoToNavigation: () => void
   pending:          boolean
 }) {
+  const [confirmId, setConfirmId] = useState<string | null>(null)
+  const confirmPage = pages.find(p => p.id === confirmId) ?? null
+
   function menuCell(page: CustomPage) {
     const location = menuLocationLabel(page, tabs)
     if (location) {
@@ -1088,10 +1094,58 @@ function PagesTable({
               </Tooltip>
             ) : <span />}
 
+            {/* Delete icon */}
+            <Tooltip title="Delete page">
+              <button
+                disabled={pending}
+                onClick={() => setConfirmId(page.id)}
+                className="flex items-center justify-center rounded p-1 transition-colors hover:bg-surface-1"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </Tooltip>
+
             {/* Status — far right */}
             <span>{page.status === 'published' ? <LiveBadge /> : <DraftBadge />}</span>
           </div>
         ))
+      )}
+
+      {/* Delete confirmation dialog */}
+      {confirmPage && (
+        <Dialog open onClose={() => setConfirmId(null)} maxWidth="xs" fullWidth>
+          <DialogTitle component="div" sx={{ pb: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box sx={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, bgcolor: 'rgba(211,47,47,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg style={{ width: 16, height: 16, color: '#D32F2F' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </Box>
+              <Box sx={{ fontSize: 15, fontWeight: 600 }}>Delete &ldquo;{confirmPage.title}&rdquo;?</Box>
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.6 }}>
+              <Box sx={{ mb: 1.5 }}>All content will be permanently lost and <strong>cannot be undone</strong>.</Box>
+              <Box sx={{ bgcolor: 'var(--status-warning-bg)', border: '1px solid var(--status-warning)', borderRadius: 1.5, px: 1.75, py: 1.25, fontSize: 12, color: 'var(--status-warning-text)' }}>
+                💡 Consider setting visibility to <strong>Hidden</strong> instead — the page is preserved but hidden from all visitors.
+              </Box>
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+            <Button variant="outlined" color="secondary" onClick={() => setConfirmId(null)}>Cancel</Button>
+            <Button variant="contained" disabled={pending}
+              onClick={() => { setConfirmId(null); onDeletePage(confirmPage.id) }}
+              sx={{ bgcolor: '#D32F2F', '&:hover': { bgcolor: '#B71C1C' } }}>
+              Delete page
+            </Button>
+          </DialogActions>
+        </Dialog>
       )}
     </div>
   )
