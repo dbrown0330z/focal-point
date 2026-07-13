@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getClubContext } from '@/lib/club-context'
-import NavigationClient, { type CustomPage, type CustomTab } from './NavigationClient'
+import NavigationClient, { type CustomPage, type CustomTab, type BuiltinPageVisibility } from './NavigationClient'
 import type { AdminGalleryData, ClubMember } from '../galleries/ClubGalleriesTab'
 import { DEFAULT_BLOCKS, mergeBlocks, type ContentBlock } from '@/lib/homepage/types'
 
@@ -15,13 +15,22 @@ export default async function NavigationPage() {
   const ctx      = await getClubContext()
 
   const [{ data: customPages }, { data: customTabs }, { data: clubSettings }] = await Promise.all([
-    admin.from('nav_custom_pages').select('id,title,slug,parent_system,tab_id,page_type,external_url,visibility,status,sort_order,updated_at').order('sort_order'),
-    admin.from('nav_custom_tabs').select('*').order('sort_order'),
-    admin.from('club_settings').select('homepage_blocks').single(),
+    admin.from('nav_custom_pages').select('id,title,slug,parent_system,tab_id,page_type,external_url,visibility,status,sort_order,updated_at').eq('club_id', ctx!.clubId).order('sort_order'),
+    admin.from('nav_custom_tabs').select('*').eq('club_id', ctx!.clubId).order('sort_order'),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (admin as any).from('club_settings').select('homepage_blocks,page_visibility').eq('club_id', ctx!.clubId).single(),
   ])
 
-  const saved: ContentBlock[] = (clubSettings?.homepage_blocks as ContentBlock[] | null) ?? DEFAULT_BLOCKS
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cs = clubSettings as any
+  const saved: ContentBlock[] = (cs?.homepage_blocks as ContentBlock[] | null) ?? DEFAULT_BLOCKS
   const homepageBlocks: ContentBlock[] = mergeBlocks(saved, DEFAULT_BLOCKS)
+
+  const rawPageVis = (cs?.page_visibility as Record<string, string> | null) ?? {}
+  const builtinVisibility: BuiltinPageVisibility = {
+    about:    (rawPageVis.about    === 'public' ? 'public' : 'members_only'),
+    calendar: (rawPageVis.calendar === 'public' ? 'public' : 'members_only'),
+  }
 
   // ── Club galleries ──────────────────────────────────────────────────────────
   const { data: galleriesRaw } = await adminAny
@@ -93,6 +102,7 @@ export default async function NavigationPage() {
       initialGalleries={galleries}
       members={members}
       clubId={ctx!.clubId}
+      initialBuiltinVisibility={builtinVisibility}
     />
   )
 }

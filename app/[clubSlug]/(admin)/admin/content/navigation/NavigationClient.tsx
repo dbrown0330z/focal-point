@@ -23,11 +23,17 @@ import ClubGalleriesTab, { type AdminGalleryData, type ClubMember } from '../gal
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type PageType     = 'rich_text' | 'document_link' | 'external_link'
-type Visibility   = 'all_members' | 'members_only' | 'hidden'
-type PageStatus   = 'draft' | 'published'
-type ParentSystem = 'calendar' | 'images' | 'competitions' | 'our-club'
-type MainTab      = 'navigation' | 'homepage' | 'pages' | 'galleries'
+type PageType          = 'rich_text' | 'document_link' | 'external_link'
+type Visibility        = 'all_members' | 'members_only' | 'hidden'
+type BuiltinVisibility = 'members_only' | 'public'
+type PageStatus        = 'draft' | 'published'
+type ParentSystem      = 'calendar' | 'images' | 'competitions' | 'our-club'
+type MainTab           = 'navigation' | 'homepage' | 'pages' | 'galleries'
+
+export type BuiltinPageVisibility = {
+  about:    BuiltinVisibility
+  calendar: BuiltinVisibility
+}
 
 export type CustomPage = {
   id:            string
@@ -104,21 +110,27 @@ const SLOT_LABEL: Record<ParentSystem, string> = {
   'our-club':   'Our Club',
 }
 
-const STATIC_TABLE_ROWS = [
-  { title: 'Home', url: '/', audience: 'Public + members', menuLocation: 'Fixed' },
-]
+// key: used for page_visibility lookup; null = visibility is fixed
+type BuiltinPageRow = {
+  title:       string
+  url:         string
+  menuLocation: string
+  visKey:      'about' | 'calendar' | null  // null = fixed, not editable
+  fixedVis:    string | null                 // shown when visKey is null
+  editAction:  'about' | 'homepage' | null
+}
 
-const SYSTEM_PAGES_LIST = [
-  { title: 'Home',                 url: '/',                           audience: 'Public + members', editable: false },
-  { title: 'Calendar',             url: '/calendar',                   audience: 'All members',      editable: false },
-  { title: 'My images',            url: '/library',                    audience: 'All members',      editable: false },
-  { title: 'Galleries',            url: '/library/galleries',          audience: 'All members',      editable: false },
-  { title: 'Current competitions', url: '/competitions',               audience: 'All members',      editable: false },
-  { title: 'Results',              url: '/competitions/results',       audience: 'All members',      editable: false },
-  { title: 'Standings',            url: '/competitions/standings',     audience: 'All members',      editable: false },
-  { title: 'About our club',       url: '/our-club/about',             audience: 'All members',      editable: true  },
-  { title: 'Member directory',     url: '/our-club/members',           audience: 'All members',      editable: false },
-  { title: 'Documents',            url: '/our-club/documents',         audience: 'All members',      editable: false },
+const BUILTIN_PAGES: BuiltinPageRow[] = [
+  { title: 'Home',                 url: '/',                        menuLocation: 'Fixed — top level', visKey: null,       fixedVis: 'Members + public', editAction: 'homepage' },
+  { title: 'Calendar',             url: '/calendar',                menuLocation: 'Fixed — top level', visKey: 'calendar', fixedVis: null,               editAction: null        },
+  { title: 'My images',            url: '/library',                 menuLocation: 'Images',            visKey: null,       fixedVis: 'Members only',     editAction: null        },
+  { title: 'Galleries',            url: '/library/galleries',       menuLocation: 'Images',            visKey: null,       fixedVis: 'Members only',     editAction: null        },
+  { title: 'Current competitions', url: '/competitions',            menuLocation: 'Competitions',      visKey: null,       fixedVis: 'Members only',     editAction: null        },
+  { title: 'Results',              url: '/competitions/results',    menuLocation: 'Competitions',      visKey: null,       fixedVis: 'Members only',     editAction: null        },
+  { title: 'Standings',            url: '/competitions/standings',  menuLocation: 'Competitions',      visKey: null,       fixedVis: 'Members only',     editAction: null        },
+  { title: 'About our club',       url: '/our-club/about',          menuLocation: 'Our Club',          visKey: 'about',    fixedVis: null,               editAction: 'about'     },
+  { title: 'Member directory',     url: '/our-club/members',        menuLocation: 'Our Club',          visKey: null,       fixedVis: 'Members only',     editAction: null        },
+  { title: 'Documents',            url: '/our-club/documents',      menuLocation: 'Our Club',          visKey: null,       fixedVis: 'Members only',     editAction: null        },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -137,8 +149,8 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-function audienceLabel(v: Visibility): string {
-  if (v === 'all_members')  return 'All members'
+function visibilityLabel(v: Visibility): string {
+  if (v === 'all_members')  return 'Members + public'
   if (v === 'members_only') return 'Members only'
   return 'Hidden'
 }
@@ -151,14 +163,23 @@ function menuLocationLabel(page: CustomPage, tabs: CustomTab[]): string {
 
 // ── Small shared components ───────────────────────────────────────────────────
 
-function SystemChip() {
+function BuiltinChip() {
   return (
-    <Tooltip title="System tabs are part of the site's default structure and cannot be removed or renamed." placement="top">
+    <Tooltip title="Built-in pages are always present and cannot be removed." placement="top">
       <span className="inline-flex cursor-default select-none items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
         style={{ background: 'var(--surface-1)', color: 'var(--text-tertiary)', border: '1px solid var(--border-default)' }}>
-        System
+        Built-in
       </span>
     </Tooltip>
+  )
+}
+
+function PencilIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+    </svg>
   )
 }
 
@@ -245,7 +266,7 @@ function SysSubRow({ item }: { item: SysItem }) {
           Edit content →
         </Link>
       ) : null}
-      <SystemChip />
+      <BuiltinChip />
     </div>
   )
 }
@@ -402,7 +423,7 @@ function SysNavRow({
           )}
         </span>
         <div className="flex items-center gap-2.5 flex-shrink-0">
-          <SystemChip />
+          <BuiltinChip />
         </div>
       </div>
 
@@ -769,7 +790,7 @@ function AddPanel({
             <FormControl size="small" fullWidth>
               <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Visibility</FormLabel>
               <Select value={vis} onChange={e => setVis(e.target.value as Visibility)} sx={{ fontSize: 13 }}>
-                <MenuItem value="all_members"  sx={{ fontSize: 13 }}>All members</MenuItem>
+                <MenuItem value="all_members"  sx={{ fontSize: 13 }}>Members + public</MenuItem>
                 <MenuItem value="members_only" sx={{ fontSize: 13 }}>Members only</MenuItem>
                 <MenuItem value="hidden"       sx={{ fontSize: 13 }}>Hidden</MenuItem>
               </Select>
@@ -866,8 +887,8 @@ function NewPageDialog({
         <FormControl size="small" fullWidth>
           <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Visibility</FormLabel>
           <Select value={vis} onChange={e => setVis(e.target.value as Visibility)} sx={{ fontSize: 13 }}>
-            <MenuItem value="all_members"  sx={{ fontSize: 13 }}>All members</MenuItem>
-            <MenuItem value="members_only" sx={{ fontSize: 13 }}>Members only (not public)</MenuItem>
+            <MenuItem value="all_members"  sx={{ fontSize: 13 }}>Members + public</MenuItem>
+            <MenuItem value="members_only" sx={{ fontSize: 13 }}>Members only</MenuItem>
             <MenuItem value="hidden"       sx={{ fontSize: 13 }}>Hidden — do not show in navigation</MenuItem>
           </Select>
         </FormControl>
@@ -880,7 +901,109 @@ function NewPageDialog({
   )
 }
 
-// ── Custom Pages tab: table ───────────────────────────────────────────────────
+// Shared column layout for both tables:
+// Title | URL | Visibility | Menu location | Last updated | (edit icon) | Live
+const TABLE_COL = 'grid-cols-[minmax(0,1.6fr)_minmax(160px,1fr)_130px_130px_80px_36px_56px]'
+
+const TABLE_HEADERS = ['Title', 'URL', 'Visibility', 'Menu location', 'Last updated', '', '']
+
+// ── Built-in pages table ──────────────────────────────────────────────────────
+
+function BuiltinPagesTable({
+  builtinVisibility,
+  onChangeVisibility,
+  onEditAbout,
+  onGoHomepageBuilder,
+}: {
+  builtinVisibility:  BuiltinPageVisibility
+  onChangeVisibility: (key: 'about' | 'calendar', value: BuiltinVisibility) => void
+  onEditAbout:        () => void
+  onGoHomepageBuilder: () => void
+}) {
+  return (
+    <div className="mb-8">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+        Built-in pages
+      </p>
+      <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
+        <div className={`grid ${TABLE_COL} gap-3 px-4 py-2.5`}
+          style={{ borderBottom: '1px solid var(--border-default)', background: 'var(--surface-1)' }}>
+          {TABLE_HEADERS.map((h, i) => (
+            <span key={i} className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{h}</span>
+          ))}
+        </div>
+
+        {BUILTIN_PAGES.map((row, i) => {
+          const visValue: string = row.visKey
+            ? (builtinVisibility[row.visKey] === 'public' ? 'Members + public' : 'Members only')
+            : (row.fixedVis ?? 'Members only')
+
+          return (
+            <div key={row.url}
+              className="grid items-center gap-3 px-4 py-2.5"
+              style={{
+                gridTemplateColumns: TABLE_COL.replace('grid-cols-', ''),
+                borderBottom: i < BUILTIN_PAGES.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+              }}>
+              {/* Title */}
+              <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{row.title}</span>
+
+              {/* URL — full, no truncation */}
+              <span className="font-mono text-[12px]" style={{ color: 'var(--text-secondary)' }}>{row.url}</span>
+
+              {/* Visibility — dropdown for about/calendar, static otherwise */}
+              {row.visKey ? (
+                <select
+                  value={builtinVisibility[row.visKey]}
+                  onChange={e => onChangeVisibility(row.visKey!, e.target.value as BuiltinVisibility)}
+                  className="rounded-[6px] px-2 py-1.5 text-[12px] w-full"
+                  style={{ border: 'var(--input-border)', background: 'var(--surface-2)', color: 'var(--text-primary)', cursor: 'pointer' }}
+                >
+                  <option value="members_only">Members only</option>
+                  <option value="public">Members + public</option>
+                </select>
+              ) : (
+                <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{visValue}</span>
+              )}
+
+              {/* Menu location */}
+              <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{row.menuLocation}</span>
+
+              {/* Last updated — always — for built-ins */}
+              <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>—</span>
+
+              {/* Edit action */}
+              {row.editAction === 'about' ? (
+                <Tooltip title="Edit page content">
+                  <button onClick={onEditAbout}
+                    className="flex items-center justify-center rounded p-1 transition-colors hover:bg-surface-1"
+                    style={{ color: 'var(--text-tertiary)' }}>
+                    <PencilIcon />
+                  </button>
+                </Tooltip>
+              ) : row.editAction === 'homepage' ? (
+                <Tooltip title="Edit homepage blocks">
+                  <button onClick={onGoHomepageBuilder}
+                    className="flex items-center justify-center rounded p-1 transition-colors hover:bg-surface-1"
+                    style={{ color: 'var(--text-tertiary)' }}>
+                    <PencilIcon />
+                  </button>
+                </Tooltip>
+              ) : (
+                <span />
+              )}
+
+              {/* Live — always live for built-ins */}
+              <LiveBadge />
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Custom pages table ────────────────────────────────────────────────────────
 
 function PagesTable({
   pages,
@@ -897,8 +1020,6 @@ function PagesTable({
   onGoToNavigation: () => void
   pending:          boolean
 }) {
-  const COL = 'grid-cols-[1.8fr_5.5rem_8rem_8rem_8rem_6rem_2.5rem]'
-
   function menuCell(page: CustomPage) {
     const location = menuLocationLabel(page, tabs)
     if (location) {
@@ -925,107 +1046,59 @@ function PagesTable({
   }
 
   return (
-    <div>
-      <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
-        {/* Header */}
-        <div className={`grid ${COL} gap-3 px-4 py-2.5`}
-          style={{ borderBottom: '1px solid var(--border-default)', background: 'var(--surface-1)' }}>
-          {['Title', 'Status', 'URL', 'Audience', 'Menu location', 'Last updated', ''].map(h => (
-            <span key={h} className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{h}</span>
-          ))}
-        </div>
-
-        {/* Static system rows */}
-        {STATIC_TABLE_ROWS.map(row => (
-          <div key={row.url} className={`grid ${COL} items-center gap-3 px-4 py-3`}
-            style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{row.title}</span>
-              <SystemChip />
-            </div>
-            <LiveBadge />
-            <span className="font-mono text-[12px] truncate" style={{ color: 'var(--text-secondary)' }}>{row.url}</span>
-            <span className="text-[13px] truncate" style={{ color: 'var(--text-secondary)' }}>{row.audience}</span>
-            <span className="text-[13px] italic truncate" style={{ color: 'var(--text-tertiary)' }}>{row.menuLocation}</span>
-            <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>—</span>
-            <span />
-          </div>
+    <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
+      <div className={`grid ${TABLE_COL} gap-3 px-4 py-2.5`}
+        style={{ borderBottom: '1px solid var(--border-default)', background: 'var(--surface-1)' }}>
+        {TABLE_HEADERS.map((h, i) => (
+          <span key={i} className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{h}</span>
         ))}
-
-        {/* Custom page rows */}
-        {pages.length === 0 ? (
-          <div className="px-4 py-8 text-center text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
-            No custom pages yet. Click <strong>New page</strong> to create one.
-          </div>
-        ) : (
-          pages.map((page, i) => (
-            <div key={page.id}
-              className={`grid ${COL} items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-1`}
-              style={{ borderBottom: i < pages.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-              <span className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{page.title}</span>
-              <span>{page.status === 'published' ? <LiveBadge /> : <DraftBadge />}</span>
-              <span className="font-mono text-[12px] truncate" style={{ color: 'var(--text-secondary)' }}>/{page.slug}</span>
-              <span className="text-[13px] truncate" style={{ color: 'var(--text-secondary)' }}>{audienceLabel(page.visibility)}</span>
-              {menuCell(page)}
-              <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-                {page.updated_at ? timeAgo(page.updated_at) : '—'}
-              </span>
-              {page.page_type === 'rich_text' ? (
-                <Tooltip title="Edit page content">
-                  <button onClick={() => onEditPage(page)}
-                    className="flex items-center justify-center rounded p-1 transition-colors hover:bg-surface-1"
-                    style={{ color: 'var(--text-tertiary)' }}>
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                </Tooltip>
-              ) : <span />}
-            </div>
-          ))
-        )}
       </div>
-    </div>
-  )
-}
 
-// ── System pages table ────────────────────────────────────────────────────────
-
-function SystemPagesTable({ onEditAbout }: { onEditAbout: () => void }) {
-  const COL = 'grid-cols-[1.8fr_9rem_8rem_6rem]'
-  return (
-    <div>
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
-        System pages
-      </p>
-      <div className="rounded-[10px] overflow-hidden mb-6" style={{ border: '1px solid var(--border-default)' }}>
-        <div className={`grid ${COL} gap-3 px-4 py-2.5`} style={{ borderBottom: '1px solid var(--border-default)', background: 'var(--surface-1)' }}>
-          {['Page', 'URL', 'Audience', ''].map(h => (
-            <span key={h} className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{h}</span>
-          ))}
+      {pages.length === 0 ? (
+        <div className="px-4 py-8 text-center text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
+          No custom pages yet. Click <strong>New page</strong> to create one.
         </div>
-        {SYSTEM_PAGES_LIST.map((row, i) => (
-          <div key={row.url} className={`grid ${COL} items-center gap-3 px-4 py-3`}
-            style={{ borderBottom: i < SYSTEM_PAGES_LIST.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{row.title}</span>
-              <SystemChip />
-            </div>
-            <span className="font-mono text-[12px] truncate" style={{ color: 'var(--text-secondary)' }}>{row.url}</span>
-            <span className="text-[13px] truncate" style={{ color: 'var(--text-secondary)' }}>{row.audience}</span>
-            <div className="flex justify-end">
-              {row.editable ? (
-                <button onClick={onEditAbout} className="text-[12px] font-medium hover:underline" style={{ color: 'var(--action-primary)' }}>
-                  Edit content →
+      ) : (
+        pages.map((page, i) => (
+          <div key={page.id}
+            className={`grid items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-1`}
+            style={{
+              gridTemplateColumns: TABLE_COL.replace('grid-cols-', ''),
+              borderBottom: i < pages.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+            }}>
+            {/* Title */}
+            <span className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{page.title}</span>
+
+            {/* URL */}
+            <span className="font-mono text-[12px] truncate" style={{ color: 'var(--text-secondary)' }}>/{page.slug}</span>
+
+            {/* Visibility */}
+            <span className="text-[13px] truncate" style={{ color: 'var(--text-secondary)' }}>{visibilityLabel(page.visibility)}</span>
+
+            {/* Menu location */}
+            {menuCell(page)}
+
+            {/* Last updated */}
+            <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+              {page.updated_at ? timeAgo(page.updated_at) : '—'}
+            </span>
+
+            {/* Edit icon — only for rich_text pages */}
+            {page.page_type === 'rich_text' ? (
+              <Tooltip title="Edit page content">
+                <button onClick={() => onEditPage(page)}
+                  className="flex items-center justify-center rounded p-1 transition-colors hover:bg-surface-1"
+                  style={{ color: 'var(--text-tertiary)' }}>
+                  <PencilIcon />
                 </button>
-              ) : (
-                <LiveBadge />
-              )}
-            </div>
+              </Tooltip>
+            ) : <span />}
+
+            {/* Status — far right */}
+            <span>{page.status === 'published' ? <LiveBadge /> : <DraftBadge />}</span>
           </div>
-        ))}
-      </div>
+        ))
+      )}
     </div>
   )
 }
@@ -1129,13 +1202,15 @@ export default function NavigationClient({
   initialGalleries = [],
   members = [],
   clubId,
+  initialBuiltinVisibility = { about: 'members_only', calendar: 'members_only' },
 }: {
-  customPages:            CustomPage[]
-  customTabs:             CustomTab[]
-  initialHomepageBlocks?: ContentBlock[]
-  initialGalleries?:      AdminGalleryData[]
-  members?:               ClubMember[]
-  clubId:                 string
+  customPages:                CustomPage[]
+  customTabs:                 CustomTab[]
+  initialHomepageBlocks?:     ContentBlock[]
+  initialGalleries?:          AdminGalleryData[]
+  members?:                   ClubMember[]
+  clubId:                     string
+  initialBuiltinVisibility?:  BuiltinPageVisibility
 }) {
   const params      = useParams()
   const searchParams = useSearchParams()
@@ -1144,8 +1219,9 @@ export default function NavigationClient({
   const [activeTab, setActiveTab] = useState<MainTab>(
     (searchParams.get('tab') as MainTab | null) ?? 'homepage'
   )
-  const [pages,   setPages]   = useState<CustomPage[]>(initialPages)
-  const [tabs,    setTabs]    = useState<CustomTab[]>(initialTabs)
+  const [pages,             setPages]             = useState<CustomPage[]>(initialPages)
+  const [tabs,              setTabs]              = useState<CustomTab[]>(initialTabs)
+  const [builtinVisibility, setBuiltinVisibility] = useState<BuiltinPageVisibility>(initialBuiltinVisibility)
   const [pending, startTrans] = useTransition()
   const [err,     setErr]     = useState<string | null>(null)
 
@@ -1205,6 +1281,23 @@ export default function NavigationClient({
     const { data } = await supabase.from('nav_custom_pages').select('content').eq('id', page.id).maybeSingle()
     setCustomPageContent((data as unknown as { content?: string } | null)?.content ?? '')
     setCustomPageLoading(false)
+  }
+
+  async function changeBuiltinVisibility(key: 'about' | 'calendar', value: BuiltinVisibility) {
+    setBuiltinVisibility(prev => ({ ...prev, [key]: value }))
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = supabase as any
+    const { data: existing } = await sb
+      .from('club_settings')
+      .select('page_visibility')
+      .eq('club_id', clubId)
+      .single()
+    const current = (existing?.page_visibility as Record<string, string> | null) ?? {}
+    await sb
+      .from('club_settings')
+      .update({ page_visibility: { ...current, [key]: value } })
+      .eq('club_id', clubId)
   }
 
   // Creates a new page from Pages tab — orphaned draft
@@ -1412,7 +1505,12 @@ export default function NavigationClient({
             </div>
           )}
 
-          <SystemPagesTable onEditAbout={openAboutEditor} />
+          <BuiltinPagesTable
+            builtinVisibility={builtinVisibility}
+            onChangeVisibility={changeBuiltinVisibility}
+            onEditAbout={openAboutEditor}
+            onGoHomepageBuilder={() => setActiveTab('homepage')}
+          />
           <div className="mb-4 flex items-center justify-between">
             <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
               Custom pages
