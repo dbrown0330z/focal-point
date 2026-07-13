@@ -349,7 +349,7 @@ function CustomSubRow({
         <DialogContent>
           <Box sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.6 }}>
             <Box sx={{ mb: 1.5 }}>All content will be permanently lost and <strong>cannot be undone</strong>.</Box>
-            <Box sx={{ bgcolor: 'rgba(166,124,0,0.07)', border: '1px solid rgba(166,124,0,0.25)', borderRadius: 1.5, px: 1.75, py: 1.25, fontSize: 12, color: '#6B5000' }}>
+            <Box sx={{ bgcolor: 'var(--status-warning-bg)', border: '1px solid var(--status-warning)', borderRadius: 1.5, px: 1.75, py: 1.25, fontSize: 12, color: 'var(--status-warning-text)' }}>
               💡 Consider setting visibility to <strong>Hidden</strong> instead — the page is preserved but hidden from all visitors.
             </Box>
           </Box>
