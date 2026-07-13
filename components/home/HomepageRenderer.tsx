@@ -627,23 +627,25 @@ function GalleryPreviewBlock({
         </strong>
         {' · '}{imageCount} photo{imageCount !== 1 ? 's' : ''}
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
         {images.slice(0, 7).map(img => (
-          <div key={img.id} style={{ aspectRatio: '1', borderRadius: 8, overflow: 'hidden', background: 'var(--surface-1)' }}>
+          <div key={img.id} style={{ flexShrink: 0, width: 120, height: 120, borderRadius: 8, overflow: 'hidden', background: 'var(--surface-1)' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={img.publicUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
         ))}
-        {/* Pad empty image slots so the link cell always sits in position 8 */}
+        {/* Pad empty slots so the link cell is always present */}
         {Array.from({ length: Math.max(0, 7 - images.length) }).map((_, i) => (
-          <div key={`empty-${i}`} style={{ aspectRatio: '1', borderRadius: 8, background: 'var(--surface-1)' }} />
+          <div key={`empty-${i}`} style={{ flexShrink: 0, width: 120, height: 120, borderRadius: 8, background: 'var(--surface-1)' }} />
         ))}
         <a
           href={href}
           target="_blank"
           rel="noopener noreferrer"
           style={{
-            aspectRatio:    '1',
+            flexShrink:     0,
+            width:          120,
+            height:         120,
             borderRadius:   8,
             border:         '1px solid var(--border-default)',
             background:     'var(--surface-1)',

@@ -1411,14 +1411,16 @@ function PreviewBlock({ block, audience, t, compact, galleries }: { block: Conte
           <div style={{ fontSize: 10, color: t.textSecondary, fontFamily: t.fontSans, marginTop: -6, marginBottom: 10 }}>
             {name} · N photos
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5 }}>
+          <div style={{ display: 'flex', gap: 5, overflowX: 'auto', scrollbarWidth: 'none' }}>
             {[0,1,2,3,4,5,6].map(i => (
-              <div key={i} style={{ aspectRatio: '1', borderRadius: 6, overflow: 'hidden' }}>
+              <div key={i} style={{ flexShrink: 0, width: 72, height: 72, borderRadius: 6, overflow: 'hidden' }}>
                 <PlaceholderImg idx={i} />
               </div>
             ))}
             <div style={{
-              aspectRatio:    '1',
+              flexShrink:     0,
+              width:          72,
+              height:         72,
               borderRadius:   6,
               border:         `1px solid ${t.borderDefault}`,
               background:     t.surface1,
@@ -1429,7 +1431,7 @@ function PreviewBlock({ block, audience, t, compact, galleries }: { block: Conte
               gap:            3,
             }}>
               <span style={{ fontSize: 14, color: t.actionPrimary, lineHeight: 1 }}>→</span>
-              <span style={{ fontSize: 8, fontWeight: 500, color: t.actionPrimary, fontFamily: t.fontSans, textAlign: 'center', lineHeight: 1.3 }}>View full gallery</span>
+              <span style={{ fontSize: 8, fontWeight: 500, color: t.actionPrimary, fontFamily: t.fontSans, textAlign: 'center', lineHeight: 1.3 }}>View full</span>
             </div>
           </div>
         </PbSection>
