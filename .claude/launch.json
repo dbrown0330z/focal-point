@@ -7,7 +7,7 @@
       "runtimeArgs": ["run", "dev"],
       "cwd": "/Users/brown/focal-point",
       "port": 3000,
-      "autoPort": false
+      "autoPort": true
     }
   ]
 }
