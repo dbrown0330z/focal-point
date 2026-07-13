@@ -966,9 +966,9 @@ function BlockCard({
 
   return (
     <Box
-      draggable={!block.fixed}
-      onDragStart={block.fixed ? undefined : e => { e.stopPropagation(); onDragStart() }}
-      onDragOver={block.fixed  ? undefined : onDragOver}
+      draggable={!block.fixed && block.enabled}
+      onDragStart={block.fixed || !block.enabled ? undefined : e => { e.stopPropagation(); onDragStart() }}
+      onDragOver={block.fixed  || !block.enabled ? undefined : onDragOver}
       sx={{
         border: '1px solid var(--border-default)',
         borderRadius: '6px',
@@ -981,7 +981,7 @@ function BlockCard({
       <Box sx={{ px: 1.5, py: 1.25, display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
         {block.fixed
           ? <span style={{ display: 'flex', color: 'var(--text-tertiary)', opacity: 0.45, flexShrink: 0, paddingTop: 1 }}><LockOutlinedIcon sx={{ fontSize: 15 }} /></span>
-          : <Box sx={{ flexShrink: 0, pt: '1px' }}><DragGrip /></Box>
+          : <Box sx={{ flexShrink: 0, pt: '1px', opacity: block.enabled ? 1 : 0.3, pointerEvents: block.enabled ? 'auto' : 'none' }}><DragGrip /></Box>
         }
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, flexWrap: 'wrap' }}>
