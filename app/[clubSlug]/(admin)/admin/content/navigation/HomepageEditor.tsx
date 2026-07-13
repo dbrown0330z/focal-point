@@ -52,7 +52,7 @@ const MAX_CUSTOM_CONTENT = 4
 
 const MODAL_META: Record<string, { title: string; description: string }> = {
   'dual-panel': {
-    title:       'Events & competitions',
+    title:       'Events & competitions (2 columns)',
     description: 'A two-column panel showing your next upcoming events on the left and live competition activity on the right. Configure how many events appear in the list.',
   },
   'welcome': {
@@ -64,8 +64,12 @@ const MODAL_META: Record<string, { title: string; description: string }> = {
     description: 'A full-width rotating slideshow pulled from one of your image galleries. Configure which gallery to draw from and how quickly images cycle.',
   },
   'gallery-preview': {
-    title:       'Gallery preview (4 images)',
-    description: 'Highlights a single club gallery with its name, photo count, a strip of 4 preview images, and a link to the full gallery.',
+    title:       'Gallery showcase',
+    description: 'Highlights a single club gallery with its name, photo count, a grid of up to 7 preview images, and a link to the full gallery.',
+  },
+  'upcoming-events': {
+    title:       'Events (full width)',
+    description: 'A full-width chronological list of your next calendar events. Configure how many events to display.',
   },
   'club-galleries': {
     title:       'Club galleries',
@@ -74,10 +78,6 @@ const MODAL_META: Record<string, { title: string; description: string }> = {
   'member-spotlight': {
     title:       'Member spotlight',
     description: 'Highlights a member with their featured image and key statistics. Set to automatic to rotate members on each visit, or pin it to a specific person.',
-  },
-  'upcoming-events': {
-    title:       'Upcoming events',
-    description: 'Lists your next calendar events in chronological order. Set how many events appear.',
   },
   'custom-content': {
     title:       'Custom content',
@@ -88,27 +88,22 @@ const MODAL_META: Record<string, { title: string; description: string }> = {
     description: 'A row of logo badges linking to affiliated organisations, member societies, and social media accounts. Add up to 6 entries.',
   },
   'competitions': {
-    title:       'Competitions',
+    title:       'Competitions (full width)',
     description: 'Auto-fed from your competition data. Shows open competitions with entry status, the most recently published results with score chart and top images, and upcoming competitions.',
   },
 }
 
 // ── Hook ───────────────────────────────────────────────────────────────────────
 
-const REMOVED_BLOCK_TYPES = ['grid-6', 'strip-8', 'upcoming-events']
+const REMOVED_BLOCK_TYPES = ['grid-6', 'strip-8']
 
 function useHomepageEditor(initialBlocks: ContentBlock[]) {
   const [blocks,      setBlocks]      = useState<ContentBlock[]>(() => {
     const filtered = initialBlocks.filter(b => !REMOVED_BLOCK_TYPES.includes(b.type))
-    // Migration: if upcoming-events was enabled and dual-panel is disabled, enable dual-panel
-    const hadUpcomingEvents = initialBlocks.some(b => b.type === 'upcoming-events' && b.enabled)
-    const migrated = hadUpcomingEvents
-      ? filtered.map(b => b.type === 'dual-panel' && !b.enabled ? { ...b, enabled: true } : b)
-      : filtered
     // Ensure enabled blocks always precede disabled blocks (sort by enabled desc, fixed first)
-    const fixed    = migrated.filter(b => b.fixed)
-    const enabled  = migrated.filter(b => !b.fixed && b.enabled)
-    const disabled = migrated.filter(b => !b.fixed && !b.enabled)
+    const fixed    = filtered.filter(b => b.fixed)
+    const enabled  = filtered.filter(b => !b.fixed && b.enabled)
+    const disabled = filtered.filter(b => !b.fixed && !b.enabled)
     return [...fixed, ...enabled, ...disabled]
   })
   const [hasChanges,  setHasChanges]  = useState(false)
@@ -895,6 +890,31 @@ function BlockEditModal({
         {block.type === 'competitions'     && <CompetitionsModalBody     block={block} onChange={onUpdate} />}
       </DialogContent>
 
+      {/* Visibility footer — shown for all non-fixed blocks */}
+      {!block.fixed && (
+        <Box sx={{ px: 3, py: 1.5, borderTop: '1px solid', borderColor: 'divider', background: 'var(--surface-1)' }}>
+          <Box
+            component="label"
+            sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', userSelect: 'none' }}
+          >
+            <input
+              type="checkbox"
+              checked={block.visibleToAnonymous !== false}
+              onChange={e => onUpdate({ visibleToAnonymous: e.target.checked })}
+              style={{ width: 15, height: 15, accentColor: 'var(--action-primary)', cursor: 'pointer', flexShrink: 0 }}
+            />
+            <Box>
+              <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary', lineHeight: 1.2 }}>
+                Visible to visitors (not logged in)
+              </Typography>
+              <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.25 }}>
+                When unchecked, only logged-in members see this block
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      )}
+
       <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
         <Button variant="outlined" color="secondary" onClick={onCancel} sx={{ textTransform: 'none', fontSize: 13 }}>Cancel</Button>
         <Button variant="contained" onClick={onClose} sx={{ textTransform: 'none', fontSize: 13 }}>Save</Button>
@@ -906,13 +926,14 @@ function BlockEditModal({
 // ── Block display names (overrides stale saved names in DB) ───────────────────
 
 const BLOCK_DISPLAY_NAMES: Record<string, string> = {
-  'large-image':     'Hero slideshow',
-  'dual-panel':      'Events & competitions',
-  'gallery-preview': 'Gallery preview (4 images)',
-  'club-galleries':  'Club galleries',
-  'competitions':    'Competitions',
-  'member-spotlight':'Member spotlight',
-  'affiliations':    'Affiliations & links',
+  'large-image':      'Hero slideshow',
+  'dual-panel':       'Events & competitions (2 columns)',
+  'upcoming-events':  'Events (full width)',
+  'gallery-preview':  'Gallery showcase',
+  'club-galleries':   'Club galleries',
+  'competitions':     'Competitions (full width)',
+  'member-spotlight': 'Member spotlight',
+  'affiliations':     'Affiliations & links',
 }
 
 // ── Block subtitle ─────────────────────────────────────────────────────────────
@@ -941,7 +962,11 @@ function getBlockSubtitle(block: ContentBlock, galleries?: AdminGalleryData[]): 
     case 'gallery-preview': {
       const s = block.galleryPreviewSettings
       if (!s?.galleryId) return 'No gallery selected — configure to activate'
-      return `Showcasing ${s.galleryName || 'gallery'}`
+      return `Showcasing ${s.galleryName || 'gallery'} · up to 7 images`
+    }
+    case 'upcoming-events': {
+      const s = block.eventsSettings; if (!s) return null
+      return `Next ${s.count} event${s.count === 1 ? '' : 's'} · full width`
     }
     case 'club-galleries': {
       const s = block.clubGalleriesSettings; if (!s) return null
@@ -1015,9 +1040,16 @@ function BlockCard({
           : <Box sx={{ flexShrink: 0, pt: '1px' }}><DragGrip /></Box>
         }
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}>
-            {displayName}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, flexWrap: 'wrap' }}>
+            {block.type === 'custom-content' && (
+              <Typography component="span" sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--action-primary)', background: 'rgba(26,111,196,0.10)', borderRadius: '3px', px: '5px', py: '1px', flexShrink: 0, lineHeight: '16px' }}>
+                Custom
+              </Typography>
+            )}
+            <Typography component="span" sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}>
+              {displayName}
+            </Typography>
+          </Box>
           {subtitle && (
             <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.4, lineHeight: 1.45 }}>
               {subtitle}
@@ -1375,12 +1407,12 @@ function PreviewBlock({ block, audience, t, compact, galleries }: { block: Conte
       const name = s?.galleryName || 'Gallery name'
       return (
         <PbSection t={t}>
-          <PbHeading t={t}>Gallery preview</PbHeading>
+          <PbHeading t={t}>Gallery showcase</PbHeading>
           <div style={{ fontSize: 10, color: t.textSecondary, fontFamily: t.fontSans, marginTop: -6, marginBottom: 10 }}>
             {name} · N photos
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 5 }}>
-            {[0,1,2,3].map(i => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5 }}>
+            {[0,1,2,3,4,5,6].map(i => (
               <div key={i} style={{ aspectRatio: '1', borderRadius: 6, overflow: 'hidden' }}>
                 <PlaceholderImg idx={i} />
               </div>
@@ -2002,27 +2034,15 @@ export default function HomepageEditor({ initialBlocks, galleries = [] }: { init
               const firstHiddenIdx = blocks.findIndex(b => !b.fixed && !b.enabled)
               const activeBlocks   = firstHiddenIdx === -1 ? blocks : blocks.slice(0, firstHiddenIdx)
               const hiddenBlocks   = firstHiddenIdx === -1 ? [] : blocks.slice(firstHiddenIdx)
-              let shownCustomDivider = false
 
               return (
                 <>
-                  {/* ── Active blocks ── */}
+                  {/* ── Active blocks (one unified list, no section dividers) ── */}
                   {activeBlocks.map((block, localI) => {
-                    const i = localI  // same as global index since active blocks come first
-                    const isFirstCustom = !shownCustomDivider && block.type === 'custom-content'
-                    if (isFirstCustom) shownCustomDivider = true
+                    const i = localI
                     return (
                       <Fragment key={block.id}>
                         {insertAt === i && dragIdx.current !== null && i >= 1 && <InsertionLine />}
-                        {isFirstCustom && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, my: 1.5 }}>
-                            <Box sx={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
-                            <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', flexShrink: 0 }}>
-                              Custom blocks
-                            </Typography>
-                            <Box sx={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
-                          </Box>
-                        )}
                         <Box sx={{ mb: 1 }}>
                           <BlockCard
                             block={block}

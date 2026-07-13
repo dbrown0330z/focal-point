@@ -69,6 +69,7 @@ export interface ContentBlock {
   type:                    string
   enabled:                 boolean
   fixed?:                  boolean
+  visibleToAnonymous?:     boolean   // undefined treated as true
   welcomeContent?:         WelcomeContent
   largeImageSettings?:     LargeImageSettings
   grid6Settings?:          Grid6Settings
@@ -157,7 +158,7 @@ export const DEFAULT_BLOCKS: ContentBlock[] = [
     customContentSettings: { columns: 3, previewLines: 4, notes: [] },
   },
   {
-    id: 'gallery-preview', name: 'Gallery preview (4 images)', type: 'gallery-preview', enabled: false,
+    id: 'gallery-preview', name: 'Gallery showcase', type: 'gallery-preview', enabled: false,
     galleryPreviewSettings: { galleryId: '', gallerySlug: '', galleryName: '' },
   },
   {
@@ -165,7 +166,7 @@ export const DEFAULT_BLOCKS: ContentBlock[] = [
     clubGalleriesSettings: { galleryIds: [] },
   },
   {
-    id: 'upcoming-events', name: 'Upcoming events', type: 'upcoming-events', enabled: true,
+    id: 'upcoming-events', name: 'Events (full width)', type: 'upcoming-events', enabled: false,
     eventsSettings: { count: 4 },
   },
   {

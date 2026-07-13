@@ -620,22 +620,22 @@ function GalleryPreviewBlock({
   const href = `/${clubSlug}/gallery/${settings.gallerySlug}`
   return (
     <Section>
-      <SectionHeading>Gallery preview</SectionHeading>
+      <SectionHeading>Gallery showcase</SectionHeading>
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '-8px 0 14px', fontWeight: 400 }}>
         <strong style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
           {settings.galleryName || 'Gallery'}
         </strong>
         {' · '}{imageCount} photo{imageCount !== 1 ? 's' : ''}
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
-        {images.slice(0, 4).map(img => (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+        {images.slice(0, 7).map(img => (
           <div key={img.id} style={{ aspectRatio: '1', borderRadius: 8, overflow: 'hidden', background: 'var(--surface-1)' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={img.publicUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
         ))}
-        {/* Pad empty image slots so the link cell always sits in column 5 */}
-        {Array.from({ length: Math.max(0, 4 - images.length) }).map((_, i) => (
+        {/* Pad empty image slots so the link cell always sits in position 8 */}
+        {Array.from({ length: Math.max(0, 7 - images.length) }).map((_, i) => (
           <div key={`empty-${i}`} style={{ aspectRatio: '1', borderRadius: 8, background: 'var(--surface-1)' }} />
         ))}
         <a
@@ -763,7 +763,7 @@ export default async function HomepageRenderer({
   // not subject to the per-member RLS that would hide other members' images.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const svcSupabase = createServiceClient() as any
-  const enabled     = blocks.filter(b => b.enabled)
+  const enabled     = blocks.filter(b => b.enabled && (isGuest ? b.visibleToAnonymous !== false : true))
 
   // ── Fetch events if the block is on ──────────────────────────────────────
   const eventsBlock = enabled.find(b => b.type === 'upcoming-events')
@@ -859,7 +859,7 @@ export default async function HomepageRenderer({
 
     const imageIds = gRow?.image_ids ?? []
     galleryPreviewImageCount = imageIds.length
-    const previewIds = imageIds.slice(0, 4)
+    const previewIds = imageIds.slice(0, 7)
     if (previewIds.length > 0) {
       type ImgRow = { id: string; storage_path: string }
       const { data: imgRows } = await svcSupabase
