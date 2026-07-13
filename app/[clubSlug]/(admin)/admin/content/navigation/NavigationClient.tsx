@@ -940,11 +940,8 @@ function BuiltinPagesTable({
 
           return (
             <div key={row.url}
-              className="grid items-center gap-3 px-4 py-2.5"
-              style={{
-                gridTemplateColumns: TABLE_COL.replace('grid-cols-', ''),
-                borderBottom: i < BUILTIN_PAGES.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-              }}>
+              className={`grid ${TABLE_COL} items-center gap-3 px-4 py-2.5`}
+              style={{ borderBottom: i < BUILTIN_PAGES.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
               {/* Title */}
               <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{row.title}</span>
 
@@ -1061,11 +1058,8 @@ function PagesTable({
       ) : (
         pages.map((page, i) => (
           <div key={page.id}
-            className={`grid items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-1`}
-            style={{
-              gridTemplateColumns: TABLE_COL.replace('grid-cols-', ''),
-              borderBottom: i < pages.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-            }}>
+            className={`grid ${TABLE_COL} items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-1`}
+            style={{ borderBottom: i < pages.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
             {/* Title */}
             <span className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{page.title}</span>
 
