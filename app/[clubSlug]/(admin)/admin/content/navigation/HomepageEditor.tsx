@@ -53,43 +53,43 @@ const MAX_CUSTOM_CONTENT = 4
 const MODAL_META: Record<string, { title: string; description: string }> = {
   'welcome': {
     title:       'Welcome',
-    description: 'First thing every visitor sees — headline, intro, and a join or sign-in prompt.',
+    description: 'First thing every visitor sees — headline, intro, and a join or sign-in prompt',
   },
   'large-image': {
     title:       'Hero slideshow',
-    description: 'Full-width rotating images that set the visual tone of the homepage.',
+    description: 'Full-width rotating images that set the visual tone of the homepage',
   },
   'dual-panel': {
     title:       'Events & competitions (2 columns)',
-    description: 'Side-by-side view of upcoming events and open competitions.',
+    description: 'Upcoming events and open competitions, side by side',
   },
   'custom-content': {
     title:       'Custom content',
-    description: 'A flexible block for announcements, links, or anything the club wants to highlight.',
+    description: 'A flexible block for announcements, links, or anything else',
   },
   'gallery-preview': {
     title:       'Gallery preview',
-    description: 'A curated selection of images from a single club gallery.',
+    description: 'Images from a single club gallery — links to the full gallery',
   },
   'club-galleries': {
     title:       'Gallery showcase',
-    description: 'Thumbnail previews of club galleries — click any to browse the full collection.',
+    description: 'Clickable thumbnails linking to multiple club galleries',
   },
   'member-spotlight': {
     title:       'Member spotlight',
-    description: 'Highlights a member — their photo, a little about them, and recent work.',
+    description: 'Highlights a member — rotates on each visit',
   },
   'affiliations': {
     title:       'Affiliations & links',
-    description: 'Partner organisations, federation memberships, and external links.',
+    description: 'External links to partner organizations and social media',
   },
   'upcoming-events': {
     title:       'Events (full width)',
-    description: 'Full-width view of the club\'s next upcoming events.',
+    description: 'Full-width list of upcoming club events',
   },
   'competitions': {
     title:       'Competitions (full width)',
-    description: 'Full-width view of open competitions and recent results.',
+    description: 'Full-width view of open competitions and recent results',
   },
 }
 
