@@ -12,6 +12,8 @@ import { DEFAULT_BLOCKS, mergeBlocks, type ContentBlock } from '@/lib/homepage/t
 import { logout } from '@/app/(auth)/actions'
 import { AppFooter } from '@/components/layout/AppFooter'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ClubHomePage({
   params,
 }: {

@@ -11,8 +11,9 @@ import type { Json } from '@/types/database'
  * and "Publish" (revalidates the member home page).
  */
 export async function saveHomepageBlocks(
-  blocks:  ContentBlock[],
-  publish: boolean = false,
+  blocks:    ContentBlock[],
+  publish:   boolean = false,
+  clubSlug?: string,
 ): Promise<{ error?: string }> {
   const supabase = createServiceClient()
 
@@ -26,8 +27,12 @@ export async function saveHomepageBlocks(
   // Always revalidate the admin page so the editor reloads fresh state.
   revalidatePath('/admin/content/navigation')
 
-  // Only revalidate the member homepage on explicit publish — not on draft saves.
-  if (publish) revalidatePath('/')
+  // Only revalidate the member homepage on explicit publish.
+  // Revalidate the specific club path — '/' alone won't clear /${clubSlug}.
+  if (publish) {
+    revalidatePath('/', 'layout')
+    if (clubSlug) revalidatePath(`/${clubSlug}`)
+  }
 
   return {}
 }

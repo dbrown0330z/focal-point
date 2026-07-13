@@ -97,7 +97,7 @@ const MODAL_META: Record<string, { title: string; description: string }> = {
 
 const REMOVED_BLOCK_TYPES = ['grid-6', 'strip-8']
 
-function useHomepageEditor(initialBlocks: ContentBlock[]) {
+function useHomepageEditor(initialBlocks: ContentBlock[], clubSlug: string) {
   const [blocks,      setBlocks]      = useState<ContentBlock[]>(() => {
     const filtered = initialBlocks.filter(b => !REMOVED_BLOCK_TYPES.includes(b.type))
     // Ensure enabled blocks always precede disabled blocks (sort by enabled desc, fixed first)
@@ -170,7 +170,7 @@ function useHomepageEditor(initialBlocks: ContentBlock[]) {
   const saveDraft = (currentBlocks: ContentBlock[]) => {
     setSaveStatus('saving')
     startTransition(async () => {
-      const { error } = await saveHomepageBlocks(currentBlocks, false)
+      const { error } = await saveHomepageBlocks(currentBlocks, false, clubSlug)
       setSaveStatus(error ? 'error' : 'saved')
       if (!error) setHasChanges(false)
       // Auto-clear status after 3 s
@@ -182,7 +182,7 @@ function useHomepageEditor(initialBlocks: ContentBlock[]) {
     setShowPublish(false)
     setSaveStatus('saving')
     startTransition(async () => {
-      const { error } = await saveHomepageBlocks(currentBlocks, true)
+      const { error } = await saveHomepageBlocks(currentBlocks, true, clubSlug)
       setSaveStatus(error ? 'error' : 'saved')
       if (!error) setHasChanges(false)
       setTimeout(() => setSaveStatus('idle'), 3000)
@@ -1866,16 +1866,16 @@ function LivePreview({ blocks, fullscreen = false, galleries }: { blocks: Conten
 // ── Main HomepageEditor ────────────────────────────────────────────────────────
 
 export default function HomepageEditor({ initialBlocks, galleries = [] }: { initialBlocks?: ContentBlock[]; galleries?: AdminGalleryData[] }) {
+  const pathname = usePathname()
+  const clubSlug = pathname?.split('/')[1] ?? ''
+
   const {
     blocks, hasChanges, showPublish, setShowPublish,
     saveStatus, isPending,
     toggleBlock, updateBlock, reorderBlocks,
     addCustomContent, removeBlock, customContentCount,
     saveDraft, publish,
-  } = useHomepageEditor(initialBlocks ?? DEFAULT_BLOCKS)
-
-  const pathname = usePathname()
-  const clubSlug = pathname?.split('/')[1] ?? ''
+  } = useHomepageEditor(initialBlocks ?? DEFAULT_BLOCKS, clubSlug)
 
   const [editingBlock,    setEditingBlock]    = useState<ContentBlock | null>(null)
   const [editOriginal,    setEditOriginal]    = useState<ContentBlock | null>(null)
