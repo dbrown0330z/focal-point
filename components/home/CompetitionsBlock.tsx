@@ -98,6 +98,7 @@ type OpenComp = {
   submission_limit: number
   totalEntries:     number
   memberUsed:       number
+  memberImageUrls:  string[]
   categories:       { id: string; name: string; count?: number }[]
 }
 
@@ -121,7 +122,8 @@ function OpenCompCard({ comp, userId }: { comp: OpenComp; userId: string | null 
       border:       '1px solid var(--border-default)',
       borderLeft:   '3px solid var(--phase-open-border)',
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+      {/* Top row: title + deadline on left, OPEN NOW badge on right */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
         <div>
           <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-lora, Georgia, serif)', lineHeight: 1.3 }}>
             {displayName(comp)}
@@ -133,17 +135,38 @@ function OpenCompCard({ comp, userId }: { comp: OpenComp; userId: string | null 
             </p>
           )}
         </div>
-        <span style={{ fontSize: 12, color: 'var(--text-tertiary)', flexShrink: 0, paddingTop: 2 }}>
-          {comp.totalEntries} {comp.totalEntries === 1 ? 'entry' : 'entries'} so far
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--status-success)', flexShrink: 0, paddingTop: 2 }}>
+          Open now
         </span>
       </div>
 
-      {/* Member entry state */}
+      {/* Bottom row: entry state + thumbnails + action */}
       <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         {status === 'full' ? (
-          <p style={{ fontSize: 13, color: 'var(--status-success-text)', fontWeight: 500 }}>
-            ✓ All {comp.submission_limit} {comp.submission_limit === 1 ? 'entry' : 'entries'} submitted
-          </p>
+          <>
+            {/* Left: status text + thumbnails */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <p style={{ fontSize: 13, color: 'var(--status-success-text)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                ✓ All {comp.submission_limit} {comp.submission_limit === 1 ? 'entry' : 'entries'} submitted
+              </p>
+              {comp.memberImageUrls.length > 0 && (
+                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                  {comp.memberImageUrls.slice(0, comp.submission_limit).map((url, i) => (
+                    <div key={i} style={{ width: 32, height: 26, borderRadius: 4, overflow: 'hidden', flexShrink: 0, background: 'var(--surface-0)' }}>
+                      <Image src={url} alt="" width={32} height={26} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Right: edit link */}
+            <Link
+              href="/competitions"
+              style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: 'var(--action-primary)', textDecoration: 'none', whiteSpace: 'nowrap' }}
+            >
+              Edit selections →
+            </Link>
+          </>
         ) : (
           <>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
@@ -343,18 +366,24 @@ export default async function CompetitionsBlock({
       catCounts[row.competition_id][row.category_id] = (catCounts[row.competition_id][row.category_id] ?? 0) + 1
     }
 
-    // Member's entries per open competition
+    // Member's entries per open competition, with image paths for thumbnails
     const memberCounts: Record<string, number> = {}
+    const memberImagePaths: Record<string, string[]> = {}
     if (userId) {
       const { data: memberEntriesRaw } = await supabase
         .from('submissions')
-        .select('competition_id')
+        .select('competition_id, images(storage_path)')
         .in('competition_id', openIds)
         .eq('member_id', userId)
         .eq('status', 'submitted')
 
       for (const row of (memberEntriesRaw ?? [])) {
         memberCounts[row.competition_id] = (memberCounts[row.competition_id] ?? 0) + 1
+        const path = (row.images as { storage_path: string } | null)?.storage_path
+        if (path) {
+          if (!memberImagePaths[row.competition_id]) memberImagePaths[row.competition_id] = []
+          memberImagePaths[row.competition_id].push(path)
+        }
       }
     }
 
@@ -369,6 +398,9 @@ export default async function CompetitionsBlock({
         submission_limit: c.submission_limit,
         totalEntries:     entryCounts[c.id] ?? 0,
         memberUsed:       memberCounts[c.id] ?? 0,
+        memberImageUrls:  (memberImagePaths[c.id] ?? []).map(
+          p => supabaseRaw.storage.from('images').getPublicUrl(p).data.publicUrl
+        ),
         categories:       cats.map(cat => ({ id: cat.id, name: cat.name, count: compCatCounts[cat.id] ?? 0 })),
       })
     }
@@ -575,46 +607,36 @@ export default async function CompetitionsBlock({
 
           {/* Zone 1 — Open now */}
           {openComps.length > 0 && (
-            <div>
-              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--action-primary)', marginBottom: 10 }}>
-                Open now
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {openComps.map(comp => (
-                  <OpenCompCard key={comp.id} comp={comp} userId={userId} />
-                ))}
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {openComps.map(comp => (
+                <OpenCompCard key={comp.id} comp={comp} userId={userId} />
+              ))}
             </div>
           )}
 
           {/* Zone 1b — Judging in progress */}
           {judgingComps.length > 0 && (
-            <div>
-              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--status-warning)', marginBottom: 10 }}>
-                Judging in progress
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {judgingComps.map(comp => (
-                  <div key={comp.id} style={{
-                    display:      'flex',
-                    alignItems:   'center',
-                    gap:          10,
-                    padding:      '10px 14px 10px 12px',
-                    borderRadius: 10,
-                    border:       '1px solid var(--border-default)',
-                    borderLeft:   '3px solid var(--status-warning)',
-                    background:   'var(--phase-warning-bg)',
-                  }}>
-                    <span style={{ fontSize: 15, color: 'var(--status-warning)', flexShrink: 0, lineHeight: 1 }}>◐</span>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-lora, Georgia, serif)', flex: 1, minWidth: 0 }}>
-                      {displayName(comp)}
-                    </span>
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>
-                      Judging in progress
-                    </span>
-                  </div>
-                ))}
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {judgingComps.map(comp => (
+                <div key={comp.id} style={{
+                  display:      'flex',
+                  alignItems:   'center',
+                  gap:          10,
+                  padding:      '10px 14px 10px 12px',
+                  borderRadius: 10,
+                  border:       '1px solid var(--border-default)',
+                  borderLeft:   '3px solid var(--status-warning)',
+                  background:   'var(--phase-warning-bg)',
+                }}>
+                  <span style={{ fontSize: 15, color: 'var(--status-warning)', flexShrink: 0, lineHeight: 1 }}>◐</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-lora, Georgia, serif)', flex: 1, minWidth: 0 }}>
+                    {displayName(comp)}
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--status-warning)', flexShrink: 0 }}>
+                    Judging in progress
+                  </span>
+                </div>
+              ))}
             </div>
           )}
 
@@ -689,43 +711,6 @@ export default async function CompetitionsBlock({
                 </div>
               )}
 
-              {/* Member's own result */}
-              {settings.showMemberResult && memberOwnResult && (
-                <div style={{
-                  marginTop:    16,
-                  padding:      '12px 16px',
-                  background:   'var(--surface-1)',
-                  borderRadius: 8,
-                  border:       '1px solid var(--border-subtle)',
-                }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 10 }}>
-                    Your result
-                  </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ position: 'relative', width: 52, height: 40, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: 'var(--surface-0)' }}>
-                      <Image
-                        src={supabaseRaw.storage.from('images').getPublicUrl(memberOwnResult.storagePath).data.publicUrl}
-                        alt={memberOwnResult.imageTitle}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                        sizes="52px"
-                      />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>
-                        {memberOwnResult.imageTitle}
-                      </p>
-                      <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-                        {memberOwnResult.categoryName}
-                        {' · '}
-                        Score: <strong>{memberOwnResult.score.toFixed(1)}</strong>
-                        {' · '}
-                        {ordinal(memberOwnResult.placement)} place
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
