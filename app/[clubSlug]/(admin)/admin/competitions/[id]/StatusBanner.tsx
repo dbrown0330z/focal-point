@@ -71,6 +71,30 @@ export function StatusBanner({
       )
     }
 
+    const submissionsClosed = closesAt ? new Date(closesAt) < new Date() : false
+
+    if (submissionsClosed) {
+      return (
+        <div className="rounded-xl border border-[#F0D060] bg-[#FFFBE6] px-5 py-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-[#6B5000]">
+              Submissions closed · {submissionCount} {submissionCount === 1 ? 'entry' : 'entries'} received
+            </p>
+            <p className="text-sm text-[#6B5000] mt-0.5">
+              Mark this competition as judging to enable the judge portal.
+            </p>
+          </div>
+          <button
+            disabled={isPending}
+            onClick={() => startTransition(() => transitionStatus(id, 'judging'))}
+            className={`shrink-0 ${btnPrimary}`}
+          >
+            {isPending ? 'Updating…' : 'Begin judging →'}
+          </button>
+        </div>
+      )
+    }
+
     return (
       <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4 flex items-center justify-between gap-4">
         <div>

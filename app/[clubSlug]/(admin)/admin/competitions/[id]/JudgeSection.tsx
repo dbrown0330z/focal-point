@@ -244,6 +244,24 @@ export function JudgeSection({
             </div>
             <span className="text-xs text-content-tertiary">Judging complete</span>
           </div>
+          {judgingUrl && (
+            <div className="mt-2 flex items-center gap-2 rounded-lg bg-surface-1 px-3 py-2">
+              <span className="flex-1 truncate font-mono text-xs text-content-secondary">
+                {judgingUrl}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(judgingUrl)
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
+                }}
+                className="shrink-0 text-xs text-content-tertiary hover:text-content-primary transition-colors"
+              >
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     )

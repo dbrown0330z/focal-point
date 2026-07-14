@@ -134,6 +134,20 @@ export default async function CompetitionDetailPage({
         />
       </div>
 
+      {/* Results link — only when results are published */}
+      {(competition.status === 'results_published' || competition.status === 'closed') && (
+        <Link
+          href={`/${clubSlug}/competitions/results/${id}`}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border-default bg-surface-1 px-4 py-2 text-sm font-medium text-content-primary hover:bg-surface-2 transition-colors"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z" />
+          </svg>
+          View member results page →
+        </Link>
+      )}
+
       {/* Status banner */}
       <StatusBanner
         id={id}
