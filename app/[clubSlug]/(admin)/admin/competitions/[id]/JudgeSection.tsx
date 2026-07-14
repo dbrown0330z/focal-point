@@ -245,22 +245,53 @@ export function JudgeSection({
             <span className="text-xs text-content-tertiary">Judging complete</span>
           </div>
           {judgingUrl && (
-            <div className="mt-2 flex items-center gap-2 rounded-lg bg-surface-1 px-3 py-2">
-              <span className="flex-1 truncate font-mono text-xs text-content-secondary">
-                {judgingUrl}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(judgingUrl)
-                  setCopied(true)
-                  setTimeout(() => setCopied(false), 2000)
-                }}
-                className="shrink-0 text-xs text-content-tertiary hover:text-content-primary transition-colors"
-              >
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
-            </div>
+            <>
+              <div className="mt-2 flex items-center gap-2 rounded-lg bg-surface-1 px-3 py-2">
+                <span className="flex-1 truncate font-mono text-xs text-content-secondary">
+                  {judgingUrl}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(judgingUrl)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                  }}
+                  className="shrink-0 text-xs text-content-tertiary hover:text-content-primary transition-colors"
+                >
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+              {judge.access_code && (
+                <div className="mt-1.5 flex items-center gap-2">
+                  <span className="text-xs text-content-tertiary">Access code:</span>
+                  <span className="font-mono text-sm font-semibold tracking-widest text-content-primary">
+                    {judge.access_code}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(judge.access_code!)
+                      setCodeCopied(true)
+                      setTimeout(() => setCodeCopied(false), 2000)
+                    }}
+                    className="text-xs text-content-tertiary hover:text-content-primary transition-colors"
+                  >
+                    {codeCopied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+              )}
+              <div className="mt-2">
+                <button
+                  type="button"
+                  disabled={portalPending}
+                  onClick={() => startPortal(() => adminOpenJudgePortal(judge.token))}
+                  className="text-xs font-medium text-action-primary hover:underline disabled:opacity-60 transition-colors"
+                >
+                  {portalPending ? 'Opening…' : 'Open judging portal →'}
+                </button>
+              </div>
+            </>
           )}
         </div>
       </div>
