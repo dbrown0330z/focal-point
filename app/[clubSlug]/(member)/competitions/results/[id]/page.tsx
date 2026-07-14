@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubSlug, requireClubId } from '@/lib/club-context'
+import { requireClubSlug } from '@/lib/club-context'
 import ResultsClient from './ResultsClient'
 import type { AwardTier } from '@/types/competition'
 
@@ -79,8 +79,8 @@ export default async function CompetitionResultsPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const [clubSlug, clubId] = await Promise.all([requireClubSlug(), requireClubId()])
-  const admin = createServiceClient()
+  const clubSlug = await requireClubSlug()
+  const admin    = createServiceClient()
 
   // Get current user (for "Mine" filter)
   const supabase = await createClient()
@@ -89,7 +89,7 @@ export default async function CompetitionResultsPage({
   const { data: comp } = await admin
     .from('competitions')
     .select(`
-      id, title, closes_at, results_at,
+      id, title, closes_at, results_at, club_id,
       score_aggregation, awards_enabled, award_types,
       competition_categories(id, name, sort_order),
       judge_tokens(judge_name)
@@ -197,11 +197,14 @@ export default async function CompetitionResultsPage({
   const memberIds      = new Set(subs.map(s => s.member_id))
   const membersSubmitted = memberIds.size
 
-  const { count: totalMembers } = await admin
-    .from('club_memberships')
-    .select('id', { count: 'exact', head: true })
-    .eq('club_id', clubId)
-    .eq('membership_status', 'active')
+  const compClubId = (comp as unknown as { club_id: string | null }).club_id
+  const { count: totalMembers } = compClubId
+    ? await admin
+        .from('club_memberships')
+        .select('id', { count: 'exact', head: true })
+        .eq('club_id', compClubId)
+        .eq('membership_status', 'active')
+    : { count: 0 }
 
   const scored = allEntries.filter(e => e.aggregatedScore !== null)
   const averageScore = scored.length > 0
