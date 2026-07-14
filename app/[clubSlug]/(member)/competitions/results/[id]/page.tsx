@@ -95,7 +95,7 @@ export default async function CompetitionResultsPage({
       judge_tokens(judge_name)
     `)
     .eq('id', id)
-    .in('status', ['results_pending', 'results_published', 'closed'])
+    .in('status', ['results_published', 'closed'])
     .is('deleted_at', null)
     .single()
 

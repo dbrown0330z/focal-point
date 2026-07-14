@@ -20,13 +20,13 @@ export default async function CompetitionResultsIndexPage({
 
   const { data: compsRaw } = await admin
     .from('competitions')
-    .select('id, title, closes_at, judge_tokens(judge_name)')
+    .select('id, title, status, closes_at, judge_tokens(judge_name)')
     .in('status', ['results_pending', 'results_published', 'closed'])
     .is('deleted_at', null)
     .order('closes_at', { ascending: false })
 
   type JudgeToken = { judge_name: string }
-  type CompRow = { id: string; title: string; closes_at: string | null; judge_tokens: JudgeToken[] | null }
+  type CompRow = { id: string; title: string; status: string; closes_at: string | null; judge_tokens: JudgeToken[] | null }
   const allComps: CompRow[] = (compsRaw as CompRow[] | null) ?? []
 
   // Derive available years from closes_at
@@ -53,7 +53,7 @@ export default async function CompetitionResultsIndexPage({
         .eq('status', 'submitted')
 
       const judgeName = (comp.judge_tokens as JudgeToken[] | null)?.[0]?.judge_name ?? null
-      return { id: comp.id, title: comp.title, closesAt: comp.closes_at, judgeName, imageCount: count ?? 0 }
+      return { id: comp.id, title: comp.title, status: comp.status, closesAt: comp.closes_at, judgeName, imageCount: count ?? 0 }
     }),
   )
 
@@ -163,16 +163,22 @@ export default async function CompetitionResultsIndexPage({
                 {comp.imageCount}
               </p>
               <div>
-                <Link
-                  href={`/${clubSlug}/competitions/results/${comp.id}`}
-                  className="inline-flex items-center gap-1.5 text-[13px] font-semibold transition-colors"
-                  style={{ color: 'var(--action-primary)' }}
-                >
-                  View full results
-                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
-                  </svg>
-                </Link>
+                {comp.status === 'results_pending' ? (
+                  <p className="text-[13px] italic" style={{ color: 'var(--text-tertiary)' }}>
+                    Results coming soon
+                  </p>
+                ) : (
+                  <Link
+                    href={`/${clubSlug}/competitions/results/${comp.id}`}
+                    className="inline-flex items-center gap-1.5 text-[13px] font-semibold transition-colors"
+                    style={{ color: 'var(--action-primary)' }}
+                  >
+                    View full results
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
+                    </svg>
+                  </Link>
+                )}
               </div>
             </div>
           ))}
