@@ -1,835 +1,422 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import type { ResultsData, RankedEntry, CategoryResults } from './page'
-
-// ─── Rank styling ─────────────────────────────────────────────────────────────
-
-type RankStyle = { bg: string; text: string; border: string; label: string }
-
-const RANK_STYLES: Record<number, RankStyle> = {
-  1: { bg: '#B8860B', text: '#FFF8E1', border: '#D4A017', label: '1st Place' },
-  2: { bg: '#6B7280', text: '#F9FAFB', border: '#9CA3AF', label: '2nd Place' },
-  3: { bg: '#92400E', text: '#FFF7ED', border: '#B45309', label: '3rd Place' },
-}
-
-function rankStyle(rank: number): RankStyle {
-  return RANK_STYLES[rank] ?? { bg: 'var(--surface-0)', text: 'var(--text-secondary)', border: 'var(--border-default)', label: `${rank}th` }
-}
-
-function rankLabel(rank: number): string {
-  if (rank === 1) return '1st'
-  if (rank === 2) return '2nd'
-  if (rank === 3) return '3rd'
-  return `${rank}th`
-}
-
-// ─── Score display ────────────────────────────────────────────────────────────
-
-function fmt(score: number | null, method: string): string {
-  if (score === null) return '—'
-  const rounded = method === 'sum' ? Math.round(score * 10) / 10 : Math.round(score * 10) / 10
-  return rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1)
-}
-
-// ─── Date format ──────────────────────────────────────────────────────────────
+import type { ResultsData, RankedEntry } from './page'
 
 function fmtDate(iso: string | null): string {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
-
-function IconClose() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
-      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-    </svg>
-  )
-}
-
-function IconChevronLeft() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-6 w-6">
-      <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
-    </svg>
-  )
-}
-
-function IconChevronRight() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-6 w-6">
-      <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
-    </svg>
-  )
-}
-
-function IconChevronDown() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-      <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clipRule="evenodd" />
-    </svg>
-  )
-}
-
-function IconArrowLeft() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-      <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
-    </svg>
-  )
+function fmtScore(score: number | null, method: string): string {
+  if (score === null) return '—'
+  const v = method === 'sum' ? Math.round(score * 10) / 10 : Math.round(score * 10) / 10
+  return v % 1 === 0 ? String(v) : v.toFixed(1)
 }
 
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
 
-type LightboxEntry = {
-  imageUrl: string
-  imageTitle: string
-  memberName: string
-  rank: number
-  aggregatedScore: number | null
-  awardLabel: string | null
-  scoreAggregation: string
-  categoryName: string
-  judgeNotes: string[]
-}
-
 function Lightbox({
   entries,
-  startIdx,
+  startIndex,
+  scoreMethod,
   onClose,
-  scoreAggregation,
-  hasScores,
 }: {
-  entries: LightboxEntry[]
-  startIdx: number
+  entries: RankedEntry[]
+  startIndex: number
+  scoreMethod: string
   onClose: () => void
-  scoreAggregation: string
-  hasScores: boolean
 }) {
-  const [idx, setIdx] = useState(startIdx)
-  const current = entries[idx]
-
-  const prev = useCallback(() => { if (idx > 0) setIdx(idx - 1) }, [idx])
-  const next = useCallback(() => { if (idx < entries.length - 1) setIdx(idx + 1) }, [idx, entries.length])
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape')     onClose()
-      if (e.key === 'ArrowLeft')  prev()
-      if (e.key === 'ArrowRight') next()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose, prev, next])
-
-  if (!current) return null
-  const rs = rankStyle(current.rank)
+  const [index, setIndex] = useState(startIndex)
+  const entry = entries[index]
 
   return (
     <div
-      className="fixed inset-0 z-[2000] flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(6px)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.92)' }}
       onClick={onClose}
     >
+      <button
+        className="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-full text-white"
+        style={{ background: 'rgba(255,255,255,0.12)' }}
+        onClick={onClose}
+        aria-label="Close"
+      >
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      {entries.length > 1 && (
+        <button
+          className="absolute left-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-lg text-white"
+          style={{ background: 'rgba(255,255,255,0.12)' }}
+          onClick={e => { e.stopPropagation(); setIndex(i => (i - 1 + entries.length) % entries.length) }}
+          aria-label="Previous"
+        >‹</button>
+      )}
+
       <div
-        className="relative flex w-full max-w-4xl flex-col items-center px-4"
+        className="mx-auto flex max-h-[90vh] max-w-[90vw] flex-col items-center gap-4"
         onClick={e => e.stopPropagation()}
       >
-        {/* Close */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute -top-12 right-4 flex h-9 w-9 items-center justify-center rounded-full text-white/70 transition-colors hover:text-white"
-          style={{ background: 'rgba(255,255,255,0.10)' }}
-        >
-          <IconClose />
-        </button>
-
-        {/* Image */}
-        <div className="relative w-full overflow-hidden rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={current.imageUrl}
-            alt={current.imageTitle}
-            className="max-h-[72vh] w-full object-contain"
-          />
-
-          {/* Rank badge */}
-          <div
-            className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold"
-            style={{ background: rs.bg, color: rs.text, border: `1px solid ${rs.border}` }}
-          >
-            {rankLabel(current.rank)}
-            {current.awardLabel && <span style={{ opacity: 0.8 }}>· {current.awardLabel}</span>}
-          </div>
-
-          {/* Prev / Next */}
-          {idx > 0 && (
-            <button
-              type="button"
-              onClick={e => { e.stopPropagation(); prev() }}
-              className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full text-white transition-colors hover:bg-white/20"
-              style={{ background: 'rgba(0,0,0,0.50)' }}
-            >
-              <IconChevronLeft />
-            </button>
-          )}
-          {idx < entries.length - 1 && (
-            <button
-              type="button"
-              onClick={e => { e.stopPropagation(); next() }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full text-white transition-colors hover:bg-white/20"
-              style={{ background: 'rgba(0,0,0,0.50)' }}
-            >
-              <IconChevronRight />
-            </button>
-          )}
-        </div>
-
-        {/* Caption */}
-        <div className="mt-4 flex w-full items-start justify-between gap-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={entry.imageUrl}
+          alt={entry.imageTitle}
+          className="max-h-[78vh] max-w-full rounded-lg object-contain"
+        />
+        <div className="flex items-center gap-4 text-center">
           <div>
-            <p
-              className="text-[18px] font-bold leading-snug text-white"
-              style={{ fontFamily: 'var(--font-primary)' }}
-            >
-              {current.imageTitle}
+            <p className="text-base font-semibold text-white">{entry.imageTitle}</p>
+            <p className="mt-0.5 text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>
+              {entry.memberName} · {entry.categoryName}
             </p>
-            <p className="mt-0.5 text-[13px] text-white/60">
-              {current.categoryName} · by {current.memberName}
-            </p>
-            {current.judgeNotes.length > 0 && (
-              <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-white/50 italic">
-                &ldquo;{current.judgeNotes[0]}&rdquo;
-              </p>
-            )}
           </div>
-          {hasScores && (
-            <div className="shrink-0 text-right">
-              <p
-                className="text-[36px] font-bold leading-none text-white"
-                style={{ fontFamily: 'var(--font-primary)' }}
-              >
-                {fmt(current.aggregatedScore, scoreAggregation)}
-              </p>
-              <p className="mt-0.5 text-[11px] uppercase tracking-widest text-white/40">
-                {scoreAggregation === 'sum' ? 'total score' : scoreAggregation === 'average' ? 'avg score' : 'adj. score'}
-              </p>
-            </div>
+          {entry.aggregatedScore !== null && (
+            <span
+              className="rounded-lg px-3 py-1.5 text-lg font-bold text-white"
+              style={{ background: 'rgba(255,255,255,0.15)' }}
+            >
+              {fmtScore(entry.aggregatedScore, scoreMethod)}
+            </span>
           )}
         </div>
-
-        {/* Dot strip */}
-        {entries.length > 1 && (
-          <div className="mt-4 flex gap-1.5">
-            {entries.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={e => { e.stopPropagation(); setIdx(i) }}
-                className="h-1.5 rounded-full transition-all"
-                style={{
-                  width:      i === idx ? 20 : 6,
-                  background: i === idx ? 'white' : 'rgba(255,255,255,0.28)',
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ─── Award badge ──────────────────────────────────────────────────────────────
-
-function AwardBadge({ label }: { label: string }) {
-  return (
-    <span
-      className="inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.04em]"
-      style={{ background: 'rgba(184,134,11,0.15)', color: '#B8860B', border: '1px solid rgba(184,134,11,0.35)' }}
-    >
-      {label}
-    </span>
-  )
-}
-
-// ─── Rank pill ────────────────────────────────────────────────────────────────
-
-function RankPill({ rank, size = 'sm' }: { rank: number; size?: 'sm' | 'lg' }) {
-  const rs = rankStyle(rank)
-  return (
-    <span
-      className="inline-flex shrink-0 items-center justify-center rounded-full font-bold"
-      style={{
-        background: rs.bg,
-        color:      rs.text,
-        border:     `1px solid ${rs.border}`,
-        width:      size === 'lg' ? 36 : 24,
-        height:     size === 'lg' ? 36 : 24,
-        fontSize:   size === 'lg' ? 14 : 11,
-        minWidth:   size === 'lg' ? 36 : 24,
-      }}
-    >
-      {rank}
-    </span>
-  )
-}
-
-// ─── Winner card (1st place, full width) ──────────────────────────────────────
-
-function WinnerCard({
-  entry,
-  hasScores,
-  scoreAggregation,
-  onOpen,
-}: {
-  entry: RankedEntry
-  hasScores: boolean
-  scoreAggregation: string
-  onOpen: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="group relative w-full overflow-hidden rounded-2xl focus:outline-none"
-      style={{
-        boxShadow: '0 4px 32px rgba(0,0,0,0.18)',
-        display: 'block',
-      }}
-    >
-      {/* Image */}
-      <div className="relative w-full" style={{ paddingTop: '52%' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={entry.imageUrl}
-          alt={entry.imageTitle}
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-        />
-        {/* Gradient overlay */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.72) 100%)',
-          }}
-        />
-
-        {/* Top-left: rank badge */}
-        <div className="absolute left-5 top-5">
-          <div
-            className="flex items-center gap-2 rounded-full px-3 py-1.5"
-            style={{
-              background: RANK_STYLES[1].bg,
-              color:      RANK_STYLES[1].text,
-              boxShadow:  '0 2px 8px rgba(0,0,0,0.35)',
-            }}
-          >
-            <span className="text-[13px] font-bold tracking-wide">1st Place</span>
-            {entry.awardLabel && (
-              <>
-                <span style={{ opacity: 0.6 }}>·</span>
-                <span className="text-[12px] font-semibold" style={{ opacity: 0.9 }}>{entry.awardLabel}</span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Top-right: score */}
-        {hasScores && entry.aggregatedScore !== null && (
-          <div
-            className="absolute right-5 top-5 flex flex-col items-end"
-            style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
-          >
-            <span
-              className="text-[44px] font-bold leading-none text-white"
-              style={{ fontFamily: 'var(--font-primary)' }}
-            >
-              {fmt(entry.aggregatedScore, scoreAggregation)}
-            </span>
-            <span className="text-[11px] uppercase tracking-widest text-white/60 mt-0.5">
-              {scoreAggregation === 'sum' ? 'points' : 'score'}
-            </span>
-          </div>
-        )}
-
-        {/* Bottom caption */}
-        <div className="absolute bottom-0 left-0 right-0 px-6 pb-5">
-          <p
-            className="text-[22px] font-bold leading-tight text-white"
-            style={{ fontFamily: 'var(--font-primary)', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}
-          >
-            {entry.imageTitle}
-          </p>
-          <p className="mt-1 text-[14px] text-white/75">
-            by {entry.memberName}
-          </p>
-        </div>
-
-        {/* Hover overlay */}
-        <div
-          className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-          style={{ background: 'rgba(0,0,0,0.12)' }}
-        >
-          <span
-            className="rounded-full px-4 py-1.5 text-[12px] font-bold text-white"
-            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
-          >
-            View full size
-          </span>
-        </div>
-      </div>
-    </button>
-  )
-}
-
-// ─── Placed card (2nd / 3rd, side by side) ────────────────────────────────────
-
-function PlacedCard({
-  entry,
-  hasScores,
-  scoreAggregation,
-  onOpen,
-}: {
-  entry: RankedEntry
-  hasScores: boolean
-  scoreAggregation: string
-  onOpen: () => void
-}) {
-  const rs = rankStyle(entry.rank)
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="group relative overflow-hidden rounded-xl focus:outline-none"
-      style={{
-        display: 'block',
-        width: '100%',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
-      }}
-    >
-      {/* Image */}
-      <div className="relative w-full" style={{ paddingTop: '70%' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={entry.imageUrl}
-          alt={entry.imageTitle}
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-        />
-        <div
-          className="absolute inset-0"
-          style={{ background: 'linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.65) 100%)' }}
-        />
-
-        {/* Rank badge */}
-        <div className="absolute left-3 top-3">
-          <span
-            className="flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-bold"
-            style={{ background: rs.bg, color: rs.text, border: `1px solid ${rs.border}` }}
-          >
-            {entry.rank}
-          </span>
-        </div>
-
-        {/* Score */}
-        {hasScores && entry.aggregatedScore !== null && (
-          <div
-            className="absolute right-3 top-3 rounded-full px-2 py-0.5 text-[13px] font-bold text-white"
-            style={{ background: 'rgba(0,0,0,0.60)', backdropFilter: 'blur(4px)' }}
-          >
-            {fmt(entry.aggregatedScore, scoreAggregation)}
-          </div>
-        )}
-
-        {/* Caption */}
-        <div className="absolute bottom-0 left-0 right-0 px-3 pb-3">
-          <p
-            className="text-[14px] font-bold leading-snug text-white"
-            style={{ fontFamily: 'var(--font-primary)' }}
-          >
-            {entry.imageTitle}
-          </p>
-          <p className="text-[11px] text-white/65 mt-0.5">
-            {entry.memberName}
-          </p>
-        </div>
-
-        {/* Hover */}
-        <div
-          className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100"
-          style={{ background: 'rgba(0,0,0,0.15)' }}
-        >
-          <span
-            className="rounded-full px-3 py-1 text-[11px] font-bold text-white"
-            style={{ background: 'rgba(0,0,0,0.55)' }}
-          >
-            View
-          </span>
-        </div>
       </div>
 
-      {/* Award badge below image */}
-      {entry.awardLabel && (
-        <div
-          className="px-3 py-1.5"
-          style={{ background: 'var(--surface-1)', borderTop: '1px solid var(--border-subtle)' }}
-        >
-          <AwardBadge label={entry.awardLabel} />
-        </div>
+      {entries.length > 1 && (
+        <button
+          className="absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-lg text-white"
+          style={{ background: 'rgba(255,255,255,0.12)' }}
+          onClick={e => { e.stopPropagation(); setIndex(i => (i + 1) % entries.length) }}
+          aria-label="Next"
+        >›</button>
       )}
-    </button>
-  )
-}
 
-// ─── Compact entry card (4th+) ────────────────────────────────────────────────
-
-function CompactCard({
-  entry,
-  hasScores,
-  scoreAggregation,
-  onOpen,
-}: {
-  entry: RankedEntry
-  hasScores: boolean
-  scoreAggregation: string
-  onOpen: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="group flex flex-col overflow-hidden rounded-xl text-left focus:outline-none"
-      style={{ background: 'var(--surface-1)', border: '1px solid var(--border-subtle)' }}
-    >
-      {/* Thumbnail */}
-      <div className="relative w-full overflow-hidden" style={{ paddingTop: '72%' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={entry.imageUrl}
-          alt={entry.imageTitle}
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.05]"
-        />
-        {/* Rank */}
-        <span
-          className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold"
-          style={{ background: 'rgba(0,0,0,0.68)', color: '#fff' }}
-        >
-          {entry.rank}
-        </span>
-        {/* Score overlay */}
-        {hasScores && entry.aggregatedScore !== null && (
-          <span
-            className="absolute right-2 top-2 rounded-full px-2 py-0.5 text-[11px] font-bold text-white"
-            style={{ background: 'rgba(0,0,0,0.65)' }}
-          >
-            {fmt(entry.aggregatedScore, scoreAggregation)}
-          </span>
-        )}
-        <div
-          className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100"
-          style={{ background: 'rgba(0,0,0,0.18)' }}
-        >
-          <span className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style={{ background: 'rgba(0,0,0,0.55)' }}>
-            View
-          </span>
-        </div>
-      </div>
-
-      {/* Info */}
-      <div className="px-2.5 py-2">
-        <p
-          className="truncate text-[12px] font-semibold leading-snug"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          {entry.imageTitle}
-        </p>
-        <p className="mt-0.5 truncate text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-          {entry.memberName}
-        </p>
-        {entry.awardLabel && (
-          <div className="mt-1.5">
-            <AwardBadge label={entry.awardLabel} />
-          </div>
-        )}
-      </div>
-    </button>
-  )
-}
-
-// ─── Category section ─────────────────────────────────────────────────────────
-
-function CategorySection({
-  cat,
-  hasScores,
-  scoreAggregation,
-  onOpenLightbox,
-}: {
-  cat: CategoryResults
-  hasScores: boolean
-  scoreAggregation: string
-  onOpenLightbox: (categoryId: string, submissionId: string) => void
-}) {
-  const [showAll, setShowAll] = useState(false)
-
-  const [first, ...rest]  = cat.entries
-  const second            = rest[0]
-  const third             = rest[1]
-  const remaining         = rest.slice(2)         // 4th place+
-
-  const placedPair = [second, third].filter(Boolean)
-  const hasRemaining = remaining.length > 0
-
-  if (!first) {
-    return (
-      <div className="py-4 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
-        No entries in this category.
-      </div>
-    )
-  }
-
-  return (
-    <div>
-      {/* Winner */}
-      <WinnerCard
-        entry={first}
-        hasScores={hasScores}
-        scoreAggregation={scoreAggregation}
-        onOpen={() => onOpenLightbox(cat.categoryId, first.submissionId)}
-      />
-
-      {/* 2nd and 3rd */}
-      {placedPair.length > 0 && (
-        <div
-          className="mt-3 grid gap-3"
-          style={{ gridTemplateColumns: `repeat(${placedPair.length}, 1fr)` }}
-        >
-          {placedPair.map(entry => (
-            <PlacedCard
-              key={entry.submissionId}
-              entry={entry}
-              hasScores={hasScores}
-              scoreAggregation={scoreAggregation}
-              onOpen={() => onOpenLightbox(cat.categoryId, entry.submissionId)}
+      {entries.length > 1 && entries.length <= 24 && (
+        <div className="absolute bottom-5 flex gap-1.5">
+          {entries.map((_, i) => (
+            <button
+              key={i}
+              onClick={e => { e.stopPropagation(); setIndex(i) }}
+              className="h-1.5 rounded-full transition-all"
+              style={{
+                width: i === index ? 20 : 6,
+                background: i === index ? '#fff' : 'rgba(255,255,255,0.35)',
+              }}
+              aria-label={`Image ${i + 1}`}
             />
           ))}
         </div>
       )}
-
-      {/* 4th+ */}
-      {hasRemaining && (
-        <div className="mt-3">
-          {/* Show/hide toggle */}
-          <button
-            type="button"
-            onClick={() => setShowAll(v => !v)}
-            className="flex items-center gap-1.5 text-[13px] font-semibold transition-colors"
-            style={{ color: 'var(--action-primary)' }}
-          >
-            <span
-              className="transition-transform duration-200"
-              style={{ display: 'inline-block', transform: showAll ? 'rotate(180deg)' : 'none' }}
-            >
-              <IconChevronDown />
-            </span>
-            {showAll
-              ? 'Hide remaining entries'
-              : `Show all ${remaining.length} more ${remaining.length === 1 ? 'entry' : 'entries'}`}
-          </button>
-
-          {showAll && (
-            <div
-              className="mt-3 grid gap-2.5"
-              style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}
-            >
-              {remaining.map(entry => (
-                <CompactCard
-                  key={entry.submissionId}
-                  entry={entry}
-                  hasScores={hasScores}
-                  scoreAggregation={scoreAggregation}
-                  onOpen={() => onOpenLightbox(cat.categoryId, entry.submissionId)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
+// ─── Category bar chart ────────────────────────────────────────────────────────
 
-function EmptyResults() {
+function CategoryChart({ data }: { data: ResultsData }) {
+  const counts = data.categories.map(cat => ({ name: cat.categoryName, count: cat.entries.length }))
+  const max    = Math.max(...counts.map(c => c.count), 1)
+
   return (
-    <div className="flex flex-col items-center py-20 text-center">
-      <div
-        className="mb-5 flex h-16 w-16 items-center justify-center rounded-full"
-        style={{ background: 'var(--surface-1)' }}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8" style={{ color: 'var(--text-tertiary)' }}>
-          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-          <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
-          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
-          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
-        </svg>
+    <div
+      className="overflow-hidden"
+      style={{
+        borderRadius: 12,
+        border: '1px solid var(--border-default)',
+        background: 'var(--surface-1)',
+        padding: '20px 24px',
+      }}
+    >
+      <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.07em]" style={{ color: 'var(--text-tertiary)' }}>
+        By Category
+      </p>
+      <div className="space-y-2.5">
+        {counts.map(cat => (
+          <div key={cat.name} className="grid items-center gap-3" style={{ gridTemplateColumns: '100px 1fr 36px' }}>
+            <p className="truncate text-right text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+              {cat.name}
+            </p>
+            <div className="h-3 overflow-hidden rounded-full" style={{ background: 'var(--surface-0)' }}>
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${(cat.count / max) * 100}%`,
+                  background: 'var(--action-primary)',
+                  transition: 'width 0.6s ease',
+                }}
+              />
+            </div>
+            <p className="text-center text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>
+              {cat.count}
+            </p>
+          </div>
+        ))}
       </div>
-      <p className="text-[17px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-        No results to show yet
-      </p>
-      <p className="mt-1 text-[14px]" style={{ color: 'var(--text-secondary)' }}>
-        No images were entered in this competition, or results haven&apos;t been published.
-      </p>
     </div>
+  )
+}
+
+// ─── Entry card ───────────────────────────────────────────────────────────────
+
+function EntryCard({
+  entry,
+  scoreMethod,
+  onClick,
+}: {
+  entry: RankedEntry
+  scoreMethod: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group w-full overflow-hidden rounded-xl text-left transition-transform hover:-translate-y-0.5"
+      style={{
+        background: 'var(--surface-1)',
+        border: '1px solid var(--border-subtle)',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      }}
+    >
+      <div className="relative" style={{ paddingTop: '125%' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={entry.imageUrl}
+          alt={entry.imageTitle}
+          className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
+        />
+        {/* Score badge */}
+        {entry.aggregatedScore !== null && (
+          <span
+            className="absolute bottom-2 right-2 rounded-md px-1.5 py-0.5 text-[13px] font-bold text-white"
+            style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+          >
+            {fmtScore(entry.aggregatedScore, scoreMethod)}
+          </span>
+        )}
+        {/* Award badge */}
+        {entry.awardLabel && (
+          <span
+            className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase text-white"
+            style={{ background: 'rgba(0,0,0,0.60)' }}
+          >
+            {entry.awardLabel}
+          </span>
+        )}
+      </div>
+      <div className="px-3 py-2.5">
+        <p
+          className="overflow-hidden text-[13px] font-semibold leading-snug"
+          style={{
+            color: 'var(--text-primary)',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+          }}
+        >
+          {entry.imageTitle}
+        </p>
+        <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+          {entry.categoryName}
+        </p>
+        <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+          {entry.memberName}
+        </p>
+      </div>
+    </button>
   )
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-export default function ResultsClient({ data, clubSlug }: { data: ResultsData; clubSlug: string }) {
-  // Flatten all entries across all categories for lightbox navigation
-  type LightboxState = { categoryId: string; submissionId: string } | null
-  const [lightbox, setLightbox] = useState<LightboxState>(null)
+export default function ResultsClient({
+  data,
+  clubSlug,
+}: {
+  data: ResultsData
+  clubSlug: string
+}) {
+  const [activeFilter, setActiveFilter] = useState('all')
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
-  // Flat list with submissionId for reliable lightbox index lookup
-  const allEntries: (LightboxEntry & { submissionId: string })[] = data.categories.flatMap(cat =>
-    cat.entries.map(e => ({
-      submissionId:     e.submissionId,
-      imageUrl:         e.imageUrl,
-      imageTitle:       e.imageTitle,
-      memberName:       e.memberName,
-      rank:             e.rank,
-      aggregatedScore:  e.aggregatedScore,
-      awardLabel:       e.awardLabel,
-      scoreAggregation: data.scoreAggregation,
-      categoryName:     cat.categoryName,
-      judgeNotes:       e.judgeNotes,
-    }))
-  )
+  const mySet      = new Set(data.mySubmissionIds)
+  const allEntries = data.categories.flatMap(c => c.entries)
 
-  const lightboxIdx = lightbox
-    ? allEntries.findIndex(e => e.submissionId === lightbox.submissionId)
-    : -1
+  const filteredEntries =
+    activeFilter === 'all'
+      ? allEntries
+      : activeFilter === 'mine'
+        ? allEntries.filter(e => mySet.has(e.submissionId))
+        : allEntries.filter(e => e.categoryId === activeFilter)
 
-  function openLightbox(categoryId: string, submissionId: string) {
-    setLightbox({ categoryId, submissionId })
-  }
+  const mineCt = data.mySubmissionIds.length
 
-  const totalEntries = data.categories.reduce((sum, c) => sum + c.entries.length, 0)
+  const tabs = [
+    { id: 'all', label: 'All', count: allEntries.length },
+    ...(mineCt > 0 ? [{ id: 'mine', label: 'Mine', count: mineCt }] : []),
+    ...data.categories.map(cat => ({
+      id: cat.categoryId,
+      label: cat.categoryName,
+      count: cat.entries.length,
+    })),
+  ]
+
+  // Average score display
+  const avgDisplay = data.averageScore !== null
+    ? data.averageScore.toFixed(2)
+    : (data.hasScores ? '—' : '—')
 
   return (
-    <div style={{ paddingBottom: 64 }}>
-      {/* Back link */}
-      <div className="mb-6">
+    <>
+      {lightboxIndex !== null && (
+        <Lightbox
+          entries={filteredEntries}
+          startIndex={lightboxIndex}
+          scoreMethod={data.scoreAggregation}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
+
+      <div style={{ paddingBottom: 64 }}>
+        {/* Back link */}
         <Link
-          href={`/${clubSlug}/competitions`}
-          className="inline-flex items-center gap-1.5 text-[13px] font-semibold transition-colors"
+          href={`/${clubSlug}/competitions/results`}
+          className="mb-6 inline-flex items-center gap-1.5 text-sm transition-colors"
           style={{ color: 'var(--text-secondary)' }}
-          onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-primary)')}
-          onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-secondary)')}
         >
-          <IconArrowLeft />
-          All competitions
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
+          </svg>
+          All results
         </Link>
-      </div>
 
-      {/* Competition header */}
-      <div className="mb-8">
-        <p
-          className="mb-1 text-[11px] font-bold uppercase tracking-[0.08em]"
-          style={{ color: 'var(--text-tertiary)' }}
-        >
-          Competition Results
-        </p>
-        <h1
-          className="text-[34px] font-bold leading-tight tracking-[-0.02em]"
-          style={{ fontFamily: 'var(--font-primary)', color: 'var(--text-primary)' }}
-        >
-          {data.title}
-        </h1>
-
-        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
-          {data.closesAt && (
-            <span className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
-              {fmtDate(data.closesAt)}
-            </span>
-          )}
-          {data.judgeNames.length > 0 && (
-            <span className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
-              Judge: <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+        {/* ── Header ─────────────────────────────────────────────────────── */}
+        <div className="mb-6">
+          <h1
+            className="text-[32px] font-bold leading-tight tracking-[-0.025em]"
+            style={{ fontFamily: 'var(--font-primary)', color: 'var(--text-primary)' }}
+          >
+            {data.title}
+          </h1>
+          <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1">
+            {data.judgeNames.length > 0 && (
+              <p className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
+                <span style={{ color: 'var(--text-tertiary)' }}>Judge:</span>{' '}
                 {data.judgeNames.join(', ')}
-              </strong>
-            </span>
-          )}
-          {totalEntries > 0 && (
-            <span className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
-              {totalEntries} {totalEntries === 1 ? 'entry' : 'entries'} · {data.categories.length} {data.categories.length === 1 ? 'category' : 'categories'}
-            </span>
-          )}
+              </p>
+            )}
+            {data.closesAt && (
+              <p className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
+                <span style={{ color: 'var(--text-tertiary)' }}>Meeting date:</span>{' '}
+                {fmtDate(data.closesAt)}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Results */}
-      {totalEntries === 0 ? (
-        <EmptyResults />
-      ) : (
-        <div className="space-y-14">
-          {data.categories.map((cat, catIdx) => (
-            <div key={cat.categoryId}>
-              {/* Category header */}
-              <div
-                className="mb-5 flex items-center gap-4"
+        {/* ── Stats row ──────────────────────────────────────────────────── */}
+        <div
+          className="mb-6 grid"
+          style={{
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 1,
+            background: 'var(--border-default)',
+            borderRadius: 12,
+            overflow: 'hidden',
+          }}
+        >
+          {[
+            { value: String(data.totalImages).padStart(3, '0'), label: 'Total Images' },
+            {
+              value: data.totalMembers > 0
+                ? `${data.membersSubmitted} of ${data.totalMembers}`
+                : String(data.membersSubmitted),
+              label: 'Members Submitted',
+            },
+            { value: avgDisplay, label: 'Average Score' },
+          ].map(stat => (
+            <div
+              key={stat.label}
+              className="flex flex-col items-center justify-center py-5"
+              style={{ background: 'var(--surface-1)' }}
+            >
+              <p
+                className="text-[34px] font-bold leading-none tracking-[-0.02em]"
+                style={{ fontFamily: 'var(--font-primary)', color: 'var(--text-primary)' }}
               >
-                <div
-                  className="h-px flex-1"
-                  style={{ background: 'var(--border-default)' }}
-                />
-                <h2
-                  className="shrink-0 text-[13px] font-bold uppercase tracking-[0.08em]"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  {cat.categoryName}
-                </h2>
-                <div
-                  className="h-px flex-1"
-                  style={{ background: 'var(--border-default)' }}
-                />
-                <span
-                  className="shrink-0 text-[12px]"
-                  style={{ color: 'var(--text-tertiary)' }}
-                >
-                  {cat.entries.length} {cat.entries.length === 1 ? 'entry' : 'entries'}
-                </span>
-              </div>
-
-              <CategorySection
-                cat={cat}
-                hasScores={data.hasScores}
-                scoreAggregation={data.scoreAggregation}
-                onOpenLightbox={openLightbox}
-              />
-
-              {catIdx < data.categories.length - 1 && (
-                <div className="mt-14 h-px" style={{ background: 'var(--border-subtle)' }} />
-              )}
+                {stat.value}
+              </p>
+              <p
+                className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.05em]"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
+                {stat.label}
+              </p>
             </div>
           ))}
         </div>
-      )}
 
-      {/* Lightbox */}
-      {lightbox !== null && lightboxIdx >= 0 && (
-        <Lightbox
-          entries={allEntries}
-          startIdx={lightboxIdx}
-          onClose={() => setLightbox(null)}
-          scoreAggregation={data.scoreAggregation}
-          hasScores={data.hasScores}
-        />
-      )}
-    </div>
+        {/* ── Category chart ─────────────────────────────────────────────── */}
+        {data.categories.length > 1 && (
+          <div className="mb-6">
+            <CategoryChart data={data} />
+          </div>
+        )}
+
+        {/* ── Filter tabs ────────────────────────────────────────────────── */}
+        <div
+          className="mb-5 flex items-center justify-between border-b"
+          style={{ borderColor: 'var(--border-default)' }}
+        >
+          <div className="flex gap-0.5">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveFilter(tab.id)}
+                className="-mb-px px-3 py-2 text-[13px] font-medium transition-colors"
+                style={
+                  activeFilter === tab.id
+                    ? { color: 'var(--action-primary)', borderBottom: '2px solid var(--action-primary)' }
+                    : { color: 'var(--text-secondary)', borderBottom: '2px solid transparent' }
+                }
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <p className="pb-2 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+            {filteredEntries.length} image{filteredEntries.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+
+        {/* ── Image grid ─────────────────────────────────────────────────── */}
+        {filteredEntries.length === 0 ? (
+          <div className="py-12 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
+            No entries for this filter.
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 16,
+            }}
+          >
+            {filteredEntries.map((entry, i) => (
+              <EntryCard
+                key={entry.submissionId}
+                entry={entry}
+                scoreMethod={data.scoreAggregation}
+                onClick={() => setLightboxIndex(i)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   )
 }

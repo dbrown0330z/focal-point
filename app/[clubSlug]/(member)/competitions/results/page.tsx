@@ -4,16 +4,20 @@ import { requireClubSlug } from '@/lib/club-context'
 
 export const dynamic = 'force-dynamic'
 
-function fmtDate(iso: string | null): string {
+function fmtDate(iso: string | null, opts?: Intl.DateTimeFormatOptions): string {
   if (!iso) return ''
-  return new Date(iso).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+  return new Date(iso).toLocaleDateString(undefined, opts ?? { month: 'long', year: 'numeric' })
 }
 
-export default async function CompetitionResultsIndexPage() {
-  const clubSlug = await requireClubSlug()
-  const admin    = createServiceClient()
+export default async function CompetitionResultsIndexPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ year?: string }>
+}) {
+  const { year } = await searchParams
+  const clubSlug  = await requireClubSlug()
+  const admin     = createServiceClient()
 
-  // Fetch all competitions with published results, newest first
   const { data: compsRaw } = await admin
     .from('competitions')
     .select('id, title, closes_at, judge_tokens(judge_name)')
@@ -22,17 +26,26 @@ export default async function CompetitionResultsIndexPage() {
     .order('closes_at', { ascending: false })
 
   type JudgeToken = { judge_name: string }
-  type CompRow = {
-    id: string
-    title: string
-    closes_at: string | null
-    judge_tokens: JudgeToken[] | null
-  }
-  const comps: CompRow[] = (compsRaw as CompRow[] | null) ?? []
+  type CompRow = { id: string; title: string; closes_at: string | null; judge_tokens: JudgeToken[] | null }
+  const allComps: CompRow[] = (compsRaw as CompRow[] | null) ?? []
 
-  // Get submission counts for each competition
+  // Derive available years from closes_at
+  const allYears = [
+    ...new Set(
+      allComps
+        .map(c => (c.closes_at ? new Date(c.closes_at).getFullYear() : null))
+        .filter((y): y is number => y !== null),
+    ),
+  ].sort((a, b) => b - a)
+
+  const selectedYear = year ? parseInt(year, 10) : (allYears[0] ?? new Date().getFullYear())
+
+  const filtered = allComps.filter(
+    c => c.closes_at && new Date(c.closes_at).getFullYear() === selectedYear,
+  )
+
   const withCounts = await Promise.all(
-    comps.map(async comp => {
+    filtered.map(async comp => {
       const { count } = await admin
         .from('submissions')
         .select('id', { count: 'exact', head: true })
@@ -40,35 +53,46 @@ export default async function CompetitionResultsIndexPage() {
         .eq('status', 'submitted')
 
       const judgeName = (comp.judge_tokens as JudgeToken[] | null)?.[0]?.judge_name ?? null
-
-      return {
-        id:         comp.id,
-        title:      comp.title,
-        closesAt:   comp.closes_at,
-        judgeName,
-        imageCount: count ?? 0,
-      }
-    })
+      return { id: comp.id, title: comp.title, closesAt: comp.closes_at, judgeName, imageCount: count ?? 0 }
+    }),
   )
 
   return (
     <div style={{ paddingBottom: 64 }}>
-      {/* Page header */}
-      <div className="mb-8">
+      {/* Header row */}
+      <div className="mb-8 flex flex-wrap items-baseline justify-between gap-3">
         <h1
           className="text-[28px] font-bold leading-tight tracking-[-0.02em]"
           style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
         >
           Competition Results
         </h1>
-        {withCounts.length > 0 && (
-          <p className="mt-1 text-[14px]" style={{ color: 'var(--text-secondary)' }}>
-            {withCounts.length} published {withCounts.length === 1 ? 'competition' : 'competitions'}
-          </p>
+
+        {/* Year selector */}
+        {allYears.length > 1 && (
+          <div className="flex items-center gap-1.5">
+            {allYears.map(y => (
+              <Link
+                key={y}
+                href={`/${clubSlug}/competitions/results?year=${y}`}
+                className="rounded-full px-3 py-1 text-sm font-medium transition-colors"
+                style={
+                  y === selectedYear
+                    ? { background: 'var(--action-primary)', color: '#fff' }
+                    : {
+                        background: 'var(--surface-1)',
+                        color: 'var(--text-secondary)',
+                        border: '1px solid var(--border-default)',
+                      }
+                }
+              >
+                {y}
+              </Link>
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Results list */}
       {withCounts.length === 0 ? (
         <div className="flex flex-col items-center py-20 text-center">
           <div
@@ -80,47 +104,77 @@ export default async function CompetitionResultsIndexPage() {
             </svg>
           </div>
           <p className="text-[17px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-            No results published yet
+            No results published for {selectedYear} yet
           </p>
           <p className="mt-1 text-[14px]" style={{ color: 'var(--text-secondary)' }}>
             Results will appear here once a competition has been judged and published.
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {withCounts.map(comp => (
-            <Link
+        <div
+          className="overflow-hidden"
+          style={{
+            borderRadius: 14,
+            border: '1px solid var(--border-default)',
+            background: 'var(--surface-1)',
+          }}
+        >
+          {/* Table header */}
+          <div
+            className="grid"
+            style={{
+              gridTemplateColumns: '1fr 150px 90px 180px',
+              padding: '10px 22px',
+              borderBottom: '1px solid var(--border-default)',
+              background: 'var(--surface-2)',
+            }}
+          >
+            {['Competition', 'Date', 'Images', ''].map(h => (
+              <p key={h} className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
+                {h}
+              </p>
+            ))}
+          </div>
+
+          {withCounts.map((comp, i) => (
+            <div
               key={comp.id}
-              href={`/${clubSlug}/competitions/results/${comp.id}`}
-              className="group flex items-center justify-between rounded-xl px-5 py-4 transition-colors hover:brightness-95"
+              className="grid items-center"
               style={{
-                background: 'var(--surface-1)',
-                border:     '1px solid var(--border-default)',
+                gridTemplateColumns: '1fr 150px 90px 180px',
+                padding: '14px 22px',
+                borderBottom: i < withCounts.length - 1 ? '1px solid var(--border-subtle)' : undefined,
               }}
             >
-              <div className="min-w-0">
-                <p
-                  className="text-[16px] font-semibold leading-snug transition-colors group-hover:underline"
-                  style={{ fontFamily: 'var(--font-primary)', color: 'var(--text-primary)' }}
-                >
+              <div>
+                <p className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>
                   {comp.title}
                 </p>
-                <p className="mt-0.5 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-                  {[
-                    comp.closesAt && fmtDate(comp.closesAt),
-                    comp.judgeName && `Judge: ${comp.judgeName}`,
-                    comp.imageCount > 0 && `${comp.imageCount} ${comp.imageCount === 1 ? 'entry' : 'entries'}`,
-                  ].filter(Boolean).join(' · ')}
-                </p>
+                {comp.judgeName && (
+                  <p className="mt-0.5 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+                    Judge: {comp.judgeName}
+                  </p>
+                )}
               </div>
-              <svg
-                className="ml-4 h-5 w-5 shrink-0 transition-transform duration-150 group-hover:translate-x-0.5"
-                style={{ color: 'var(--text-tertiary)' }}
-                viewBox="0 0 20 20" fill="currentColor"
-              >
-                <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
-              </svg>
-            </Link>
+              <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                {fmtDate(comp.closesAt, { month: 'short', day: 'numeric', year: 'numeric' })}
+              </p>
+              <p className="text-[15px] font-bold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>
+                {comp.imageCount}
+              </p>
+              <div>
+                <Link
+                  href={`/${clubSlug}/competitions/results/${comp.id}`}
+                  className="inline-flex items-center gap-1.5 text-[13px] font-semibold transition-colors"
+                  style={{ color: 'var(--action-primary)' }}
+                >
+                  View full results
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
           ))}
         </div>
       )}

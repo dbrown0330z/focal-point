@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubSlug } from '@/lib/club-context'
+import { requireClubSlug, requireClubId } from '@/lib/club-context'
 import ResultsClient from './ResultsClient'
 import type { AwardTier } from '@/types/competition'
 
@@ -16,7 +17,7 @@ function aggregateScores(scores: number[], method: string): number {
     const trimmed = sorted.slice(1, -1)
     return trimmed.reduce((a, b) => a + b, 0) / trimmed.length
   }
-  return sum / scores.length // 'average' or fallback
+  return sum / scores.length
 }
 
 function resolveAwardId(awardIds: (string | null)[]): string | null {
@@ -38,6 +39,8 @@ export type RankedEntry = {
   imageTitle: string
   imageUrl: string
   memberName: string
+  categoryId: string
+  categoryName: string
   aggregatedScore: number | null
   awardId: string | null
   awardLabel: string | null
@@ -60,6 +63,12 @@ export type ResultsData = {
   awardsEnabled: boolean
   hasScores: boolean
   categories: CategoryResults[]
+  // Stats
+  totalImages: number
+  membersSubmitted: number
+  totalMembers: number
+  averageScore: number | null
+  mySubmissionIds: string[]
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -70,13 +79,13 @@ export default async function CompetitionResultsPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const clubSlug = await requireClubSlug()
-  // Use service client throughout — results are club-wide public data and the
-  // session client's RLS policies may restrict reading results_published competitions
-  // or other members' submissions/profiles.
+  const [clubSlug, clubId] = await Promise.all([requireClubSlug(), requireClubId()])
   const admin = createServiceClient()
 
-  // Fetch competition — results visible once published or closed
+  // Get current user (for "Mine" filter)
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
   const { data: comp } = await admin
     .from('competitions')
     .select(`
@@ -92,7 +101,6 @@ export default async function CompetitionResultsPage({
 
   if (!comp) notFound()
 
-  // Fetch all submitted entries for this competition
   const { data: rawSubs } = await admin
     .from('submissions')
     .select(`
@@ -107,16 +115,13 @@ export default async function CompetitionResultsPage({
 
   const subs = rawSubs ?? []
 
-  // Build award lookup from JSONB
   const awardTypes = ((comp as unknown as { award_types: AwardTier[] }).award_types ?? []) as AwardTier[]
-  const awardMap = new Map<string, string>(awardTypes.map(a => [a.id, a.label]))
+  const awardMap   = new Map<string, string>(awardTypes.map(a => [a.id, a.label]))
 
-  // Sort categories by sort_order
   type RawCat = { id: string; name: string; sort_order?: number | null }
-  const rawCats = (comp.competition_categories as unknown as RawCat[]) ?? []
+  const rawCats    = (comp.competition_categories as unknown as RawCat[]) ?? []
   const sortedCats = [...rawCats].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
 
-  // Aggregate scores and group entries by category
   let hasScores = false
   const byCat = new Map<string, RankedEntry[]>()
 
@@ -141,12 +146,18 @@ export default async function CompetitionResultsPage({
       || [profile?.first_name, profile?.last_name].filter(Boolean).join(' ')
       || 'Unknown'
 
+    // Resolve category name from join or fallback to sortedCats lookup
+    const catJoin = sub.competition_categories as unknown as { id: string; name: string } | null
+    const catName = catJoin?.name ?? sortedCats.find(c => c.id === sub.category_id)?.name ?? ''
+
     const entry: RankedEntry = {
-      rank: 0, // assigned below
+      rank: 0,
       submissionId: sub.id,
       imageTitle:   img?.title ?? 'Untitled',
       imageUrl,
       memberName,
+      categoryId:   sub.category_id,
+      categoryName: catName,
       aggregatedScore,
       awardId,
       awardLabel,
@@ -158,35 +169,48 @@ export default async function CompetitionResultsPage({
     byCat.get(catId)!.push(entry)
   }
 
-  // Sort and assign ranks within each category
   const categories: CategoryResults[] = sortedCats
     .filter(cat => byCat.has(cat.id))
     .map(cat => {
       const entries = byCat.get(cat.id)!
-
-      // Primary: aggregated score DESC (nulls last); Secondary: submission order
       entries.sort((a, b) => {
         if (a.aggregatedScore === null && b.aggregatedScore === null) return 0
         if (a.aggregatedScore === null) return 1
         if (b.aggregatedScore === null) return -1
         return b.aggregatedScore - a.aggregatedScore
       })
-
-      // Assign ranks — tied scores share the same rank
       let currentRank = 1
       for (let i = 0; i < entries.length; i++) {
-        if (i > 0 && entries[i].aggregatedScore !== entries[i - 1].aggregatedScore) {
-          currentRank = i + 1
-        }
+        if (i > 0 && entries[i].aggregatedScore !== entries[i - 1].aggregatedScore) currentRank = i + 1
         entries[i].rank = currentRank
       }
-
       return { categoryId: cat.id, categoryName: cat.name, entries }
     })
 
   const judgeNames = ((comp.judge_tokens as unknown as { judge_name: string }[]) ?? [])
-    .map(j => j.judge_name)
-    .filter(Boolean)
+    .map(j => j.judge_name).filter(Boolean)
+
+  // ── Stats ──────────────────────────────────────────────────────────────────
+  const allEntries  = categories.flatMap(c => c.entries)
+  const totalImages = allEntries.length
+
+  const memberIds      = new Set(subs.map(s => s.member_id))
+  const membersSubmitted = memberIds.size
+
+  const { count: totalMembers } = await admin
+    .from('club_memberships')
+    .select('id', { count: 'exact', head: true })
+    .eq('club_id', clubId)
+    .eq('membership_status', 'active')
+
+  const scored = allEntries.filter(e => e.aggregatedScore !== null)
+  const averageScore = scored.length > 0
+    ? Math.round((scored.reduce((s, e) => s + (e.aggregatedScore ?? 0), 0) / scored.length) * 100) / 100
+    : null
+
+  const mySubmissionIds = user
+    ? subs.filter(s => s.member_id === user.id).map(s => s.id)
+    : []
 
   const data: ResultsData = {
     id:               comp.id,
@@ -198,6 +222,11 @@ export default async function CompetitionResultsPage({
     awardsEnabled:    (comp as unknown as { awards_enabled: boolean }).awards_enabled ?? false,
     hasScores,
     categories,
+    totalImages,
+    membersSubmitted,
+    totalMembers:     totalMembers ?? 0,
+    averageScore,
+    mySubmissionIds,
   }
 
   return <ResultsClient data={data} clubSlug={clubSlug} />
