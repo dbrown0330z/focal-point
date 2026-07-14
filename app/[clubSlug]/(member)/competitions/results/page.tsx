@@ -21,7 +21,7 @@ export default async function CompetitionResultsIndexPage({
   const { data: compsRaw } = await admin
     .from('competitions')
     .select('id, title, closes_at, judge_tokens(judge_name)')
-    .in('status', ['results_published', 'closed'])
+    .in('status', ['results_pending', 'results_published', 'closed'])
     .is('deleted_at', null)
     .order('closes_at', { ascending: false })
 
