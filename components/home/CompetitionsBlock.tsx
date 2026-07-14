@@ -274,6 +274,10 @@ function TopImageCard({
   )
 }
 
+// ─── Shared constants ─────────────────────────────────────────────────────────
+
+const JUDGING_STATUSES = ['judging', 'judging_on_hold', 'results_pending'] as const
+
 // ─── Main server component ────────────────────────────────────────────────────
 
 export default async function CompetitionsBlock({
@@ -283,17 +287,42 @@ export default async function CompetitionsBlock({
 }) {
   const supabaseRaw = await createClient()
   const supabase = supabaseRaw
+  const nowIso = new Date().toISOString()
 
   const { data: { user } } = await supabaseRaw.auth.getUser()
   const userId = user?.id ?? null
 
-  // ── 1. Open competitions ─────────────────────────────────────────────────
+  // ── 1. Open competitions (must be open AND closes_at in the future) ────────
   const { data: openCompsRaw } = await supabase
     .from('competitions')
     .select('id, title, short_title, closes_at, submission_limit, competition_categories(id, name)')
     .eq('status', 'open')
+    .gt('closes_at', nowIso)
     .order('closes_at', { ascending: true, nullsFirst: false })
     .limit(settings.maxOpenShown)
+
+  // ── 1b. Judging competitions ──────────────────────────────────────────────
+  // Include: explicit judging statuses, plus 'open' comps whose closes_at has passed
+  const [{ data: judgingByStatusRaw }, { data: judgingExpiredRaw }] = await Promise.all([
+    supabase
+      .from('competitions')
+      .select('id, title, short_title')
+      .in('status', [...JUDGING_STATUSES])
+      .order('closes_at', { ascending: false, nullsFirst: false }),
+    supabase
+      .from('competitions')
+      .select('id, title, short_title')
+      .eq('status', 'open')
+      .lte('closes_at', nowIso)
+      .order('closes_at', { ascending: false, nullsFirst: false }),
+  ])
+
+  type JudgingComp = { id: string; title: string; short_title: string | null }
+  const seenJudging = new Set<string>()
+  const judgingComps: JudgingComp[] = []
+  for (const c of [...(judgingByStatusRaw ?? []), ...(judgingExpiredRaw ?? [])] as JudgingComp[]) {
+    if (!seenJudging.has(c.id)) { seenJudging.add(c.id); judgingComps.push(c) }
+  }
 
   const openComps: OpenComp[] = []
   if ((openCompsRaw ?? []).length > 0) {
@@ -513,7 +542,7 @@ export default async function CompetitionsBlock({
   }
 
   // ── Empty state ───────────────────────────────────────────────────────────
-  const hasAnything = openComps.length > 0 || recentResult || upcomingComps.length > 0
+  const hasAnything = openComps.length > 0 || judgingComps.length > 0 || recentResult || upcomingComps.length > 0
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -553,6 +582,37 @@ export default async function CompetitionsBlock({
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {openComps.map(comp => (
                   <OpenCompCard key={comp.id} comp={comp} userId={userId} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Zone 1b — Judging in progress */}
+          {judgingComps.length > 0 && (
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--status-warning)', marginBottom: 10 }}>
+                Judging in progress
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {judgingComps.map(comp => (
+                  <div key={comp.id} style={{
+                    display:      'flex',
+                    alignItems:   'center',
+                    gap:          10,
+                    padding:      '10px 14px 10px 12px',
+                    borderRadius: 10,
+                    border:       '1px solid var(--border-default)',
+                    borderLeft:   '3px solid var(--status-warning)',
+                    background:   'var(--phase-warning-bg)',
+                  }}>
+                    <span style={{ fontSize: 15, color: 'var(--status-warning)', flexShrink: 0, lineHeight: 1 }}>◐</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-lora, Georgia, serif)', flex: 1, minWidth: 0 }}>
+                      {displayName(comp)}
+                    </span>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>
+                      Judging in progress
+                    </span>
+                  </div>
                 ))}
               </div>
             </div>
