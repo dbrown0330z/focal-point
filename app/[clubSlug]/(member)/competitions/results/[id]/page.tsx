@@ -96,7 +96,6 @@ export default async function CompetitionResultsPage({
     `)
     .eq('id', id)
     .in('status', ['results_published', 'closed'])
-    .is('deleted_at', null)
     .single()
 
   if (!comp) notFound()
