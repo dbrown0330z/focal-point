@@ -11,7 +11,7 @@ function fmtDate(iso: string | null): string {
 
 function fmtScore(score: number | null, method: string): string {
   if (score === null) return '—'
-  const v = method === 'sum' ? Math.round(score * 10) / 10 : Math.round(score * 10) / 10
+  const v = Math.round(score * 10) / 10
   return v % 1 === 0 ? String(v) : v.toFixed(1)
 }
 
@@ -114,46 +114,202 @@ function Lightbox({
   )
 }
 
-// ─── Category bar chart ────────────────────────────────────────────────────────
+// ─── Spot colours for pie slices ──────────────────────────────────────────────
 
-function CategoryChart({ data }: { data: ResultsData }) {
-  const counts = data.categories.map(cat => ({ name: cat.categoryName, count: cat.entries.length }))
-  const max    = Math.max(...counts.map(c => c.count), 1)
+const SLICE_COLORS = ['#6C47D4', '#0097A7', '#E65100', '#AD1457', '#00796B', '#7B6B38', '#1A6FC4', '#D4A800']
+
+// ─── Pie / donut chart ────────────────────────────────────────────────────────
+
+function CategoryPieChart({ data }: { data: ResultsData }) {
+  const slices = data.categories
+    .map((cat, i) => ({ name: cat.categoryName, count: cat.entries.length, color: SLICE_COLORS[i % SLICE_COLORS.length] }))
+    .filter(s => s.count > 0)
+
+  const total = slices.reduce((s, c) => s + c.count, 0)
+  if (total === 0) return null
+
+  const CX = 90, CY = 90, OR = 72, IR = 40
+  let angle = -Math.PI / 2
+
+  const paths = slices.map(s => {
+    const sweep = (s.count / total) * 2 * Math.PI
+    const end = angle + sweep
+    const lg = sweep > Math.PI ? 1 : 0
+    let d: string
+
+    if (sweep >= 2 * Math.PI - 0.001) {
+      // Single-slice full circle — standard arc trick
+      d = `M${CX},${CY - OR} A${OR},${OR},0,1,1,${CX - 0.01},${CY - OR} Z M${CX},${CY - IR} A${IR},${IR},0,1,0,${CX - 0.01},${CY - IR} Z`
+    } else {
+      const ox1 = CX + OR * Math.cos(angle), oy1 = CY + OR * Math.sin(angle)
+      const ox2 = CX + OR * Math.cos(end),   oy2 = CY + OR * Math.sin(end)
+      const ix1 = CX + IR * Math.cos(angle), iy1 = CY + IR * Math.sin(angle)
+      const ix2 = CX + IR * Math.cos(end),   iy2 = CY + IR * Math.sin(end)
+      d = `M${ox1},${oy1} A${OR},${OR},0,${lg},1,${ox2},${oy2} L${ix2},${iy2} A${IR},${IR},0,${lg},0,${ix1},${iy1} Z`
+    }
+    angle = end
+    return { d, color: s.color, name: s.name, count: s.count }
+  })
 
   return (
-    <div
-      className="overflow-hidden"
-      style={{
-        borderRadius: 12,
-        border: '1px solid var(--border-default)',
-        background: 'var(--surface-1)',
-        padding: '20px 24px',
-      }}
-    >
+    <div style={{
+      padding: '20px 24px',
+      background: 'var(--surface-1)',
+      borderRadius: 12,
+      border: '1px solid var(--border-default)',
+      minWidth: 280,
+    }}>
       <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.07em]" style={{ color: 'var(--text-tertiary)' }}>
         By Category
       </p>
-      <div className="space-y-2.5">
-        {counts.map(cat => (
-          <div key={cat.name} className="grid items-center gap-3" style={{ gridTemplateColumns: '100px 1fr 36px' }}>
-            <p className="truncate text-right text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-              {cat.name}
-            </p>
-            <div className="h-3 overflow-hidden rounded-full" style={{ background: 'var(--surface-0)' }}>
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${(cat.count / max) * 100}%`,
-                  background: 'var(--action-primary)',
-                  transition: 'width 0.6s ease',
-                }}
-              />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+        <svg width={180} height={180} viewBox="0 0 180 180" style={{ flexShrink: 0 }}>
+          {paths.map((p, i) => (
+            <path key={i} d={p.d} fill={p.color} stroke="var(--surface-1)" strokeWidth={3} />
+          ))}
+          <text
+            x={CX} y={CY - 6}
+            textAnchor="middle" dominantBaseline="auto"
+            style={{ fill: 'var(--text-primary)', fontSize: 28, fontWeight: 700, fontFamily: 'var(--font-primary)' }}
+          >
+            {total}
+          </text>
+          <text
+            x={CX} y={CY + 16}
+            textAnchor="middle"
+            style={{ fill: 'var(--text-tertiary)', fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase' }}
+          >
+            IMAGES
+          </text>
+        </svg>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 9, minWidth: 0 }}>
+          {paths.map((p, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {p.name}
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginLeft: 8, flexShrink: 0 }}>
+                {p.count}
+              </span>
             </div>
-            <p className="text-center text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>
-              {cat.count}
-            </p>
-          </div>
-        ))}
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Score heat map ───────────────────────────────────────────────────────────
+
+function ScoreHeatmap({ data }: { data: ResultsData }) {
+  if (!data.hasScores) return null
+
+  const allScored = data.categories.flatMap(c => c.entries.filter(e => e.aggregatedScore !== null))
+  if (allScored.length === 0) return null
+
+  const vals = allScored.map(e => e.aggregatedScore as number)
+  const minS = Math.floor(Math.min(...vals))
+  const maxS = Math.ceil(Math.max(...vals))
+
+  const scoreColumns: number[] = []
+  for (let s = minS; s <= maxS; s++) scoreColumns.push(s)
+
+  const rows = data.categories.map(cat => {
+    const counts: Record<number, number> = {}
+    cat.entries.forEach(e => {
+      if (e.aggregatedScore !== null) {
+        const r = Math.round(e.aggregatedScore)
+        counts[r] = (counts[r] ?? 0) + 1
+      }
+    })
+    return { name: cat.categoryName, counts, total: cat.entries.filter(e => e.aggregatedScore !== null).length }
+  })
+
+  const maxCount = Math.max(...rows.flatMap(r => Object.values(r.counts)), 1)
+
+  function cellBg(n: number): string {
+    if (n === 0) return 'transparent'
+    const t = n / maxCount
+    return `rgb(${Math.round(80 + t * 175)},${Math.round(40 + t * 130)},8)`
+  }
+
+  function cellFg(n: number): string {
+    if (n === 0) return 'transparent'
+    return (n / maxCount) > 0.55 ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.8)'
+  }
+
+  return (
+    <div style={{
+      padding: '20px 24px',
+      background: 'var(--surface-1)',
+      borderRadius: 12,
+      border: '1px solid var(--border-default)',
+      flex: 1,
+      minWidth: 0,
+      overflow: 'hidden',
+    }}>
+      <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.07em]" style={{ color: 'var(--text-tertiary)' }}>
+        Score Distribution
+      </p>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ borderCollapse: 'separate', borderSpacing: 3 }}>
+          <thead>
+            <tr>
+              <th style={{ minWidth: 90 }} />
+              {scoreColumns.map(s => (
+                <th key={s} style={{ width: 34, textAlign: 'center', fontWeight: 400, color: 'var(--text-tertiary)', fontSize: 11, paddingBottom: 6 }}>
+                  {s}
+                </th>
+              ))}
+              <th style={{ width: 34, textAlign: 'center', fontWeight: 600, color: 'var(--text-secondary)', fontSize: 11, paddingBottom: 6, paddingLeft: 6 }}>
+                Σ
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, ri) => (
+              <tr key={ri}>
+                <td style={{ textAlign: 'right', paddingRight: 10, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+                  {row.name}
+                </td>
+                {scoreColumns.map(s => {
+                  const n = row.counts[s] ?? 0
+                  return (
+                    <td
+                      key={s}
+                      style={{
+                        width: 34, height: 34,
+                        textAlign: 'center', verticalAlign: 'middle',
+                        background: cellBg(n),
+                        borderRadius: 4,
+                        fontWeight: 600,
+                        fontSize: 12,
+                        color: cellFg(n),
+                      }}
+                    >
+                      {n > 0 ? n : null}
+                    </td>
+                  )
+                })}
+                <td style={{ textAlign: 'center', paddingLeft: 8, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', verticalAlign: 'middle' }}>
+                  {row.total}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>Fewer</span>
+        <div style={{ display: 'flex', gap: 2 }}>
+          {[0.12, 0.28, 0.44, 0.60, 0.76, 1.0].map(t => (
+            <div key={t} style={{ width: 18, height: 10, borderRadius: 2, background: cellBg(Math.max(1, Math.round(t * maxCount))) }} />
+          ))}
+        </div>
+        <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>More works</span>
       </div>
     </div>
   )
@@ -181,18 +337,19 @@ function EntryCard({
         boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
       }}
     >
-      <div className="relative" style={{ paddingTop: '125%' }}>
+      {/* Square thumbnail */}
+      <div className="relative" style={{ paddingTop: '100%' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={entry.imageUrl}
           alt={entry.imageTitle}
           className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
         />
-        {/* Score badge */}
+        {/* Score badge — doubled font size */}
         {entry.aggregatedScore !== null && (
           <span
-            className="absolute bottom-2 right-2 rounded-md px-1.5 py-0.5 text-[13px] font-bold text-white"
-            style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+            className="absolute bottom-2 right-2 rounded-md px-2 py-1 font-bold text-white"
+            style={{ fontSize: 26, lineHeight: 1, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
           >
             {fmtScore(entry.aggregatedScore, scoreMethod)}
           </span>
@@ -255,19 +412,16 @@ export default function ResultsClient({
   const mineCt = data.mySubmissionIds.length
 
   const tabs = [
-    { id: 'all', label: 'All', count: allEntries.length },
+    { id: 'all',  label: 'All',  count: allEntries.length },
     ...(mineCt > 0 ? [{ id: 'mine', label: 'Mine', count: mineCt }] : []),
     ...data.categories.map(cat => ({
-      id: cat.categoryId,
+      id:    cat.categoryId,
       label: cat.categoryName,
       count: cat.entries.length,
     })),
   ]
 
-  // Average score display
-  const avgDisplay = data.averageScore !== null
-    ? data.averageScore.toFixed(2)
-    : (data.hasScores ? '—' : '—')
+  const avgDisplay = data.averageScore !== null ? data.averageScore.toFixed(2) : '—'
 
   return (
     <>
@@ -296,8 +450,14 @@ export default function ResultsClient({
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <div className="mb-6">
           <h1
-            className="text-[32px] font-bold leading-tight tracking-[-0.025em]"
-            style={{ fontFamily: 'var(--font-primary)', color: 'var(--text-primary)' }}
+            style={{
+              fontFamily: 'var(--font-primary)',
+              fontSize: 36,
+              fontWeight: 400,
+              lineHeight: 1.2,
+              letterSpacing: '-0.02em',
+              color: 'var(--text-primary)',
+            }}
           >
             {data.title}
           </h1>
@@ -359,16 +519,17 @@ export default function ResultsClient({
           ))}
         </div>
 
-        {/* ── Category chart ─────────────────────────────────────────────── */}
+        {/* ── Pie chart + heat map ────────────────────────────────────────── */}
         {data.categories.length > 1 && (
-          <div className="mb-6">
-            <CategoryChart data={data} />
+          <div className="mb-6 flex gap-4" style={{ alignItems: 'stretch' }}>
+            <CategoryPieChart data={data} />
+            <ScoreHeatmap data={data} />
           </div>
         )}
 
         {/* ── Filter tabs ────────────────────────────────────────────────── */}
         <div
-          className="mb-5 flex items-center justify-between border-b"
+          className="mb-5 border-b"
           style={{ borderColor: 'var(--border-default)' }}
         >
           <div className="flex gap-0.5">
@@ -384,13 +545,11 @@ export default function ResultsClient({
                     : { color: 'var(--text-secondary)', borderBottom: '2px solid transparent' }
                 }
               >
-                {tab.label}
+                {tab.label}{' '}
+                <span style={{ opacity: 0.65 }}>({tab.count})</span>
               </button>
             ))}
           </div>
-          <p className="pb-2 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-            {filteredEntries.length} image{filteredEntries.length !== 1 ? 's' : ''}
-          </p>
         </div>
 
         {/* ── Image grid ─────────────────────────────────────────────────── */}
