@@ -86,19 +86,20 @@ export default async function CompetitionResultsPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: comp } = await admin
+  const { data: comp, error: compError } = await admin
     .from('competitions')
     .select(`
-      id, title, closes_at, results_at, club_id,
+      id, title, status, closes_at, results_at, club_id,
       score_aggregation, awards_enabled, award_types,
       competition_categories(id, name, sort_order),
       judge_tokens(judge_name)
     `)
     .eq('id', id)
-    .in('status', ['results_published', 'closed'])
-    .single()
+    .maybeSingle()
 
-  if (!comp) notFound()
+  if (compError) console.error('[results-detail] query error:', JSON.stringify(compError))
+  if (!comp) { console.error('[results-detail] no competition found for id:', id); notFound() }
+  if (!['results_published', 'closed'].includes((comp as unknown as { status: string }).status)) notFound()
 
   const { data: rawSubs } = await admin
     .from('submissions')
