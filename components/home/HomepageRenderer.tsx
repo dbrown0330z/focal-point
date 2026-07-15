@@ -1110,7 +1110,7 @@ export default async function HomepageRenderer({
 
           case 'competitions':
             return block.competitionsSettings ? (
-              <CompetitionsBlock key={block.id} settings={block.competitionsSettings} />
+              <CompetitionsBlock key={block.id} settings={block.competitionsSettings} clubSlug={clubSlug} />
             ) : null
 
           case 'affiliations':
@@ -1119,7 +1119,7 @@ export default async function HomepageRenderer({
             ) : null
 
           case 'dual-panel':
-            return <DualPanelBlock key={block.id} />
+            return <DualPanelBlock key={block.id} clubSlug={clubSlug} />
 
           default:
             return null

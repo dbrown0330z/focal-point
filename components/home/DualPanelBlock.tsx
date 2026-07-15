@@ -59,7 +59,7 @@ function StatusDot({ kind }: { kind: CompCard['kind'] }) {
 
 // ─── Card renderers ───────────────────────────────────────────────────────────
 
-function OpenCompCard({ card }: { card: OpenCard }) {
+function OpenCompCard({ card, clubSlug }: { card: OpenCard; clubSlug: string }) {
   const days     = card.closesAt ? daysRemaining(card.closesAt) : null
   const complete = card.memberUsed >= card.memberMax
 
@@ -123,7 +123,7 @@ function OpenCompCard({ card }: { card: OpenCard }) {
           />
         ) : (
           <Link
-            href="/competitions"
+            href={`/${clubSlug}/competitions`}
             style={{ fontSize: 12, fontWeight: 600, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
           >
             {complete ? 'Edit your submissions →' : 'Submit an image →'}
@@ -134,7 +134,7 @@ function OpenCompCard({ card }: { card: OpenCard }) {
   )
 }
 
-function ResultsCompCard({ card }: { card: ResultsCard }) {
+function ResultsCompCard({ card, clubSlug }: { card: ResultsCard; clubSlug: string }) {
   return (
     <div style={{
       background:   'var(--surface-1)',
@@ -188,10 +188,10 @@ function ResultsCompCard({ card }: { card: ResultsCard }) {
           </p>
         )}
         <Link
-          href={`/competitions/${card.id}`}
+          href={`/${clubSlug}/competitions/results/${card.id}`}
           style={{ fontSize: 12, fontWeight: 600, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
         >
-          View →
+          View full results →
         </Link>
       </div>
     </div>
@@ -236,7 +236,7 @@ function SlimRow({ card }: { card: JudgingCard | ComingSoonCard }) {
 const JUDGING_STATUSES = ['judging', 'judging_on_hold', 'results_pending'] as const
 const MAX_CARDS = 4
 
-export default async function DualPanelBlock() {
+export default async function DualPanelBlock({ clubSlug }: { clubSlug: string }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const userId = user?.id ?? null
@@ -463,8 +463,8 @@ export default async function DualPanelBlock() {
             <h2 style={{ fontFamily: 'var(--font-lora, Georgia, serif)', fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', lineHeight: 1.3 }}>
               Competition activity
             </h2>
-            <Link href="/competitions" style={{ fontSize: 13, fontWeight: 500, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0 }}>
-              View all →
+            <Link href={`/${clubSlug}/competitions/results`} style={{ fontSize: 13, fontWeight: 500, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0 }}>
+              View all results →
             </Link>
           </div>
 
@@ -480,10 +480,10 @@ export default async function DualPanelBlock() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {cards.map(card => {
-                if (card.kind === 'open')        return <OpenCompCard   key={card.id} card={card} />
-                if (card.kind === 'results')     return <ResultsCompCard key={card.id} card={card} />
-                if (card.kind === 'judging')     return <SlimRow        key={card.id} card={card} />
-                if (card.kind === 'coming_soon') return <SlimRow        key={card.id} card={card} />
+                if (card.kind === 'open')        return <OpenCompCard    key={card.id} card={card} clubSlug={clubSlug} />
+                if (card.kind === 'results')     return <ResultsCompCard key={card.id} card={card} clubSlug={clubSlug} />
+                if (card.kind === 'judging')     return <SlimRow         key={card.id} card={card} />
+                if (card.kind === 'coming_soon') return <SlimRow         key={card.id} card={card} />
               })}
             </div>
           )}

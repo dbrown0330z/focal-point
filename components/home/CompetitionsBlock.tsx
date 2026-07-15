@@ -31,7 +31,7 @@ type OpenComp = {
   categories:       { id: string; name: string; count?: number }[]
 }
 
-function OpenCompCard({ comp, userId }: { comp: OpenComp; userId: string | null }) {
+function OpenCompCard({ comp, userId, clubSlug }: { comp: OpenComp; userId: string | null; clubSlug: string }) {
   const days     = comp.closes_at ? daysRemaining(comp.closes_at) : null
   const complete = comp.memberUsed >= comp.submission_limit && comp.submission_limit > 0
   const partial  = comp.memberUsed > 0 && !complete
@@ -87,7 +87,7 @@ function OpenCompCard({ comp, userId }: { comp: OpenComp; userId: string | null 
               )}
             </div>
             <Link
-              href="/competitions"
+              href={`/${clubSlug}/competitions`}
               style={{ fontSize: 12, fontWeight: 600, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
             >
               Edit selections →
@@ -114,7 +114,7 @@ function OpenCompCard({ comp, userId }: { comp: OpenComp; userId: string | null 
             <OpenCompEntryButton comp={comp} userId={userId} status={partial ? 'partial' : 'none'} />
           ) : (
             <Link
-              href="/competitions"
+              href={`/${clubSlug}/competitions`}
               style={{ fontSize: 12, fontWeight: 600, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
             >
               Submit an image →
@@ -144,8 +144,10 @@ const JUDGING_STATUSES = ['judging', 'judging_on_hold', 'results_pending'] as co
 
 export default async function CompetitionsBlock({
   settings,
+  clubSlug,
 }: {
-  settings: CompetitionsSettings
+  settings:  CompetitionsSettings
+  clubSlug:  string
 }) {
   const supabaseRaw = await createClient()
   const supabase = supabaseRaw
@@ -325,28 +327,33 @@ export default async function CompetitionsBlock({
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="border-b border-[var(--border-subtle)] py-7 last:border-b-0">
-      {/* Block heading */}
-      <h2 style={{
-        fontFamily:    'var(--font-lora, Georgia, serif)',
-        fontSize:      18,
-        fontWeight:    700,
-        letterSpacing: '-0.01em',
-        color:         'var(--text-primary)',
-        marginBottom:  20,
-        lineHeight:    1.3,
-      }}>
-        {settings.heading}
-      </h2>
+      {/* Block heading + "View all results" link on same row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <h2 style={{
+          fontFamily:    'var(--font-lora, Georgia, serif)',
+          fontSize:      18,
+          fontWeight:    700,
+          letterSpacing: '-0.01em',
+          color:         'var(--text-primary)',
+          lineHeight:    1.3,
+          margin:        0,
+        }}>
+          {settings.heading}
+        </h2>
+        <Link
+          href={`/${clubSlug}/competitions/results`}
+          style={{ fontSize: 13, fontWeight: 500, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0 }}
+        >
+          View all results →
+        </Link>
+      </div>
 
       {!hasAnything ? (
         /* Empty state */
         <div style={{ textAlign: 'center', padding: '32px 0' }}>
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic', marginBottom: 16 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
             No competitions yet. Check back soon — your club admin will announce upcoming competitions here.
           </p>
-          <Link href="/competitions" style={{ fontSize: 13, fontWeight: 600, color: 'var(--action-primary)', textDecoration: 'none' }}>
-            View all competitions →
-          </Link>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
@@ -355,7 +362,7 @@ export default async function CompetitionsBlock({
           {openComps.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {openComps.map(comp => (
-                <OpenCompCard key={comp.id} comp={comp} userId={userId} />
+                <OpenCompCard key={comp.id} comp={comp} userId={userId} clubSlug={clubSlug} />
               ))}
             </div>
           )}
@@ -428,10 +435,10 @@ export default async function CompetitionsBlock({
                   </p>
                 )}
                 <Link
-                  href={`/competitions/${recentResult.id}`}
+                  href={`/${clubSlug}/competitions/results/${recentResult.id}`}
                   style={{ fontSize: 12, fontWeight: 600, color: 'var(--action-primary)', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
                 >
-                  View →
+                  View full results →
                 </Link>
               </div>
             </div>
@@ -459,15 +466,6 @@ export default async function CompetitionsBlock({
             </div>
           )}
 
-          {/* Zone 4 — Footer */}
-          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
-            <Link
-              href="/competitions"
-              style={{ fontSize: 13, fontWeight: 600, color: 'var(--action-primary)', textDecoration: 'none' }}
-            >
-              View all competitions →
-            </Link>
-          </div>
         </div>
       )}
     </div>
