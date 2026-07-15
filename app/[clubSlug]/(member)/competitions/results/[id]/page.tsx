@@ -91,7 +91,7 @@ export default async function CompetitionResultsPage({
     .select(`
       id, title, status, closes_at, results_at, club_id,
       score_aggregation, awards_enabled, award_types,
-      competition_categories(id, name, sort_order),
+      competition_categories(id, name),
       judge_tokens(judge_name)
     `)
     .eq('id', id)
