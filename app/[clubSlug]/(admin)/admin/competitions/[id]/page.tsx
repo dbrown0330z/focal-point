@@ -10,8 +10,29 @@ import { StatusBanner }      from './StatusBanner'
 import { ScheduleSection }   from './ScheduleSection'
 import { InlineTitle }       from './InlineTitle'
 import { JudgeSection }      from './JudgeSection'
-import { EntriesSection }    from './EntriesSection'
+import { EntriesSection, DonutChart, SPOT_COLORS } from './EntriesSection'
 import { headers } from 'next/headers'
+
+function contextDate(
+  status: string,
+  opensAt:         string | null,
+  closesAt:        string | null,
+  judgingClosesAt: string | null,
+  resultsAt:       string | null,
+): string | null {
+  const now = new Date()
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
+  if (status === 'draft' || status === 'open') {
+    if (opensAt && new Date(opensAt) > now) return `Opens ${fmt(opensAt)}`
+    if (closesAt) return `Closes ${fmt(closesAt)}`
+  }
+  if (status === 'judging' || status === 'judging_on_hold') {
+    if (judgingClosesAt) return `Judging closes ${fmt(judgingClosesAt)}`
+  }
+  if (status === 'results_pending' && resultsAt) return `Results ${fmt(resultsAt)}`
+  return null
+}
 
 const statusStyles: Record<string, string> = {
   draft:             'bg-surface-1 text-content-secondary',
@@ -111,10 +132,12 @@ export default async function CompetitionDetailPage({
       </Link>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-2 min-w-0">
+      <div className="flex items-start justify-between gap-6">
+
+        {/* Left: title + status chip + contextual date */}
+        <div className="flex flex-col gap-2 min-w-0 flex-1">
           <InlineTitle id={id} title={competition.title} editable={nameEditable} />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[competition.status] ?? 'bg-surface-1 text-content-secondary'}`}>
               {competition.status.replace(/_/g, ' ')}
             </span>
@@ -123,15 +146,46 @@ export default async function CompetitionDetailPage({
                 Archived
               </span>
             )}
+            {(() => {
+              const cd = contextDate(
+                competition.status,
+                competition.opens_at ?? null,
+                competition.closes_at ?? null,
+                comp.judging_closes_at ?? null,
+                comp.results_at ?? null,
+              )
+              return cd ? <span className="text-sm text-content-secondary">{cd}</span> : null
+            })()}
           </div>
         </div>
-        <LifecycleActions
-          id={id}
-          title={competition.title}
-          status={competition.status}
-          submissionCount={submissionCount ?? 0}
-          isArchived={!!comp.archived_at}
-        />
+
+        {/* Right: pie chart + category legend + lifecycle actions */}
+        <div className="flex items-start gap-5 shrink-0">
+          {(submissionCount ?? 0) > 0 && (
+            <div className="flex items-center gap-3">
+              <DonutChart slices={categoryData} total={submissionCount ?? 0} size={88} />
+              {categoryData.length > 0 && (
+                <div className="space-y-1.5">
+                  {categoryData.map((c, i) => (
+                    <div key={c.id} className="flex items-center gap-1.5">
+                      <span className="shrink-0 h-2 w-2 rounded-full" style={{ backgroundColor: SPOT_COLORS[i % SPOT_COLORS.length] }} />
+                      <span className="text-xs text-content-secondary truncate max-w-[120px]">{c.name}</span>
+                      <span className="text-xs font-semibold text-content-primary ml-1">{c.count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <LifecycleActions
+            id={id}
+            title={competition.title}
+            status={competition.status}
+            submissionCount={submissionCount ?? 0}
+            isArchived={!!comp.archived_at}
+          />
+        </div>
+
       </div>
 
       {/* Results link — only when results are published */}
