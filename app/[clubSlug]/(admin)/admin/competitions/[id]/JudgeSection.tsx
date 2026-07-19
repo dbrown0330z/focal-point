@@ -336,22 +336,24 @@ export function JudgeSection({
               {removePending ? 'Removing…' : 'Change judge'}
             </button>
           </div>
-          {/* Magic link */}
-          <div className="mt-2 flex items-center gap-2 rounded-lg bg-surface-1 px-3 py-2">
-            <span className="flex-1 truncate font-mono text-xs text-content-secondary">
-              {judgingUrl}
-            </span>
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="shrink-0 text-xs text-content-tertiary hover:text-content-primary transition-colors"
-            >
-              {copied ? 'Copied!' : 'Copy'}
-            </button>
-          </div>
+          {/* Magic link — only shown once judging window is open */}
+          {isWindowOpen && (
+            <div className="mt-2 flex items-center gap-2 rounded-lg bg-surface-1 px-3 py-2">
+              <span className="flex-1 truncate font-mono text-xs text-content-secondary">
+                {judgingUrl}
+              </span>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="shrink-0 text-xs text-content-tertiary hover:text-content-primary transition-colors"
+              >
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+          )}
 
-          {/* Access code */}
-          {judge.access_code && (
+          {/* Access code — only shown once judging window is open */}
+          {isWindowOpen && judge.access_code && (
             <div className="mt-1.5 flex items-center gap-2">
               <span className="text-xs text-content-tertiary">Access code:</span>
               <span className="font-mono text-sm font-semibold tracking-widest text-content-primary">
@@ -385,9 +387,13 @@ export function JudgeSection({
             </div>
           )}
 
-          {!isWindowOpen && judgingOpensAt && (
-            <p className="mt-1.5 text-xs text-content-tertiary">
-              Judging link becomes active on {fmtDate(judgingOpensAt)}
+          {/* Pre-window message: link not yet available */}
+          {!isWindowOpen && (
+            <p className="mt-2 text-xs text-content-tertiary">
+              The judging link will be available once submissions close
+              {judgingOpensAt
+                ? ` — on ${fmtDate(judgingOpensAt)}, or sooner by clicking the button above.`
+                : ' — use the button above to close submissions when ready.'}
             </p>
           )}
         </div>
