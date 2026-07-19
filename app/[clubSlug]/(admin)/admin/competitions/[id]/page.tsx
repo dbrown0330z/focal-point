@@ -10,7 +10,6 @@ import { StatusBanner }      from './StatusBanner'
 import { ScheduleSection }   from './ScheduleSection'
 import { InlineTitle }       from './InlineTitle'
 import { JudgeSection }      from './JudgeSection'
-import { EntriesSection, DonutChart, SPOT_COLORS } from './EntriesSection'
 import { headers } from 'next/headers'
 
 function contextDate(
@@ -159,24 +158,8 @@ export default async function CompetitionDetailPage({
           </div>
         </div>
 
-        {/* Right: pie chart + category legend + lifecycle actions */}
-        <div className="flex items-start gap-5 shrink-0">
-          {(submissionCount ?? 0) > 0 && (
-            <div className="flex items-center gap-3">
-              <DonutChart slices={categoryData} total={submissionCount ?? 0} size={88} />
-              {categoryData.length > 0 && (
-                <div className="space-y-1.5">
-                  {categoryData.map((c, i) => (
-                    <div key={c.id} className="flex items-center gap-1.5">
-                      <span className="shrink-0 h-2 w-2 rounded-full" style={{ backgroundColor: SPOT_COLORS[i % SPOT_COLORS.length] }} />
-                      <span className="text-xs text-content-secondary truncate max-w-[120px]">{c.name}</span>
-                      <span className="text-xs font-semibold text-content-primary ml-1">{c.count}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+        {/* Right: lifecycle actions */}
+        <div className="shrink-0">
           <LifecycleActions
             id={id}
             title={competition.title}
@@ -214,6 +197,7 @@ export default async function CompetitionDetailPage({
         cancellationReason={comp.cancellation_reason ?? null}
         submissionCount={submissionCount ?? 0}
         judgeName={judgeName}
+        categories={categoryData}
       />
 
       {/* Schedule */}
@@ -242,12 +226,6 @@ export default async function CompetitionDetailPage({
         />
       </section>
 
-      {/* Entries */}
-      <EntriesSection
-        competitionId={id}
-        submissionCount={submissionCount ?? 0}
-        categories={categoryData}
-      />
 
     </div>
   )
