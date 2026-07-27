@@ -20,8 +20,10 @@ function contextDate(
   resultsAt:       string | null,
 ): string | null {
   const now = new Date()
-  const fmt = (iso: string) =>
-    new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
+  const fmt = (iso: string) => {
+    const [y, m, d] = iso.slice(0, 10).split('-').map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
+  }
   if (status === 'draft' || status === 'open') {
     if (opensAt && new Date(opensAt) > now) return `Opens ${fmt(opensAt)}`
     if (closesAt) return `Closes ${fmt(closesAt)}`
