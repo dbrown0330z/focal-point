@@ -318,13 +318,16 @@ export function JudgeSection({
             <div>
               <p className="text-sm font-medium text-content-primary">{judge.judge_name}</p>
               <p className="text-xs text-content-tertiary">{judge.judge_email}</p>
-              {judge.invitation_sent_at && (
+              {isWindowOpen && judge.invitation_sent_at && (
                 <p className="text-xs text-content-tertiary mt-0.5">
                   Invitation sent {fmtDate(judge.invitation_sent_at)}
                 </p>
               )}
-              {!judge.invitation_sent_at && (
+              {isWindowOpen && !judge.invitation_sent_at && (
                 <p className="text-xs text-[#A67C00] mt-0.5">Invitation not yet sent</p>
+              )}
+              {!isWindowOpen && (
+                <p className="text-xs text-content-tertiary mt-0.5">Invite will be sent when judging opens.</p>
               )}
             </div>
             <button
@@ -389,8 +392,8 @@ export function JudgeSection({
 
           {/* Pre-window message: link not yet available */}
           {!isWindowOpen && (
-            <div className="mt-2 rounded-lg border border-[#F0D060] bg-[#FFFBE6] px-3 py-2">
-              <p className="text-xs text-[#6B5000]">
+            <div className="mt-2 rounded-lg border border-[#F0D060] bg-[#FFFBE6] dark:border-[#6B5000] dark:bg-[#3A2E00] px-3 py-2">
+              <p className="text-xs text-[#6B5000] dark:text-[#FAD84A]">
                 The judging link will be available once submissions close
                 {judgingOpensAt
                   ? ` — on ${fmtDate(judgingOpensAt)}, or sooner using the Submission Dates section below.`

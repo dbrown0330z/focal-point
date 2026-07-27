@@ -3,7 +3,7 @@
 import { useTransition } from 'react'
 import Link from 'next/link'
 import { publishCompetition, transitionStatus } from '../actions'
-import { DonutChart, SPOT_COLORS } from './EntriesSection'
+import { SPOT_COLORS } from './EntriesSection'
 
 type CategorySlice = {
   id:    string
@@ -41,42 +41,62 @@ function EntriesBlock({
   id,
   submissionCount,
   categories,
+  noDivider = false,
 }: {
   id:              string
   submissionCount: number
   categories:      CategorySlice[]
+  noDivider?:      boolean
 }) {
   if (categories.length === 0 && submissionCount === 0) return null
   return (
-    <div className="mt-4 pt-4 border-t border-border-subtle flex items-center gap-6 flex-wrap">
+    <div className={`flex items-start gap-4 ${noDivider ? '' : 'mt-4 pt-4 border-t border-border-subtle'}`}>
+
       {/* Big number */}
-      <div className="shrink-0 text-center min-w-[48px]">
+      <div className="shrink-0 text-center min-w-[52px]">
         <p className="text-[3rem] font-bold leading-none text-content-primary">{submissionCount}</p>
         <p className="text-[10px] font-medium uppercase tracking-widest text-content-tertiary mt-1.5">entries</p>
       </div>
 
-      {/* Pie chart */}
-      <DonutChart slices={categories} total={submissionCount} size={88} />
+      {/* Stacked bar + legend */}
+      <div className="flex-1 min-w-0 self-center space-y-2">
+        {submissionCount > 0 ? (
+          <div className="h-3 rounded-full overflow-hidden flex">
+            {categories.map((c, i) => {
+              if (c.count === 0) return null
+              return (
+                <div
+                  key={c.id}
+                  className="h-full"
+                  style={{ flex: c.count, backgroundColor: SPOT_COLORS[i % SPOT_COLORS.length] }}
+                />
+              )
+            })}
+          </div>
+        ) : (
+          <div className="h-3 rounded-full bg-border-subtle" />
+        )}
 
-      {/* Legend — includes categories with 0 entries */}
-      {categories.length > 0 && (
-        <div className="flex-1 min-w-0 space-y-1.5">
-          {categories.map((c, i) => (
-            <div key={c.id} className="flex items-center gap-2">
-              <span
-                className="shrink-0 h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: SPOT_COLORS[i % SPOT_COLORS.length] }}
-              />
-              <span className="text-xs text-content-secondary flex-1 truncate">{c.name}</span>
-              <span className="text-xs font-semibold text-content-primary">{c.count}</span>
-            </div>
-          ))}
-        </div>
-      )}
+        {categories.length > 0 && (
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {categories.map((c, i) => (
+              <div key={c.id} className="flex items-center gap-1.5">
+                <span
+                  className={`shrink-0 h-2 w-2 rounded-sm ${c.count === 0 ? 'border border-border-strong' : ''}`}
+                  style={{ backgroundColor: c.count > 0 ? SPOT_COLORS[i % SPOT_COLORS.length] : 'transparent' }}
+                />
+                <span className="text-xs text-content-secondary">{c.name}</span>
+                <span className="text-xs font-semibold text-content-primary ml-0.5">{c.count}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
+      {/* View all link */}
       <Link
         href={`/admin/competitions/${id}/entries`}
-        className="shrink-0 ml-auto text-sm text-action-primary hover:underline"
+        className="shrink-0 self-start pt-0.5 text-sm text-action-primary hover:underline"
       >
         View all entries →
       </Link>
@@ -128,11 +148,11 @@ export function StatusBanner({
 
     if (submissionsClosed) {
       return (
-        <div className="rounded-xl border border-[#F0D060] bg-[#FFFBE6] px-5 py-4">
-          <p className="text-sm font-medium text-[#6B5000]">
+        <div className="rounded-xl border border-[#F0D060] bg-[#FFFBE6] dark:border-[#6B5000] dark:bg-[#3A2E00] px-5 py-4">
+          <p className="text-sm font-medium text-[#6B5000] dark:text-[#FAD84A]">
             Submissions closed · {submissionCount} {submissionCount === 1 ? 'entry' : 'entries'} received
           </p>
-          <p className="text-sm text-[#6B5000] mt-0.5">
+          <p className="text-sm text-[#6B5000] dark:text-[#FAD84A] mt-0.5 opacity-80">
             Use the Submission Dates section below to begin judging.
           </p>
           <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} />
@@ -140,15 +160,10 @@ export function StatusBanner({
       )
     }
 
+    // Active submissions — just show the entries block, no redundant status text
     return (
       <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4">
-        <p className="text-sm font-medium text-content-primary">
-          Submissions open · {submissionCount} {submissionCount === 1 ? 'entry' : 'entries'} received
-        </p>
-        {closesAt && (
-          <p className="text-sm text-content-secondary mt-0.5">Closes {fmtDate(closesAt)}</p>
-        )}
-        <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} />
+        <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} noDivider />
       </div>
     )
   }
@@ -169,19 +184,19 @@ export function StatusBanner({
 
   if (status === 'judging_on_hold') {
     return (
-      <div className="rounded-xl border border-[#F0D060] bg-[#FFFBE6] px-5 py-4">
+      <div className="rounded-xl border border-[#F0D060] bg-[#FFFBE6] dark:border-[#6B5000] dark:bg-[#3A2E00] px-5 py-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-[#6B5000]">⚠ Judging is on hold — no judge assigned</p>
+            <p className="text-sm font-medium text-[#6B5000] dark:text-[#FAD84A]">⚠ Judging is on hold — no judge assigned</p>
             {judgingOpensAt && (
-              <p className="text-sm text-[#6B5000] mt-0.5">
+              <p className="text-sm text-[#6B5000] dark:text-[#FAD84A] mt-0.5 opacity-80">
                 The judging window opened {fmtDate(judgingOpensAt)}. Members are waiting for results.
               </p>
             )}
           </div>
           <Link
             href="#judge"
-            className="shrink-0 inline-flex items-center rounded-lg border border-[#A67C00] px-4 py-2 text-sm font-medium text-[#6B5000] hover:bg-[rgba(166,124,0,0.08)] transition-colors"
+            className="shrink-0 inline-flex items-center rounded-lg border border-[#A67C00] dark:border-[#6B5000] px-4 py-2 text-sm font-medium text-[#6B5000] dark:text-[#FAD84A] hover:bg-[rgba(166,124,0,0.08)] transition-colors"
           >
             + Assign judge now
           </Link>
@@ -224,14 +239,12 @@ export function StatusBanner({
   if (status === 'cancelled') {
     return (
       <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4">
-        <div>
-          <p className="text-sm font-medium text-content-primary">
-            Competition cancelled{cancelledAt ? ` · ${fmtDate(cancelledAt)}` : ''}
-          </p>
-          {cancellationReason && (
-            <p className="text-sm text-content-secondary mt-0.5">Reason: {cancellationReason}</p>
-          )}
-        </div>
+        <p className="text-sm font-medium text-content-primary">
+          Competition cancelled{cancelledAt ? ` · ${fmtDate(cancelledAt)}` : ''}
+        </p>
+        {cancellationReason && (
+          <p className="text-sm text-content-secondary mt-0.5">Reason: {cancellationReason}</p>
+        )}
         <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} />
       </div>
     )
