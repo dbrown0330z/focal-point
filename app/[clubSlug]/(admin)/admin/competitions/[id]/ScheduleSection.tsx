@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { updateScheduleField } from '../actions'
+import { updateScheduleField, transitionStatus } from '../actions'
 
 type DateField = 'opens_at' | 'closes_at' | 'judging_opens_at' | 'judging_closes_at' | 'results_at'
 type TextField = 'results_event_type'
@@ -34,7 +34,8 @@ export function ScheduleSection({
   const [editing,    setEditing]    = useState<Field | null>(null)
   const [draftValue, setDraftValue] = useState('')
   const [error,      setError]      = useState('')
-  const [isPending,  startTransition] = useTransition()
+  const [savePending,   startSave]   = useTransition()
+  const [actionPending, startAction] = useTransition()
 
   const now = new Date()
   const submissionsHaveOpened  = opensAt         ? new Date(opensAt)         <= now : false
@@ -65,20 +66,20 @@ export function ScheduleSection({
       setError('Judging close date cannot be before the open date'); return
     }
 
-    startTransition(async () => {
+    startSave(async () => {
       await updateScheduleField(id, field, value)
       setEditing(null)
     })
   }
 
-  const inputCls = "w-full rounded-lg border border-border-default bg-surface-0 px-2.5 py-1.5 text-sm text-content-primary focus:border-action-primary focus:outline-none focus:ring-2 focus:ring-action-primary/20"
-  const saveBtnCls = "rounded-md bg-action-primary px-2.5 py-1 text-xs font-medium text-white hover:bg-action-primary-hover disabled:opacity-60 transition-colors"
+  const inputCls     = "w-full rounded-lg border border-border-default bg-surface-0 px-2.5 py-1.5 text-sm text-content-primary focus:border-action-primary focus:outline-none focus:ring-2 focus:ring-action-primary/20"
+  const saveBtnCls   = "rounded-md bg-action-primary px-2.5 py-1 text-xs font-medium text-white hover:bg-action-primary-hover disabled:opacity-60 transition-colors"
   const cancelBtnCls = "rounded-md border border-border-default px-2.5 py-1 text-xs font-medium text-content-primary hover:bg-surface-1 transition-colors"
-  const editBtnCls = "text-xs text-action-primary hover:underline disabled:opacity-40 disabled:cursor-default disabled:no-underline"
+  const editBtnCls   = "text-xs text-action-primary hover:underline disabled:opacity-40 disabled:cursor-default disabled:no-underline"
 
-  // ── Single date card ────────────────────────────────────────────────────────
+  // ── Single date row within a combined card ──────────────────────────────────
 
-  function DateCard({
+  function DateRow({
     label, field, value, locked, lockedReason,
   }: {
     label:         string
@@ -89,18 +90,16 @@ export function ScheduleSection({
   }) {
     const isEditing = editing === field
     return (
-      <div className="flex-1 min-w-0 rounded-xl border border-border-default bg-surface-2 px-4 py-3 flex flex-col gap-2">
-        {/* Label row */}
-        <div className="flex items-center justify-between gap-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-content-tertiary leading-none">{label}</p>
+      <div>
+        <div className="flex items-center gap-1.5 mb-1">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-content-tertiary">{label}</p>
           {locked && !isTerminal && (
-            <span className="text-[10px] text-content-disabled leading-none">past</span>
+            <span className="text-[10px] text-content-disabled">· past</span>
           )}
         </div>
 
-        {/* Value / edit form */}
         {isEditing ? (
-          <div className="space-y-2 mt-1">
+          <div className="space-y-2">
             <input
               type="date"
               value={draftValue}
@@ -109,14 +108,14 @@ export function ScheduleSection({
             />
             {error && <p className="text-[11px] text-status-error-text">⚠ {error}</p>}
             <div className="flex gap-1.5">
-              <button onClick={() => saveEdit(field)} disabled={isPending} className={saveBtnCls}>
-                {isPending ? '…' : 'Save'}
+              <button onClick={() => saveEdit(field)} disabled={savePending} className={saveBtnCls}>
+                {savePending ? '…' : 'Save'}
               </button>
               <button onClick={cancelEdit} className={cancelBtnCls}>Cancel</button>
             </div>
           </div>
         ) : (
-          <div className="flex items-end justify-between gap-2 mt-auto">
+          <div className="flex items-end justify-between gap-2">
             <p className="text-sm font-medium text-content-primary leading-snug">
               {value
                 ? fmtDate(value)
@@ -144,10 +143,11 @@ export function ScheduleSection({
     )
   }
 
-  // ── Results card (date + type combined) ─────────────────────────────────────
-
   const isEditingDate = editing === 'results_at'
   const isEditingType = editing === 'results_event_type'
+
+  const showSubmissionsAction = status === 'open'
+  const showJudgingAction     = status === 'judging'
 
   return (
     <section id="schedule">
@@ -155,54 +155,89 @@ export function ScheduleSection({
 
       <div className="flex items-stretch gap-2">
 
-        {/* ── Group 1: Submissions ─────────────────────────────────────────── */}
-        <DateCard
-          label="Submissions Open"
-          field="opens_at"
-          value={opensAt}
-          locked={submissionsHaveOpened}
-          lockedReason="The submission window has already opened and cannot be moved."
-        />
-        <DateCard
-          label="Submissions Close"
-          field="closes_at"
-          value={closesAt}
-          locked={submissionsHaveClosed}
-          lockedReason="The submission window has already closed."
-        />
+        {/* ── Submission Dates ─────────────────────────────────────────────── */}
+        <div className="flex-1 min-w-0 rounded-xl border border-border-default bg-surface-2 px-4 py-3 flex flex-col gap-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-content-tertiary leading-none">Submission Dates</p>
+
+          <DateRow
+            label="Opens"
+            field="opens_at"
+            value={opensAt}
+            locked={submissionsHaveOpened}
+            lockedReason="The submission window has already opened."
+          />
+          <div className="border-t border-border-subtle pt-2">
+            <DateRow
+              label="Closes"
+              field="closes_at"
+              value={closesAt}
+              locked={submissionsHaveClosed}
+              lockedReason="The submission window has already closed."
+            />
+          </div>
+
+          {showSubmissionsAction && (
+            <div className="mt-auto pt-2 border-t border-border-subtle">
+              <button
+                disabled={actionPending}
+                onClick={() => startAction(() => transitionStatus(id, 'judging'))}
+                className="inline-flex items-center rounded-lg bg-action-primary px-4 py-2 text-sm font-medium text-white hover:bg-action-primary-hover transition-colors disabled:opacity-60"
+              >
+                {actionPending ? 'Updating…' : submissionsHaveClosed ? 'Begin judging →' : 'Close submissions & begin judging →'}
+              </button>
+            </div>
+          )}
+        </div>
 
         <Sep />
 
-        {/* ── Group 2: Judging ─────────────────────────────────────────────── */}
-        <DateCard
-          label="Judging Opens"
-          field="judging_opens_at"
-          value={judgingOpensAt}
-          locked={judgingWindowHasOpened}
-          lockedReason="The judging window has already opened and cannot be moved."
-        />
-        <DateCard
-          label="Judging Closes"
-          field="judging_closes_at"
-          value={judgingClosesAt}
-          locked={judgingWindowHasClosed}
-          lockedReason="The judging window has already closed."
-        />
+        {/* ── Judging Dates ────────────────────────────────────────────────── */}
+        <div className="flex-1 min-w-0 rounded-xl border border-border-default bg-surface-2 px-4 py-3 flex flex-col gap-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-content-tertiary leading-none">Judging Dates</p>
+
+          <DateRow
+            label="Opens"
+            field="judging_opens_at"
+            value={judgingOpensAt}
+            locked={judgingWindowHasOpened}
+            lockedReason="The judging window has already opened."
+          />
+          <div className="border-t border-border-subtle pt-2">
+            <DateRow
+              label="Closes"
+              field="judging_closes_at"
+              value={judgingClosesAt}
+              locked={judgingWindowHasClosed}
+              lockedReason="The judging window has already closed."
+            />
+          </div>
+
+          {showJudgingAction && (
+            <div className="mt-auto pt-2 border-t border-border-subtle">
+              <button
+                disabled={actionPending}
+                onClick={() => startAction(() => transitionStatus(id, 'results_pending'))}
+                className="inline-flex items-center rounded-lg border border-border-default bg-surface-1 px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-0 transition-colors disabled:opacity-60"
+              >
+                {actionPending ? 'Updating…' : 'Mark judging complete'}
+              </button>
+            </div>
+          )}
+        </div>
 
         <Sep />
 
-        {/* ── Group 3: Results ─────────────────────────────────────────────── */}
+        {/* ── Results ──────────────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0 rounded-xl border border-border-default bg-surface-2 px-4 py-3 flex flex-col gap-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-content-tertiary leading-none">Results</p>
 
-          {/* Date sub-field */}
           <div>
             <p className="text-[10px] text-content-tertiary mb-1.5">Date</p>
             {isEditingDate ? (
               <div className="space-y-2">
                 <input type="date" value={draftValue} onChange={e => setDraftValue(e.target.value)} className={inputCls} />
                 <div className="flex gap-1.5">
-                  <button onClick={() => saveEdit('results_at')} disabled={isPending} className={saveBtnCls}>{isPending ? '…' : 'Save'}</button>
+                  <button onClick={() => saveEdit('results_at')} disabled={savePending} className={saveBtnCls}>{savePending ? '…' : 'Save'}</button>
                   <button onClick={cancelEdit} className={cancelBtnCls}>Cancel</button>
                 </div>
               </div>
@@ -221,8 +256,7 @@ export function ScheduleSection({
             )}
           </div>
 
-          {/* Type sub-field */}
-          <div className="border-t border-border-subtle pt-2.5">
+          <div className="border-t border-border-subtle pt-2">
             <p className="text-[10px] text-content-tertiary mb-1.5">Type</p>
             {isEditingType ? (
               <div className="space-y-2">
@@ -234,7 +268,7 @@ export function ScheduleSection({
                   className={inputCls}
                 />
                 <div className="flex gap-1.5">
-                  <button onClick={() => saveEdit('results_event_type')} disabled={isPending} className={saveBtnCls}>{isPending ? '…' : 'Save'}</button>
+                  <button onClick={() => saveEdit('results_event_type')} disabled={savePending} className={saveBtnCls}>{savePending ? '…' : 'Save'}</button>
                   <button onClick={cancelEdit} className={cancelBtnCls}>Cancel</button>
                 </div>
               </div>

@@ -389,12 +389,14 @@ export function JudgeSection({
 
           {/* Pre-window message: link not yet available */}
           {!isWindowOpen && (
-            <p className="mt-2 text-xs text-content-tertiary">
-              The judging link will be available once submissions close
-              {judgingOpensAt
-                ? ` — on ${fmtDate(judgingOpensAt)}, or sooner by clicking the button above.`
-                : ' — use the button above to close submissions when ready.'}
-            </p>
+            <div className="mt-2 rounded-lg border border-[#F0D060] bg-[#FFFBE6] px-3 py-2">
+              <p className="text-xs text-[#6B5000]">
+                The judging link will be available once submissions close
+                {judgingOpensAt
+                  ? ` — on ${fmtDate(judgingOpensAt)}, or sooner using the Submission Dates section below.`
+                  : ' — use the Submission Dates section below to close submissions when ready.'}
+              </p>
+            </div>
           )}
         </div>
       </div>

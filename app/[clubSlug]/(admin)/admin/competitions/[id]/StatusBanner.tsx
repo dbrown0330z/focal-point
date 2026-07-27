@@ -129,23 +129,12 @@ export function StatusBanner({
     if (submissionsClosed) {
       return (
         <div className="rounded-xl border border-[#F0D060] bg-[#FFFBE6] px-5 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-[#6B5000]">
-                Submissions closed · {submissionCount} {submissionCount === 1 ? 'entry' : 'entries'} received
-              </p>
-              <p className="text-sm text-[#6B5000] mt-0.5">
-                Mark this competition as judging to enable the judge portal.
-              </p>
-            </div>
-            <button
-              disabled={isPending}
-              onClick={() => startTransition(() => transitionStatus(id, 'judging'))}
-              className={`shrink-0 ${btnPrimary}`}
-            >
-              {isPending ? 'Updating…' : 'Begin judging →'}
-            </button>
-          </div>
+          <p className="text-sm font-medium text-[#6B5000]">
+            Submissions closed · {submissionCount} {submissionCount === 1 ? 'entry' : 'entries'} received
+          </p>
+          <p className="text-sm text-[#6B5000] mt-0.5">
+            Use the Submission Dates section below to begin judging.
+          </p>
           <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} />
         </div>
       )
@@ -153,23 +142,12 @@ export function StatusBanner({
 
     return (
       <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-content-primary">
-              Submissions open · {submissionCount} {submissionCount === 1 ? 'entry' : 'entries'} received
-            </p>
-            {closesAt && (
-              <p className="text-sm text-content-secondary mt-0.5">Closes {fmtDate(closesAt)}</p>
-            )}
-          </div>
-          <button
-            disabled={isPending}
-            onClick={() => startTransition(() => transitionStatus(id, 'judging'))}
-            className={`shrink-0 ${btnPrimary}`}
-          >
-            {isPending ? 'Updating…' : 'Close submissions & begin judging →'}
-          </button>
-        </div>
+        <p className="text-sm font-medium text-content-primary">
+          Submissions open · {submissionCount} {submissionCount === 1 ? 'entry' : 'entries'} received
+        </p>
+        {closesAt && (
+          <p className="text-sm text-content-secondary mt-0.5">Closes {fmtDate(closesAt)}</p>
+        )}
         <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} />
       </div>
     )
@@ -178,23 +156,12 @@ export function StatusBanner({
   if (status === 'judging') {
     return (
       <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-content-primary">
-              Judging in progress{judgeName ? ` · ${judgeName}` : ''}
-            </p>
-            {judgingClosesAt && (
-              <p className="text-sm text-content-secondary mt-0.5">Window closes {fmtDate(judgingClosesAt)}</p>
-            )}
-          </div>
-          <button
-            disabled={isPending}
-            onClick={() => startTransition(() => transitionStatus(id, 'results_pending'))}
-            className="shrink-0 inline-flex items-center rounded-lg border border-border-default bg-surface-2 px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-1 transition-colors disabled:opacity-60"
-          >
-            {isPending ? 'Updating…' : 'Mark judging complete'}
-          </button>
-        </div>
+        <p className="text-sm font-medium text-content-primary">
+          Judging in progress{judgeName ? ` · ${judgeName}` : ''}
+        </p>
+        {judgingClosesAt && (
+          <p className="text-sm text-content-secondary mt-0.5">Window closes {fmtDate(judgingClosesAt)}</p>
+        )}
         <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} />
       </div>
     )

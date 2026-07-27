@@ -53,8 +53,8 @@ export function LifecycleActions({ id, title, status, submissionCount, isArchive
   return (
     <>
       <div className="flex items-center gap-2">
-        {/* Archive button — always visible, non-destructive */}
-        {!isArchived && (
+        {/* Archive button — only for concluded competitions */}
+        {!isArchived && (status === 'results_published' || status === 'closed' || status === 'cancelled') && (
           <button
             onClick={() => setShowArchive(true)}
             className={`${btnBase} border-border-default bg-surface-2 text-content-secondary hover:bg-surface-1`}
