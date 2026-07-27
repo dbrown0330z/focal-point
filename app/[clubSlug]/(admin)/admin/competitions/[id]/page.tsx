@@ -96,16 +96,20 @@ export default async function CompetitionDetailPage({
   const nameEditable = !isTerminal
 
   const comp = competition as typeof competition & {
-    judging_opens_at?:           string | null
-    judging_closes_at?:          string | null
-    archived_at?:                string | null
-    cancelled_at?:               string | null
-    cancellation_reason?:        string | null
-    results_at?:                 string | null
-    results_event_type?:         string | null
-    results_location_mode?:      string | null
-    results_location_venue?:     string | null
-    results_publish_visibility?: string | null
+    judging_opens_at?:                  string | null
+    judging_closes_at?:                 string | null
+    archived_at?:                       string | null
+    cancelled_at?:                      string | null
+    cancellation_reason?:               string | null
+    results_at?:                        string | null
+    results_event_type?:                string | null
+    results_reveal_mode?:               string | null
+    results_location_mode?:             string | null
+    results_location_venue?:            string | null
+    results_publish_timing?:            string | null
+    results_publish_specific_at?:       string | null
+    results_publish_visibility?:        string | null
+    results_public_visibility_delay?:   number | null
   }
 
   const existingVenues = Array.from(new Set(
@@ -226,11 +230,15 @@ export default async function CompetitionDetailPage({
         judgingOpensAt={comp.judging_opens_at ?? null}
         judgingClosesAt={comp.judging_closes_at ?? null}
         results={{
-          resultsAt:         comp.results_at         ?? null,
-          resultsEventType:  comp.results_event_type ?? null,
-          locationMode:      comp.results_location_mode      ?? null,
-          locationVenue:     comp.results_location_venue     ?? null,
-          publishVisibility: comp.results_publish_visibility ?? null,
+          resultsAt:             comp.results_at                    ?? null,
+          resultsEventType:      comp.results_event_type            ?? null,
+          revealMode:            comp.results_reveal_mode           ?? null,
+          locationMode:          comp.results_location_mode         ?? null,
+          locationVenue:         comp.results_location_venue        ?? null,
+          publishTiming:         comp.results_publish_timing        ?? null,
+          publishSpecificAt:     comp.results_publish_specific_at   ?? null,
+          publishVisibility:     comp.results_publish_visibility     ?? null,
+          publicVisibilityDelay: comp.results_public_visibility_delay ?? null,
         }}
         existingVenues={existingVenues}
       />

@@ -134,31 +134,55 @@ export async function updateScheduleField(
 export async function updateResultsEvent(
   id: string,
   data: {
-    resultsDate:         string | null
-    resultsTime:         string | null
-    resultsEventType:    string | null
-    locationMode:        string | null
-    locationVenue:       string | null
-    publishVisibility:   string | null
+    revealMode:             string
+    // Meeting path
+    eventDate:              string | null
+    eventTime:              string | null
+    resultsEventType:       string | null
+    locationMode:           string
+    locationVenue:          string | null
+    publishTiming:          string
+    publishSpecificDate:    string | null
+    publishSpecificTime:    string | null
+    // Auto-publish path
+    publishAutoDate:        string | null
+    publishAutoTime:        string | null
+    // Shared
+    publicVisibility:       string
+    publicVisibilityDelay:  number
   },
 ) {
   const supabase = createServiceClient()
   const slug = await requireClubSlug()
 
+  // results_at: event datetime (meeting) or publish datetime (auto-publish)
   let resultsAt: string | null = null
-  if (data.resultsDate) {
-    const time = data.resultsTime || '00:00'
-    resultsAt = `${data.resultsDate}T${time}:00`
+  if (data.revealMode === 'meeting' && data.eventDate) {
+    const time = data.eventTime || '00:00'
+    resultsAt = `${data.eventDate}T${time}:00`
+  } else if (data.revealMode === 'auto-publish' && data.publishAutoDate) {
+    const time = data.publishAutoTime || '00:00'
+    resultsAt = `${data.publishAutoDate}T${time}:00`
+  }
+
+  let publishSpecificAt: string | null = null
+  if (data.revealMode === 'meeting' && data.publishTiming === 'specific-time' && data.publishSpecificDate) {
+    const time = data.publishSpecificTime || '00:00'
+    publishSpecificAt = `${data.publishSpecificDate}T${time}:00`
   }
 
   await supabase
     .from('competitions')
     .update({
-      results_at:                 resultsAt,
-      results_event_type:         data.resultsEventType || null,
-      results_location_mode:      data.locationMode || null,
-      results_location_venue:     data.locationVenue || null,
-      results_publish_visibility: data.publishVisibility || null,
+      results_at:                       resultsAt,
+      results_event_type:               data.revealMode === 'meeting' ? (data.resultsEventType || null) : null,
+      results_reveal_mode:              data.revealMode,
+      results_location_mode:            data.revealMode === 'meeting' ? data.locationMode : null,
+      results_location_venue:           data.revealMode === 'meeting' ? (data.locationVenue || null) : null,
+      results_publish_timing:           data.revealMode === 'meeting' ? data.publishTiming : null,
+      results_publish_specific_at:      publishSpecificAt,
+      results_publish_visibility:       data.publicVisibility,
+      results_public_visibility_delay:  data.publicVisibilityDelay,
     })
     .eq('id', id)
 
