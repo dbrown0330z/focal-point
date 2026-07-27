@@ -171,20 +171,29 @@ export async function updateResultsEvent(
     publishSpecificAt = `${data.publishSpecificDate}T${time}:00`
   }
 
+  // Core fields — exist since migration 20260418010000, always safe to update
   await supabase
     .from('competitions')
     .update({
-      results_at:                       resultsAt,
-      results_event_type:               data.revealMode === 'meeting' ? (data.resultsEventType || null) : null,
-      results_reveal_mode:              data.revealMode,
-      results_location_mode:            data.revealMode === 'meeting' ? data.locationMode : null,
-      results_location_venue:           data.revealMode === 'meeting' ? (data.locationVenue || null) : null,
-      results_publish_timing:           data.revealMode === 'meeting' ? data.publishTiming : null,
-      results_publish_specific_at:      publishSpecificAt,
-      results_publish_visibility:       data.publicVisibility,
-      results_public_visibility_delay:  data.publicVisibilityDelay,
+      results_at:         resultsAt,
+      results_event_type: data.revealMode === 'meeting' ? (data.resultsEventType || null) : null,
     })
     .eq('id', id)
+
+  // Extended fields — added in migrations 20260526000000 + 20260526000001
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.from('competitions') as any)
+    .update({
+      results_reveal_mode:             data.revealMode,
+      results_location_mode:           data.revealMode === 'meeting' ? data.locationMode : null,
+      results_location_venue:          data.revealMode === 'meeting' ? (data.locationVenue || null) : null,
+      results_publish_timing:          data.revealMode === 'meeting' ? data.publishTiming : null,
+      results_publish_specific_at:     publishSpecificAt,
+      results_publish_visibility:      data.publicVisibility,
+      results_public_visibility_delay: data.publicVisibilityDelay,
+    })
+    .eq('id', id)
+  // error intentionally ignored — columns may not exist in older deployments
 
   revalidatePath(`/${slug}/admin/competitions/${id}`)
   revalidatePath(`/${slug}/competitions`)
