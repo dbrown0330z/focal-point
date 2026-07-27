@@ -69,6 +69,7 @@ export default async function CompetitionDetailPage({
     { count: submissionCount },
     { data: submissionRows },
     { data: judgeDirectory },
+    { data: venueRows },
   ] = await Promise.all([
     admin
       .from('submissions')
@@ -82,6 +83,10 @@ export default async function CompetitionDetailPage({
       .from('judge_directory')
       .select('id, name, email')
       .order('name', { ascending: true }),
+    admin
+      .from('competitions')
+      .select('results_location_venue')
+      .not('results_location_venue', 'is', null),
   ])
 
   const headersList = await headers()
@@ -91,14 +96,24 @@ export default async function CompetitionDetailPage({
   const nameEditable = !isTerminal
 
   const comp = competition as typeof competition & {
-    judging_opens_at?:    string | null
-    judging_closes_at?:   string | null
-    archived_at?:         string | null
-    cancelled_at?:        string | null
-    cancellation_reason?: string | null
-    results_at?:          string | null
-    results_event_type?:  string | null
+    judging_opens_at?:           string | null
+    judging_closes_at?:          string | null
+    archived_at?:                string | null
+    cancelled_at?:               string | null
+    cancellation_reason?:        string | null
+    results_at?:                 string | null
+    results_event_type?:         string | null
+    results_location_mode?:      string | null
+    results_location_venue?:     string | null
+    results_publish_visibility?: string | null
   }
+
+  const existingVenues = Array.from(new Set(
+    (venueRows ?? [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map(r => (r as any).results_location_venue as string | null)
+      .filter((v): v is string => !!v)
+  ))
 
   const judgeName  = comp.judge_tokens?.[0]?.judge_name ?? null
   const categories = comp.competition_categories as { id: string; name: string }[]
@@ -210,8 +225,14 @@ export default async function CompetitionDetailPage({
         closesAt={competition.closes_at ?? null}
         judgingOpensAt={comp.judging_opens_at ?? null}
         judgingClosesAt={comp.judging_closes_at ?? null}
-        resultsAt={comp.results_at ?? null}
-        resultsEventType={comp.results_event_type ?? null}
+        results={{
+          resultsAt:         comp.results_at         ?? null,
+          resultsEventType:  comp.results_event_type ?? null,
+          locationMode:      comp.results_location_mode      ?? null,
+          locationVenue:     comp.results_location_venue     ?? null,
+          publishVisibility: comp.results_publish_visibility ?? null,
+        }}
+        existingVenues={existingVenues}
       />
 
       {/* Judge */}

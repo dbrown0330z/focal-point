@@ -327,15 +327,12 @@ export function JudgeSection({
               {isWindowOpen && !judge.invitation_sent_at && (
                 <p className="text-xs text-[#A67C00] mt-0.5">Invitation not yet sent</p>
               )}
-              {!isWindowOpen && (
-                <p className="text-xs text-content-tertiary mt-0.5">Invite will be sent when judging opens.</p>
-              )}
             </div>
             <button
               type="button"
               disabled={removePending}
               onClick={() => setShowConfirm(true)}
-              className="text-xs text-content-tertiary hover:text-action-primary transition-colors disabled:opacity-50"
+              className="text-xs text-action-primary hover:underline transition-colors disabled:opacity-40"
             >
               {removePending ? 'Removing…' : 'Change judge'}
             </button>

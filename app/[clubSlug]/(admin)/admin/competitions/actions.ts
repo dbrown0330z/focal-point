@@ -131,6 +131,41 @@ export async function updateScheduleField(
   revalidatePath('/competitions')
 }
 
+export async function updateResultsEvent(
+  id: string,
+  data: {
+    resultsDate:         string | null
+    resultsTime:         string | null
+    resultsEventType:    string | null
+    locationMode:        string | null
+    locationVenue:       string | null
+    publishVisibility:   string | null
+  },
+) {
+  const supabase = createServiceClient()
+  const slug = await requireClubSlug()
+
+  let resultsAt: string | null = null
+  if (data.resultsDate) {
+    const time = data.resultsTime || '00:00'
+    resultsAt = `${data.resultsDate}T${time}:00`
+  }
+
+  await supabase
+    .from('competitions')
+    .update({
+      results_at:                 resultsAt,
+      results_event_type:         data.resultsEventType || null,
+      results_location_mode:      data.locationMode || null,
+      results_location_venue:     data.locationVenue || null,
+      results_publish_visibility: data.publishVisibility || null,
+    })
+    .eq('id', id)
+
+  revalidatePath(`/${slug}/admin/competitions/${id}`)
+  revalidatePath(`/${slug}/competitions`)
+}
+
 export async function addCategory(competitionId: string, formData: FormData) {
   const name = (formData.get('name') as string).trim()
   if (!name) return
