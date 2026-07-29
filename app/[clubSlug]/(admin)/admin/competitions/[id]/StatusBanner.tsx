@@ -60,7 +60,7 @@ function DonutChart({ categories, total, colors }: {
   })
 
   return (
-    <svg viewBox="0 0 100 100" width={176} height={176} style={{ flexShrink: 0 }}>
+    <svg viewBox="0 0 100 100" width={160} height={160} style={{ flexShrink: 0 }}>
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border-subtle)" strokeWidth={13} />
       {segments.map((s, i) => (
         <circle
