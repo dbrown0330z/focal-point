@@ -307,9 +307,9 @@ export function JudgeSection({
     <>
       <div className="rounded-xl border border-border-default bg-surface-2 divide-y divide-border-subtle">
         {isWindowOpen && (
-          <div className="px-4 py-2.5 bg-status-success-bg rounded-t-xl">
-            <p className="text-xs font-medium text-status-success-text">
-              ✓ Judging window is open
+          <div className="px-4 py-2.5 bg-status-warning-bg rounded-t-xl">
+            <p className="text-xs font-medium text-status-warning-text">
+              Judging window is open
               {judgingClosesAt && ` · Closes ${fmtDate(judgingClosesAt)}`}
             </p>
           </div>

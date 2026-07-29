@@ -21,6 +21,7 @@ type Props = {
   cancelledAt:        string | null
   cancellationReason: string | null
   submissionCount:    number
+  submitterCount:     number
   judgeName:          string | null
   categories:         CategorySlice[]
 }
@@ -41,26 +42,37 @@ function daysUntil(iso: string): number {
 function EntriesBlock({
   id,
   submissionCount,
+  submitterCount,
   categories,
-  noDivider = false,
 }: {
   id:              string
   submissionCount: number
+  submitterCount:  number
   categories:      CategorySlice[]
-  noDivider?:      boolean
 }) {
   if (categories.length === 0 && submissionCount === 0) return null
+  const statCls = "text-[3rem] font-bold leading-none text-content-primary"
+  const labelCls = "text-[10px] font-medium uppercase tracking-widest text-content-tertiary mt-1.5"
   return (
-    <div className={`flex items-start gap-4 ${noDivider ? '' : 'mt-4 pt-4 border-t border-border-subtle'}`}>
+    <div className="flex items-center gap-0">
 
-      {/* Big number */}
+      {/* Submitters */}
+      <div className="shrink-0 text-center min-w-[64px]">
+        <p className={statCls}>{submitterCount}</p>
+        <p className={labelCls}>submitters</p>
+      </div>
+
+      {/* Divider */}
+      <div className="w-px self-stretch bg-border-default mx-5" />
+
+      {/* Entries number */}
       <div className="shrink-0 text-center min-w-[52px]">
-        <p className="text-[3rem] font-bold leading-none text-content-primary">{submissionCount}</p>
-        <p className="text-[10px] font-medium uppercase tracking-widest text-content-tertiary mt-1.5">entries</p>
+        <p className={statCls}>{submissionCount}</p>
+        <p className={labelCls}>entries</p>
       </div>
 
       {/* Stacked bar + legend */}
-      <div className="flex-1 min-w-0 self-center space-y-2">
+      <div className="flex-1 min-w-0 self-center space-y-2 mx-4 pr-4">
         {submissionCount > 0 ? (
           <div className="h-3 rounded-full overflow-hidden flex">
             {categories.map((c, i) => {
@@ -97,7 +109,7 @@ function EntriesBlock({
       {/* View all link */}
       <Link
         href={`/admin/competitions/${id}/entries`}
-        className="shrink-0 self-start pt-0.5 text-sm text-action-primary hover:underline"
+        className="shrink-0 self-start text-sm text-action-primary hover:underline"
       >
         View all entries →
       </Link>
@@ -107,7 +119,7 @@ function EntriesBlock({
 
 export function StatusBanner({
   id, status, opensAt, closesAt, judgingOpensAt, judgingClosesAt,
-  cancelledAt, cancellationReason, submissionCount, judgeName, categories,
+  cancelledAt, cancellationReason, submissionCount, submitterCount, judgeName, categories,
 }: Props) {
   const [isPending, startTransition] = useTransition()
 
@@ -150,7 +162,7 @@ export function StatusBanner({
     if (submissionsClosed) {
       return (
         <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4">
-          <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} noDivider />
+          <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
         </div>
       )
     }
@@ -158,7 +170,7 @@ export function StatusBanner({
     // Active submissions — just show the entries block, no redundant status text
     return (
       <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4">
-        <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} noDivider />
+        <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
       </div>
     )
   }
@@ -166,13 +178,7 @@ export function StatusBanner({
   if (status === 'judging') {
     return (
       <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4">
-        <p className="text-sm font-medium text-content-primary">
-          Judging in progress{judgeName ? ` · ${judgeName}` : ''}
-        </p>
-        {judgingClosesAt && (
-          <p className="text-sm text-content-secondary mt-0.5">Window closes {fmtDate(judgingClosesAt)}</p>
-        )}
-        <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} />
+        <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
       </div>
     )
   }
@@ -196,7 +202,9 @@ export function StatusBanner({
             + Assign judge now
           </Link>
         </div>
-        <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} />
+        <div className="mt-4 pt-4 border-t border-status-warning/40">
+          <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
+        </div>
       </div>
     )
   }
@@ -217,7 +225,9 @@ export function StatusBanner({
             {isPending ? 'Publishing…' : 'Publish results →'}
           </button>
         </div>
-        <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} />
+        <div className="mt-4 pt-4 border-t border-border-subtle">
+          <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
+        </div>
       </div>
     )
   }
@@ -226,7 +236,9 @@ export function StatusBanner({
     return (
       <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4">
         <p className="text-sm text-content-primary">Results published · Competition closed</p>
-        <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} />
+        <div className="mt-4 pt-4 border-t border-border-subtle">
+          <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
+        </div>
       </div>
     )
   }
@@ -240,7 +252,9 @@ export function StatusBanner({
         {cancellationReason && (
           <p className="text-sm text-content-secondary mt-0.5">Reason: {cancellationReason}</p>
         )}
-        <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} />
+        <div className="mt-4 pt-4 border-t border-border-subtle">
+          <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
+        </div>
       </div>
     )
   }

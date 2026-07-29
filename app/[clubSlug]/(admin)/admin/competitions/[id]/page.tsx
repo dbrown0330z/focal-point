@@ -3,6 +3,12 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireClubSlug } from '@/lib/club-context'
+import { sendJudgeInvitation } from '@/lib/email/send'
+
+function fmtDateSimple(iso: string | null): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
+}
 
 export const dynamic = 'force-dynamic'
 import { LifecycleActions }  from './LifecycleActions'
@@ -86,7 +92,7 @@ export default async function CompetitionDetailPage({
       .eq('competition_id', id),
     admin
       .from('submissions')
-      .select('category_id')
+      .select('category_id, member_id')
       .eq('competition_id', id),
     admin
       .from('judge_directory')
@@ -128,14 +134,54 @@ export default async function CompetitionDetailPage({
       .filter((v): v is string => !!v)
   ))
 
+  // Auto-transition: if judging window has opened, status is still 'open', and a judge is assigned
+  const now = new Date()
+  const judgeToken = comp.judge_tokens?.[0] ?? null
+  if (
+    competition.status === 'open' &&
+    comp.judging_opens_at &&
+    new Date(comp.judging_opens_at) <= now &&
+    judgeToken
+  ) {
+    const { error: transErr } = await admin
+      .from('competitions')
+      .update({ status: 'judging' })
+      .eq('id', id)
+      .eq('status', 'open') // idempotent: no-op if already transitioned
+    if (!transErr) {
+      ;(competition as { status: string }).status = 'judging'
+      // Send judge invitation if not already sent
+      if (!judgeToken.invitation_sent_at && process.env.RESEND_API_KEY) {
+        const { data: club } = await admin.from('club_settings').select('club_name').single()
+        try {
+          await sendJudgeInvitation({
+            judgeEmail:      judgeToken.judge_email,
+            judgeFirstName:  judgeToken.judge_name.split(' ')[0],
+            competitionName: competition.title,
+            clubName:        club?.club_name ?? 'the club',
+            judgingOpenDate: fmtDateSimple(comp.judging_opens_at),
+            judgingCloseDate: fmtDateSimple(comp.judging_closes_at ?? null),
+            judgingUrl:      `${origin}/judge/${judgeToken.token}`,
+          })
+          await admin.from('judge_tokens').update({ invitation_sent_at: new Date().toISOString() }).eq('id', judgeToken.id)
+        } catch (e) {
+          console.warn('Auto judge invitation failed:', e)
+        }
+      }
+    }
+  }
+
   const judgeName  = comp.judge_tokens?.[0]?.judge_name ?? null
   const categories = comp.competition_categories as { id: string; name: string }[]
 
-  // Build per-category submission counts
+  // Build per-category submission counts and distinct submitter count
   const catCountMap: Record<string, number> = {}
+  const submitterSet = new Set<string>()
   for (const s of submissionRows ?? []) {
     catCountMap[s.category_id] = (catCountMap[s.category_id] ?? 0) + 1
+    if (s.member_id) submitterSet.add(s.member_id)
   }
+  const submitterCount = submitterSet.size
   const categoryData = categories.map(c => ({
     id:    c.id,
     name:  c.name,
@@ -227,6 +273,7 @@ export default async function CompetitionDetailPage({
         cancelledAt={comp.cancelled_at ?? null}
         cancellationReason={comp.cancellation_reason ?? null}
         submissionCount={submissionCount ?? 0}
+        submitterCount={submitterCount}
         judgeName={judgeName}
         categories={categoryData}
       />
