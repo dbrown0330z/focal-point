@@ -149,11 +149,11 @@ export function StatusBanner({
 
     if (submissionsClosed) {
       return (
-        <div className="rounded-xl border border-[#F0D060] bg-[#FFFBE6] dark:border-[#6B5000] dark:bg-[#3A2E00] px-5 py-4">
-          <p className="text-sm font-medium text-[#6B5000] dark:text-[#FAD84A]">
+        <div className="rounded-xl border border-status-warning bg-status-warning-bg px-5 py-4">
+          <p className="text-sm font-medium text-status-warning-text">
             Submissions closed · {submissionCount} {submissionCount === 1 ? 'entry' : 'entries'} received
           </p>
-          <p className="text-sm text-[#6B5000] dark:text-[#FAD84A] mt-0.5 opacity-80">
+          <p className="text-sm text-status-warning-text mt-0.5 opacity-80">
             Use the Submission Dates section below to begin judging.
           </p>
           <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} />
@@ -185,19 +185,19 @@ export function StatusBanner({
 
   if (status === 'judging_on_hold') {
     return (
-      <div className="rounded-xl border border-[#F0D060] bg-[#FFFBE6] dark:border-[#6B5000] dark:bg-[#3A2E00] px-5 py-4">
+      <div className="rounded-xl border border-status-warning bg-status-warning-bg px-5 py-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-[#6B5000] dark:text-[#FAD84A]">⚠ Judging is on hold — no judge assigned</p>
+            <p className="text-sm font-medium text-status-warning-text">⚠ Judging is on hold — no judge assigned</p>
             {judgingOpensAt && (
-              <p className="text-sm text-[#6B5000] dark:text-[#FAD84A] mt-0.5 opacity-80">
+              <p className="text-sm text-status-warning-text mt-0.5 opacity-80">
                 The judging window opened {fmtDate(judgingOpensAt)}. Members are waiting for results.
               </p>
             )}
           </div>
           <Link
             href="#judge"
-            className="shrink-0 inline-flex items-center rounded-lg border border-[#A67C00] dark:border-[#6B5000] px-4 py-2 text-sm font-medium text-[#6B5000] dark:text-[#FAD84A] hover:bg-[rgba(166,124,0,0.08)] transition-colors"
+            className="shrink-0 inline-flex items-center rounded-lg border border-status-warning px-4 py-2 text-sm font-medium text-status-warning-text hover:bg-status-warning-bg/50 transition-colors"
           >
             + Assign judge now
           </Link>

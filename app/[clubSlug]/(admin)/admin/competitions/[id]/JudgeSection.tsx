@@ -211,11 +211,11 @@ export function JudgeSection({
     return (
       <div className="rounded-xl border border-border-default bg-surface-2 divide-y divide-border-subtle">
         {showWarning && (
-          <div className="px-4 py-3 bg-[#FFFBE6] border-b border-[#F0D060] rounded-t-xl">
-            <p className="text-sm font-medium text-[#6B5000]">
+          <div className="px-4 py-3 bg-status-warning-bg border-b border-status-warning rounded-t-xl">
+            <p className="text-sm font-medium text-status-warning-text">
               ⚠ Judging window opens {daysUntilOpen === 0 ? 'today' : `in ${daysUntilOpen} day${daysUntilOpen === 1 ? '' : 's'}`}
             </p>
-            <p className="text-xs text-[#6B5000] mt-0.5">
+            <p className="text-xs text-status-warning-text mt-0.5">
               Assign a judge before the window opens so they can begin scoring.
             </p>
           </div>
@@ -307,8 +307,8 @@ export function JudgeSection({
     <>
       <div className="rounded-xl border border-border-default bg-surface-2 divide-y divide-border-subtle">
         {isWindowOpen && (
-          <div className="px-4 py-2.5 bg-[#EDFAF0] rounded-t-xl">
-            <p className="text-xs font-medium text-[#174A1A]">
+          <div className="px-4 py-2.5 bg-status-success-bg rounded-t-xl">
+            <p className="text-xs font-medium text-status-success-text">
               ✓ Judging window is open
               {judgingClosesAt && ` · Closes ${fmtDate(judgingClosesAt)}`}
             </p>
@@ -390,8 +390,8 @@ export function JudgeSection({
 
           {/* Pre-window message: link not yet available */}
           {!isWindowOpen && (
-            <div className="mt-2 rounded-lg border border-[#F0D060] bg-[#FFFBE6] dark:border-[#6B5000] dark:bg-[#3A2E00] px-3 py-2">
-              <p className="text-xs text-[#6B5000] dark:text-[#FAD84A]">
+            <div className="mt-2 rounded-lg border border-status-warning bg-status-warning-bg px-3 py-2">
+              <p className="text-xs text-status-warning-text">
                 The judging link will be available once submissions close
                 {judgingOpensAt
                   ? ` — on ${fmtDate(judgingOpensAt)}, or sooner using the Submission Dates section below.`
