@@ -60,7 +60,7 @@ function DonutChart({ categories, total, colors }: {
   })
 
   return (
-    <svg viewBox="0 0 100 100" width={88} height={88} style={{ flexShrink: 0 }}>
+    <svg viewBox="0 0 100 100" width={176} height={176} style={{ flexShrink: 0 }}>
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border-subtle)" strokeWidth={13} />
       {segments.map((s, i) => (
         <circle
@@ -74,8 +74,7 @@ function DonutChart({ categories, total, colors }: {
           style={{ transform: 'rotate(-90deg)', transformOrigin: `${cx}px ${cy}px` }}
         />
       ))}
-      <text x={cx} y={cy - 6} textAnchor="middle" fontSize={18} fontWeight={700} fill="var(--text-primary)">{total}</text>
-      <text x={cx} y={cy + 9} textAnchor="middle" fontSize={8} fontWeight={600} fill="var(--text-tertiary)" letterSpacing="0.07em">ENTRIES</text>
+      <text x={cx} y={cy + 7} textAnchor="middle" fontSize={18} fontWeight={700} fill="var(--text-primary)">{total}</text>
     </svg>
   )
 }
@@ -95,16 +94,16 @@ function EntriesBlock({
   const statCls  = "text-[3rem] font-bold leading-none text-content-primary"
   const labelCls = "text-[10px] font-medium uppercase tracking-widest text-content-tertiary mt-1.5"
   return (
-    <div className="flex items-center gap-0">
+    <div className="flex items-center py-4">
 
       {/* Submitters */}
-      <div className="shrink-0 text-center min-w-[64px]">
+      <div className="shrink-0 text-center min-w-[72px]">
         <p className={statCls}>{submitterCount}</p>
         <p className={labelCls}>submitters</p>
       </div>
 
-      {/* Divider */}
-      <div className="w-px self-stretch bg-border-default mx-5" />
+      {/* Divider: submitters → entries */}
+      <div className="w-px self-stretch bg-border-default mx-14" />
 
       {/* Entries count */}
       <div className="shrink-0 text-center min-w-[52px]">
@@ -112,12 +111,15 @@ function EntriesBlock({
         <p className={labelCls}>entries</p>
       </div>
 
+      {/* Divider: entries → donut */}
+      <div className="w-px self-stretch bg-border-default mx-14" />
+
       {/* Donut + legend */}
-      <div className="flex items-center gap-5 flex-1 min-w-0 mx-5 pr-4">
+      <div className="flex items-center gap-8 flex-1 min-w-0">
         <DonutChart categories={categories} total={submissionCount} colors={SPOT_COLORS} />
 
         {categories.length > 0 && (
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-2">
             {categories.map((c, i) => (
               <div key={c.id} className="flex items-center gap-2">
                 <span
@@ -135,7 +137,7 @@ function EntriesBlock({
       {/* View all link */}
       <Link
         href={`/admin/competitions/${id}/entries`}
-        className="shrink-0 self-start text-sm text-action-primary hover:underline"
+        className="shrink-0 self-center text-sm text-action-primary hover:underline pl-8"
       >
         View all entries →
       </Link>
@@ -187,7 +189,7 @@ export function StatusBanner({
 
     if (submissionsClosed) {
       return (
-        <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4">
+        <div className="rounded-xl border border-border-default bg-surface-1 px-8">
           <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
         </div>
       )
@@ -195,7 +197,7 @@ export function StatusBanner({
 
     // Active submissions — just show the entries block, no redundant status text
     return (
-      <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4">
+      <div className="rounded-xl border border-border-default bg-surface-1 px-8">
         <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
       </div>
     )
@@ -203,7 +205,7 @@ export function StatusBanner({
 
   if (status === 'judging') {
     return (
-      <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4">
+      <div className="rounded-xl border border-border-default bg-surface-1 px-8">
         <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
       </div>
     )
