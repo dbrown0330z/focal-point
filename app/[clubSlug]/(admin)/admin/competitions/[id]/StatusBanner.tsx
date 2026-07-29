@@ -39,6 +39,47 @@ function daysUntil(iso: string): number {
   return Math.round((target.getTime() - now.getTime()) / 86_400_000)
 }
 
+function DonutChart({ categories, total, colors }: {
+  categories: CategorySlice[]
+  total:      number
+  colors:     string[]
+}) {
+  const r  = 36
+  const cx = 50
+  const cy = 50
+  const C  = 2 * Math.PI * r
+
+  const segments: { dash: string; offset: number; color: string }[] = []
+  let cumulative = 0
+
+  categories.forEach((cat, i) => {
+    if (cat.count === 0 || total === 0) return
+    const arc = (cat.count / total) * C
+    segments.push({ dash: `${arc} ${C - arc}`, offset: -cumulative, color: colors[i % colors.length] })
+    cumulative += arc
+  })
+
+  return (
+    <svg viewBox="0 0 100 100" width={88} height={88} style={{ flexShrink: 0 }}>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border-subtle)" strokeWidth={13} />
+      {segments.map((s, i) => (
+        <circle
+          key={i}
+          cx={cx} cy={cy} r={r}
+          fill="none"
+          stroke={s.color}
+          strokeWidth={13}
+          strokeDasharray={s.dash}
+          strokeDashoffset={s.offset}
+          style={{ transform: 'rotate(-90deg)', transformOrigin: `${cx}px ${cy}px` }}
+        />
+      ))}
+      <text x={cx} y={cy - 6} textAnchor="middle" fontSize={18} fontWeight={700} fill="var(--text-primary)">{total}</text>
+      <text x={cx} y={cy + 9} textAnchor="middle" fontSize={8} fontWeight={600} fill="var(--text-tertiary)" letterSpacing="0.07em">ENTRIES</text>
+    </svg>
+  )
+}
+
 function EntriesBlock({
   id,
   submissionCount,
@@ -51,7 +92,7 @@ function EntriesBlock({
   categories:      CategorySlice[]
 }) {
   if (categories.length === 0 && submissionCount === 0) return null
-  const statCls = "text-[3rem] font-bold leading-none text-content-primary"
+  const statCls  = "text-[3rem] font-bold leading-none text-content-primary"
   const labelCls = "text-[10px] font-medium uppercase tracking-widest text-content-tertiary mt-1.5"
   return (
     <div className="flex items-center gap-0">
@@ -65,38 +106,23 @@ function EntriesBlock({
       {/* Divider */}
       <div className="w-px self-stretch bg-border-default mx-5" />
 
-      {/* Entries number */}
+      {/* Entries count */}
       <div className="shrink-0 text-center min-w-[52px]">
         <p className={statCls}>{submissionCount}</p>
         <p className={labelCls}>entries</p>
       </div>
 
-      {/* Stacked bar + legend */}
-      <div className="flex-1 min-w-0 self-center space-y-2 mx-4 pr-4">
-        {submissionCount > 0 ? (
-          <div className="h-3 rounded-full overflow-hidden flex">
-            {categories.map((c, i) => {
-              if (c.count === 0) return null
-              return (
-                <div
-                  key={c.id}
-                  className="h-full"
-                  style={{ flex: c.count, backgroundColor: SPOT_COLORS[i % SPOT_COLORS.length] }}
-                />
-              )
-            })}
-          </div>
-        ) : (
-          <div className="h-3 rounded-full bg-border-subtle" />
-        )}
+      {/* Donut + legend */}
+      <div className="flex items-center gap-5 flex-1 min-w-0 mx-5 pr-4">
+        <DonutChart categories={categories} total={submissionCount} colors={SPOT_COLORS} />
 
         {categories.length > 0 && (
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
             {categories.map((c, i) => (
-              <div key={c.id} className="flex items-center gap-1.5">
+              <div key={c.id} className="flex items-center gap-2">
                 <span
-                  className={`shrink-0 h-2 w-2 rounded-sm ${c.count === 0 ? 'border border-border-strong' : ''}`}
-                  style={{ backgroundColor: c.count > 0 ? SPOT_COLORS[i % SPOT_COLORS.length] : 'transparent' }}
+                  className="shrink-0 w-2.5 h-2.5 rounded-full"
+                  style={{ background: c.count > 0 ? SPOT_COLORS[i % SPOT_COLORS.length] : 'var(--border-default)' }}
                 />
                 <span className="text-xs text-content-secondary">{c.name}</span>
                 <span className="text-xs font-semibold text-content-primary ml-0.5">{c.count}</span>
