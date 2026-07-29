@@ -14,10 +14,11 @@ import { headers } from 'next/headers'
 
 function contextDate(
   status: string,
-  opensAt:         string | null,
-  closesAt:        string | null,
-  judgingClosesAt: string | null,
-  resultsAt:       string | null,
+  opensAt:          string | null,
+  closesAt:         string | null,
+  judgingOpensAt:   string | null,
+  judgingClosesAt:  string | null,
+  resultsAt:        string | null,
 ): string | null {
   const now = new Date()
   const fmt = (iso: string) => {
@@ -26,13 +27,21 @@ function contextDate(
   }
   if (status === 'draft' || status === 'open') {
     if (opensAt && new Date(opensAt) > now) return `Opens ${fmt(opensAt)}`
-    if (closesAt) return `Closes ${fmt(closesAt)}`
+    const subsClosed   = closesAt       ? new Date(closesAt)       <= now : false
+    const judgingOpen  = judgingOpensAt ? new Date(judgingOpensAt) <= now : false
+    if (subsClosed && judgingOpen && judgingClosesAt) return `Judging closes ${fmt(judgingClosesAt)}`
+    if (subsClosed && judgingOpensAt && !judgingOpen) return `Judging opens ${fmt(judgingOpensAt)}`
+    if (closesAt && !subsClosed) return `Closes ${fmt(closesAt)}`
   }
   if (status === 'judging' || status === 'judging_on_hold') {
     if (judgingClosesAt) return `Judging closes ${fmt(judgingClosesAt)}`
   }
   if (status === 'results_pending' && resultsAt) return `Results ${fmt(resultsAt)}`
   return null
+}
+
+function toTitleCase(s: string) {
+  return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
 const statusStyles: Record<string, string> = {
@@ -158,8 +167,8 @@ export default async function CompetitionDetailPage({
         <div className="flex flex-col gap-2 min-w-0 flex-1">
           <InlineTitle id={id} title={competition.title} editable={nameEditable} />
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[competition.status] ?? 'bg-surface-1 text-content-secondary'}`}>
-              {competition.status.replace(/_/g, ' ')}
+            <span className={`rounded-full px-3 py-1 text-sm font-semibold ${statusStyles[competition.status] ?? 'bg-surface-1 text-content-secondary'}`}>
+              {toTitleCase(competition.status)}
             </span>
             {comp.archived_at && (
               <span className="rounded-full bg-surface-1 px-2.5 py-0.5 text-xs font-medium text-content-tertiary">
@@ -171,6 +180,7 @@ export default async function CompetitionDetailPage({
                 competition.status,
                 competition.opens_at ?? null,
                 competition.closes_at ?? null,
+                comp.judging_opens_at ?? null,
                 comp.judging_closes_at ?? null,
                 comp.results_at ?? null,
               )

@@ -564,8 +564,11 @@ export function ScheduleSection({
     )
   }
 
-  const showSubmissionsAction = status === 'open'
-  const showJudgingAction     = status === 'judging'
+  // "Begin judging" lives in Submission Dates card while judging hasn't opened yet
+  const showSubmissionsAction   = status === 'open' && !judgingWindowHasOpened
+  // Once the judging window opens (but admin hasn't clicked Begin Judging), prompt from Judging card
+  const showJudgingBeginAction  = status === 'open' && judgingWindowHasOpened
+  const showJudgingAction       = status === 'judging'
 
   // Results summary
   const hasResults    = !!results.resultsAt
@@ -612,6 +615,17 @@ export function ScheduleSection({
             <DateRow label="Closes" field="judging_closes_at" value={judgingClosesAt} locked={judgingWindowHasClosed} lockedReason="The judging window has already closed." />
           </div>
 
+          {showJudgingBeginAction && (
+            <div className="mt-auto pt-2 border-t border-border-subtle">
+              <button
+                disabled={actionPending}
+                onClick={() => startAction(() => transitionStatus(id, 'judging'))}
+                className="inline-flex items-center rounded-lg bg-action-primary px-4 py-2 text-sm font-medium text-white hover:bg-action-primary-hover transition-colors disabled:opacity-60"
+              >
+                {actionPending ? 'Updating…' : 'Begin judging →'}
+              </button>
+            </div>
+          )}
           {showJudgingAction && (
             <div className="mt-auto pt-2 border-t border-border-subtle">
               <button

@@ -149,14 +149,8 @@ export function StatusBanner({
 
     if (submissionsClosed) {
       return (
-        <div className="rounded-xl border border-status-warning bg-status-warning-bg px-5 py-4">
-          <p className="text-sm font-medium text-status-warning-text">
-            Submissions closed · {submissionCount} {submissionCount === 1 ? 'entry' : 'entries'} received
-          </p>
-          <p className="text-sm text-status-warning-text mt-0.5 opacity-80">
-            Use the Submission Dates section below to begin judging.
-          </p>
-          <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} />
+        <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4">
+          <EntriesBlock id={id} submissionCount={submissionCount} categories={categories} noDivider />
         </div>
       )
     }
