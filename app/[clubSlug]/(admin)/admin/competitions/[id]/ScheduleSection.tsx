@@ -141,6 +141,15 @@ const inputSx = {
   '& .MuiOutlinedInput-notchedOutline': { borderRadius: '8px' },
 }
 
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-content-tertiary leading-none mb-0.5">{label}</p>
+      <p className="text-xs text-content-primary leading-snug">{value}</p>
+    </div>
+  )
+}
+
 // ── Results modal ──────────────────────────────────────────────────────────────
 
 function ResultsModal({
@@ -652,32 +661,59 @@ export function ScheduleSection({
 
           {hasResults ? (
             <div className="space-y-2 mt-0.5">
-              <div>
-                {isAutoPublish && (
-                  <p className="text-[10px] text-content-tertiary mb-0.5">Auto-published</p>
-                )}
-                <p className="text-sm font-medium text-content-primary leading-snug">
-                  {resultDateStr}
-                  {resultTimeStr && <span className="ml-1.5 font-normal text-content-secondary">{resultTimeStr}</span>}
-                </p>
-                {results.resultsEventType && (
-                  <p className="text-xs text-content-secondary mt-0.5">{results.resultsEventType}</p>
-                )}
-              </div>
-              {results.locationMode && results.locationMode !== 'not-confirmed' && (
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-content-tertiary mb-0.5">Location</p>
-                  <p className="text-xs text-content-secondary">
-                    {results.locationMode === 'online' ? 'Online' : (results.locationVenue || 'In person')}
-                  </p>
-                </div>
+
+              {/* Reveal mode */}
+              <InfoRow
+                label="Reveal"
+                value={results.revealMode === 'auto-publish' ? 'Published automatically' : 'At a meeting or event'}
+              />
+
+              {/* Date & time */}
+              {results.resultsAt && (
+                <InfoRow
+                  label={results.revealMode === 'auto-publish' ? 'Publishes' : 'Event date'}
+                  value={`${resultDateStr}${resultTimeStr ? ` · ${resultTimeStr}` : ''}`}
+                />
               )}
-              {results.publishVisibility && results.publishVisibility !== 'members-only' && (
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-content-tertiary mb-0.5">Visibility</p>
-                  <p className="text-xs text-content-secondary">{visibilityLabels[results.publishVisibility]}</p>
-                </div>
+
+              {/* Event type — meeting only */}
+              {results.revealMode !== 'auto-publish' && results.resultsEventType && (
+                <InfoRow label="Type" value={results.resultsEventType} />
               )}
+
+              {/* Location — meeting only */}
+              {results.revealMode !== 'auto-publish' && results.locationMode && (() => {
+                const { locationMode, locationVenue } = results
+                if (locationMode === 'not-confirmed') return <InfoRow label="Location" value="Not yet confirmed" />
+                if (locationMode === 'online')    return <InfoRow label="Location" value={locationVenue ? `Online · ${locationVenue}` : 'Online'} />
+                if (locationMode === 'in-person') return <InfoRow label="Location" value={locationVenue || 'In person (venue TBC)'} />
+                return null
+              })()}
+
+              {/* Publish timing — meeting only */}
+              {results.revealMode !== 'auto-publish' && results.publishTiming && (() => {
+                const { publishTiming, publishSpecificAt } = results
+                if (publishTiming === 'event-start') return <InfoRow label="Goes live" value="At event end time" />
+                if (publishTiming === 'manual')      return <InfoRow label="Goes live" value="Manually by admin" />
+                if (publishTiming === 'specific-time') {
+                  const specificStr = publishSpecificAt
+                    ? `${fmtDate(publishSpecificAt)}${fmtTime(publishSpecificAt) ? ` · ${fmtTime(publishSpecificAt)}` : ''}`
+                    : 'Time not set'
+                  return <InfoRow label="Goes live" value={specificStr} />
+                }
+                return null
+              })()}
+
+              {/* Visibility */}
+              {results.publishVisibility && (() => {
+                const { publishVisibility, publicVisibilityDelay } = results
+                let value = visibilityLabels[publishVisibility] ?? publishVisibility
+                if (publishVisibility === 'members-first') {
+                  value = `Members first, then public after ${publicVisibilityDelay ?? 24}h`
+                }
+                return <InfoRow label="Visible to" value={value} />
+              })()}
+
             </div>
           ) : (
             <p className="text-[11px] italic text-content-tertiary mt-0.5">Not set</p>
