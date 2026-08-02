@@ -851,6 +851,20 @@ export default function CustomPageEditor({
               </Button>
             ))}
           </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 0.25 }}>
+            <Button size="small" variant="text" color="error"
+              onClick={() => {
+                if (!imgAnchor) return
+                const img = imgAnchor
+                setImgAnchor(null)
+                img.parentElement?.removeChild(img)
+                editorRef.current?.focus()
+                triggerAutoSave()
+              }}
+              sx={{ minWidth: 0, px: 1, py: 0.25, fontSize: 11 }}>
+              Remove image
+            </Button>
+          </Box>
         </Box>
       </Popover>
 

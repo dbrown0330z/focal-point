@@ -410,10 +410,20 @@ export default function RichTextEditor({
     e.target.value = ''
   }
 
+  const removeImage = () => {
+    if (!imgAnchor) return
+    const img = imgAnchor
+    setImgAnchor(null)
+    img.parentElement?.removeChild(img)
+    editorRef.current?.focus()
+    if (onChange && editorRef.current) onChange(editorRef.current.innerHTML)
+  }
+
   const applyImageWidth = (pct: number) => {
     if (imgAnchor) imgAnchor.style.width = `${pct}%`
     setImgAnchor(null)
     editorRef.current?.focus()
+    if (onChange && editorRef.current) onChange(editorRef.current.innerHTML)
   }
 
   const applyImageAlign = (align: 'left' | 'center' | 'right') => {
@@ -618,6 +628,13 @@ export default function RichTextEditor({
                 {a === 'left' ? '← Left' : a === 'right' ? 'Right →' : 'Center'}
               </Button>
             ))}
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 0.25 }}>
+            <Button size="small" variant="text" color="error"
+              onClick={removeImage}
+              sx={{ minWidth: 0, px: 1, py: 0.25, fontSize: 11 }}>
+              Remove image
+            </Button>
           </Box>
         </Box>
       </Popover>

@@ -512,6 +512,15 @@ export default function AboutPageEditor({
     e.target.value = ''
   }
 
+  const removeImage = () => {
+    if (!imgAnchor) return
+    const img = imgAnchor
+    setImgAnchor(null)
+    img.parentElement?.removeChild(img)
+    editorRef.current?.focus()
+    editorRef.current?.dispatchEvent(new Event('input', { bubbles: true }))
+  }
+
   const applyImageWidth = (pct: number) => {
     if (imgAnchor) imgAnchor.style.width = `${pct}%`
     setImgAnchor(null)
@@ -871,6 +880,13 @@ export default function AboutPageEditor({
                 {a === 'left' ? '← Left' : a === 'right' ? 'Right →' : 'Center'}
               </Button>
             ))}
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 0.25 }}>
+            <Button size="small" variant="text" color="error"
+              onClick={removeImage}
+              sx={{ minWidth: 0, px: 1, py: 0.25, fontSize: 11 }}>
+              Remove image
+            </Button>
           </Box>
         </Box>
       </Popover>
