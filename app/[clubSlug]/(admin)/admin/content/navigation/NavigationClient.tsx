@@ -1518,7 +1518,7 @@ export default function NavigationClient({
 
       {/* ── Homepage tab ─────────────────────────────────────────────────── */}
       {activeTab === 'homepage' && (
-        <HomepageEditor initialBlocks={initialHomepageBlocks} galleries={initialGalleries} />
+        <HomepageEditor initialBlocks={initialHomepageBlocks} galleries={initialGalleries} members={members} />
       )}
 
       {/* ── Pages tab ────────────────────────────────────────────────────── */}

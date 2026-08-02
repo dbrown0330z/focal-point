@@ -42,7 +42,7 @@ import {
   type DualPanelSettings,
   type CompetitionsSettings,
 } from '@/lib/homepage/types'
-import type { AdminGalleryData } from '@/app/[clubSlug]/(admin)/admin/content/galleries/ClubGalleriesTab'
+import type { AdminGalleryData, ClubMember } from '@/app/[clubSlug]/(admin)/admin/content/galleries/ClubGalleriesTab'
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -493,8 +493,13 @@ function Strip8ModalBody({ block, onChange }: { block: ContentBlock; onChange: (
   )
 }
 
-function SpotlightModalBody({ block, onChange }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void }) {
+function SpotlightModalBody({ block, onChange, members }: {
+  block:    ContentBlock
+  onChange: (u: Partial<ContentBlock>) => void
+  members:  ClubMember[]
+}) {
   const s = block.spotlightSettings!
+  const sorted = [...members].sort((a, b) => a.displayName.localeCompare(b.displayName))
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
       <FieldRow label="Member selection">
@@ -516,10 +521,30 @@ function SpotlightModalBody({ block, onChange }: { block: ContentBlock; onChange
         </Typography>
       )}
       {s.mode === 'manual' && (
-        <FieldRow label="Member name">
-          <TextField size="small" fullWidth value={s.memberName}
-            onChange={e => onChange({ spotlightSettings: { ...s, memberName: e.target.value } })}
-            placeholder="Start typing a name…" sx={inputSx} />
+        <FieldRow label="Member">
+          {sorted.length > 0 ? (
+            <FormControl size="small" fullWidth>
+              <Select
+                value={s.memberName ?? ''}
+                onChange={e => onChange({ spotlightSettings: { ...s, memberName: e.target.value } })}
+                displayEmpty
+                sx={{ fontFamily: 'inherit', fontSize: 14 }}
+              >
+                <MenuItem value="" disabled sx={{ fontSize: 13, fontStyle: 'italic', color: 'text.disabled' }}>
+                  Select a member…
+                </MenuItem>
+                {sorted.map(m => (
+                  <MenuItem key={m.id} value={m.displayName} sx={{ fontSize: 14, fontFamily: 'inherit' }}>
+                    {m.displayName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ) : (
+            <TextField size="small" fullWidth value={s.memberName ?? ''}
+              onChange={e => onChange({ spotlightSettings: { ...s, memberName: e.target.value } })}
+              placeholder="No members found — enter a name manually" sx={inputSx} />
+          )}
         </FieldRow>
       )}
     </Box>
@@ -827,7 +852,7 @@ function CompetitionsModalBody({ block, onChange }: { block: ContentBlock; onCha
 // ── Block edit modal ───────────────────────────────────────────────────────────
 
 function BlockEditModal({
-  block, onClose, onCancel, onUpdate, onRemove, galleries,
+  block, onClose, onCancel, onUpdate, onRemove, galleries, members,
 }: {
   block:     ContentBlock | null
   onClose:   () => void
@@ -835,6 +860,7 @@ function BlockEditModal({
   onUpdate:  (u: Partial<ContentBlock>) => void
   onRemove?: () => void
   galleries: AdminGalleryData[]
+  members:   ClubMember[]
 }) {
   if (!block) return null
   const meta = MODAL_META[block.type] ?? { title: block.label ?? block.name, description: '' }
@@ -869,7 +895,7 @@ function BlockEditModal({
         {block.type === 'club-galleries'   && <ClubGalleriesModalBody    block={block} onChange={onUpdate} galleries={galleries} />}
         {block.type === 'grid-6'           && <Grid6ModalBody            block={block} onChange={onUpdate} />}
         {block.type === 'strip-8'          && <Strip8ModalBody           block={block} onChange={onUpdate} />}
-        {block.type === 'member-spotlight' && <SpotlightModalBody        block={block} onChange={onUpdate} />}
+        {block.type === 'member-spotlight' && <SpotlightModalBody        block={block} onChange={onUpdate} members={members} />}
         {block.type === 'dual-panel'       && <DualPanelModalBody        block={block} onChange={onUpdate} />}
         {block.type === 'upcoming-events'  && <EventsModalBody           block={block} onChange={onUpdate} />}
         {block.type === 'custom-content'   && <CustomContentModalBody    block={block} onChange={onUpdate} />}
@@ -1852,7 +1878,7 @@ function LivePreview({ blocks, fullscreen = false, galleries }: { blocks: Conten
 
 // ── Main HomepageEditor ────────────────────────────────────────────────────────
 
-export default function HomepageEditor({ initialBlocks, galleries = [] }: { initialBlocks?: ContentBlock[]; galleries?: AdminGalleryData[] }) {
+export default function HomepageEditor({ initialBlocks, galleries = [], members = [] }: { initialBlocks?: ContentBlock[]; galleries?: AdminGalleryData[]; members?: ClubMember[] }) {
   const pathname = usePathname()
   const clubSlug = pathname?.split('/')[1] ?? ''
 
@@ -2070,6 +2096,7 @@ export default function HomepageEditor({ initialBlocks, galleries = [] }: { init
         onUpdate={u => { if (editingBlock) updateBlock(editingBlock.id, u) }}
         onRemove={syncedEditBlock?.type === 'custom-content' ? () => requestDelete(syncedEditBlock.id) : undefined}
         galleries={galleries}
+        members={members}
       />
 
       {/* Publish dialog */}
