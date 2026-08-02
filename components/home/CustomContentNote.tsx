@@ -13,6 +13,10 @@ type LeadMode =
   | { type: 'leading-image'; src: string; alt: string }
   | { type: 'floated-image'; src: string; alt: string; float: 'left' | 'right'; textHtml: string }
 
+function stripImages(html: string): string {
+  return html.replace(/<img[^>]*>/gi, '')
+}
+
 // Pure-string parse — no DOMParser, safe for SSR/hydration.
 function parseLeadMode(html: string): LeadMode {
   const h = html?.trim()
@@ -169,7 +173,7 @@ export default function CustomContentNote({ heading, body, previewLines }: Props
                   WebkitLineClamp: previewLines,
                 }}
                 // eslint-disable-next-line react/no-danger
-                dangerouslySetInnerHTML={{ __html: body }}
+                dangerouslySetInnerHTML={{ __html: stripImages(body) }}
               />
             )}
 
