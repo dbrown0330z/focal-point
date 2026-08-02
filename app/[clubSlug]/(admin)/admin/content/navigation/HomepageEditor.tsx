@@ -1,7 +1,7 @@
 'use client'
 
 import { Fragment, useRef, useState, useTransition } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   Box,
   Button,
@@ -97,7 +97,7 @@ const MODAL_META: Record<string, { title: string; description: string }> = {
 
 const REMOVED_BLOCK_TYPES = ['grid-6', 'strip-8']
 
-function useHomepageEditor(initialBlocks: ContentBlock[], clubSlug: string) {
+function useHomepageEditor(initialBlocks: ContentBlock[], clubSlug: string, router: ReturnType<typeof useRouter>) {
   const [blocks,      setBlocks]      = useState<ContentBlock[]>(() => {
     const filtered = initialBlocks.filter(b => !REMOVED_BLOCK_TYPES.includes(b.type))
     // Ensure enabled blocks always precede disabled blocks (sort by enabled desc, fixed first)
@@ -167,24 +167,16 @@ function useHomepageEditor(initialBlocks: ContentBlock[], clubSlug: string) {
     setHasChanges(true)
   }
 
-  const saveDraft = (currentBlocks: ContentBlock[]) => {
-    setSaveStatus('saving')
-    startTransition(async () => {
-      const { error } = await saveHomepageBlocks(currentBlocks, false, clubSlug)
-      setSaveStatus(error ? 'error' : 'saved')
-      if (!error) setHasChanges(false)
-      // Auto-clear status after 3 s
-      setTimeout(() => setSaveStatus('idle'), 3000)
-    })
-  }
-
   const publish = (currentBlocks: ContentBlock[]) => {
     setShowPublish(false)
     setSaveStatus('saving')
     startTransition(async () => {
       const { error } = await saveHomepageBlocks(currentBlocks, true, clubSlug)
       setSaveStatus(error ? 'error' : 'saved')
-      if (!error) setHasChanges(false)
+      if (!error) {
+        setHasChanges(false)
+        router.refresh()
+      }
       setTimeout(() => setSaveStatus('idle'), 3000)
     })
   }
@@ -196,7 +188,7 @@ function useHomepageEditor(initialBlocks: ContentBlock[], clubSlug: string) {
     saveStatus, isPending,
     toggleBlock, updateBlock, reorderBlocks,
     addCustomContent, removeBlock, customContentCount,
-    saveDraft, publish,
+    publish,
   }
 }
 
@@ -1880,6 +1872,7 @@ function LivePreview({ blocks, fullscreen = false, galleries }: { blocks: Conten
 
 export default function HomepageEditor({ initialBlocks, galleries = [], members = [] }: { initialBlocks?: ContentBlock[]; galleries?: AdminGalleryData[]; members?: ClubMember[] }) {
   const pathname = usePathname()
+  const router   = useRouter()
   const clubSlug = pathname?.split('/')[1] ?? ''
 
   const {
@@ -1887,8 +1880,8 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
     saveStatus, isPending,
     toggleBlock, updateBlock, reorderBlocks,
     addCustomContent, removeBlock, customContentCount,
-    saveDraft, publish,
-  } = useHomepageEditor(initialBlocks ?? DEFAULT_BLOCKS, clubSlug)
+    publish,
+  } = useHomepageEditor(initialBlocks ?? DEFAULT_BLOCKS, clubSlug, router)
 
   const [editingBlock,    setEditingBlock]    = useState<ContentBlock | null>(null)
   const [editOriginal,    setEditOriginal]    = useState<ContentBlock | null>(null)
@@ -1968,7 +1961,6 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
           sx={{ textTransform: 'none', fontSize: 13, borderColor: 'var(--border-default)', color: 'text.secondary', '&:hover': { borderColor: 'var(--border-strong)' } }}>
           Preview
         </Button>
-        <Button variant="outlined" color="secondary" size="small" disabled={isPending} onClick={() => saveDraft(blocks)} sx={{ textTransform: 'none', fontSize: 13 }}>Save draft</Button>
         <Button variant="contained" size="small" disabled={!hasChanges || isPending} onClick={() => setShowPublish(true)} sx={{ textTransform: 'none', fontSize: 13, display: 'flex', alignItems: 'center', gap: 0.75 }}>
           {hasChanges && <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#FFCC00', flexShrink: 0 }} />}
           Publish changes
@@ -1984,7 +1976,7 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
             Content blocks
           </Typography>
           <Typography sx={{ fontSize: 11, color: 'text.tertiary', mb: 1.5 }}>
-            Drag to reorder · changes take effect when published
+            Drag to reorder · click Publish to make changes live
           </Typography>
 
           {/* Single drop zone containing all sections so DnD works across them */}

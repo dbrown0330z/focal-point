@@ -24,11 +24,10 @@ export async function saveHomepageBlocks(
 
   if (error) return { error: error.message }
 
-  // Always revalidate the admin page so the editor reloads fresh state.
-  revalidatePath('/admin/content/navigation')
+  // Revalidate admin editor so server always returns fresh blocks.
+  if (clubSlug) revalidatePath(`/${clubSlug}/admin/content/navigation`)
 
   // Only revalidate the member homepage on explicit publish.
-  // Revalidate the specific club path — '/' alone won't clear /${clubSlug}.
   if (publish) {
     revalidatePath('/', 'layout')
     if (clubSlug) revalidatePath(`/${clubSlug}`)
