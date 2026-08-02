@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useTransition } from 'react'
+import { useState, useRef, useEffect, useTransition, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Box, Button, Dialog, DialogTitle, DialogContent, DialogActions,
@@ -39,6 +39,16 @@ function IconX({ size = 14 }: { size?: number }) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
       strokeLinecap="round" strokeLinejoin="round" width={size} height={size}>
       <path d="M18 6L6 18M6 6l12 12"/>
+    </svg>
+  )
+}
+
+function IconPencil({ size = 13 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width={size} height={size}>
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
     </svg>
   )
 }
@@ -491,14 +501,41 @@ function GalleryCard({
   clubSlug,
   onDelete,
   onShare,
+  onRename,
 }: {
   gallery:  AdminGalleryData
   clubSlug: string
   onDelete: (g: AdminGalleryData) => void
   onShare:  (g: AdminGalleryData) => void
+  onRename: (id: string, name: string) => Promise<void>
 }) {
   const editUrl    = `/${clubSlug}/admin/content/galleries/${gallery.id}/edit`
   const galleryUrl = `/${clubSlug}/gallery/${gallery.slug}`
+
+  const [editing,  setEditing]  = useState(false)
+  const [draft,    setDraft]    = useState(gallery.name)
+  const [renaming, setRenaming] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  function startEdit() {
+    setDraft(gallery.name)
+    setEditing(true)
+    setTimeout(() => { inputRef.current?.select() }, 0)
+  }
+
+  async function commitEdit() {
+    const trimmed = draft.trim()
+    setEditing(false)
+    if (!trimmed || trimmed === gallery.name) return
+    setRenaming(true)
+    await onRename(gallery.id, trimmed)
+    setRenaming(false)
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter')  { e.preventDefault(); commitEdit() }
+    if (e.key === 'Escape') { setEditing(false); setDraft(gallery.name) }
+  }
 
   return (
     <div style={{
@@ -550,11 +587,54 @@ function GalleryCard({
       {/* Info + actions */}
       <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
         <div>
-          <a href={editUrl} style={{ textDecoration: 'none' }}>
-            <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2, margin: 0 }}>
-              {gallery.name}
-            </p>
-          </a>
+          {editing ? (
+            <input
+              ref={inputRef}
+              autoFocus
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={handleKeyDown}
+              maxLength={80}
+              style={{
+                width: '100%', padding: '3px 8px',
+                borderRadius: 6, border: '1.5px solid var(--action-primary)',
+                background: 'var(--surface-1)',
+                fontSize: 16, fontWeight: 700, color: 'var(--text-primary)',
+                outline: 'none', boxSizing: 'border-box',
+                fontFamily: 'inherit',
+              }}
+            />
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <a href={editUrl} style={{ textDecoration: 'none', flex: 1, minWidth: 0 }}>
+                <p style={{
+                  fontSize: 16, fontWeight: 700, color: 'var(--text-primary)',
+                  lineHeight: 1.2, margin: 0,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {renaming ? draft.trim() : gallery.name}
+                </p>
+              </a>
+              <button
+                type="button"
+                onClick={startEdit}
+                title="Rename gallery"
+                style={{
+                  flexShrink: 0, border: 'none', background: 'none',
+                  padding: 4, cursor: 'pointer', borderRadius: 4,
+                  color: 'var(--text-tertiary)', lineHeight: 0,
+                  opacity: renaming ? 0.3 : 0.5,
+                  transition: 'opacity 0.15s, color 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'var(--text-primary)' }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = renaming ? '0.3' : '0.5'; e.currentTarget.style.color = 'var(--text-tertiary)' }}
+                disabled={renaming}
+              >
+                <IconPencil size={13} />
+              </button>
+            </div>
+          )}
           <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginTop: 5 }}>
             {gallery.imageCount} photo{gallery.imageCount !== 1 ? 's' : ''}
           </p>
@@ -626,8 +706,9 @@ export default function ClubGalleriesTab({
   const [shareGallery, setShareGallery] = useState<AdminGalleryData | null>(null)
   const [shareOpen,    setShareOpen]    = useState(false)
 
-  // Local visibility overrides after share saves
+  // Local overrides after in-place saves (avoids full page refresh)
   const [visibilityOverrides, setVisibilityOverrides] = useState<Record<string, AdminGalleryData['visibility']>>({})
+  const [nameOverrides,       setNameOverrides]       = useState<Record<string, string>>({})
 
   function handleShareOpen(g: AdminGalleryData) {
     setShareGallery(g)
@@ -637,6 +718,13 @@ export default function ClubGalleriesTab({
   function handleVisibilitySaved(id: string, v: 'draft' | 'members_only' | 'public') {
     setVisibilityOverrides(prev => ({ ...prev, [id]: v }))
   }
+
+  const handleRename = useCallback(async (id: string, name: string) => {
+    const gallery = galleries.find(g => g.id === id)
+    if (!gallery) return
+    const res = await updateAdminGalleryMeta(id, { name, visibility: visibilityOverrides[id] ?? gallery.visibility })
+    if (!res.error) setNameOverrides(prev => ({ ...prev, [id]: name }))
+  }, [galleries, visibilityOverrides])
 
   return (
     <Box>
@@ -674,10 +762,11 @@ export default function ClubGalleriesTab({
           {galleries.map(g => (
             <GalleryCard
               key={g.id}
-              gallery={{ ...g, visibility: visibilityOverrides[g.id] ?? g.visibility }}
+              gallery={{ ...g, visibility: visibilityOverrides[g.id] ?? g.visibility, name: nameOverrides[g.id] ?? g.name }}
               clubSlug={clubSlug}
               onDelete={setDelGallery}
               onShare={handleShareOpen}
+              onRename={handleRename}
             />
           ))}
           {/* New Gallery placeholder card */}
