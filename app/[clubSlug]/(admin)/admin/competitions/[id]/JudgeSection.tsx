@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { addJudge, addJudgeFromMember, removeJudge, adminOpenJudgePortal } from '../actions'
+import { addJudge, addJudgeFromMember, removeJudge, adminGrantJudgeAccess } from '../actions'
 import FormControl from '@mui/material/FormControl'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
@@ -286,7 +286,10 @@ export function JudgeSection({
                 <button
                   type="button"
                   disabled={portalPending}
-                  onClick={() => startPortal(() => adminOpenJudgePortal(judge.token))}
+                  onClick={() => startPortal(async () => {
+                    await adminGrantJudgeAccess(judge.token)
+                    window.open(`/judge/${judge.token}/landing`, '_blank')
+                  })}
                   className="text-xs font-medium text-action-primary hover:underline disabled:opacity-60 transition-colors"
                 >
                   {portalPending ? 'Opening…' : 'Open judging portal →'}
@@ -380,7 +383,10 @@ export function JudgeSection({
               <button
                 type="button"
                 disabled={portalPending}
-                onClick={() => startPortal(() => adminOpenJudgePortal(judge.token))}
+                onClick={() => startPortal(async () => {
+                    await adminGrantJudgeAccess(judge.token)
+                    window.open(`/judge/${judge.token}/landing`, '_blank')
+                  })}
                 className="text-xs font-medium text-action-primary hover:underline disabled:opacity-60 transition-colors"
               >
                 {portalPending ? 'Opening…' : 'Open judging portal →'}

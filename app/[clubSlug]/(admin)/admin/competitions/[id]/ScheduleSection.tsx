@@ -651,7 +651,7 @@ export function ScheduleSection({
         <Sep />
 
         {/* ── Results ──────────────────────────────────────────────────────── */}
-        <div className="flex-1 min-w-0 rounded-xl border border-border-default bg-surface-2 px-4 py-3 flex flex-col gap-2">
+        <div className="flex-1 min-w-0 rounded-xl border border-border-default bg-surface-2 px-4 py-3 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-content-tertiary leading-none">Results</p>
             {!isTerminal && (
@@ -660,9 +660,8 @@ export function ScheduleSection({
           </div>
 
           {hasResults ? (
-            <div className="space-y-2 mt-0.5">
-
-              {/* Reveal mode */}
+            <>
+              {/* Reveal mode — always shown */}
               <InfoRow
                 label="Reveal"
                 value={results.revealMode === 'auto-publish' ? 'Published automatically' : 'At a meeting or event'}
@@ -670,38 +669,51 @@ export function ScheduleSection({
 
               {/* Date & time */}
               {results.resultsAt && (
-                <InfoRow
-                  label={results.revealMode === 'auto-publish' ? 'Publishes' : 'Event date'}
-                  value={`${resultDateStr}${resultTimeStr ? ` · ${resultTimeStr}` : ''}`}
-                />
+                <div className="border-t border-border-subtle pt-2">
+                  <InfoRow
+                    label={results.revealMode === 'auto-publish' ? 'Publishes' : 'Event date'}
+                    value={`${resultDateStr}${resultTimeStr ? ` · ${resultTimeStr}` : ''}`}
+                  />
+                </div>
               )}
 
               {/* Event type — meeting only */}
               {results.revealMode !== 'auto-publish' && results.resultsEventType && (
-                <InfoRow label="Type" value={results.resultsEventType} />
+                <div className="border-t border-border-subtle pt-2">
+                  <InfoRow label="Type" value={results.resultsEventType} />
+                </div>
               )}
 
               {/* Location — meeting only */}
               {results.revealMode !== 'auto-publish' && results.locationMode && (() => {
                 const { locationMode, locationVenue } = results
-                if (locationMode === 'not-confirmed') return <InfoRow label="Location" value="Not yet confirmed" />
-                if (locationMode === 'online')    return <InfoRow label="Location" value={locationVenue ? `Online · ${locationVenue}` : 'Online'} />
-                if (locationMode === 'in-person') return <InfoRow label="Location" value={locationVenue || 'In person (venue TBC)'} />
-                return null
+                let value: string | null = null
+                if (locationMode === 'not-confirmed') value = 'Not yet confirmed'
+                else if (locationMode === 'online')   value = locationVenue ? `Online · ${locationVenue}` : 'Online'
+                else if (locationMode === 'in-person') value = locationVenue || 'In person (venue TBC)'
+                return value ? (
+                  <div className="border-t border-border-subtle pt-2">
+                    <InfoRow label="Location" value={value} />
+                  </div>
+                ) : null
               })()}
 
               {/* Publish timing — meeting only */}
               {results.revealMode !== 'auto-publish' && results.publishTiming && (() => {
                 const { publishTiming, publishSpecificAt } = results
-                if (publishTiming === 'event-start') return <InfoRow label="Goes live" value="At event end time" />
-                if (publishTiming === 'manual')      return <InfoRow label="Goes live" value="Manually by admin" />
-                if (publishTiming === 'specific-time') {
-                  const specificStr = publishSpecificAt
+                let value: string | null = null
+                if (publishTiming === 'event-start')   value = 'At event end time'
+                else if (publishTiming === 'manual')   value = 'Manually by admin'
+                else if (publishTiming === 'specific-time') {
+                  value = publishSpecificAt
                     ? `${fmtDate(publishSpecificAt)}${fmtTime(publishSpecificAt) ? ` · ${fmtTime(publishSpecificAt)}` : ''}`
                     : 'Time not set'
-                  return <InfoRow label="Goes live" value={specificStr} />
                 }
-                return null
+                return value ? (
+                  <div className="border-t border-border-subtle pt-2">
+                    <InfoRow label="Goes live" value={value} />
+                  </div>
+                ) : null
               })()}
 
               {/* Visibility */}
@@ -711,10 +723,13 @@ export function ScheduleSection({
                 if (publishVisibility === 'members-first') {
                   value = `Members first, then public after ${publicVisibilityDelay ?? 24}h`
                 }
-                return <InfoRow label="Visible to" value={value} />
+                return (
+                  <div className="border-t border-border-subtle pt-2">
+                    <InfoRow label="Visible to" value={value} />
+                  </div>
+                )
               })()}
-
-            </div>
+            </>
           ) : (
             <p className="text-[11px] italic text-content-tertiary mt-0.5">Not set</p>
           )}

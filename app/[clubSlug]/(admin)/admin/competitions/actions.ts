@@ -96,6 +96,17 @@ export async function adminOpenJudgePortal(token: string) {
   redirect(`/judge/${token}/landing`)
 }
 
+// Cookie-only variant — no redirect; lets the client open the portal in a new tab.
+export async function adminGrantJudgeAccess(token: string) {
+  const cookieStore = await cookies()
+  cookieStore.set(`jv_${token}`, '1', {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: `/judge/${token}`,
+    maxAge: 60 * 60 * 24 * 30,
+  })
+}
+
 export async function publishCompetition(id: string) {
   const supabase = createServiceClient()
   const slug = await requireClubSlug()
