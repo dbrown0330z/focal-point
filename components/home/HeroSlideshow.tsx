@@ -109,7 +109,7 @@ function SlideLayer({
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function HeroSlideshow({ clubName, slides: propSlides }: { clubName: string; slides?: Slide[] }) {
   const activeSlides = (propSlides && propSlides.length > 0) ? propSlides : SLIDES
-  const [activeIdx,      setActiveIdx]      = useState<number | null>(null)
+  const [activeIdx,      setActiveIdx]      = useState(0)
   const [incomingIdx,    setIncomingIdx]    = useState<number | null>(null)
   const [isFading,       setIsFading]       = useState(false)
   const [creditsVisible, setCreditsVisible] = useState(false)
@@ -119,17 +119,8 @@ export default function HeroSlideshow({ clubName, slides: propSlides }: { clubNa
   const fadeStartedRef  = useRef(false)
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Pick random start slide on mount (avoids SSR hydration mismatch)
-  useEffect(() => {
-    const initial = Math.floor(Math.random() * activeSlides.length)
-    activeIdxRef.current = initial
-    setActiveIdx(initial)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   // Fade credits in after each slide settles (including the first)
   useEffect(() => {
-    if (activeIdx === null) return
     setCreditsVisible(false)
     const t = setTimeout(() => setCreditsVisible(true), CREDITS_DELAY_MS)
     return () => clearTimeout(t)
@@ -137,7 +128,6 @@ export default function HeroSlideshow({ clubName, slides: propSlides }: { clubNa
 
   // Preload the next two slides so they're warm in cache
   useEffect(() => {
-    if (activeIdx === null) return
     for (let i = 1; i <= 2; i++) {
       const idx = (activeIdx + i) % activeSlides.length
       const img = new window.Image()
@@ -172,8 +162,6 @@ export default function HeroSlideshow({ clubName, slides: propSlides }: { clubNa
 
   // Auto-advance timer — mounts the incoming slide and waits for it to load
   useEffect(() => {
-    if (activeIdx === null) return
-
     const timer = setInterval(() => {
       const next = (activeIdxRef.current + 1) % activeSlides.length
 
@@ -195,7 +183,7 @@ export default function HeroSlideshow({ clubName, slides: propSlides }: { clubNa
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIdx, startFade])
 
-  const activeSlide   = activeIdx   !== null ? activeSlides[activeIdx]   : null
+  const activeSlide   = activeSlides[activeIdx]
   const incomingSlide = incomingIdx !== null ? activeSlides[incomingIdx] : null
 
   return (
@@ -203,11 +191,6 @@ export default function HeroSlideshow({ clubName, slides: propSlides }: { clubNa
       className="relative w-full overflow-hidden rounded-lg"
       style={{ aspectRatio: '21/8', minHeight: 220, maxHeight: 480 }}
     >
-      {/* Placeholder while JS hydrates */}
-      {!activeSlide && (
-        <div className="absolute inset-0" style={{ background: 'var(--surface-1)' }} />
-      )}
-
       {/* Active (outgoing) slide — fades to 0 during transition */}
       {activeSlide && (
         <div
