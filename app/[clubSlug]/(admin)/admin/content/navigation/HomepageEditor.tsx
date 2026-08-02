@@ -558,12 +558,13 @@ function EventsModalBody({ block, onChange }: { block: ContentBlock; onChange: (
 
 function CustomContentModalBody({ block, onChange }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void }) {
   const s = block.customContentSettings!
+  const MAX_ARTICLES = 4
 
   const updateNote = (id: string, k: keyof ContentNote, v: string) =>
     onChange({ customContentSettings: { ...s, notes: s.notes.map(n => n.id === id ? { ...n, [k]: v } : n) } })
 
   const addNote = () => {
-    if (s.notes.length >= s.columns) return
+    if (s.notes.length >= MAX_ARTICLES) return
     onChange({ customContentSettings: { ...s, notes: [...s.notes, { id: crypto.randomUUID(), heading: '', body: '' }] } })
   }
 
@@ -573,69 +574,64 @@ function CustomContentModalBody({ block, onChange }: { block: ContentBlock; onCh
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
-      {/* Block label */}
-      <FieldRow label="Block label (shown in editor list)">
+      {/* Section heading */}
+      <Box>
+        <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.secondary', mb: 0.75 }}>
+          Section heading <Typography component="span" sx={{ fontSize: 12, fontWeight: 400, color: 'text.disabled' }}>(shown above articles on the homepage)</Typography>
+        </Typography>
         <TextField size="small" fullWidth value={block.label ?? block.name}
           onChange={e => onChange({ label: e.target.value })} sx={inputSx}
-          placeholder="Custom content" />
-      </FieldRow>
-
-      <Divider />
-
-      {/* Layout */}
-      <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <FieldRow label="Columns">
-          <Box sx={{ display: 'flex', gap: 0.75 }}>
-            {([1, 2, 3] as (1 | 2 | 3)[]).map(n => (
-              <button key={n} onClick={() => onChange({ customContentSettings: { ...s, columns: n } })} style={{
-                width: 36, height: 30, cursor: 'pointer', borderRadius: 4,
-                border: `1px solid ${s.columns === n ? 'var(--action-primary)' : 'var(--border-default)'}`,
-                background: s.columns === n ? 'rgba(30,77,140,0.07)' : 'var(--surface-2)',
-                color: s.columns === n ? 'var(--action-primary)' : 'var(--text-secondary)',
-                fontSize: 13, fontWeight: 600, transition: 'all 0.1s',
-              }}>{n}</button>
-            ))}
-          </Box>
-        </FieldRow>
-        <FieldRow label="Preview lines before 'Read more'">
-          <TextField size="small" type="number" value={s.previewLines}
-            onChange={e => onChange({ customContentSettings: { ...s, previewLines: Number(e.target.value) } })}
-            sx={{ ...inputSx, width: 80 }} slotProps={{ input: { min: 1, max: 20 } as any }} />
-        </FieldRow>
+          placeholder="e.g. News & Notes, Club Updates, Latest from the committee" />
       </Box>
 
       <Divider />
 
-      {/* Content blocks */}
+      {/* Preview lines */}
+      <FieldRow label="Preview lines before 'Read more'">
+        <TextField size="small" type="number" value={s.previewLines}
+          onChange={e => onChange({ customContentSettings: { ...s, previewLines: Number(e.target.value) } })}
+          sx={{ ...inputSx, width: 80 }} slotProps={{ input: { min: 1, max: 20 } as any }} />
+      </FieldRow>
+
+      <Divider />
+
+      {/* Articles */}
       <Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary' }}>
-            Content ({s.notes.length} / {s.columns} {s.columns === 1 ? 'column' : 'columns'})
-          </Typography>
-          {s.notes.length < s.columns && (
+          <Box>
+            <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary' }}>
+              Articles
+            </Typography>
+            <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.25 }}>
+              {s.notes.length} of {MAX_ARTICLES} — displayed in a responsive grid
+            </Typography>
+          </Box>
+          {s.notes.length < MAX_ARTICLES && (
             <Button startIcon={<AddIcon />} size="small" variant="outlined" color="secondary"
               onClick={addNote} sx={{ textTransform: 'none', fontSize: 12 }}>
-              Add {s.columns === 1 ? 'content' : `column ${s.notes.length + 1}`}
+              Add article
             </Button>
           )}
         </Box>
 
         {s.notes.length === 0 && (
-          <Box sx={{ py: 3, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: '6px' }}>
-            <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 1 }}>No content yet.</Typography>
+          <Box sx={{ py: 4, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: '8px' }}>
+            <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 1.5 }}>
+              No articles yet. Add up to {MAX_ARTICLES}.
+            </Typography>
             <Button startIcon={<AddIcon />} size="small" variant="outlined" color="secondary"
               onClick={addNote} sx={{ textTransform: 'none', fontSize: 13 }}>
-              Add {s.columns === 1 ? 'content' : 'first column'}
+              Add first article
             </Button>
           </Box>
         )}
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {s.notes.map((note, i) => (
-            <Box key={note.id}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'text.secondary' }}>
-                  {s.columns === 1 ? 'Content' : `Column ${i + 1}`}
+            <Box key={note.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '8px', p: 2.5 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                <Typography sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'text.secondary' }}>
+                  Article {i + 1}
                 </Typography>
                 <IconButton size="small" onClick={() => removeNote(note.id)} sx={{ color: 'text.secondary' }}>
                   <DeleteOutlineIcon sx={{ fontSize: 16 }} />
@@ -643,13 +639,13 @@ function CustomContentModalBody({ block, onChange }: { block: ContentBlock; onCh
               </Box>
               <TextField size="small" fullWidth value={note.heading}
                 onChange={e => updateNote(note.id, 'heading', e.target.value)}
-                placeholder="Heading (optional)" sx={{ ...inputSx, mb: 1.5 }} />
+                placeholder="Article heading (optional)" sx={{ ...inputSx, mb: 1.5 }} />
               <RichTextEditor
                 key={note.id}
                 initialContent={note.body}
                 onChange={html => updateNote(note.id, 'body', html)}
-                minHeight={180}
-                placeholder="Write your content here…"
+                minHeight={320}
+                placeholder="Write your article content here…"
               />
             </Box>
           ))}
@@ -849,24 +845,15 @@ function BlockEditModal({
     <Dialog
       open
       onClose={onClose}
-      maxWidth={isCustom ? 'md' : 'sm'}
+      maxWidth={isCustom ? 'lg' : 'sm'}
       fullWidth
       scroll="paper"
     >
       <DialogTitle sx={{ pb: 0.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box>
-            <Typography sx={{ fontSize: 16, fontWeight: 700 }}>{meta.title}</Typography>
-            {isCustom && block.label && (
-              <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.25 }}>"{displayLabel}"</Typography>
-            )}
-          </Box>
-          {onRemove && (
-            <Tooltip title="Remove this block">
-              <IconButton size="small" onClick={onRemove} sx={{ color: 'text.secondary' }}>
-                <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Tooltip>
+        <Box>
+          <Typography sx={{ fontSize: 16, fontWeight: 700 }}>{meta.title}</Typography>
+          {isCustom && block.label && (
+            <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.25 }}>"{displayLabel}"</Typography>
           )}
         </Box>
       </DialogTitle>

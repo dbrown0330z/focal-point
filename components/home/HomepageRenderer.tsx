@@ -66,17 +66,17 @@ function CustomContentBlock({
   settings: CustomContentSettings
   label: string
 }) {
-  const { notes, columns, previewLines } = settings
-  const gridCols = columns === 3 ? 'grid-cols-1 sm:grid-cols-3' : columns === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'
+  const { notes, previewLines } = settings
+  const count = notes.length
+  const gridCols = count >= 4 ? 'grid-cols-1 sm:grid-cols-2'
+                 : count === 3 ? 'grid-cols-1 sm:grid-cols-3'
+                 : count === 2 ? 'grid-cols-1 sm:grid-cols-2'
+                 : 'grid-cols-1'
 
   // When notes are empty show placeholder columns so the block is visible
   const displayNotes: ContentNote[] = notes.length > 0
     ? notes
-    : Array.from({ length: columns }, (_, i) => ({
-        id:      `placeholder-${i}`,
-        heading: '',
-        body:    '',
-      }))
+    : [{ id: 'placeholder-0', heading: '', body: '' }]
 
   const heading = (label && label !== 'Custom content') ? label : 'News & Notes'
 

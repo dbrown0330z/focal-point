@@ -528,3 +528,27 @@ a[href]:not(.MuiButtonBase-root):not(.MuiButton-root):not([class*="Mui"]):not([c
 
 .rte-content font[face="Lora"]   { font-family: var(--font-lora,   'Lora',   Georgia,    serif);           }
 .rte-content font[face="Nunito"] { font-family: var(--font-nunito, 'Nunito', system-ui,  sans-serif);      }
+
+.rte-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+.rte-content img[style*="float: left"],
+.rte-content img[style*="float:left"] {
+  display: inline;
+  float: left;
+  margin: 4px 16px 8px 0;
+}
+.rte-content img[style*="float: right"],
+.rte-content img[style*="float:right"] {
+  display: inline;
+  float: right;
+  margin: 4px 0 8px 16px;
+}
+/* Clear floats so the card doesn't collapse */
+.rte-content::after {
+  content: '';
+  display: block;
+  clear: both;
+}

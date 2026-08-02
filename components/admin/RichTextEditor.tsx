@@ -416,6 +416,24 @@ export default function RichTextEditor({
     editorRef.current?.focus()
   }
 
+  const applyImageAlign = (align: 'left' | 'center' | 'right') => {
+    if (!imgAnchor) return
+    const img = imgAnchor
+    if (align === 'left') {
+      img.style.float = 'left'; img.style.display = 'inline'
+      img.style.margin = '4px 16px 8px 0'
+    } else if (align === 'right') {
+      img.style.float = 'right'; img.style.display = 'inline'
+      img.style.margin = '4px 0 8px 16px'
+    } else {
+      img.style.float = ''; img.style.display = 'block'
+      img.style.margin = '12px 0'
+    }
+    setImgAnchor(null)
+    editorRef.current?.focus()
+    if (onChange && editorRef.current) onChange(editorRef.current.innerHTML)
+  }
+
   const handleEditorClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement
     if (target.tagName === 'IMG') {
@@ -575,20 +593,32 @@ export default function RichTextEditor({
         />
       </Box>
 
-      {/* Image resize popover */}
+      {/* Image resize + align popover */}
       <Popover open={!!imgAnchor} anchorEl={imgAnchor} onClose={() => setImgAnchor(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
         transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
         disableRestoreFocus>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, p: 0.75 }}>
-          <Typography sx={{ fontSize: 11, color: 'text.secondary', mr: 0.5 }}>Width:</Typography>
-          {[25, 50, 75, 100].map(pct => (
-            <Button key={pct} size="small" variant="outlined" color="secondary"
-              onClick={() => applyImageWidth(pct)}
-              sx={{ minWidth: 0, px: 1, py: 0.25, fontSize: 11 }}>
-              {pct}%
-            </Button>
-          ))}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 0.75 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Typography sx={{ fontSize: 11, color: 'text.secondary', mr: 0.5, minWidth: 36 }}>Width:</Typography>
+            {[25, 50, 75, 100].map(pct => (
+              <Button key={pct} size="small" variant="outlined" color="secondary"
+                onClick={() => applyImageWidth(pct)}
+                sx={{ minWidth: 0, px: 1, py: 0.25, fontSize: 11 }}>
+                {pct}%
+              </Button>
+            ))}
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Typography sx={{ fontSize: 11, color: 'text.secondary', mr: 0.5, minWidth: 36 }}>Align:</Typography>
+            {(['left', 'center', 'right'] as const).map(a => (
+              <Button key={a} size="small" variant="outlined" color="secondary"
+                onClick={() => applyImageAlign(a)}
+                sx={{ minWidth: 0, px: 1, py: 0.25, fontSize: 11, textTransform: 'capitalize' }}>
+                {a === 'left' ? '← Left' : a === 'right' ? 'Right →' : 'Center'}
+              </Button>
+            ))}
+          </Box>
         </Box>
       </Popover>
 
