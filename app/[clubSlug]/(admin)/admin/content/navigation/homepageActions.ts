@@ -16,12 +16,20 @@ export async function saveHomepageBlocks(
   clubSlug?: string,
 ): Promise<{ error?: string }> {
   const supabase = createServiceClient()
-  const clubId   = await requireClubId()
+
+  let clubId: string
+  try {
+    clubId = await requireClubId()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'No club context' }
+  }
 
   const { error } = await supabase
     .from('club_settings')
-    .update({ homepage_blocks: blocks as unknown as Json })
-    .eq('club_id', clubId)
+    .upsert(
+      { club_id: clubId, homepage_blocks: blocks as unknown as Json },
+      { onConflict: 'club_id' },
+    )
 
   if (error) return { error: error.message }
 
