@@ -2,13 +2,13 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubId } from '@/lib/club-context'
 import type { ContentBlock } from '@/lib/homepage/types'
 import type { Json } from '@/types/database'
 
 /**
  * Persist the homepage block layout to club_settings.
- * Called by both "Save draft" (revalidates nothing visible to members)
- * and "Publish" (revalidates the member home page).
+ * "Publish" also revalidates the member home page.
  */
 export async function saveHomepageBlocks(
   blocks:    ContentBlock[],
@@ -16,11 +16,12 @@ export async function saveHomepageBlocks(
   clubSlug?: string,
 ): Promise<{ error?: string }> {
   const supabase = createServiceClient()
+  const clubId   = await requireClubId()
 
   const { error } = await supabase
     .from('club_settings')
     .update({ homepage_blocks: blocks as unknown as Json })
-    .neq('id', '00000000-0000-0000-0000-000000000000')
+    .eq('club_id', clubId)
 
   if (error) return { error: error.message }
 
