@@ -21,7 +21,7 @@ import DeleteOutlineIcon    from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon     from '@mui/icons-material/EditOutlined'
 import LockOutlinedIcon     from '@mui/icons-material/LockOutlined'
 import RichTextEditor       from '@/components/admin/RichTextEditor'
-import { saveHomepageBlocks } from './homepageActions'
+import { saveHomepageBlocks, type SaveDebug } from './homepageActions'
 import {
   DEFAULT_BLOCKS,
   type ContentBlock,
@@ -109,6 +109,7 @@ function useHomepageEditor(initialBlocks: ContentBlock[], clubSlug: string, rout
   const [hasChanges,  setHasChanges]  = useState(false)
   const [showPublish, setShowPublish] = useState(false)
   const [saveStatus,  setSaveStatus]  = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [debugInfo,   setDebugInfo]   = useState<SaveDebug | null>(null)
   const [isPending,   startTransition] = useTransition()
 
   const toggleBlock = (id: string) => {
@@ -171,8 +172,9 @@ function useHomepageEditor(initialBlocks: ContentBlock[], clubSlug: string, rout
     setShowPublish(false)
     setSaveStatus('saving')
     startTransition(async () => {
-      const { error } = await saveHomepageBlocks(currentBlocks, true, clubSlug)
+      const { error, debug } = await saveHomepageBlocks(currentBlocks, true, clubSlug)
       setSaveStatus(error ? 'error' : 'saved')
+      if (debug) setDebugInfo(debug)
       if (!error) {
         setHasChanges(false)
         router.refresh()
@@ -185,7 +187,7 @@ function useHomepageEditor(initialBlocks: ContentBlock[], clubSlug: string, rout
 
   return {
     blocks, hasChanges, showPublish, setShowPublish,
-    saveStatus, isPending,
+    saveStatus, debugInfo, isPending,
     toggleBlock, updateBlock, reorderBlocks,
     addCustomContent, removeBlock, customContentCount,
     publish,
@@ -1880,7 +1882,7 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
 
   const {
     blocks, hasChanges, showPublish, setShowPublish,
-    saveStatus, isPending,
+    saveStatus, debugInfo, isPending,
     toggleBlock, updateBlock, reorderBlocks,
     addCustomContent, removeBlock, customContentCount,
     publish,
@@ -1952,7 +1954,12 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
           {saveStatus === 'saving' && (
             <Typography sx={{ fontSize: 11, color: 'text.secondary', fontStyle: 'italic', mt: 0.25 }}>Saving…</Typography>
           )}
-          {saveStatus === 'saved' && (
+          {saveStatus === 'saved' && debugInfo && (
+            <Typography sx={{ fontSize: 11, color: 'var(--status-success-text)', mt: 0.25 }}>
+              ✓ Published · sent {debugInfo.sentNotes}n/{debugInfo.sentAffiliations}a · saved {debugInfo.savedNotes}n/{debugInfo.savedAffiliations}a · club {debugInfo.clubId.slice(0, 8)}
+            </Typography>
+          )}
+          {saveStatus === 'saved' && !debugInfo && (
             <Typography sx={{ fontSize: 11, color: 'var(--status-success-text)', mt: 0.25 }}>✓ Published</Typography>
           )}
           {saveStatus === 'error' && (

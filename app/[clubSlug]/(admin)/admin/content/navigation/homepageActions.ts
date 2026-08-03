@@ -6,6 +6,22 @@ import { requireClubId } from '@/lib/club-context'
 import type { ContentBlock } from '@/lib/homepage/types'
 import type { Json } from '@/types/database'
 
+function countNotes(blocks: ContentBlock[]): number {
+  return blocks.reduce((n, b) => n + (b.customContentSettings?.notes?.length ?? 0), 0)
+}
+
+function countAffiliations(blocks: ContentBlock[]): number {
+  return blocks.reduce((n, b) => n + (b.affiliationsSettings?.affiliations?.length ?? 0), 0)
+}
+
+export type SaveDebug = {
+  clubId: string
+  sentNotes: number
+  sentAffiliations: number
+  savedNotes: number | null
+  savedAffiliations: number | null
+}
+
 /**
  * Persist the homepage block layout to club_settings.
  * "Publish" also revalidates the member home page.
@@ -14,7 +30,7 @@ export async function saveHomepageBlocks(
   blocks:    ContentBlock[],
   publish:   boolean = false,
   clubSlug?: string,
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; debug?: SaveDebug }> {
   const supabase = createServiceClient()
 
   let clubId: string
@@ -23,6 +39,9 @@ export async function saveHomepageBlocks(
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'No club context' }
   }
+
+  const sentNotes        = countNotes(blocks)
+  const sentAffiliations = countAffiliations(blocks)
 
   const { error } = await supabase
     .from('club_settings')
@@ -33,6 +52,17 @@ export async function saveHomepageBlocks(
 
   if (error) return { error: error.message }
 
+  // Read back to verify what was actually stored.
+  const { data: rb } = await supabase
+    .from('club_settings')
+    .select('homepage_blocks')
+    .eq('club_id', clubId)
+    .single()
+
+  const rbBlocks         = (rb?.homepage_blocks as ContentBlock[] | null) ?? null
+  const savedNotes        = rbBlocks ? countNotes(rbBlocks)        : null
+  const savedAffiliations = rbBlocks ? countAffiliations(rbBlocks) : null
+
   // Revalidate admin editor so server always returns fresh blocks.
   if (clubSlug) revalidatePath(`/${clubSlug}/admin/content/navigation`)
 
@@ -42,5 +72,5 @@ export async function saveHomepageBlocks(
     if (clubSlug) revalidatePath(`/${clubSlug}`)
   }
 
-  return {}
+  return { debug: { clubId, sentNotes, sentAffiliations, savedNotes, savedAffiliations } }
 }
