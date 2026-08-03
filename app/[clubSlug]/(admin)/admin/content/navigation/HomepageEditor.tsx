@@ -1956,7 +1956,7 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
           )}
           {saveStatus === 'saved' && debugInfo && (
             <Typography sx={{ fontSize: 11, color: 'var(--status-success-text)', mt: 0.25 }}>
-              ✓ Published · sent {debugInfo.sentNotes}n/{debugInfo.sentAffiliations}a · saved {debugInfo.savedNotes}n/{debugInfo.savedAffiliations}a · club {debugInfo.clubId.slice(0, 8)}
+              ✓ sent {debugInfo.sentBlocks}blk/{debugInfo.sentEnabled}on · saved {debugInfo.savedBlocks}blk/{debugInfo.savedEnabled}on · {debugInfo.clubId.slice(0, 8)}
             </Typography>
           )}
           {saveStatus === 'saved' && !debugInfo && (

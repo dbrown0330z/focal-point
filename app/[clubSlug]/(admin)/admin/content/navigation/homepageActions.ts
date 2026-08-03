@@ -16,8 +16,12 @@ function countAffiliations(blocks: ContentBlock[]): number {
 
 export type SaveDebug = {
   clubId: string
+  sentBlocks: number
+  sentEnabled: number
   sentNotes: number
   sentAffiliations: number
+  savedBlocks: number | null
+  savedEnabled: number | null
   savedNotes: number | null
   savedAffiliations: number | null
 }
@@ -40,6 +44,8 @@ export async function saveHomepageBlocks(
     return { error: e instanceof Error ? e.message : 'No club context' }
   }
 
+  const sentBlocks       = blocks.length
+  const sentEnabled      = blocks.filter(b => b.enabled).length
   const sentNotes        = countNotes(blocks)
   const sentAffiliations = countAffiliations(blocks)
 
@@ -59,9 +65,11 @@ export async function saveHomepageBlocks(
     .eq('club_id', clubId)
     .single()
 
-  const rbBlocks         = (rb?.homepage_blocks as ContentBlock[] | null) ?? null
-  const savedNotes        = rbBlocks ? countNotes(rbBlocks)        : null
-  const savedAffiliations = rbBlocks ? countAffiliations(rbBlocks) : null
+  const rbBlocks          = (rb?.homepage_blocks as ContentBlock[] | null) ?? null
+  const savedBlocks        = rbBlocks ? rbBlocks.length                    : null
+  const savedEnabled       = rbBlocks ? rbBlocks.filter(b => b.enabled).length : null
+  const savedNotes         = rbBlocks ? countNotes(rbBlocks)               : null
+  const savedAffiliations  = rbBlocks ? countAffiliations(rbBlocks)        : null
 
   // Revalidate admin editor so server always returns fresh blocks.
   if (clubSlug) revalidatePath(`/${clubSlug}/admin/content/navigation`)
@@ -72,5 +80,5 @@ export async function saveHomepageBlocks(
     if (clubSlug) revalidatePath(`/${clubSlug}`)
   }
 
-  return { debug: { clubId, sentNotes, sentAffiliations, savedNotes, savedAffiliations } }
+  return { debug: { clubId, sentBlocks, sentEnabled, sentNotes, sentAffiliations, savedBlocks, savedEnabled, savedNotes, savedAffiliations } }
 }
