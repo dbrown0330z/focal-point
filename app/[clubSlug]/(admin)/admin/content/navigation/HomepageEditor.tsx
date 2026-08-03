@@ -920,9 +920,12 @@ function BlockEditModal({
         </Box>
       )}
 
-      <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+      <DialogActions sx={{ px: 3, py: 2, gap: 1, display: 'flex', alignItems: 'center' }}>
+        <Typography sx={{ flex: 1, fontSize: 11, color: 'text.tertiary', lineHeight: 1.4 }}>
+          Click <strong>Publish changes</strong> in the toolbar to save to the live site.
+        </Typography>
         <Button variant="outlined" color="secondary" onClick={onCancel} sx={{ textTransform: 'none', fontSize: 13 }}>Cancel</Button>
-        <Button variant="contained" onClick={onClose} sx={{ textTransform: 'none', fontSize: 13 }}>Save</Button>
+        <Button variant="contained" onClick={onClose} sx={{ textTransform: 'none', fontSize: 13 }}>Done</Button>
       </DialogActions>
     </Dialog>
   )
@@ -1950,10 +1953,13 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
             <Typography sx={{ fontSize: 11, color: 'text.secondary', fontStyle: 'italic', mt: 0.25 }}>Saving…</Typography>
           )}
           {saveStatus === 'saved' && (
-            <Typography sx={{ fontSize: 11, color: 'var(--status-success-text)', mt: 0.25 }}>✓ Saved</Typography>
+            <Typography sx={{ fontSize: 11, color: 'var(--status-success-text)', mt: 0.25 }}>✓ Published</Typography>
           )}
           {saveStatus === 'error' && (
             <Typography sx={{ fontSize: 11, color: 'var(--status-error)', mt: 0.25 }}>Save failed — please try again.</Typography>
+          )}
+          {saveStatus === 'idle' && hasChanges && (
+            <Typography sx={{ fontSize: 11, color: 'var(--status-warning)', mt: 0.25 }}>Unpublished changes — click Publish changes to go live.</Typography>
           )}
         </Box>
         <Button variant="outlined" size="small"
@@ -1961,9 +1967,17 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
           sx={{ textTransform: 'none', fontSize: 13, borderColor: 'var(--border-default)', color: 'text.secondary', '&:hover': { borderColor: 'var(--border-strong)' } }}>
           Preview
         </Button>
-        <Button variant="contained" size="small" disabled={!hasChanges || isPending} onClick={() => setShowPublish(true)} sx={{ textTransform: 'none', fontSize: 13, display: 'flex', alignItems: 'center', gap: 0.75 }}>
+        <Button variant="contained" size="small" disabled={!hasChanges || isPending} onClick={() => setShowPublish(true)}
+          sx={{
+            textTransform: 'none', fontSize: 13, display: 'flex', alignItems: 'center', gap: 0.75,
+            ...(hasChanges ? {
+              background: 'var(--action-primary)',
+              boxShadow: '0 0 0 3px rgba(26,111,196,0.25)',
+              '&:hover': { background: 'var(--action-primary-hover)', boxShadow: '0 0 0 3px rgba(26,111,196,0.35)' },
+            } : {}),
+          }}>
           {hasChanges && <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#FFCC00', flexShrink: 0 }} />}
-          Publish changes
+          {hasChanges ? 'Publish changes ↑' : 'Publish changes'}
         </Button>
       </Box>
 
