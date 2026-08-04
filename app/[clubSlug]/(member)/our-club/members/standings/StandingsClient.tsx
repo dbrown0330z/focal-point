@@ -581,7 +581,7 @@ function PoyLeaderboard({
   poyConfig:            PoyConfig
 }) {
   const [showAll, setShowAll] = useState(false)
-  const [view,    setView]    = useState<'compact' | 'detailed'>('detailed')
+  const [view,    setView]    = useState<'compact' | 'detailed'>('compact')
 
   if (!hasCompetitions) {
     return (
