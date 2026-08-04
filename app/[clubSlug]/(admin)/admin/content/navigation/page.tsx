@@ -14,19 +14,21 @@ export default async function NavigationPage() {
   const adminAny = admin as any
   const ctx      = await getClubContext()
 
-  const [{ data: customPages }, { data: customTabs }, { data: clubSettings }] = await Promise.all([
+  const [{ data: customPages }, { data: customTabs }, { data: csBlocks }, { data: csVis }] = await Promise.all([
     admin.from('nav_custom_pages').select('id,title,slug,parent_system,tab_id,page_type,external_url,visibility,status,sort_order,updated_at').eq('club_id', ctx!.clubId).order('sort_order'),
     admin.from('nav_custom_tabs').select('*').eq('club_id', ctx!.clubId).order('sort_order'),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (admin as any).from('club_settings').select('homepage_blocks,page_visibility').eq('club_id', ctx!.clubId).single(),
+    (admin as any).from('club_settings').select('homepage_blocks').eq('club_id', ctx!.clubId).single(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (admin as any).from('club_settings').select('page_visibility').eq('club_id', ctx!.clubId).maybeSingle(),
   ])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cs = clubSettings as any
-  const saved: ContentBlock[] = (cs?.homepage_blocks as ContentBlock[] | null) ?? DEFAULT_BLOCKS
+  const saved: ContentBlock[] = ((csBlocks as any)?.homepage_blocks as ContentBlock[] | null) ?? DEFAULT_BLOCKS
   const homepageBlocks: ContentBlock[] = mergeBlocks(saved, DEFAULT_BLOCKS)
 
-  const rawPageVis = (cs?.page_visibility as Record<string, string> | null) ?? {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawPageVis = ((csVis as any)?.page_visibility as Record<string, string> | null) ?? {}
   const builtinVisibility: BuiltinPageVisibility = {
     about:    (rawPageVis.about    === 'public' ? 'public' : 'members_only'),
     calendar: (rawPageVis.calendar === 'public' ? 'public' : 'members_only'),
