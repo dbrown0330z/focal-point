@@ -26,6 +26,26 @@ export type SaveDebug = {
   savedAffiliations: number | null
 }
 
+export type SettingsDebug = {
+  readClubId: string
+  rows: { clubId: string | null; enabledCount: number | null }[]
+}
+
+export async function getSettingsDebug(): Promise<SettingsDebug> {
+  const supabase = createServiceClient()
+  let readClubId = '(no-cookie)'
+  try { readClubId = await requireClubId() } catch {}
+
+  const { data } = await supabase.from('club_settings').select('club_id, homepage_blocks')
+  const rows = ((data ?? []) as { club_id: string | null; homepage_blocks: unknown }[]).map(r => ({
+    clubId:       r.club_id ?? null,
+    enabledCount: Array.isArray(r.homepage_blocks)
+      ? (r.homepage_blocks as ContentBlock[]).filter(b => b.enabled).length
+      : null,
+  }))
+  return { readClubId, rows }
+}
+
 /**
  * Persist the homepage block layout to club_settings.
  * "Publish" also revalidates the member home page.

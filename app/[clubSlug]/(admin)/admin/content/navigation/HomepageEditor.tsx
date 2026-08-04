@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useRef, useState, useTransition } from 'react'
+import { Fragment, useEffect, useRef, useState, useTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   Box,
@@ -21,7 +21,7 @@ import DeleteOutlineIcon    from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon     from '@mui/icons-material/EditOutlined'
 import LockOutlinedIcon     from '@mui/icons-material/LockOutlined'
 import RichTextEditor       from '@/components/admin/RichTextEditor'
-import { saveHomepageBlocks, type SaveDebug } from './homepageActions'
+import { saveHomepageBlocks, getSettingsDebug, type SaveDebug, type SettingsDebug } from './homepageActions'
 import {
   DEFAULT_BLOCKS,
   type ContentBlock,
@@ -1891,6 +1891,11 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
   const [editingBlock,    setEditingBlock]    = useState<ContentBlock | null>(null)
   const [editOriginal,    setEditOriginal]    = useState<ContentBlock | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [readDebug,       setReadDebug]       = useState<SettingsDebug | null>(null)
+
+  useEffect(() => {
+    getSettingsDebug().then(setReadDebug)
+  }, [])
 
   const openModal = (block: ContentBlock) => {
     setEditingBlock(block)
@@ -1967,6 +1972,11 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
           )}
           {saveStatus === 'idle' && hasChanges && (
             <Typography sx={{ fontSize: 11, color: 'var(--status-warning)', mt: 0.25 }}>Unpublished changes — click Publish changes to go live.</Typography>
+          )}
+          {readDebug && (
+            <Typography sx={{ fontSize: 11, color: 'var(--text-tertiary)', mt: 0.25 }}>
+              DB: readId={readDebug.readClubId.slice(0, 8)} · {readDebug.rows.length}row(s): {readDebug.rows.map(r => `[${r.clubId?.slice(0,8) ?? 'NULL'}:${r.enabledCount ?? '?'}en]`).join(' ')}
+            </Typography>
           )}
         </Box>
         <Button variant="outlined" size="small"
