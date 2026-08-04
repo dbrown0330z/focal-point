@@ -292,7 +292,7 @@ export default function MemberNav({
           </NavDropdown>
 
           {/* Competitions ▾ */}
-          <NavDropdown label="Competitions" isActive={isActive('/competitions')}>
+          <NavDropdown label="Competitions" isActive={isActive('/competitions') || isActive('/our-club/members/standings')}>
             <DropdownLink href={`${base}/competitions`}         label="Current"    icon={<TrophyIcon />}    active={isActive('/competitions', true)} />
             <DropdownLink href={`${base}/competitions/results`} label="Results"    icon={<ResultsIcon />}   active={isActive('/competitions/results')} />
             {customPages.filter(p => p.parent_system === 'competitions').map(p => (
@@ -304,7 +304,7 @@ export default function MemberNav({
           </NavDropdown>
 
           {/* Our Club ▾ */}
-          <NavDropdown label="Our Club" isActive={isActive('/our-club')}>
+          <NavDropdown label="Our Club" isActive={isActive('/our-club') && !isActive('/our-club/members/standings')}>
             <DropdownLink href={`${base}/our-club/about`}    label="About our club"   icon={<AboutIcon />}     active={isActive('/our-club/about')} />
             <DropdownLink href={`${base}/our-club/members`}  label="Member directory" icon={<MembersIcon />}   active={isActive('/our-club/members', true)} />
             <DropdownLink href={`${base}/our-club/documents`}  label="Documents"      icon={<DocumentsIcon />}  active={isActive('/our-club/documents')} />
