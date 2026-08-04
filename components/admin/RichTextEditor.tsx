@@ -48,6 +48,7 @@ import RedoIcon               from '@mui/icons-material/Redo'
 import SearchIcon             from '@mui/icons-material/Search'
 import InsertDriveFileIcon    from '@mui/icons-material/InsertDriveFile'
 import { createClient }       from '@/lib/supabase/client'
+import { uploadContentImage } from './richTextActions'
 
 // ── Font / colour constants ────────────────────────────────────────────────────
 
@@ -148,8 +149,9 @@ export default function RichTextEditor({
   const [activeStyle, setActiveStyle] = useState('Normal text')
   const [activeFont,  setActiveFont]  = useState('Nunito')
 
-  // Image popover
-  const [imgAnchor, setImgAnchor] = useState<HTMLImageElement | null>(null)
+  // Image popover / upload
+  const [imgAnchor,    setImgAnchor]    = useState<HTMLImageElement | null>(null)
+  const [imgUploading, setImgUploading] = useState(false)
 
   // Table dialog
   const [tableDialogOpen, setTableDialogOpen] = useState(false)
@@ -399,15 +401,26 @@ export default function RichTextEditor({
   }
 
   // ── Image ─────────────────────────────────────────────────────────────────
-  const handleInsertImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInsertImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const url = URL.createObjectURL(file)
-    restoreSelection()
-    document.execCommand('insertHTML', false,
-      `<img src="${url}" style="width:60%;max-width:100%;height:auto;display:block;margin:12px 0" alt="${file.name}" />`)
-    editorRef.current?.focus()
     e.target.value = ''
+
+    setImgUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const result = await uploadContentImage(fd)
+      if ('error' in result) { console.error('Image upload failed:', result.error); return }
+
+      restoreSelection()
+      document.execCommand('insertHTML', false,
+        `<img src="${result.url}" style="width:60%;max-width:100%;height:auto;display:block;margin:12px 0" alt="${file.name}" />`)
+      editorRef.current?.focus()
+      if (onChange && editorRef.current) onChange(editorRef.current.innerHTML)
+    } finally {
+      setImgUploading(false)
+    }
   }
 
   const removeImage = () => {
@@ -567,7 +580,9 @@ export default function RichTextEditor({
         <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
 
         {/* Image / Link */}
-        <ToolbarBtn title="Insert image" onMouseDown={() => imageRef.current?.click()}><InsertPhotoIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+        <ToolbarBtn title={imgUploading ? 'Uploading…' : 'Insert image'} disabled={imgUploading} onMouseDown={() => imageRef.current?.click()}>
+          {imgUploading ? <CircularProgress size={12} /> : <InsertPhotoIcon sx={{ fontSize: 16 }} />}
+        </ToolbarBtn>
         <ToolbarBtn title="Insert link"  onMouseDown={openLinkDialog}><LinkIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
         <input ref={imageRef} type="file" accept="image/*" hidden onChange={handleInsertImage} />
         <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
