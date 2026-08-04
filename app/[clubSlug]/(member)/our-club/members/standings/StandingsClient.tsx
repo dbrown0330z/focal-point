@@ -581,7 +581,7 @@ function PoyLeaderboard({
   poyConfig:            PoyConfig
 }) {
   const [showAll, setShowAll] = useState(false)
-  const [view,    setView]    = useState<'compact' | 'detailed'>('compact')
+  const [view,    setView]    = useState<'compact' | 'detailed'>('detailed')
 
   if (!hasCompetitions) {
     return (
@@ -602,66 +602,13 @@ function PoyLeaderboard({
     return <EmptyCard>No scores recorded yet this season.</EmptyCard>
   }
 
-  const visible  = showAll ? entries : entries.slice(0, INITIAL_SHOW)
+  const visible = showAll ? entries : entries.slice(0, INITIAL_SHOW)
 
   return (
     <>
-      <div className="rounded-[10px] border border-border-default bg-surface-2 overflow-hidden">
-        {/* Header row */}
-        <div className="grid gap-3 border-b border-border-subtle px-4 py-2.5"
-          style={{ gridTemplateColumns: '2.5rem 1fr 5rem 7rem' }}>
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary text-right">Rank</span>
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary">Member</span>
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary text-right">Score</span>
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-content-tertiary text-right pr-1">Competitions</span>
-        </div>
-
-        {visible.map((entry, i) => (
-          <div
-            key={entry.memberId}
-            className={`grid gap-3 px-4 py-3 items-center transition-colors hover:bg-surface-1 ${
-              i < visible.length - 1 ? 'border-b border-border-subtle' : ''
-            } ${entry.isCurrentUser ? 'bg-[rgba(26,111,196,0.04)]' : ''}`}
-            style={{ gridTemplateColumns: '2.5rem 1fr 5rem 7rem' }}
-          >
-            {/* Rank */}
-            <span className={`text-right text-[14px] font-semibold tabular-nums ${
-              entry.rank <= 3 ? 'text-content-primary' : 'text-content-secondary'
-            }`}>
-              {entry.isCurrentUser && (
-                <span className="mr-1 text-[10px]" style={{ color: '#FACC15' }}>★</span>
-              )}
-              {entry.rank}{entry.tied ? '=' : ''}
-            </span>
-
-            {/* Member */}
-            <div className="flex items-center gap-2.5 min-w-0">
-              <Avatar name={entry.displayName} url={entry.avatarUrl} size={28} />
-              <div className="min-w-0">
-                <Link
-                  href={`/our-club/members`}
-                  className="text-[13px] font-medium truncate block leading-tight"
-                  style={{ color: entry.isCurrentUser ? '#FACC15' : 'var(--text-primary)' }}
-                >
-                  {entry.displayName}
-                </Link>
-                {entry.skillLevel && (
-                  <span className="text-[11px] text-content-tertiary">{skillLabel(entry.skillLevel)}</span>
-                )}
-              </div>
-            </div>
-
-            {/* Score */}
-            <span className="text-right text-[14px] font-semibold tabular-nums text-content-primary">
-              {entry.score.toFixed(1)}
-            </span>
-
-            {/* Competitions */}
-            <span className="text-right text-[13px] text-content-secondary tabular-nums pr-1">
-              {entry.competitionsEntered}
-            </span>
-          </div>
-        ))}
+      {/* View toggle */}
+      <div className="flex justify-end">
+        <ViewToggle view={view} onChange={setView} />
       </div>
 
       {isSeparate ? (
