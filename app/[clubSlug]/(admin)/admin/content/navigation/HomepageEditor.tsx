@@ -1892,6 +1892,7 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
   const [editOriginal,    setEditOriginal]    = useState<ContentBlock | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [readDebug,       setReadDebug]       = useState<SettingsDebug | null>(null)
+  const initialEnabledRef = useRef((initialBlocks ?? DEFAULT_BLOCKS).filter(b => b.enabled).length)
 
   useEffect(() => {
     getSettingsDebug().then(setReadDebug)
@@ -1973,11 +1974,12 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
           {saveStatus === 'idle' && hasChanges && (
             <Typography sx={{ fontSize: 11, color: 'var(--status-warning)', mt: 0.25 }}>Unpublished changes — click Publish changes to go live.</Typography>
           )}
-          {readDebug && (
-            <Typography sx={{ fontSize: 11, color: 'var(--text-tertiary)', mt: 0.25 }}>
-              DB: readId={readDebug.readClubId.slice(0, 8)} · {readDebug.rows.length}row(s): {readDebug.rows.map(r => `[${r.clubId?.slice(0,8) ?? 'NULL'}:${r.enabledCount ?? '?'}en]`).join(' ')}
-            </Typography>
-          )}
+          <Typography sx={{ fontSize: 11, color: 'var(--text-tertiary)', mt: 0.25 }}>
+            init={initialEnabledRef.current}en
+            {readDebug
+              ? ` · DB: readId=${readDebug.readClubId.slice(0, 8)} · ${readDebug.rows.length}row(s): ${readDebug.rows.map(r => `[${r.clubId?.slice(0,8) ?? 'NULL'}:${r.enabledCount ?? '?'}en]`).join(' ')}`
+              : ' · DB: …'}
+          </Typography>
         </Box>
         <Button variant="outlined" size="small"
           onClick={() => window.open(`/${clubSlug}`, '_blank')}
