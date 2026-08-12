@@ -38,7 +38,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { TrashBtn } from '@/components/ui/TrashBtn'
 import { useUnsavedChanges } from '@/components/admin/UnsavedChangesProvider'
-import { savePoySettings } from '../actions'
+import { savePoySettings } from '../../../club-defaults/actions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

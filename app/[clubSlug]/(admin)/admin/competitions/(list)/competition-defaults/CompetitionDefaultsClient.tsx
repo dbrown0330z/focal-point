@@ -22,7 +22,7 @@ import {
   deleteCompetitionDefaultCategory,
   renameCompetitionDefaultCategory,
   saveCompetitionDefaults,
-} from '../actions'
+} from '../../../club-defaults/actions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
