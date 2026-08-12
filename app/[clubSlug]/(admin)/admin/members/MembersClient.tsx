@@ -1584,7 +1584,7 @@ function SkillLevelsTab({
         </Typography>
         <Typography
           component="a"
-          href={`/${clubSlug}/admin/club-defaults/recognition`}
+          href={`/${clubSlug}/admin/competitions/recognition`}
           sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
         >
           Go to Club Defaults →

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { usePathname } from 'next/navigation'
 import {
   Box,
   Button,
@@ -115,6 +116,8 @@ function ToggleRow({ label, isOn, onChange, tag, offDescription }: {
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export function StepAwards({ config, onChange, onBlocked, savedPreset }: Props) {
+  const pathname = usePathname()
+  const clubSlug = pathname.split('/')[1]
   const preset = config.judgingPreset
 
   const [defaults,     setDefaults]     = useState<RecognitionDefaults | null>(null)
@@ -171,7 +174,7 @@ export function StepAwards({ config, onChange, onBlocked, savedPreset }: Props) 
   function executeConfigureOpen() {
     setConfigureWarning(false)
     clubDefaultsTabRef.current = true
-    window.open('/admin/club-defaults/recognition', '_blank')
+    window.open(`/${clubSlug}/admin/competitions/recognition`, '_blank')
   }
 
   useEffect(() => {

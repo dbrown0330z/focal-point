@@ -89,7 +89,7 @@ export default async function AdminDashboardPage() {
     { label: 'Add member',      icon: 'users',    href: `/${clubSlug}/admin/members` },
     { label: 'New competition', icon: 'trophy',   href: `/${clubSlug}/admin/competitions/new` },
     { label: 'New post',        icon: 'pages',    href: `/${clubSlug}/admin/posts/new` },
-    { label: 'Club Defaults',   icon: 'settings', href: `/${clubSlug}/admin/club-defaults` },
+    { label: 'Club Basics',     icon: 'settings', href: `/${clubSlug}/admin/club-defaults` },
   ]
 
   return (

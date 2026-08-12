@@ -192,7 +192,7 @@ export async function savePoySettings(data: {
     .update({ ...data, updated_at: new Date().toISOString() })
     .neq('id', '00000000-0000-0000-0000-000000000000')
   if (error) return { error: error.message }
-  revalidatePath('/admin/club-defaults/recognition')
+  revalidatePath('/admin/competitions/recognition')
   revalidatePath('/', 'layout') // standings page reads this config
   return {}
 }
@@ -227,7 +227,7 @@ export async function saveCompetitionDefaults(data: {
     .update({ ...data, updated_at: new Date().toISOString() })
     .neq('id', '00000000-0000-0000-0000-000000000000')
   if (error) return { error: error.message }
-  revalidatePath('/admin/club-defaults/competition')
+  revalidatePath('/admin/competitions/competition-defaults')
   return {}
 }
 
