@@ -9,8 +9,8 @@ export default function CompetitionsTabNav({ clubSlug }: { clubSlug: string }) {
 
   const tabs = [
     { label: 'Competition List',        href: `/${clubSlug}/admin/competitions`,                          exact: true },
-    { label: 'Competition Templates',   href: `/${clubSlug}/admin/competitions/templates` },
-    { label: 'Competition Defaults',    href: `/${clubSlug}/admin/competitions/competition-defaults` },
+    { label: 'Templates',               href: `/${clubSlug}/admin/competitions/templates` },
+    { label: 'Defaults',                href: `/${clubSlug}/admin/competitions/competition-defaults` },
     { label: 'Recognition & Standings', href: `/${clubSlug}/admin/competitions/recognition` },
   ]
 
