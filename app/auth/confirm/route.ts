@@ -1,4 +1,4 @@
-import { type EmailOtpType } from '@supabase/supabase-js'
+import { type EmailOtpType, type CookieOptions } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
@@ -31,9 +31,9 @@ export async function GET(request: Request) {
 
   const cookieStore = await cookies()
 
-  // We build the final redirect URL after verifying (we need the user's club slug).
-  // Start with a fallback; it will be replaced below on success.
-  let destination = `${origin}/`
+  // Collect cookies that Supabase sets during verifyOtp so we can stamp them
+  // onto the redirect response (session must travel with the redirect).
+  const pendingCookies: Array<{ name: string; value: string; options: CookieOptions }> = []
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -41,8 +41,9 @@ export async function GET(request: Request) {
     {
       cookies: {
         getAll() { return cookieStore.getAll() },
-        // Cookies are set on the response after we build it below.
-        setAll() {},
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(c => pendingCookies.push(c))
+        },
       },
     }
   )
@@ -55,12 +56,12 @@ export async function GET(request: Request) {
   }
 
   // Promote pending → approved and resolve the club slug for the redirect.
+  let destination = `${origin}/`
   try {
     const { data: { user } } = await supabase.auth.getUser()
     if (user?.id) {
       const service = createServiceClient()
 
-      // Promote in both tables in parallel; also fetch club slug for the redirect.
       const [,, membershipRow] = await Promise.all([
         service
           .from('club_memberships')
@@ -90,11 +91,10 @@ export async function GET(request: Request) {
     console.error('[auth/confirm] failed to promote member status:', err)
   }
 
-  // Build the final redirect response and stamp the session cookies onto it.
+  // Build the redirect response and stamp all session cookies onto it.
   const redirectResponse = NextResponse.redirect(destination)
-  const freshCookies = cookieStore.getAll()
-  freshCookies.forEach(({ name, value }) => {
-    redirectResponse.cookies.set(name, value)
+  pendingCookies.forEach(({ name, value, options }) => {
+    redirectResponse.cookies.set(name, value, options as Parameters<typeof redirectResponse.cookies.set>[2])
   })
 
   return redirectResponse
