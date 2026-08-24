@@ -88,7 +88,7 @@ export async function GET(request: Request) {
             .from('profiles')
             .update({ membership_status: 'approved' })
             .eq('id', user.id)
-            .eq('membership_status', 'pending'),
+            .neq('membership_status', 'active'),
         ])
       }
     } catch (err) {

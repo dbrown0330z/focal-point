@@ -80,10 +80,11 @@ export async function applyForMembership(
   // even if the trigger hasn't fired yet.
   if (userId) {
     await service.from('profiles').upsert({
-      id:           userId,
-      first_name:   data.firstName.trim(),
-      last_name:    data.lastName.trim(),
-      display_name: displayName,
+      id:               userId,
+      first_name:       data.firstName.trim(),
+      last_name:        data.lastName.trim(),
+      display_name:     displayName,
+      membership_status: 'pending',
     }, { onConflict: 'id' })
   }
 
