@@ -31,8 +31,7 @@ export async function GET(request: Request) {
 
   const cookieStore = await cookies()
 
-  // Collect cookies that Supabase sets during verifyOtp so we can stamp them
-  // onto the redirect response (session must travel with the redirect).
+  // Collect session cookies set during verifyOtp so they travel with the redirect.
   const pendingCookies: Array<{ name: string; value: string; options: Record<string, unknown> }> = []
 
   const supabase = createServerClient<Database>(
@@ -50,19 +49,21 @@ export async function GET(request: Request) {
 
   const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash })
   if (error) {
+    console.error('[auth/confirm] verifyOtp error:', error.message)
     return NextResponse.redirect(
       `${origin}/login?error=${encodeURIComponent(error.message)}`
     )
   }
 
-  // Promote pending → approved and resolve the club slug for the redirect.
-  let destination = `${origin}/`
+  // After verification, promote the member and resolve their club slug.
+  let destination = `${origin}/login` // safe fallback — avoids root 404
   try {
     const { data: { user } } = await supabase.auth.getUser()
     if (user?.id) {
       const service = createServiceClient()
 
-      const [,, membershipRow] = await Promise.all([
+      // Promote in both tables (don't override already-active members).
+      await Promise.all([
         service
           .from('club_memberships')
           .update({ membership_status: 'approved' })
@@ -73,28 +74,36 @@ export async function GET(request: Request) {
           .update({ membership_status: 'approved' })
           .eq('id', user.id)
           .neq('membership_status', 'active'),
-        service
-          .from('club_memberships')
-          .select('clubs!inner(slug)')
-          .eq('user_id', user.id)
-          .limit(1)
-          .single(),
       ])
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const slug = (membershipRow.data?.clubs as any)?.slug as string | undefined
-      if (slug) {
-        destination = `${origin}/${slug}/onboarding/profile`
+      // Resolve the club slug separately so a join error can't block the above.
+      const { data: membership } = await service
+        .from('club_memberships')
+        .select('club_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle()
+
+      if (membership?.club_id) {
+        const { data: club } = await service
+          .from('clubs')
+          .select('slug')
+          .eq('id', membership.club_id)
+          .maybeSingle()
+
+        if (club?.slug) {
+          destination = `${origin}/${club.slug}/onboarding/profile`
+        }
       }
     }
   } catch (err) {
-    console.error('[auth/confirm] failed to promote member status:', err)
+    console.error('[auth/confirm] post-verify error:', err)
   }
 
-  // Build the redirect response and stamp all session cookies onto it.
+  // Stamp session cookies onto the redirect response.
   const redirectResponse = NextResponse.redirect(destination)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pendingCookies.forEach(({ name, value, options }) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     redirectResponse.cookies.set(name, value, options as any)
   })
 
