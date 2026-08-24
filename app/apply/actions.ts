@@ -16,12 +16,17 @@ export async function applyForMembership(data: ApplyData): Promise<{ error?: str
   const displayName = `${data.firstName.trim()} ${data.lastName.trim()}`.trim()
   const ctx = await getClubContext()
 
-  // Use the service client to create the user without sending a verification
-  // email. email_confirm: true marks the address as already verified so
-  // Supabase never triggers the confirmation flow.
-  // Admin approval is the only gate — email verification adds no value here
-  // and creates a confusing two-email experience for applicants.
   const service = createServiceClient()
+
+  // Read club's approval mode so we set the right initial membership status.
+  // 'email_verification' → auto-approve on signup (go straight to onboarding).
+  // 'admin_approval'     → hold as 'pending' until an admin reviews.
+  const { data: clubSettingsRow } = ctx?.clubId
+    ? await service.from('club_settings').select('approval_mode').eq('club_id', ctx.clubId).single()
+    : { data: null }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const approvalMode = (clubSettingsRow as any)?.approval_mode ?? 'email_verification'
+  const initialStatus = approvalMode === 'admin_approval' ? 'pending' : 'approved'
   const { data: newUser, error: createErr } = await service.auth.admin.createUser({
     email:         data.email,
     password:      data.password,
@@ -56,12 +61,12 @@ export async function applyForMembership(data: ApplyData): Promise<{ error?: str
     await service
       .from('club_memberships')
       .upsert(
-        { user_id: userId, club_id: ctx.clubId, membership_status: 'pending' },
+        { user_id: userId, club_id: ctx.clubId, membership_status: initialStatus },
         { onConflict: 'user_id,club_id' }
       )
 
-    // Notify all club admins of the new application
-    try {
+    // Notify admins of new application only when their review is needed
+    if (initialStatus === 'pending') try {
       const base        = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
       const reviewUrl   = `${base}/${ctx.clubSlug}/admin/members`
       const appliedDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -106,7 +111,7 @@ export async function applyForMembership(data: ApplyData): Promise<{ error?: str
     } catch (err) {
       // Non-fatal — application is recorded even if notification fails
       console.error('[apply] failed to notify admins:', err)
-    }
+    } // end if (initialStatus === 'pending')
   }
 
   // Sign them in immediately so the root page can show the pending-approval
