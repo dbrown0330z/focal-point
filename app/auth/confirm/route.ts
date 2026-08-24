@@ -1,4 +1,4 @@
-import { type EmailOtpType, type CookieOptions } from '@supabase/supabase-js'
+import { type EmailOtpType } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 
   // Collect cookies that Supabase sets during verifyOtp so we can stamp them
   // onto the redirect response (session must travel with the redirect).
-  const pendingCookies: Array<{ name: string; value: string; options: CookieOptions }> = []
+  const pendingCookies: Array<{ name: string; value: string; options: Record<string, unknown> }> = []
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -94,7 +94,8 @@ export async function GET(request: Request) {
   // Build the redirect response and stamp all session cookies onto it.
   const redirectResponse = NextResponse.redirect(destination)
   pendingCookies.forEach(({ name, value, options }) => {
-    redirectResponse.cookies.set(name, value, options as Parameters<typeof redirectResponse.cookies.set>[2])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    redirectResponse.cookies.set(name, value, options as any)
   })
 
   return redirectResponse
