@@ -43,29 +43,54 @@ function darkInputSx(error = false) {
   }
 }
 
-function ConfirmationScreen({ email, clubName, clubSlug }: { email: string; clubName: string; clubSlug?: string }) {
+function ConfirmationScreen({ email, clubName, clubSlug, requiresVerification }: {
+  email: string; clubName: string; clubSlug?: string; requiresVerification?: boolean
+}) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-md text-center">
         <div className="flex justify-center mb-5">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-status-success-bg">
-            <svg className="h-7 w-7 text-status-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
+            {requiresVerification ? (
+              <svg className="h-7 w-7 text-status-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            ) : (
+              <svg className="h-7 w-7 text-status-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
           </div>
         </div>
-        <h2 className="text-xl font-semibold text-content-primary mb-2">Application submitted</h2>
-        <p className="text-content-secondary leading-relaxed mb-2">
-          Thanks for applying to {clubName}.
-        </p>
-        <p className="text-content-secondary leading-relaxed">
-          A club admin will review your application and you'll receive an email at <strong>{email}</strong> once you've been approved.
-        </p>
-        <p className="mt-8 text-content-secondary text-sm">
-          <Link href={clubSlug ? `/${clubSlug}` : '/'} className="font-medium text-action-primary hover:underline">
-            View your application status
-          </Link>
-        </p>
+        {requiresVerification ? (
+          <>
+            <h2 className="text-xl font-semibold text-content-primary mb-2">Check your email</h2>
+            <p className="text-content-secondary leading-relaxed mb-2">
+              We sent a verification link to <strong>{email}</strong>.
+            </p>
+            <p className="text-content-secondary leading-relaxed">
+              Click the link in that email to verify your address and complete your registration with {clubName}.
+            </p>
+            <p className="mt-4 text-sm text-content-secondary">
+              Didn't receive it? Check your spam folder, or contact the club if you need help.
+            </p>
+          </>
+        ) : (
+          <>
+            <h2 className="text-xl font-semibold text-content-primary mb-2">Application submitted</h2>
+            <p className="text-content-secondary leading-relaxed mb-2">
+              Thanks for applying to {clubName}.
+            </p>
+            <p className="text-content-secondary leading-relaxed">
+              A club admin will review your application and you'll receive an email at <strong>{email}</strong> once you've been approved.
+            </p>
+            <p className="mt-8 text-content-secondary text-sm">
+              <Link href={clubSlug ? `/${clubSlug}` : '/'} className="font-medium text-action-primary hover:underline">
+                View your application status
+              </Link>
+            </p>
+          </>
+        )}
       </div>
     </div>
   )
@@ -73,9 +98,10 @@ function ConfirmationScreen({ email, clubName, clubSlug }: { email: string; club
 
 
 export default function ApplyClient({ clubName, termsUrl, clubSlug }: { clubName: string; termsUrl: string | null; clubSlug?: string }) {
-  const [submitted, setSubmitted]   = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [serverError, setServerError] = useState<string | null>(null)
+  const [submitted,            setSubmitted]            = useState(false)
+  const [requiresVerification, setRequiresVerification] = useState(false)
+  const [submitting,           setSubmitting]           = useState(false)
+  const [serverError,          setServerError]          = useState<string | null>(null)
   const [agreedTerms, setAgreedTerms] = useState(false)
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', password: '', confirmPassword: '',
@@ -112,11 +138,12 @@ export default function ApplyClient({ clubName, termsUrl, clubSlug }: { clubName
       setServerError(result.error)
       setSubmitting(false)
     } else {
+      setRequiresVerification(result?.requiresVerification ?? false)
       setSubmitted(true)
     }
   }
 
-  if (submitted) return <ConfirmationScreen email={form.email} clubName={clubName} clubSlug={clubSlug} />
+  if (submitted) return <ConfirmationScreen email={form.email} clubName={clubName} clubSlug={clubSlug} requiresVerification={requiresVerification} />
 
   return (
     <div className="min-h-screen bg-surface-0">

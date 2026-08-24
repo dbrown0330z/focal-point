@@ -12,41 +12,71 @@ export interface ApplyData {
   password:  string
 }
 
-export async function applyForMembership(data: ApplyData): Promise<{ error?: string }> {
+export async function applyForMembership(
+  data: ApplyData,
+): Promise<{ error?: string; requiresVerification?: boolean }> {
   const displayName = `${data.firstName.trim()} ${data.lastName.trim()}`.trim()
-  const ctx = await getClubContext()
-
+  const ctx     = await getClubContext()
   const service = createServiceClient()
 
-  // Read club's approval mode so we set the right initial membership status.
-  // 'email_verification' → auto-approve on signup (go straight to onboarding).
-  // 'admin_approval'     → hold as 'pending' until an admin reviews.
+  // Read club's approval mode.
+  // 'email_verification' → send verification email; member auto-approved once verified.
+  // 'admin_approval'     → skip email verification; hold as 'pending' for admin review.
   const { data: clubSettingsRow } = ctx?.clubId
     ? await service.from('club_settings').select('approval_mode').eq('club_id', ctx.clubId).single()
     : { data: null }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const approvalMode = (clubSettingsRow as any)?.approval_mode ?? 'email_verification'
-  const initialStatus = approvalMode === 'admin_approval' ? 'pending' : 'approved'
-  const { data: newUser, error: createErr } = await service.auth.admin.createUser({
-    email:         data.email,
-    password:      data.password,
-    email_confirm: true,
-    user_metadata: {
-      display_name: displayName,
-      first_name:   data.firstName.trim(),
-      last_name:    data.lastName.trim(),
-    },
-  })
+  const isEmailVerification = approvalMode !== 'admin_approval'
 
-  if (createErr) return { error: createErr.message }
+  let userId: string | undefined
 
-  const userId = newUser?.user?.id
+  if (isEmailVerification) {
+    // ── Email-verification flow ─────────────────────────────────────────────
+    // Use the regular auth client so Supabase sends a confirmation email.
+    // The 'verify=1' flag in the redirect URL tells the callback to promote
+    // the member from 'pending' → 'approved' after they verify.
+    const supabase = await createClient()
+    const siteUrl  = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
+    const redirectTo = `${siteUrl}/auth/callback?next=/${ctx?.clubSlug ?? ''}/onboarding/profile&verify=1`
+
+    const { data: signUpData, error: createErr } = await supabase.auth.signUp({
+      email:    data.email,
+      password: data.password,
+      options: {
+        data: {
+          display_name: displayName,
+          first_name:   data.firstName.trim(),
+          last_name:    data.lastName.trim(),
+        },
+        emailRedirectTo: redirectTo,
+      },
+    })
+
+    if (createErr) return { error: createErr.message }
+    userId = signUpData.user?.id
+
+  } else {
+    // ── Admin-approval flow ─────────────────────────────────────────────────
+    // Bypass email verification; admin is the gatekeeper.
+    const { data: newUser, error: createErr } = await service.auth.admin.createUser({
+      email:         data.email,
+      password:      data.password,
+      email_confirm: true,
+      user_metadata: {
+        display_name: displayName,
+        first_name:   data.firstName.trim(),
+        last_name:    data.lastName.trim(),
+      },
+    })
+
+    if (createErr) return { error: createErr.message }
+    userId = newUser?.user?.id
+  }
 
   // Save profile fields captured at signup. The DB trigger creates the profile
   // row from user_metadata; we upsert here so profile data is always saved
   // even if the trigger hasn't fired yet.
-  // Save basic name fields — experience level, interests, brands and bio
-  // are collected during the post-approval onboarding step, not at signup.
   if (userId) {
     await service.from('profiles').upsert({
       id:           userId,
@@ -56,17 +86,19 @@ export async function applyForMembership(data: ApplyData): Promise<{ error?: str
     }, { onConflict: 'id' })
   }
 
-  // Ensure a club_memberships row exists for this applicant.
+  // Create club_memberships row. Pending in both modes:
+  // - email_verification: callback upgrades to 'approved' after email click
+  // - admin_approval: stays pending until admin acts
   if (userId && ctx?.clubId) {
     await service
       .from('club_memberships')
       .upsert(
-        { user_id: userId, club_id: ctx.clubId, membership_status: initialStatus },
+        { user_id: userId, club_id: ctx.clubId, membership_status: 'pending' },
         { onConflict: 'user_id,club_id' }
       )
 
-    // Notify admins of new application only when their review is needed
-    if (initialStatus === 'pending') try {
+    // Notify admins only when their manual review is required
+    if (!isEmailVerification) try {
       const base        = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
       const reviewUrl   = `${base}/${ctx.clubSlug}/admin/members`
       const appliedDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -111,19 +143,18 @@ export async function applyForMembership(data: ApplyData): Promise<{ error?: str
     } catch (err) {
       // Non-fatal — application is recorded even if notification fails
       console.error('[apply] failed to notify admins:', err)
-    } // end if (initialStatus === 'pending')
+    }
   }
 
-  // Sign them in immediately so the root page can show the pending-approval
-  // state without requiring a separate login step.
-  const supabase = await createClient()
-  const { error: signInErr } = await supabase.auth.signInWithPassword({
-    email:    data.email,
-    password: data.password,
-  })
+  if (!isEmailVerification) {
+    // Auto-sign in for admin-approval mode so the root page shows their pending status
+    const supabase = await createClient()
+    const { error: signInErr } = await supabase.auth.signInWithPassword({
+      email:    data.email,
+      password: data.password,
+    })
+    if (signInErr) console.warn('[apply] auto sign-in failed:', signInErr.message)
+  }
 
-  // Non-fatal — user can sign in manually if this fails
-  if (signInErr) console.warn('[apply] auto sign-in failed:', signInErr.message)
-
-  return {}
+  return { requiresVerification: isEmailVerification }
 }
