@@ -78,11 +78,18 @@ export async function GET(request: Request) {
       const { data: { user } } = await supabase.auth.getUser()
       if (user?.id) {
         const service = createServiceClient()
-        await service
-          .from('club_memberships')
-          .update({ membership_status: 'approved' })
-          .eq('user_id', user.id)
-          .eq('membership_status', 'pending')
+        await Promise.all([
+          service
+            .from('club_memberships')
+            .update({ membership_status: 'approved' })
+            .eq('user_id', user.id)
+            .eq('membership_status', 'pending'),
+          service
+            .from('profiles')
+            .update({ membership_status: 'approved' })
+            .eq('id', user.id)
+            .eq('membership_status', 'pending'),
+        ])
       }
     } catch (err) {
       // Non-fatal — member can be manually approved if this fails
