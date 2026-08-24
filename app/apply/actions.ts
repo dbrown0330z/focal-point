@@ -48,6 +48,7 @@ export async function applyForMembership(
           display_name: displayName,
           first_name:   data.firstName.trim(),
           last_name:    data.lastName.trim(),
+          club_name:    ctx?.clubName ?? '',
         },
         emailRedirectTo: redirectTo,
       },
