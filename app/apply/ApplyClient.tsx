@@ -12,7 +12,8 @@ import {
   Typography,
 } from '@mui/material'
 import CheckIcon from '@mui/icons-material/Check'
-import { applyForMembership } from './actions'
+import { applyForMembership, createMembership } from './actions'
+import { createBrowserClient } from '@supabase/ssr'
 
 const BENEFITS = [
   'Regular competitions with professional judging and scored feedback',
@@ -97,7 +98,7 @@ function ConfirmationScreen({ email, clubName, clubSlug, requiresVerification }:
 }
 
 
-export default function ApplyClient({ clubName, termsUrl, clubSlug }: { clubName: string; termsUrl: string | null; clubSlug?: string }) {
+export default function ApplyClient({ clubName, termsUrl, clubSlug, approvalMode = 'email_verification' }: { clubName: string; termsUrl: string | null; clubSlug?: string; approvalMode?: string }) {
   const [submitted,            setSubmitted]            = useState(false)
   const [requiresVerification, setRequiresVerification] = useState(false)
   const [submitting,           setSubmitting]           = useState(false)
@@ -128,18 +129,66 @@ export default function ApplyClient({ clubName, termsUrl, clubSlug }: { clubName
     if (!canSubmit || submitting) return
     setSubmitting(true)
     setServerError(null)
-    const result = await applyForMembership({
-      firstName:  form.firstName,
-      lastName:   form.lastName,
-      email:      form.email,
-      password:   form.password,
-    })
-    if (result?.error) {
-      setServerError(result.error)
-      setSubmitting(false)
-    } else {
-      setRequiresVerification(result?.requiresVerification ?? false)
+
+    if (approvalMode !== 'admin_approval') {
+      // ── Email-verification path: sign up client-side so the PKCE verifier is
+      // stored in the browser's own localStorage — not a server cookie that may
+      // be missing when the email link is opened. Using flowType:'implicit' means
+      // Supabase issues a plain OTP token_hash (no pkce_ prefix) which our
+      // /auth/confirm route can verify with verifyOtp() without any stored state.
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { auth: { flowType: 'implicit' } }
+      )
+      const displayName = `${form.firstName.trim()} ${form.lastName.trim()}`.trim()
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email:    form.email,
+        password: form.password,
+        options: {
+          data: {
+            display_name: displayName,
+            first_name:   form.firstName.trim(),
+            last_name:    form.lastName.trim(),
+            club_name:    clubName,
+          },
+        },
+      })
+      if (signUpError) {
+        setServerError(signUpError.message)
+        setSubmitting(false)
+        return
+      }
+      const userId = signUpData.user?.id
+      if (userId) {
+        const memberResult = await createMembership({
+          userId,
+          firstName: form.firstName,
+          lastName:  form.lastName,
+        })
+        if (memberResult?.error) {
+          setServerError(memberResult.error)
+          setSubmitting(false)
+          return
+        }
+      }
+      setRequiresVerification(true)
       setSubmitted(true)
+    } else {
+      // ── Admin-approval path: fully server-side (no email verification).
+      const result = await applyForMembership({
+        firstName: form.firstName,
+        lastName:  form.lastName,
+        email:     form.email,
+        password:  form.password,
+      })
+      if (result?.error) {
+        setServerError(result.error)
+        setSubmitting(false)
+      } else {
+        setRequiresVerification(false)
+        setSubmitted(true)
+      }
     }
   }
 

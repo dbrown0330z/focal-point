@@ -12,6 +12,40 @@ export interface ApplyData {
   password:  string
 }
 
+/**
+ * Called after a client-side supabase.auth.signUp() succeeds.
+ * Creates the profile + membership rows (pending); /auth/confirm promotes them
+ * to 'approved' after email verification.
+ */
+export async function createMembership(data: {
+  userId: string
+  firstName: string
+  lastName: string
+}): Promise<{ error?: string }> {
+  const displayName = `${data.firstName.trim()} ${data.lastName.trim()}`.trim()
+  const ctx     = await getClubContext()
+  const service = createServiceClient()
+
+  await service.from('profiles').upsert({
+    id:                data.userId,
+    first_name:        data.firstName.trim(),
+    last_name:         data.lastName.trim(),
+    display_name:      displayName,
+    membership_status: 'pending',
+  }, { onConflict: 'id' })
+
+  if (ctx?.clubId) {
+    await service
+      .from('club_memberships')
+      .upsert(
+        { user_id: data.userId, club_id: ctx.clubId, membership_status: 'pending' },
+        { onConflict: 'user_id,club_id' }
+      )
+  }
+
+  return {}
+}
+
 export async function applyForMembership(
   data: ApplyData,
 ): Promise<{ error?: string; requiresVerification?: boolean }> {

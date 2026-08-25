@@ -15,7 +15,7 @@ export default async function ClubApplyPage({
   const { data } = clubId
     ? await admin
         .from('club_settings')
-        .select('club_name, membership_terms_source, membership_terms_content, membership_terms_file_path')
+        .select('club_name, membership_terms_source, membership_terms_content, membership_terms_file_path, approval_mode')
         .eq('club_id', clubId)
         .single() as {
           data: {
@@ -23,11 +23,13 @@ export default async function ClubApplyPage({
             membership_terms_source: string
             membership_terms_content: string | null
             membership_terms_file_path: string | null
+            approval_mode: string | null
           } | null
         }
     : { data: null }
 
-  const clubName = data?.club_name ?? 'Our Camera Club'
+  const clubName    = data?.club_name ?? 'Our Camera Club'
+  const approvalMode = data?.approval_mode ?? 'email_verification'
 
   const hasTerms = Boolean(
     data?.membership_terms_content ||
@@ -39,6 +41,7 @@ export default async function ClubApplyPage({
       clubName={clubName}
       termsUrl={hasTerms ? '/terms' : null}
       clubSlug={clubSlug}
+      approvalMode={approvalMode}
     />
   )
 }
