@@ -33,13 +33,27 @@ export async function applyForMembership(
 
   if (isEmailVerification) {
     // ── Email-verification flow ─────────────────────────────────────────────
-    // Use the regular auth client so Supabase sends a confirmation email.
-    // The 'verify=1' flag in the redirect URL tells the callback to promote
-    // the member from 'pending' → 'approved' after they verify.
-    const supabase = await createClient()
-    const siteUrl  = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
-    const redirectTo = `${siteUrl}/auth/callback?next=/onboarding/profile&verify=1`
-
+    // Use flowType:'implicit' so Supabase issues a plain OTP token_hash (no
+    // pkce_ prefix). The /auth/confirm route verifies it with verifyOtp(), which
+    // only works with implicit-mode tokens — PKCE tokens require the stored code
+    // verifier which won't be present when the user opens the email in Gmail.
+    const cookieStore = await (await import('next/headers')).cookies()
+    const { createServerClient } = await import('@supabase/ssr')
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        auth: { flowType: 'implicit' },
+        cookies: {
+          getAll() { return cookieStore.getAll() },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
+            } catch { /* server component context */ }
+          },
+        },
+      }
+    )
     const { data: signUpData, error: createErr } = await supabase.auth.signUp({
       email:    data.email,
       password: data.password,
@@ -50,7 +64,6 @@ export async function applyForMembership(
           last_name:    data.lastName.trim(),
           club_name:    ctx?.clubName ?? '',
         },
-        emailRedirectTo: redirectTo,
       },
     })
 
