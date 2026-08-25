@@ -280,11 +280,12 @@ export default function ApplyClient({ clubName, termsUrl, clubSlug, approvalMode
   if (submitted) return <ConfirmationScreen email={form.email} clubName={clubName} clubSlug={clubSlug} requiresVerification={requiresVerification} />
 
   return (
-    <div className="min-h-screen bg-surface-0">
-      <header className="border-b border-border-default bg-surface-2">
+    <div style={{ minHeight: '100vh', background: '#141414' }}>
+      {/* Header — dark, hairline border */}
+      <header style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#1A1A1A' }}>
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
-          <Link href="/" className="text-sm font-semibold text-content-primary">{clubName}</Link>
-          <Link href={clubSlug ? `/${clubSlug}/login` : '/login'} className="text-sm text-content-secondary hover:text-content-primary transition-colors">Sign in</Link>
+          <Link href="/" style={{ fontSize: '14px', fontWeight: 600, color: '#E8E8E8', textDecoration: 'none' }}>{clubName}</Link>
+          <Link href={clubSlug ? `/${clubSlug}/login` : '/login'} style={{ fontSize: '14px', color: '#737373', textDecoration: 'none' }}>Sign in</Link>
         </div>
       </header>
 
@@ -293,13 +294,20 @@ export default function ApplyClient({ clubName, termsUrl, clubSlug, approvalMode
         {/* Illustration + club name — centered above columns */}
         <div className="flex flex-col items-center mb-10">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/request-account.svg" alt="" className="dark:invert dark:opacity-75" style={{ width: '100%', maxWidth: 585, height: 'auto', display: 'block', marginBottom: 24 }} />
+          <img
+            src="/request-account.svg"
+            alt=""
+            style={{
+              width: '100%', maxWidth: 585, height: 'auto', display: 'block', marginBottom: 24,
+              filter: 'invert(1)', opacity: 0.82,
+            }}
+          />
           <Typography
             sx={{
               textAlign: 'center',
-              fontSize: '48px',
+              fontSize: { xs: '36px', md: '48px' },
               fontWeight: 500,
-              color: 'var(--action-primary)',
+              color: '#4A90D4',
               fontFamily: 'var(--font-lora), Georgia, serif',
               lineHeight: 1.2,
             }}
@@ -314,17 +322,17 @@ export default function ApplyClient({ clubName, termsUrl, clubSlug, approvalMode
           <div className="lg:pt-1">
             <Typography
               variant="h1"
-              sx={{ mb: 2.5, fontSize: { xs: '24px', md: '26px' }, lineHeight: 1.25, fontWeight: 700 }}
+              sx={{ mb: 2.5, fontSize: { xs: '24px', md: '26px' }, lineHeight: 1.25, fontWeight: 700, color: '#E8E8E8' }}
             >
               Join the club — we'd love to have you
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 5, lineHeight: 1.8 }}>
+            <Typography variant="body1" sx={{ mb: 5, lineHeight: 1.8, color: '#9E9E9E' }}>
               Fill out the form and we'll review your application. Once approved you'll receive an
               email with a link to complete your profile and activate your membership.
             </Typography>
 
             <Typography
-              sx={{ mb: 2, fontSize: '13px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}
+              sx={{ mb: 2, fontSize: '13px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#525252' }}
             >
               When you join you'll get access to
             </Typography>
@@ -334,19 +342,19 @@ export default function ApplyClient({ clubName, termsUrl, clubSlug, approvalMode
                 <Box key={benefit} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
                   <Box sx={{
                     mt: '3px', flexShrink: 0, width: 18, height: 18, borderRadius: '50%',
-                    bgcolor: 'var(--status-success-bg)',
+                    bgcolor: '#122412',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <CheckIcon sx={{ fontSize: 11, color: 'var(--status-success-text)' }} />
+                    <CheckIcon sx={{ fontSize: 11, color: '#97C459' }} />
                   </Box>
-                  <Typography sx={{ fontSize: '14px', lineHeight: 1.65, color: 'var(--text-secondary)' }}>
+                  <Typography sx={{ fontSize: '14px', lineHeight: 1.65, color: '#9E9E9E' }}>
                     {benefit}
                   </Typography>
                 </Box>
               ))}
             </Stack>
 
-            <Typography variant="body1" sx={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+            <Typography variant="body1" sx={{ fontWeight: 600, color: '#E8E8E8' }}>
               Ready? Sign up today!
             </Typography>
           </div>
