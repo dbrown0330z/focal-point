@@ -180,47 +180,65 @@ export async function setMemberPermission(
 
 export async function deleteMember(memberId: string) {
   const supabase = createServiceClient()
+  const ctx = await getClubContext()
 
-  // Find images that were ever submitted to a competition — keep those for the
-  // club record (competition gallery, results history). Delete everything else.
+  // Determine competition footprint before touching anything.
   const { data: submittedImages } = await supabase
     .from('submissions')
     .select('image_id')
     .eq('member_id', memberId)
 
-  const retainedImageIds = new Set((submittedImages ?? []).map(s => s.image_id))
+  const retainedImageIds    = new Set((submittedImages ?? []).map(s => s.image_id))
+  const hasCompetitionHistory = retainedImageIds.size > 0
 
+  // Delete library images not tied to any competition.
   const { data: allImages } = await supabase
     .from('images')
     .select('id, storage_path')
     .eq('owner_id', memberId)
 
   const toDelete = (allImages ?? []).filter(img => !retainedImageIds.has(img.id))
-
   if (toDelete.length) {
     await supabase.storage.from('images').remove(toDelete.map(i => i.storage_path))
     await supabase.from('images').delete().in('id', toDelete.map(i => i.id))
   }
 
-  // Anonymise the profile — keep the row so competition history stays intact.
-  // Retained images remain in the table; their owner_id still points here,
-  // so galleries can display them under "Deleted member".
-  await supabase
-    .from('profiles')
-    .update({
-      first_name:         null,
-      last_name:          null,
-      display_name:       'Deleted member',
-      bio:                null,
-      avatar_url:         null,
-      camera_brands:      [],
-      shooting_interests: [],
-      experience_level:   null,
-      membership_status:  'cancelled',
-      role:               null,
-    })
-    .eq('id', memberId)
+  if (hasCompetitionHistory) {
+    // Member has submitted to competitions — keep the profile row so galleries
+    // and results history remain intact, but strip all PII.
+    await supabase
+      .from('profiles')
+      .update({
+        first_name:         null,
+        last_name:          null,
+        display_name:       'Deleted member',
+        bio:                null,
+        avatar_url:         null,
+        camera_brands:      [],
+        shooting_interests: [],
+        experience_level:   null,
+        membership_status:  'cancelled',
+        role:               null,
+      })
+      .eq('id', memberId)
+  } else {
+    // No competition history — fully remove the record so the row vanishes
+    // from the member list instead of lingering as "Resigned".
+    if (ctx?.clubId) {
+      await supabase
+        .from('club_memberships')
+        .delete()
+        .eq('user_id', memberId)
+        .eq('club_id', ctx.clubId)
+    }
+    await supabase.from('profiles').delete().eq('id', memberId)
+  }
 
+  // Always delete the auth account — frees the email address so they can
+  // re-apply, and prevents sign-in regardless of which branch above ran.
+  await supabase.auth.admin.deleteUser(memberId)
+
+  if (ctx?.clubSlug) revalidatePath(`/${ctx.clubSlug}/admin/members`)
   revalidatePath('/admin/members')
 }
 
