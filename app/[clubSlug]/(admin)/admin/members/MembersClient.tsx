@@ -113,7 +113,7 @@ type SortKey = 'status' | 'first_name' | 'last_name' | 'role' | 'level' | 'engag
 
 const STATUS_LABEL: Record<MembershipStatus, string> = {
   pending:       'Pending',
-  approved:      'Awaiting payment',
+  approved:      'Approved',
   active:        'Active',
   expired:       'Expired',
   paused:        'Suspended',
@@ -175,11 +175,19 @@ interface StatusOption {
 }
 
 function getStatusOptions(status: MembershipStatus): StatusOption[] {
-  if (PENDING_STATUSES.includes(status)) {
+  if (status === 'pending') {
     return [
-      { value: '__current__', label: STATUS_LABEL[status], action: { kind: 'setStatus', status }, disabled: true },
-      { value: '__approve__', label: 'Approve',  action: { kind: 'approve' } },
-      { value: '__reject__',  label: 'Reject',   action: { kind: 'reject'  } },
+      { value: '__current__',  label: 'Pending',  action: { kind: 'setStatus', status }, disabled: true },
+      { value: '__approve__',  label: 'Approve',  action: { kind: 'approve' } },
+      { value: '__reject__',   label: 'Reject',   action: { kind: 'reject'  } },
+    ]
+  }
+  if (status === 'approved') {
+    return [
+      { value: '__current__',  label: 'Approved', action: { kind: 'setStatus', status }, disabled: true },
+      // Activate lets an admin bypass the payment step (e.g. comp members, waived fees)
+      { value: '__activate__', label: 'Activate', action: { kind: 'setStatus', status: 'active' } },
+      { value: '__reject__',   label: 'Reject',   action: { kind: 'reject'  } },
     ]
   }
   if (ACTIVE_STATUSES.includes(status)) {
