@@ -74,6 +74,11 @@ type Filter = 'active' | 'archived' | 'cancelled' | 'all'
 
 const CANCELABLE: CompetitionStatus[] = ['draft', 'open', 'judging', 'judging_on_hold']
 
+/** True when a competition is open in the DB but its close date has already passed. */
+function isExpiredOpen(comp: Competition): boolean {
+  return comp.status === 'open' && !!comp.closes_at && new Date(comp.closes_at) <= new Date()
+}
+
 // ─── Club year utilities ──────────────────────────────────────────────────────
 
 /** Returns e.g. "2024" (calendar year) or "2024–25" (split year) */
@@ -281,9 +286,10 @@ export default function CompetitionsListClient({
             </TableHead>
             <TableBody>
               {filtered.map(comp => {
-                const isComplete  = comp.status === 'closed' || comp.status === 'results_pending' || comp.status === 'results_published'
-                const isArchived  = comp.archived_at !== null
-                const resultsDate = comp.judging_at ?? comp.closes_at
+                const isComplete   = comp.status === 'closed' || comp.status === 'results_pending' || comp.status === 'results_published'
+                const isArchived   = comp.archived_at !== null
+                const expiredOpen  = isExpiredOpen(comp)
+                const resultsDate  = comp.judging_at ?? comp.closes_at
 
                 return (
                   <TableRow
@@ -293,11 +299,13 @@ export default function CompetitionsListClient({
                     <TableCell sx={COL_CELL}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
                         <Chip
-                          label={STATUS_LABEL[comp.status]}
+                          label={expiredOpen ? 'Submissions closed' : STATUS_LABEL[comp.status]}
                           size="small"
                           sx={{
                             fontFamily: 'inherit', fontSize: 11, height: 22, fontWeight: 500,
-                            ...STATUS_STYLE[comp.status],
+                            ...(expiredOpen
+                              ? { bgcolor: 'warning.light', color: 'warning.contrastText' }
+                              : STATUS_STYLE[comp.status]),
                           }}
                         />
                         {isArchived && (
