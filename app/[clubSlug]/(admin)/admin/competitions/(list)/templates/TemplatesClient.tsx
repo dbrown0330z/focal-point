@@ -366,17 +366,17 @@ export default function TemplatesClient({
               {templates.map(tpl => (
                 <TableRow key={tpl.id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
                   {/* Name */}
-                  <TableCell sx={{ fontSize: 14, py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', fontWeight: 500 }}>
+                  <TableCell sx={{ fontSize: 14, py: 2.75, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', fontWeight: 500 }}>
                     {tpl.name}
                   </TableCell>
 
                   {/* Judging method */}
-                  <TableCell sx={{ fontSize: 14, py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', color: 'text.secondary' }}>
+                  <TableCell sx={{ fontSize: 14, py: 2.75, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', color: 'text.secondary' }}>
                     {PRESET_LABEL[tpl.config?.judgingPreset ?? ''] ?? tpl.config?.judgingPreset ?? '—'}
                   </TableCell>
 
                   {/* Features chips */}
-                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }}>
+                  <TableCell sx={{ py: 2.75, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit' }}>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                       {tpl.config?.awardsEnabled && (
                         <Chip label="Awards" size="small" sx={{ fontSize: 11, height: 20, fontFamily: 'inherit', bgcolor: 'background.default', color: 'text.secondary' }} />
@@ -391,17 +391,17 @@ export default function TemplatesClient({
                   </TableCell>
 
                   {/* Usage count */}
-                  <TableCell sx={{ fontSize: 14, py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', color: tpl.usageCount > 0 ? 'text.primary' : 'text.disabled' }}>
+                  <TableCell sx={{ fontSize: 14, py: 2.75, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', color: tpl.usageCount > 0 ? 'text.primary' : 'text.disabled' }}>
                     {tpl.usageCount > 0 ? `${tpl.usageCount} competition${tpl.usageCount === 1 ? '' : 's'}` : '—'}
                   </TableCell>
 
                   {/* Last updated */}
-                  <TableCell sx={{ fontSize: 14, py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                  <TableCell sx={{ fontSize: 14, py: 2.75, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', color: 'text.secondary', whiteSpace: 'nowrap' }}>
                     {new Date(tpl.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </TableCell>
 
                   {/* Edit link */}
-                  <TableCell sx={{ py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', width: 48 }}>
+                  <TableCell sx={{ py: 2.75, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', width: 48 }}>
                     <Typography
                       component="button"
                       onClick={() => openEdit(tpl)}
@@ -412,7 +412,7 @@ export default function TemplatesClient({
                   </TableCell>
 
                   {/* Duplicate icon */}
-                  <TableCell sx={{ py: 1.25, px: 1, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', width: 36 }}>
+                  <TableCell sx={{ py: 2.75, px: 1, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', width: 36 }}>
                     <Tooltip title="Duplicate template">
                       <IconButton
                         size="small"
@@ -425,7 +425,7 @@ export default function TemplatesClient({
                   </TableCell>
 
                   {/* Delete icon */}
-                  <TableCell sx={{ py: 1.25, px: 1, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', width: 36 }}>
+                  <TableCell sx={{ py: 2.75, px: 1, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', width: 36 }}>
                     <Tooltip title={tpl.usageCount > 0 ? 'Cannot delete a template used in competitions' : 'Delete template'}>
                       <span>
                         <TrashBtn

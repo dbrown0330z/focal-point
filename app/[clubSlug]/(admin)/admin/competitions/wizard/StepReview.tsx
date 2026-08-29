@@ -78,7 +78,7 @@ function ReviewCard({ title, step, onEdit, children }: {
 }) {
   return (
     <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper', overflow: 'hidden' }}>
-      <Box sx={{ px: 2.5, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider', bgcolor: '#F7F8FA' }}>
+      <Box sx={{ px: 2.5, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.default' }}>
         <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{title}</Typography>
         <Button size="small" onClick={() => onEdit(step)} startIcon={EDIT_ICON} sx={{ fontSize: 12, color: 'primary.main', p: 0, minWidth: 0 }}>Edit</Button>
       </Box>
@@ -232,7 +232,7 @@ export function StepReview({
             borderRadius: detailsOpen ? '8px 8px 0 0' : 2,
             bgcolor: 'background.paper', cursor: 'pointer', fontFamily: 'inherit',
             transition: 'border-radius 0s 0.1s',
-            '&:hover': { bgcolor: '#F7F8FA' },
+            '&:hover': { bgcolor: 'action.hover' },
           }}
         >
           <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary' }}>

@@ -117,7 +117,7 @@ const COL_HEAD = {
 }
 
 const COL_CELL = {
-  fontSize: 14, py: 1.25, px: 2,
+  fontSize: 14, py: 2.75, px: 2,
   borderBottom: '1px solid', borderColor: 'divider',
   fontFamily: 'inherit',
 }
