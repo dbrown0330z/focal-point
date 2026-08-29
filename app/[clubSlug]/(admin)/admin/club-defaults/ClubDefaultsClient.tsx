@@ -3,6 +3,7 @@
 import { useState, useTransition, useRef, useEffect } from 'react'
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Chip,
@@ -38,6 +39,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   saveClubSettings,
   addMeetingLocation,
+  updateMeetingLocation,
   deleteMeetingLocation,
   acceptDefaultTerms,
   saveTermsContent,
@@ -535,6 +537,92 @@ function LogoUpload({ current, onUploaded }: { current: string | null; onUploade
   )
 }
 
+// ─── Address autocomplete + map ──────────────────────────────────────────────
+
+type PhotonFeature = {
+  geometry: { coordinates: [number, number] }
+  properties: {
+    name?: string; street?: string; housenumber?: string
+    city?: string; state?: string; country?: string
+  }
+}
+
+function photonLabel(f: PhotonFeature): string {
+  const p = f.properties
+  const line1 = p.housenumber && p.street
+    ? `${p.housenumber} ${p.street}`
+    : (p.street ?? p.name)
+  return [line1, p.city, p.state, p.country].filter(Boolean).join(', ')
+}
+
+type AddressOption = { label: string; lat: number; lon: number }
+
+function AddressField({
+  value, onChange, onSelect, disabled,
+}: {
+  value: string
+  onChange: (v: string) => void
+  onSelect: (address: string, lat: number, lon: number) => void
+  disabled?: boolean
+}) {
+  const [options, setOptions] = useState<AddressOption[]>([])
+  const [loading, setLoading] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  useEffect(() => {
+    clearTimeout(timerRef.current)
+    if (value.length < 3) { setOptions([]); return }
+    timerRef.current = setTimeout(async () => {
+      setLoading(true)
+      try {
+        const res  = await fetch(
+          `https://photon.komoot.io/api/?q=${encodeURIComponent(value)}&limit=6&lang=en`,
+        )
+        const json = await res.json()
+        const features: PhotonFeature[] = json.features ?? []
+        setOptions(features.map(f => ({
+          label: photonLabel(f),
+          lon:   f.geometry.coordinates[0],
+          lat:   f.geometry.coordinates[1],
+        })))
+      } catch { setOptions([]) }
+      finally  { setLoading(false) }
+    }, 380)
+    return () => clearTimeout(timerRef.current)
+  }, [value])
+
+  return (
+    <Autocomplete
+      freeSolo
+      options={options}
+      filterOptions={x => x}
+      inputValue={value}
+      onInputChange={(_e, v, reason) => { if (reason !== 'reset') onChange(v) }}
+      onChange={(_e, val) => {
+        if (val && typeof val !== 'string') onSelect(val.label, val.lat, val.lon)
+      }}
+      loading={loading}
+      disabled={disabled}
+      size="small"
+      fullWidth
+      renderInput={params => (
+        <TextField {...params} placeholder="Address (optional)" />
+      )}
+    />
+  )
+}
+
+function MapEmbed({ lat, lon }: { lat: number; lon: number }) {
+  const d    = 0.008
+  const bbox = `${lon - d},${lat - d},${lon + d},${lat + d}`
+  const src  = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`
+  return (
+    <Box sx={{ mt: 1.5, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider', lineHeight: 0 }}>
+      <iframe src={src} width="100%" height="200" style={{ display: 'block', border: 'none' }} title="Map preview" loading="lazy" />
+    </Box>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ClubDefaultsClient({
@@ -596,6 +684,11 @@ export default function ClubDefaultsClient({
   const [locAdding, setLocAdding] = useState(false)
   const [newLocName, setNewLocName] = useState('')
   const [newLocAddress, setNewLocAddress] = useState('')
+  const [newLocCoords, setNewLocCoords] = useState<{ lat: number; lon: number } | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editAddress, setEditAddress] = useState('')
+  const [editCoords, setEditCoords] = useState<{ lat: number; lon: number } | null>(null)
   const [locPending, startLoc] = useTransition()
 
   function handleAddLocation() {
@@ -608,6 +701,7 @@ export default function ClubDefaultsClient({
         setLocations(p => [...p, { id: r.id!, name, address }])
         setNewLocName('')
         setNewLocAddress('')
+        setNewLocCoords(null)
         setLocAdding(false)
       }
     })
@@ -616,7 +710,35 @@ export default function ClubDefaultsClient({
   function handleCancelAddLocation() {
     setNewLocName('')
     setNewLocAddress('')
+    setNewLocCoords(null)
     setLocAdding(false)
+  }
+
+  function handleStartEdit(loc: { id: string; name: string; address: string | null }) {
+    setEditingId(loc.id)
+    setEditName(loc.name)
+    setEditAddress(loc.address ?? '')
+    setEditCoords(null)
+  }
+
+  function handleCancelEdit() {
+    setEditingId(null)
+    setEditName('')
+    setEditAddress('')
+    setEditCoords(null)
+  }
+
+  function handleSaveEdit(id: string) {
+    const name = editName.trim()
+    if (!name) return
+    const address = editAddress.trim() || null
+    startLoc(async () => {
+      const r = await updateMeetingLocation(id, name, address)
+      if (!r.error) {
+        setLocations(p => p.map(l => l.id === id ? { ...l, name, address } : l))
+        handleCancelEdit()
+      }
+    })
   }
 
   function handleDeleteLocation(id: string) {
@@ -710,17 +832,60 @@ export default function ClubDefaultsClient({
             {locations.map((loc, i) => (
               <Box key={loc.id}>
                 {i > 0 && <Divider sx={{ my: '20px' }} />}
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>{loc.name}</Typography>
-                    {loc.address && (
-                      <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 0.25 }}>
-                        {loc.address}
-                      </Typography>
-                    )}
+                {editingId === loc.id ? (
+                  /* ── Inline edit mode ── */
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, maxWidth: 480 }}>
+                    <TextField
+                      size="small" fullWidth placeholder="Location name" autoFocus
+                      value={editName} onChange={e => setEditName(e.target.value)}
+                      disabled={locPending}
+                    />
+                    <AddressField
+                      value={editAddress}
+                      onChange={v => { setEditAddress(v); setEditCoords(null) }}
+                      onSelect={(addr, lat, lon) => { setEditAddress(addr); setEditCoords({ lat, lon }) }}
+                      disabled={locPending}
+                    />
+                    {editCoords && <MapEmbed lat={editCoords.lat} lon={editCoords.lon} />}
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button variant="contained" size="small"
+                        disabled={!editName.trim() || locPending} onClick={() => handleSaveEdit(loc.id)}>
+                        Save
+                      </Button>
+                      <Button variant="outlined" color="secondary" size="small"
+                        disabled={locPending} onClick={handleCancelEdit}>
+                        Cancel
+                      </Button>
+                    </Box>
                   </Box>
-                  <TrashBtn onClick={() => handleDeleteLocation(loc.id)} disabled={locPending} />
-                </Box>
+                ) : (
+                  /* ── Display mode ── */
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>{loc.name}</Typography>
+                      {loc.address && (
+                        <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 0.25 }}>
+                          {loc.address}
+                        </Typography>
+                      )}
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <Tooltip title="Edit">
+                        <Box component="span">
+                          <Button
+                            size="small" variant="text" color="secondary"
+                            onClick={() => handleStartEdit(loc)}
+                            disabled={locPending || editingId !== null}
+                            sx={{ minWidth: 0, p: 0.75 }}
+                          >
+                            <EditIcon sx={{ fontSize: 16 }} />
+                          </Button>
+                        </Box>
+                      </Tooltip>
+                      <TrashBtn onClick={() => handleDeleteLocation(loc.id)} disabled={locPending || editingId !== null} />
+                    </Box>
+                  </Box>
+                )}
               </Box>
             ))}
             <Divider sx={{ my: '20px' }} />
@@ -734,12 +899,13 @@ export default function ClubDefaultsClient({
               value={newLocName} onChange={e => setNewLocName(e.target.value)}
               disabled={locPending}
             />
-            <TextField
-              size="small" fullWidth placeholder="Address (optional)"
-              value={newLocAddress} onChange={e => setNewLocAddress(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddLocation())}
+            <AddressField
+              value={newLocAddress}
+              onChange={v => { setNewLocAddress(v); setNewLocCoords(null) }}
+              onSelect={(addr, lat, lon) => { setNewLocAddress(addr); setNewLocCoords({ lat, lon }) }}
               disabled={locPending}
             />
+            {newLocCoords && <MapEmbed lat={newLocCoords.lat} lon={newLocCoords.lon} />}
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button variant="contained" size="small"
                 disabled={!newLocName.trim() || locPending} onClick={handleAddLocation}>
@@ -752,7 +918,8 @@ export default function ClubDefaultsClient({
             </Box>
           </Box>
         ) : (
-          <Button variant="outlined" color="secondary" size="small" onClick={() => setLocAdding(true)}>
+          <Button variant="outlined" color="secondary" size="small"
+            onClick={() => setLocAdding(true)} disabled={editingId !== null}>
             Add location
           </Button>
         )}

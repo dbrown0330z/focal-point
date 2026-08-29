@@ -93,6 +93,17 @@ export async function addMeetingLocation(name: string, address: string | null): 
   return { id: data.id }
 }
 
+export async function updateMeetingLocation(id: string, name: string, address: string | null): Promise<{ error?: string }> {
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('meeting_locations')
+    .update({ name: name.trim(), address: address?.trim() || null })
+    .eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath(PATH)
+  return {}
+}
+
 export async function deleteMeetingLocation(id: string): Promise<{ error?: string }> {
   const supabase = createServiceClient()
   const { error } = await supabase.from('meeting_locations').delete().eq('id', id)
