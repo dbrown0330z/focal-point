@@ -91,30 +91,13 @@ export default async function AdminCompetitionsPage() {
     resultsVisibility:           d.results_visibility === 'public-same-time' ? 'public' : 'members',
   } : {}
 
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('id, first_name, last_name')
-    .in('membership_status', ['active', 'complimentary'])
-    .order('last_name', { ascending: true })
-
-  const memberProfiles = (profiles ?? []).map(p => ({
-    id:    p.id,
-    name:  [p.first_name, p.last_name].filter(Boolean).join(' ') || '—',
-    email: undefined as string | undefined,
-  }))
-
-  const directoryJudges = (judgeDirectory ?? []).map(j => ({
+  // Only formally added judges appear in the judge-assignment dropdown.
+  // Club members are not listed here — use Judge Directory to manage who can be assigned.
+  const members = (judgeDirectory ?? []).map(j => ({
     id:    `dir_${j.id}`,
     name:  j.name,
     email: j.email,
   }))
-
-  // Merge: directory judges first (sorted by name), then members not already in directory by email
-  const memberEmails = new Set(directoryJudges.map(j => j.email.toLowerCase()))
-  const members = [
-    ...directoryJudges,
-    ...memberProfiles.filter(p => !p.email || !memberEmails.has(p.email.toLowerCase())),
-  ]
 
   const meetingLocations = (locations ?? []).map(l =>
     l.address ? `${l.name} — ${l.address}` : l.name
