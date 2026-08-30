@@ -26,8 +26,8 @@ import { StepIndicator }  from '../../wizard/StepIndicator'
 import { StepCategories } from '../../wizard/StepCategories'
 import { StepJudging }    from '../../wizard/StepJudging'
 import { StepAwards }     from '../../wizard/StepAwards'
-import { StepReview }     from '../../wizard/StepReview'
-import { saveTemplate, updateTemplate, deleteTemplate, duplicateTemplate } from './actions'
+import { CreateTemplateWizard } from './CreateTemplateWizard'
+import { updateTemplate, deleteTemplate, duplicateTemplate } from './actions'
 import { TrashBtn } from '@/components/ui/TrashBtn'
 import { defaultConfig, type CompetitionConfig } from '@/types/competition'
 import EmptyState from '@/components/admin/EmptyState'
@@ -47,9 +47,6 @@ type Template = {
 
 const EDIT_STEPS         = ['Entries & submissions', 'Judging & scoring', 'Recognition']
 const TOTAL_EDIT_STEPS   = 3
-
-const CREATE_STEPS       = ['Entries & submissions', 'Judging & scoring', 'Recognition', 'Review & save']
-const TOTAL_CREATE_STEPS = 4
 
 const PRESET_LABEL: Record<string, string> = {
   'simple-scored': 'Simple scored',
@@ -121,8 +118,11 @@ export default function TemplatesClient({
 }) {
   const router = useRouter()
   const [activeCats, setActiveCats] = useState<string[]>(
-    clubCategories.length ? clubCategories : defaultConfig.categories
+    clubCategories.length ? clubCategories : []
   )
+
+  // ── Create template wizard ────────────────────────────────────────────────
+  const [createOpen, setCreateOpen] = useState(false)
 
   // ── Edit wizard ────────────────────────────────────────────────────────────
   const [wizardOpen,      setWizardOpen]      = useState(false)
@@ -137,59 +137,6 @@ export default function TemplatesClient({
   // ── Inline name editing ────────────────────────────────────────────────────
   const [nameEditing, setNameEditing] = useState(false)
   const [nameDraft,   setNameDraft]   = useState('')
-
-  // ── Create template wizard ────────────────────────────────────────────────
-  const [createOpen,          setCreateOpen]          = useState(false)
-  const [createStep,          setCreateStep]          = useState(1)
-  const [createConfig,        setCreateConfig]        = useState<CompetitionConfig>(defaultConfig)
-  const [createCompletedSteps, setCreateCompletedSteps] = useState<number[]>([])
-  const [createTemplateName,  setCreateTemplateName]  = useState('')
-  const [createNameError,     setCreateNameError]     = useState('')
-  const [createSaving,        setCreateSaving]        = useState(false)
-  const [createStepBlocked,   setCreateStepBlocked]   = useState(false)
-
-  const updateCreateConfig = useCallback((partial: Partial<CompetitionConfig>) => {
-    setCreateConfig(prev => ({ ...prev, ...partial }))
-  }, [])
-
-  const openCreate = () => {
-    setCreateStep(1)
-    setCreateConfig({ ...defaultConfig, categories: activeCats.length ? activeCats : defaultConfig.categories })
-    setCreateCompletedSteps([])
-    setCreateTemplateName('')
-    setCreateNameError('')
-    setCreateOpen(true)
-  }
-
-  const handleCreateNext = () => {
-    setCreateCompletedSteps(prev => prev.includes(createStep) ? prev : [...prev, createStep])
-    setCreateStep(s => Math.min(s + 1, TOTAL_CREATE_STEPS))
-  }
-
-  const handleCreateBack = () => setCreateStep(s => Math.max(s - 1, 1))
-
-  const goToCreateStep = (s: number) => {
-    if (createCompletedSteps.includes(s) || s === createStep) setCreateStep(s)
-  }
-
-  const handleCreateSave = async () => {
-    if (!createTemplateName.trim()) {
-      setCreateNameError('Template name is required')
-      return
-    }
-    setCreateNameError('')
-    setCreateSaving(true)
-    try {
-      await saveTemplate(createTemplateName.trim(), createConfig)
-      setToast({ msg: `"${createTemplateName.trim()}" saved as a template.`, severity: 'success' })
-      setCreateOpen(false)
-      router.refresh()
-    } catch {
-      setToast({ msg: 'Failed to save template.', severity: 'error' })
-    } finally {
-      setCreateSaving(false)
-    }
-  }
 
   // ── Delete / duplicate ─────────────────────────────────────────────────────
   const [deleteConfirm, setDeleteConfirm] = useState<Template | null>(null)
@@ -328,7 +275,7 @@ export default function TemplatesClient({
           variant="contained"
           size="small"
           sx={{ flexShrink: 0 }}
-          onClick={openCreate}
+          onClick={() => setCreateOpen(true)}
         >
           + New template
         </Button>
@@ -583,109 +530,14 @@ export default function TemplatesClient({
         </Box>
       </Dialog>
 
-      {/* ── Create template wizard ───────────────────────────────────────── */}
-      <Dialog
+      {/* ── Create template wizard (new design) ─────────────────────────── */}
+      <CreateTemplateWizard
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        maxWidth={false}
-        fullWidth
-        slotProps={{ paper: { sx: { borderRadius: 2, height: '94vh', width: '100%', maxWidth: 1000, display: 'flex', flexDirection: 'column' } } }}
-      >
-        {/* Header */}
-        <Box sx={{ px: '30px', pt: '30px', pb: '24px', borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 600, color: 'text.primary', mb: 3 }}>
-            New template
-          </Typography>
-          <StepIndicator
-            currentStep={createStep}
-            completedSteps={createCompletedSteps}
-            onStepClick={goToCreateStep}
-            steps={CREATE_STEPS}
-          />
-        </Box>
-
-        {/* Step content */}
-        <DialogContent sx={{ flex: 1, overflowY: 'auto', px: '30px', py: '30px' }}>
-          {createStep === 1 && (
-            <StepCategories
-              config={createConfig}
-              onChange={updateCreateConfig}
-              clubCategories={activeCats}
-              onAddClubCategory={name => setActiveCats(prev => [...prev, name])}
-            />
-          )}
-          {createStep === 2 && (
-            <StepJudging config={createConfig} onChange={updateCreateConfig} />
-          )}
-          {createStep === 3 && (
-            <StepAwards
-              config={createConfig}
-              onChange={updateCreateConfig}
-              onBlocked={setCreateStepBlocked}
-            />
-          )}
-          {createStep === 4 && (
-            <>
-              {createNameError && (
-                <Box sx={{ mb: 3, px: 2, py: 1.5, borderRadius: 1.5, bgcolor: 'error.light', border: '1px solid', borderColor: 'error.main' }}>
-                  <Typography sx={{ fontSize: 13, color: 'error.contrastText' }}>
-                    {createNameError}
-                  </Typography>
-                </Box>
-              )}
-              <StepReview
-                config={createConfig}
-                onEdit={s => setCreateStep(s - 1)}
-                saveAsTemplate={true}
-                onSaveAsTemplate={() => {}}
-                templateName={createTemplateName}
-                onTemplateName={v => { setCreateTemplateName(v); if (v.trim()) setCreateNameError('') }}
-                selectedTemplateId={null}
-                hideTemplateCheckbox
-              />
-            </>
-          )}
-        </DialogContent>
-
-        {/* Footer */}
-        <Box sx={{
-          px: '30px', py: '24px',
-          borderTop: '1px solid', borderColor: 'divider',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexShrink: 0,
-        }}>
-          <Button
-            variant="outlined"
-            color="secondary"
-            onClick={handleCreateBack}
-            disabled={createStep === 1}
-          >
-            Back
-          </Button>
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
-            <Button variant="outlined" color="secondary" onClick={() => setCreateOpen(false)}>
-              Cancel
-            </Button>
-            {createStep < TOTAL_CREATE_STEPS ? (
-              <Button
-                variant="contained"
-                onClick={handleCreateNext}
-                disabled={createStep === 3 && createStepBlocked}
-              >
-                Continue
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                onClick={handleCreateSave}
-                disabled={createSaving}
-              >
-                {createSaving ? 'Saving…' : 'Save template'}
-              </Button>
-            )}
-          </Box>
-        </Box>
-      </Dialog>
+        clubCategories={activeCats}
+        onAddClubCategory={name => setActiveCats(prev => [...prev, name])}
+        clubSlug={clubSlug}
+      />
 
       {/* ── Discard confirmation ──────────────────────────────────────────── */}
       <Dialog
