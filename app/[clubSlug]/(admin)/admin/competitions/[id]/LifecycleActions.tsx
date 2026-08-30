@@ -16,7 +16,6 @@ type Props = {
 }
 
 export function LifecycleActions({ id, title, status, submissionCount, isArchived }: Props) {
-  const [menuOpen,        setMenuOpen]        = useState(false)
   const [showArchive,     setShowArchive]     = useState(false)
   const [showCancel,      setShowCancel]      = useState(false)
   const [showDelete,      setShowDelete]      = useState(false)
@@ -53,7 +52,7 @@ export function LifecycleActions({ id, title, status, submissionCount, isArchive
   return (
     <>
       <div className="flex items-center gap-2">
-        {/* Archive button — only for concluded competitions */}
+        {/* Archive — concluded competitions only */}
         {!isArchived && (status === 'results_published' || status === 'closed' || status === 'cancelled') && (
           <button
             onClick={() => setShowArchive(true)}
@@ -63,57 +62,25 @@ export function LifecycleActions({ id, title, status, submissionCount, isArchive
           </button>
         )}
 
-        {/* Kebab menu */}
-        <div className="relative">
+        {/* Cancel — red button, shown while competition is active */}
+        {canCancel && (
           <button
-            onClick={() => setMenuOpen(o => !o)}
-            className={`${btnBase} border-border-default bg-surface-2 text-content-secondary hover:bg-surface-1 px-2`}
-            aria-label="More actions"
+            onClick={() => setShowCancel(true)}
+            className={`${btnBase} border-[#D32F2F] text-[#D32F2F] bg-surface-2 hover:bg-[#FDEEEE]`}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="5"  r="2"/>
-              <circle cx="12" cy="12" r="2"/>
-              <circle cx="12" cy="19" r="2"/>
-            </svg>
+            Cancel competition
           </button>
+        )}
 
-          {menuOpen && (
-            <>
-              {/* Backdrop */}
-              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-full z-20 mt-1 w-52 rounded-lg border border-border-default bg-surface-2 py-1 shadow-lg">
-                {canCancel && (
-                  <button
-                    onClick={() => { setMenuOpen(false); setShowCancel(true) }}
-                    className="w-full px-4 py-2 text-left text-sm text-content-primary hover:bg-surface-1 transition-colors"
-                  >
-                    Cancel competition
-                  </button>
-                )}
-
-                {/* Delete — always shown, disabled if ineligible */}
-                <div className="group relative">
-                  <button
-                    onClick={() => { if (canDelete) { setMenuOpen(false); setShowDelete(true) } }}
-                    disabled={!canDelete}
-                    className={`w-full px-4 py-2 text-left text-sm transition-colors ${
-                      canDelete
-                        ? 'text-[#D32F2F] hover:bg-[#FDEEEE]'
-                        : 'text-content-disabled cursor-default'
-                    }`}
-                  >
-                    Delete competition
-                  </button>
-                  {!canDelete && (
-                    <div className="pointer-events-none absolute right-full top-0 z-30 mr-2 hidden w-64 rounded-lg border border-border-default bg-surface-2 p-3 text-xs text-content-secondary shadow-md group-hover:block">
-                      Competitions with submissions or results cannot be deleted. Use Archive to remove from active views.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+        {/* Delete — shown for draft/open with no submissions */}
+        {canDelete && (
+          <button
+            onClick={() => setShowDelete(true)}
+            className={`${btnBase} border-[#D32F2F] bg-[#D32F2F] text-white hover:bg-[#B71C1C]`}
+          >
+            Delete
+          </button>
+        )}
       </div>
 
       {/* ── Archive dialog ─────────────────────────────────────────────────── */}

@@ -1877,7 +1877,6 @@ export default function MembersClient({
     ...(classesEnabled ? [{ label: 'Level',      key: 'level'      as SortKey | null }] : []),
     { label: 'Engagement',  key: 'engagement' },
     { label: 'Last login',  key: 'last_login' },
-    { label: '',            key: null         },
   ]
 
   const defaultEnrollment: EnrollmentSettings = {
@@ -2037,8 +2036,16 @@ export default function MembersClient({
                         />
                       </TableCell>
 
-                      {/* Name */}
-                      <TableCell sx={{ ...cellSx, fontSize: 14 }}>{profile.first_name || '—'}</TableCell>
+                      {/* Name — first name is a link that opens the manage panel */}
+                      <TableCell sx={{ ...cellSx, fontSize: 14 }}>
+                        <Typography
+                          component="button"
+                          onClick={() => setManageMember(profile)}
+                          sx={{ fontSize: 14, fontFamily: 'inherit', color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}
+                        >
+                          {profile.first_name || '—'}
+                        </Typography>
+                      </TableCell>
                       <TableCell sx={{ ...cellSx, fontSize: 14 }}>{profile.last_name  || '—'}</TableCell>
 
                       {/* Role */}
@@ -2084,16 +2091,6 @@ export default function MembersClient({
                         {formatLastLogin(profile.last_login)}
                       </TableCell>
 
-                      {/* Manage */}
-                      <TableCell sx={cellSx} align="right">
-                        <Typography
-                          component="button"
-                          onClick={() => setManageMember(profile)}
-                          sx={{ fontSize: 14, fontFamily: 'inherit', color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}
-                        >
-                          Manage
-                        </Typography>
-                      </TableCell>
                     </TableRow>
                   )
                 })}

@@ -6,12 +6,7 @@ import {
   Box,
   Button,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   MenuItem,
-  OutlinedInput,
   Paper,
   Select,
   Table,
@@ -23,7 +18,7 @@ import {
 } from '@mui/material'
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents'
 import CreateCompetitionWizard from './CreateCompetitionWizard'
-import { unarchiveCompetition, cancelCompetition } from '../actions'
+import { unarchiveCompetition } from '../actions'
 import type { CompetitionConfig } from '@/types/competition'
 
 type CompetitionStatus = 'draft' | 'open' | 'judging' | 'judging_on_hold' | 'closed' | 'cancelled' | 'results_pending' | 'results_published'
@@ -165,10 +160,6 @@ export default function CompetitionsListClient({
   const [createOpen, setCreateOpen] = useState(false)
   const [,           startTransition] = useTransition()
 
-  // ── Cancel dialog ──────────────────────────────────────────────────────────
-  const [cancelTarget, setCancelTarget] = useState<Competition | null>(null)
-  const [cancelReason, setCancelReason] = useState('')
-  const [cancelling,   setCancelling]   = useState(false)
 
   // Filter by club year first, then by status filter
   const yearFiltered = (() => {
@@ -278,10 +269,9 @@ export default function CompetitionsListClient({
               <TableRow>
                 <TableCell sx={COL_HEAD}>Status</TableCell>
                 <TableCell sx={COL_HEAD}>Competition name</TableCell>
+                <TableCell sx={{ ...COL_HEAD, textAlign: 'right' }}>Submissions</TableCell>
                 <TableCell sx={COL_HEAD}>Results date</TableCell>
                 <TableCell sx={COL_HEAD}>Judge(s)</TableCell>
-                <TableCell sx={{ ...COL_HEAD, textAlign: 'right' }}>Submissions</TableCell>
-                <TableCell sx={{ ...COL_HEAD, width: 80 }} />
               </TableRow>
             </TableHead>
             <TableBody>
@@ -334,6 +324,10 @@ export default function CompetitionsListClient({
                       </Typography>
                     </TableCell>
 
+                    <TableCell sx={{ ...COL_CELL, textAlign: 'right', color: 'text.secondary' }}>
+                      {comp.submissionCount > 0 ? comp.submissionCount : '—'}
+                    </TableCell>
+
                     <TableCell sx={{ ...COL_CELL, color: 'text.secondary' }}>
                       {formatDate(resultsDate)}
                     </TableCell>
@@ -362,43 +356,6 @@ export default function CompetitionsListClient({
                         '—'
                       )}
                     </TableCell>
-
-                    <TableCell sx={{ ...COL_CELL, textAlign: 'right', color: 'text.secondary' }}>
-                      {comp.submissionCount > 0 ? comp.submissionCount : '—'}
-                    </TableCell>
-
-                    <TableCell sx={{ ...COL_CELL, textAlign: 'right' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1.5 }}>
-                        {isArchived ? (
-                          <Typography
-                            component="button"
-                            onClick={() => startTransition(() => unarchiveCompetition(comp.id))}
-                            sx={{ fontSize: 13, color: 'text.secondary', background: 'none', border: 'none', cursor: 'pointer', p: 0, fontFamily: 'inherit', '&:hover': { textDecoration: 'underline' } }}
-                          >
-                            Unarchive
-                          </Typography>
-                        ) : (
-                          <>
-                            {CANCELABLE.includes(comp.status) && (
-                              <Typography
-                                component="button"
-                                onClick={() => { setCancelTarget(comp); setCancelReason('') }}
-                                sx={{ fontSize: 14, color: 'text.secondary', background: 'none', border: 'none', cursor: 'pointer', p: 0, fontFamily: 'inherit', '&:hover': { textDecoration: 'underline', color: 'error.main' } }}
-                              >
-                                Cancel
-                              </Typography>
-                            )}
-                            <Typography
-                              component={Link}
-                              href={`/${clubSlug}/admin/competitions/${comp.id}`}
-                              sx={{ fontSize: 14, color: 'primary.main', textDecoration: 'none', fontFamily: 'inherit', '&:hover': { textDecoration: 'underline' } }}
-                            >
-                              {isComplete ? 'Details' : 'Edit'}
-                            </Typography>
-                          </>
-                        )}
-                      </Box>
-                    </TableCell>
                   </TableRow>
                 )
               })}
@@ -418,61 +375,6 @@ export default function CompetitionsListClient({
         clubSlug={clubSlug}
       />
 
-      {/* Cancel competition dialog */}
-      <Dialog
-        open={!!cancelTarget}
-        onClose={() => !cancelling && setCancelTarget(null)}
-        maxWidth="xs"
-        fullWidth
-        slotProps={{ paper: { sx: { borderRadius: 2 } } }}
-      >
-        <DialogTitle sx={{ pb: 0.5 }}>Cancel competition?</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7 }}>
-            <strong>{cancelTarget?.title}</strong> will be marked as cancelled. Members who submitted entries will be notified and their images returned. This cannot be undone.
-          </Typography>
-          <Typography sx={{ fontSize: 12, fontWeight: 600, mb: 0.75, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Reason <span style={{ fontWeight: 400, textTransform: 'none' }}>(sent to members)</span>
-          </Typography>
-          <OutlinedInput
-            fullWidth
-            multiline
-            minRows={2}
-            size="small"
-            placeholder="e.g. Insufficient entries received"
-            value={cancelReason}
-            onChange={e => setCancelReason(e.target.value)}
-            disabled={cancelling}
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button variant="outlined" color="secondary" onClick={() => setCancelTarget(null)} disabled={cancelling}>
-            Keep competition
-          </Button>
-          <Button
-            variant="outlined"
-            disabled={cancelling || !cancelReason.trim()}
-            onClick={async () => {
-              if (!cancelTarget || !cancelReason.trim()) return
-              setCancelling(true)
-              try {
-                await cancelCompetition(cancelTarget.id, cancelReason.trim())
-                setCancelTarget(null)
-              } finally {
-                setCancelling(false)
-              }
-            }}
-            sx={{
-              bgcolor: 'error.light', color: 'error.contrastText',
-              borderColor: 'error.main',
-              '&:hover': { bgcolor: 'error.main', color: '#fff' },
-              '&.Mui-disabled': { opacity: 0.5 },
-            }}
-          >
-            {cancelling ? 'Cancelling…' : 'Cancel competition'}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </>
   )
 }

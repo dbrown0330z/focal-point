@@ -373,7 +373,7 @@ export default function JudgesClient({ judges: initial }: { judges: JudgeWithCou
           <Table size="small">
             <TableHead>
               <TableRow>
-                {['Name', 'Email', 'Phone', 'Competitions judged', '', ''].map((h, i) => (
+                {['Name', 'Email', 'Phone', 'Competitions judged', ''].map((h, i) => (
                   <TableCell key={i} sx={COL_HEAD}>{h}</TableCell>
                 ))}
               </TableRow>
@@ -382,7 +382,13 @@ export default function JudgesClient({ judges: initial }: { judges: JudgeWithCou
               {judges.map(judge => (
                 <TableRow key={judge.id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
                   <TableCell sx={{ ...COL_CELL, fontWeight: 500 }}>
-                    {judge.first_name} {judge.last_name}
+                    <Typography
+                      component="button"
+                      onClick={() => setDetailJudge(judge)}
+                      sx={{ fontSize: 14, fontFamily: 'inherit', fontWeight: 500, color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}
+                    >
+                      {judge.first_name} {judge.last_name}
+                    </Typography>
                   </TableCell>
                   <TableCell sx={{ ...COL_CELL, color: 'text.secondary' }}>
                     {judge.email}
@@ -392,15 +398,6 @@ export default function JudgesClient({ judges: initial }: { judges: JudgeWithCou
                   </TableCell>
                   <TableCell sx={{ ...COL_CELL, color: 'text.secondary' }}>
                     {judge.competitionCount > 0 ? judge.competitionCount : '—'}
-                  </TableCell>
-                  <TableCell sx={{ ...COL_CELL, width: 70 }}>
-                    <Typography
-                      component="button"
-                      onClick={() => setDetailJudge(judge)}
-                      sx={{ fontSize: 14, fontFamily: 'inherit', color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}
-                    >
-                      Details
-                    </Typography>
                   </TableCell>
                   <TableCell sx={{ ...COL_CELL, width: 40 }}>
                     <Tooltip title="Remove judge">
