@@ -350,7 +350,7 @@ export default function TemplatesClient({
           <Table size="small">
             <TableHead>
               <TableRow>
-                {['Template', 'Judging method', 'Features', 'Used in', 'Last updated', '', '', ''].map((h, i) => (
+                {['Template', 'Judging method', 'Features', 'Used in', 'Last updated', '', ''].map((h, i) => (
                   <TableCell key={i} sx={{
                     fontSize: 11, fontWeight: 600, color: 'text.secondary',
                     textTransform: 'uppercase', letterSpacing: '0.05em',
@@ -367,7 +367,13 @@ export default function TemplatesClient({
                 <TableRow key={tpl.id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
                   {/* Name */}
                   <TableCell sx={{ fontSize: 14, py: 2.75, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', fontWeight: 500 }}>
-                    {tpl.name}
+                    <Typography
+                      component="button"
+                      onClick={() => openEdit(tpl)}
+                      sx={{ fontSize: 14, fontFamily: 'inherit', fontWeight: 500, color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}
+                    >
+                      {tpl.name}
+                    </Typography>
                   </TableCell>
 
                   {/* Judging method */}
@@ -398,17 +404,6 @@ export default function TemplatesClient({
                   {/* Last updated */}
                   <TableCell sx={{ fontSize: 14, py: 2.75, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', color: 'text.secondary', whiteSpace: 'nowrap' }}>
                     {new Date(tpl.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </TableCell>
-
-                  {/* Edit link */}
-                  <TableCell sx={{ py: 2.75, px: 2, borderBottom: '1px solid', borderColor: 'divider', fontFamily: 'inherit', width: 48 }}>
-                    <Typography
-                      component="button"
-                      onClick={() => openEdit(tpl)}
-                      sx={{ fontSize: 14, fontFamily: 'inherit', color: 'primary.main', background: 'none', border: 'none', cursor: 'pointer', p: 0, '&:hover': { textDecoration: 'underline' } }}
-                    >
-                      Edit
-                    </Typography>
                   </TableCell>
 
                   {/* Duplicate icon */}
