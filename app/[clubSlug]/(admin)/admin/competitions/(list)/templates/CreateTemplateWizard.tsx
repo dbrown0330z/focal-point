@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Collapse, Dialog } from '@mui/material'
+import { Collapse, Dialog, Switch } from '@mui/material'
 import { saveTemplate } from './actions'
 import { addCompetitionDefaultCategory } from '@/app/[clubSlug]/(admin)/admin/club-defaults/actions'
 import {
@@ -127,28 +127,6 @@ function Stepper({ value, min = 1, onChange }: {
   )
 }
 
-// ── Toggle ─────────────────────────────────────────────────────────────────────
-
-function Tog({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
-      style={{
-        width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
-        background: checked ? C.accent : '#26303D', outline: 'none', position: 'relative',
-        transition: 'background 0.15s',
-        boxShadow: `0 0 0 1px ${checked ? C.accentBorder : 'rgba(255,255,255,.1)'}`,
-        flexShrink: 0,
-      }}>
-      <span style={{
-        position: 'absolute', top: 3, width: 18, height: 18, borderRadius: '50%',
-        transition: 'left 0.15s, background 0.15s',
-        left: checked ? 23 : 3,
-        background: checked ? '#fff' : C.textSecondary,
-      }} />
-    </button>
-  )
-}
-
 // ── Select ─────────────────────────────────────────────────────────────────────
 
 function Sel({ value, onChange, options, width = 190 }: {
@@ -249,7 +227,7 @@ function Row({ label, desc, children, labelExtra, narrow }: {
       </div>
       {children && (
         <div style={{ display: 'flex', flexDirection: 'column' as const,
-          alignItems: 'flex-end', gap: 7 }}>
+          alignItems: 'flex-start', gap: 7 }}>
           {children}
         </div>
       )}
@@ -428,8 +406,8 @@ function Step1({ config, onChange, clubCategories, onAddClubCategory, clubSlug }
               desc={config.judgeSeparateCategories
                 ? 'Each category is judged on its own — results are not compared across categories.'
                 : 'All categories are judged together in a single pool.'}>
-              <Tog checked={config.judgeSeparateCategories}
-                onChange={v => onChange({ judgeSeparateCategories: v })} />
+              <Switch size="small" checked={config.judgeSeparateCategories}
+                onChange={e => onChange({ judgeSeparateCategories: e.target.checked })} />
             </Row>
           </Collapse>
         </Rows>
@@ -667,7 +645,7 @@ function Step2({ config, onChange, clubSlug }: {
               </Row>
             )}
             <Row label="Hide member names during judging" desc={hideNamesDesc}>
-              <Tog checked={config.blindHideName} onChange={v => onChange({ blindHideName: v })} />
+              <Switch size="small" checked={config.blindHideName} onChange={e => onChange({ blindHideName: e.target.checked })} />
               <ProvChip isCustom={namesCustom} resetTo={CLUB_DEFAULTS.defaultBlindHideName ? 'on' : 'off'}
                 onReset={() => onChange({ blindHideName: CLUB_DEFAULTS.defaultBlindHideName })} />
             </Row>
@@ -681,7 +659,7 @@ function Step2({ config, onChange, clubSlug }: {
             {/* Min score to publish — simple-scored only */}
             {preset === 'simple-scored' && (
               <Row label="Minimum score to publish results" desc={minScoreDesc}>
-                <Tog checked={config.minimumScoreToPublish} onChange={v => onChange({ minimumScoreToPublish: v })} />
+                <Switch size="small" checked={config.minimumScoreToPublish} onChange={e => onChange({ minimumScoreToPublish: e.target.checked })} />
                 <ProvChip isCustom={minScoreCustom} resetTo={CLUB_DEFAULTS.defaultMinimumScoreToPublish ? 'on' : 'off'}
                   onReset={() => onChange({ minimumScoreToPublish: CLUB_DEFAULTS.defaultMinimumScoreToPublish })} />
               </Row>
@@ -725,12 +703,12 @@ function Step3({ config, onChange, clubSlug }: {
         <Rows>
           {awardsRequired ? (
             <Row label="Awards" desc="Required for Awards only judging — judges assign placings directly, no numeric scoring.">
-              <Tog checked={true} onChange={() => {}} />
+              <Switch size="small" checked={true} onChange={() => {}} />
             </Row>
           ) : (
             <Row label="Give awards for this competition"
               desc={awardsDesc}>
-              <Tog checked={config.awardsEnabled} onChange={v => onChange({ awardsEnabled: v })} />
+              <Switch size="small" checked={config.awardsEnabled} onChange={e => onChange({ awardsEnabled: e.target.checked })} />
             </Row>
           )}
         </Rows>
@@ -745,7 +723,7 @@ function Step3({ config, onChange, clubSlug }: {
               <Row label="Benchmark classification" narrow
                 labelExtra={<InlineChip label={`Club default: ${benchmarkDefaultOn ? 'on' : 'off'}`} />}
                 desc="Images are classified against your club's bands, and member profiles update when results publish.">
-                <Tog checked={config.benchmarkEnabled} onChange={v => onChange({ benchmarkEnabled: v })} />
+                <Switch size="small" checked={config.benchmarkEnabled} onChange={e => onChange({ benchmarkEnabled: e.target.checked })} />
               </Row>
               {benchmarkBands.length > 0 && (
                 <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -760,7 +738,7 @@ function Step3({ config, onChange, clubSlug }: {
             <Row label="Photographer of the Year" narrow
               labelExtra={<InlineChip label={`Club default: ${poyDefaultOn ? 'on' : 'off'}`} />}
               desc={`Every score counts toward the ${poySeason} season standings; rankings recalculate for all members when results publish.`}>
-              <Tog checked={config.countTowardPOY} onChange={v => onChange({ countTowardPOY: v })} />
+              <Switch size="small" checked={config.countTowardPOY} onChange={e => onChange({ countTowardPOY: e.target.checked })} />
             </Row>
           </Rows>
         </Band>
