@@ -100,6 +100,15 @@ function BandChip({ label }: { label: string }) {
   )
 }
 
+// Switch sx — makes the MUI Switch legible on the dark card surface
+const switchSx = {
+  '& .MuiSwitch-switchBase.Mui-checked': { color: '#fff' },
+  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+    backgroundColor: '#3F7FC4',
+    opacity: 1,
+  },
+}
+
 // ── Number stepper ─────────────────────────────────────────────────────────────
 
 function Stepper({ value, min = 1, onChange }: {
@@ -406,7 +415,7 @@ function Step1({ config, onChange, clubCategories, onAddClubCategory, clubSlug }
               desc={config.judgeSeparateCategories
                 ? 'Each category is judged on its own — results are not compared across categories.'
                 : 'All categories are judged together in a single pool.'}>
-              <Switch size="small" checked={config.judgeSeparateCategories}
+              <Switch size="small" sx={switchSx} checked={config.judgeSeparateCategories}
                 onChange={e => onChange({ judgeSeparateCategories: e.target.checked })} />
             </Row>
           </Collapse>
@@ -602,7 +611,7 @@ function Step2({ config, onChange, clubSlug }: {
       </Band>
 
       {/* ── Judging panel ── */}
-      <Collapse in={showScoring} timeout={150} unmountOnExit>
+      {showScoring && (
         <Band label="Judging panel" subLine="Who scores the entries">
           <Rows>
             <Row label="Number of judges"
@@ -615,10 +624,10 @@ function Step2({ config, onChange, clubSlug }: {
             </Row>
           </Rows>
         </Band>
-      </Collapse>
+      )}
 
       {/* ── Judge experience ── */}
-      <Collapse in={showScoring} timeout={150} unmountOnExit>
+      {showScoring && (
         <Band label="Judge experience" subLine="What judges see and enter">
           <Rows>
             {/* Score range — simple-scored only */}
@@ -645,7 +654,7 @@ function Step2({ config, onChange, clubSlug }: {
               </Row>
             )}
             <Row label="Hide member names during judging" desc={hideNamesDesc}>
-              <Switch size="small" checked={config.blindHideName} onChange={e => onChange({ blindHideName: e.target.checked })} />
+              <Switch size="small" sx={switchSx} checked={config.blindHideName} onChange={e => onChange({ blindHideName: e.target.checked })} />
               <ProvChip isCustom={namesCustom} resetTo={CLUB_DEFAULTS.defaultBlindHideName ? 'on' : 'off'}
                 onReset={() => onChange({ blindHideName: CLUB_DEFAULTS.defaultBlindHideName })} />
             </Row>
@@ -659,14 +668,14 @@ function Step2({ config, onChange, clubSlug }: {
             {/* Min score to publish — simple-scored only */}
             {preset === 'simple-scored' && (
               <Row label="Minimum score to publish results" desc={minScoreDesc}>
-                <Switch size="small" checked={config.minimumScoreToPublish} onChange={e => onChange({ minimumScoreToPublish: e.target.checked })} />
+                <Switch size="small" sx={switchSx} checked={config.minimumScoreToPublish} onChange={e => onChange({ minimumScoreToPublish: e.target.checked })} />
                 <ProvChip isCustom={minScoreCustom} resetTo={CLUB_DEFAULTS.defaultMinimumScoreToPublish ? 'on' : 'off'}
                   onReset={() => onChange({ minimumScoreToPublish: CLUB_DEFAULTS.defaultMinimumScoreToPublish })} />
               </Row>
             )}
           </Rows>
         </Band>
-      </Collapse>
+      )}
 
       <DefFooter note={footerNote} clubSlug={clubSlug} />
     </>
@@ -703,19 +712,19 @@ function Step3({ config, onChange, clubSlug }: {
         <Rows>
           {awardsRequired ? (
             <Row label="Awards" desc="Required for Awards only judging — judges assign placings directly, no numeric scoring.">
-              <Switch size="small" checked={true} onChange={() => {}} />
+              <Switch size="small" sx={switchSx} checked={true} onChange={() => {}} />
             </Row>
           ) : (
             <Row label="Give awards for this competition"
               desc={awardsDesc}>
-              <Switch size="small" checked={config.awardsEnabled} onChange={e => onChange({ awardsEnabled: e.target.checked })} />
+              <Switch size="small" sx={switchSx} checked={config.awardsEnabled} onChange={e => onChange({ awardsEnabled: e.target.checked })} />
             </Row>
           )}
         </Rows>
       </Band>
 
       {/* ── Standings ── */}
-      <Collapse in={showStandings} timeout={150} unmountOnExit>
+      {showStandings && (
         <Band label="Standings" subLine="What these scores feed">
           <Rows>
             {/* Benchmark */}
@@ -723,26 +732,30 @@ function Step3({ config, onChange, clubSlug }: {
               <Row label="Benchmark classification" narrow
                 labelExtra={<InlineChip label={`Club default: ${benchmarkDefaultOn ? 'on' : 'off'}`} />}
                 desc="Images are classified against your club's bands, and member profiles update when results publish.">
-                <Switch size="small" checked={config.benchmarkEnabled} onChange={e => onChange({ benchmarkEnabled: e.target.checked })} />
+                <Switch size="small" sx={switchSx} checked={config.benchmarkEnabled} onChange={e => onChange({ benchmarkEnabled: e.target.checked })} />
               </Row>
-              {benchmarkBands.length > 0 && (
+              {config.benchmarkEnabled && benchmarkBands.length > 0 && (
                 <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {benchmarkBands.map(b => <BandChip key={b} label={b} />)}
                 </div>
               )}
-              <div style={{ marginTop: 8, fontSize: 12.5, color: C.textFaint }}>
-                Bands are club-wide
-              </div>
+              {config.benchmarkEnabled && (
+                <div style={{ marginTop: 8, fontSize: 12.5, color: C.textFaint }}>
+                  Bands are club-wide
+                </div>
+              )}
             </div>
             {/* POY */}
             <Row label="Photographer of the Year" narrow
               labelExtra={<InlineChip label={`Club default: ${poyDefaultOn ? 'on' : 'off'}`} />}
-              desc={`Every score counts toward the ${poySeason} season standings; rankings recalculate for all members when results publish.`}>
-              <Switch size="small" checked={config.countTowardPOY} onChange={e => onChange({ countTowardPOY: e.target.checked })} />
+              desc={config.countTowardPOY
+                ? `Every score counts toward the ${poySeason} season standings; rankings recalculate for all members when results publish.`
+                : `Scores from this competition will not feed the ${poySeason} POY standings.`}>
+              <Switch size="small" sx={switchSx} checked={config.countTowardPOY} onChange={e => onChange({ countTowardPOY: e.target.checked })} />
             </Row>
           </Rows>
         </Band>
-      </Collapse>
+      )}
 
       <DefFooter
         note="Benchmark bands and the POY season are club-wide, set in your club defaults."
