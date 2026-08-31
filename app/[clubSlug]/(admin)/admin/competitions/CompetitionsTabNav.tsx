@@ -30,17 +30,12 @@ export default function CompetitionsTabNav({ clubSlug }: { clubSlug: string }) {
           label={t.label}
           sx={{
             textTransform: 'none',
-            // Primary tab — visually prominent
-            ...(t.primary && {
-              fontWeight: 600,
-              fontSize: 14,
-            }),
             // Secondary tabs — subordinate weight and tone
             ...(!t.primary && {
               fontWeight: 400,
               fontSize: 13,
-              // Extra gap before the secondary group starts
-              ...(i === 1 && { ml: 3 }),
+              // Large gap before the secondary group starts
+              ...(i === 1 && { ml: 8 }),
               // Mute unselected state; active state falls through to the normal Tabs indicator
               '&:not(.Mui-selected)': {
                 color: 'text.secondary',
