@@ -702,9 +702,6 @@ function Step3({ config, onChange, clubSlug }: {
     ? 'Judges assign awards to standout images after scoring.'
     : 'Off — images are scored and ranked only, with no placings named.'
 
-  const benchmarkDefaultOn = CLUB_DEFAULTS.defaultBenchmarkEnabled
-  const poyDefaultOn       = CLUB_DEFAULTS.defaultCountTowardPOY
-
   return (
     <>
       {/* ── Awards ── */}
@@ -715,8 +712,7 @@ function Step3({ config, onChange, clubSlug }: {
               <Switch size="small" sx={switchSx} checked={true} onChange={() => {}} />
             </Row>
           ) : (
-            <Row label="Give awards for this competition"
-              desc={awardsDesc}>
+            <Row label="Give awards for this competition" desc={awardsDesc}>
               <Switch size="small" sx={switchSx} checked={config.awardsEnabled} onChange={e => onChange({ awardsEnabled: e.target.checked })} />
             </Row>
           )}
@@ -726,39 +722,41 @@ function Step3({ config, onChange, clubSlug }: {
       {/* ── Standings ── */}
       {showStandings && (
         <Band label="Standings" subLine="What these scores feed">
-          <Rows>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 44px', gap: '16px 24px' }}>
             {/* Benchmark */}
             <div>
-              <Row label="Benchmark classification" narrow
-                labelExtra={<InlineChip label={`Club default: ${benchmarkDefaultOn ? 'on' : 'off'}`} />}
-                desc="Images are classified against your club's bands, and member profiles update when results publish.">
-                <Switch size="small" sx={switchSx} checked={config.benchmarkEnabled} onChange={e => onChange({ benchmarkEnabled: e.target.checked })} />
-              </Row>
+              <div style={{ fontSize: 14.5, fontWeight: 500, color: C.textBody }}>Benchmark classification</div>
+              <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: C.textMuted, maxWidth: '52ch' }}>
+                Images are classified against your club&apos;s bands, and member profiles update when results publish.
+              </div>
               {config.benchmarkEnabled && benchmarkBands.length > 0 && (
                 <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {benchmarkBands.map(b => <BandChip key={b} label={b} />)}
-                </div>
-              )}
-              {config.benchmarkEnabled && (
-                <div style={{ marginTop: 8, fontSize: 12.5, color: C.textFaint }}>
-                  Bands are club-wide
+                  {[...benchmarkBands].reverse().map(b => <BandChip key={b} label={b} />)}
                 </div>
               )}
             </div>
+            <div style={{ paddingTop: 2 }}>
+              <Switch size="small" sx={switchSx} checked={config.benchmarkEnabled} onChange={e => onChange({ benchmarkEnabled: e.target.checked })} />
+            </div>
+
             {/* POY */}
-            <Row label="Photographer of the Year" narrow
-              labelExtra={<InlineChip label={`Club default: ${poyDefaultOn ? 'on' : 'off'}`} />}
-              desc={config.countTowardPOY
-                ? `Every score counts toward the ${poySeason} season standings; rankings recalculate for all members when results publish.`
-                : `Scores from this competition will not feed the ${poySeason} POY standings.`}>
+            <div>
+              <div style={{ fontSize: 14.5, fontWeight: 500, color: C.textBody }}>Photographer of the Year</div>
+              <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: C.textMuted, maxWidth: '52ch' }}>
+                {config.countTowardPOY
+                  ? 'Every score counts toward the current season standings; rankings recalculate for all members when results publish.'
+                  : 'Scores from this competition will not feed the current season POY standings.'}
+              </div>
+            </div>
+            <div style={{ paddingTop: 2 }}>
               <Switch size="small" sx={switchSx} checked={config.countTowardPOY} onChange={e => onChange({ countTowardPOY: e.target.checked })} />
-            </Row>
-          </Rows>
+            </div>
+          </div>
         </Band>
       )}
 
       <DefFooter
-        note="Benchmark bands and the POY season are club-wide, set in your club defaults."
+        note="Benchmark and POY settings are configured per-competition in Recognition & Standings."
         clubSlug={clubSlug}
       />
     </>
@@ -822,7 +820,7 @@ function Step4({ config, templateName, onTemplateName, nameError, onStep, clubSl
   if (!config.awardsEnabled && config.judgingPreset !== 'awards-only') recognitionParts.push('No awards')
   if (config.awardsEnabled || config.judgingPreset === 'awards-only') recognitionParts.push('Awards enabled')
   if (config.benchmarkEnabled) recognitionParts.push('scores feed benchmark classification')
-  if (config.countTowardPOY) recognitionParts.push(`${poySeason} POY standings`)
+  if (config.countTowardPOY) recognitionParts.push('feeds current season POY standings')
   const recognitionLine = recognitionParts.join(' · ') || 'No recognition settings applied'
 
   return (
@@ -855,7 +853,7 @@ function Step4({ config, templateName, onTemplateName, nameError, onStep, clubSl
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <ReviewLine primary={recognitionLine} />
           {(config.benchmarkEnabled || config.countTowardPOY) && (
-            <ReviewLine secondary="Bands and season come from your club defaults." primary="" />
+            <ReviewLine secondary="Configured in Recognition & Standings for each competition." primary="" />
           )}
         </div>
       </Band>
