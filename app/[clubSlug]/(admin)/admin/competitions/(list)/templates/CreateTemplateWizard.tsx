@@ -761,7 +761,7 @@ function Step3({ config, onChange, clubSlug }: {
         note="Benchmark and POY settings are configured per-competition in Recognition & Standings."
         clubSlug={clubSlug}
         linkText="Manage recognition settings"
-        linkHref={`/${clubSlug}/admin/competitions`}
+        linkHref={`/${clubSlug}/admin/competitions/recognition`}
       />
     </>
   )
