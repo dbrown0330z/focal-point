@@ -8,10 +8,10 @@ export default function CompetitionsTabNav({ clubSlug }: { clubSlug: string }) {
   const router   = useRouter()
 
   const tabs = [
-    { label: 'Competition List',        href: `/${clubSlug}/admin/competitions`,                          exact: true },
-    { label: 'Templates',               href: `/${clubSlug}/admin/competitions/templates` },
-    { label: 'Defaults',                href: `/${clubSlug}/admin/competitions/competition-defaults` },
-    { label: 'Recognition & Standings', href: `/${clubSlug}/admin/competitions/recognition` },
+    { label: 'Competitions',           href: `/${clubSlug}/admin/competitions`,                        exact: true,  primary: true  },
+    { label: 'Templates',              href: `/${clubSlug}/admin/competitions/templates`,                              primary: false },
+    { label: 'Defaults',               href: `/${clubSlug}/admin/competitions/competition-defaults`,                   primary: false },
+    { label: 'Recognition & Standings',href: `/${clubSlug}/admin/competitions/recognition`,                            primary: false },
   ]
 
   const value = tabs.findIndex(t =>
@@ -24,7 +24,32 @@ export default function CompetitionsTabNav({ clubSlug }: { clubSlug: string }) {
       onChange={(_, i) => router.push(tabs[i].href)}
       sx={{ mb: 4, borderBottom: '1px solid', borderColor: 'divider' }}
     >
-      {tabs.map(t => <Tab key={t.href} label={t.label} sx={{ textTransform: 'none' }} />)}
+      {tabs.map((t, i) => (
+        <Tab
+          key={t.href}
+          label={t.label}
+          sx={{
+            textTransform: 'none',
+            // Primary tab — visually prominent
+            ...(t.primary && {
+              fontWeight: 600,
+              fontSize: 14,
+            }),
+            // Secondary tabs — subordinate weight and tone
+            ...(!t.primary && {
+              fontWeight: 400,
+              fontSize: 13,
+              // Extra gap before the secondary group starts
+              ...(i === 1 && { ml: 3 }),
+              // Mute unselected state; active state falls through to the normal Tabs indicator
+              '&:not(.Mui-selected)': {
+                color: 'text.secondary',
+                opacity: 0.85,
+              },
+            }),
+          }}
+        />
+      ))}
     </Tabs>
   )
 }
