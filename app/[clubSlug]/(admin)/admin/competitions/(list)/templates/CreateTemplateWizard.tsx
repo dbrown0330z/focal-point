@@ -244,15 +244,17 @@ function Row({ label, desc, children, labelExtra, narrow }: {
   )
 }
 
-function DefFooter({ note, clubSlug }: { note: React.ReactNode; clubSlug: string }) {
+function DefFooter({ note, clubSlug, linkText, linkHref }: {
+  note: React.ReactNode; clubSlug: string; linkText?: string; linkHref?: string
+}) {
   return (
     <div style={{ background: C.sunken, borderTop: `1px solid ${C.rule}`,
       padding: '14px 32px', display: 'flex', justifyContent: 'space-between',
       alignItems: 'center', flexShrink: 0 }}>
       <span style={{ fontSize: 12.5, color: C.textMuted }}>{note}</span>
-      <a href={`/${clubSlug}/admin/club-defaults`} target="_blank" rel="noopener noreferrer"
+      <a href={linkHref ?? `/${clubSlug}/admin/club-defaults`} target="_blank" rel="noopener noreferrer"
         style={{ fontSize: 12.5, color: C.link, textDecoration: 'none' }}>
-        Manage club defaults ↗
+        {linkText ?? 'Manage club defaults'} ↗
       </a>
     </div>
   )
@@ -708,11 +710,11 @@ function Step3({ config, onChange, clubSlug }: {
       <Band label="Awards" subLine="Named placings">
         <Rows>
           {awardsRequired ? (
-            <Row label="Awards" desc="Required for Awards only judging — judges assign placings directly, no numeric scoring.">
+            <Row label="Awards" desc="Required for Awards only judging — judges assign placings directly, no numeric scoring." narrow>
               <Switch size="small" sx={switchSx} checked={true} onChange={() => {}} />
             </Row>
           ) : (
-            <Row label="Give awards for this competition" desc={awardsDesc}>
+            <Row label="Give awards for this competition" desc={awardsDesc} narrow>
               <Switch size="small" sx={switchSx} checked={config.awardsEnabled} onChange={e => onChange({ awardsEnabled: e.target.checked })} />
             </Row>
           )}
@@ -722,7 +724,7 @@ function Step3({ config, onChange, clubSlug }: {
       {/* ── Standings ── */}
       {showStandings && (
         <Band label="Standings" subLine="What these scores feed">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 44px', gap: '16px 24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '16px 24px' }}>
             {/* Benchmark */}
             <div>
               <div style={{ fontSize: 14.5, fontWeight: 500, color: C.textBody }}>Benchmark classification</div>
@@ -758,6 +760,8 @@ function Step3({ config, onChange, clubSlug }: {
       <DefFooter
         note="Benchmark and POY settings are configured per-competition in Recognition & Standings."
         clubSlug={clubSlug}
+        linkText="Manage recognition settings"
+        linkHref={`/${clubSlug}/admin/competitions`}
       />
     </>
   )
