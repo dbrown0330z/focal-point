@@ -59,6 +59,26 @@ function differs(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) !== JSON.stringify(b)
 }
 
+function addDays(dateStr: string, days: number): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  d.setDate(d.getDate() + days)
+  return d.toISOString().split('T')[0]
+}
+
+function fmtDate(dateStr: string) {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function fmtTime(timeStr: string) {
+  if (!timeStr) return ''
+  const [h, m] = timeStr.split(':').map(Number)
+  const period = h >= 12 ? 'PM' : 'AM'
+  const hour12 = h % 12 || 12
+  return `${hour12}:${String(m).padStart(2, '0')} ${period}`
+}
+
 // ─── Primitives ───────────────────────────────────────────────────────────────
 
 /** Below-control provenance chip. chipText = what to show when not custom. */
@@ -123,7 +143,7 @@ function TogRow({ label, on, onChange, onDesc, offDesc, narrow, labelExtra, chil
   const desc = (on ? 'On — ' : 'Off — ') + (on ? onDesc : offDesc)
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 24, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: 24, alignItems: 'start' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
             <span style={{ fontSize: 14.5, fontWeight: 500, color: lc }}>{label}</span>
@@ -131,7 +151,7 @@ function TogRow({ label, on, onChange, onDesc, offDesc, narrow, labelExtra, chil
           </div>
           <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: dc, maxWidth: '56ch' }}>{desc}</div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 2 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-start', paddingTop: 2 }}>
           <Switch size="small" sx={switchSx} checked={on} onChange={e => onChange(e.target.checked)} />
         </div>
       </div>
@@ -842,7 +862,7 @@ function Step4({ config, onChange, baseline, start, clubSlug }: {
       {/* ── Standings ── */}
       {showStandings && (
         <Band label="Standings" subLine="How this competition affects current-season rankings">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '20px 24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: '20px 24px' }}>
             {/* Benchmark */}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
@@ -1118,9 +1138,16 @@ const AUDIENCE_OPTIONS = [
   { value: 'members-first',   label: 'Members first, then public' },
 ]
 
+const SCORE_PUBLISH_OPTIONS = [
+  { value: 'event-end',     label: 'When the event ends'   },
+  { value: 'judging-close', label: 'After judging closes'  },
+  { value: 'specific-time', label: 'At a specific time'    },
+]
+
 function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, jugClose, onJugClose,
   judgeIds, onJudgeIds, meeting, onMeeting, eventDate, onEventDate, eventTime, onEventTime,
-  eventVenue, onEventVenue, meetingLocations, audience, onAudience, members, numberOfJudges, clubSlug }: {
+  eventVenue, onEventVenue, meetingLocations, audience, onAudience,
+  scorePublishTiming, onScorePublishTiming, members, numberOfJudges, clubSlug }: {
   subOpen: string; onSubOpen: (v: string) => void
   subClose: string; onSubClose: (v: string) => void
   jugOpen: string; onJugOpen: (v: string) => void
@@ -1131,6 +1158,7 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
   eventTime: string; onEventTime: (v: string) => void
   eventVenue: string; onEventVenue: (v: string) => void
   meetingLocations: string[]; audience: string; onAudience: (v: string) => void
+  scorePublishTiming: string; onScorePublishTiming: (v: string) => void
   members: { id: string; name: string }[]
   numberOfJudges: number; clubSlug: string
 }) {
@@ -1149,6 +1177,15 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
   }
   const subDays = daysBetween(subOpen, subClose)
   const jugDays = daysBetween(jugOpen, jugClose)
+
+  // "Scores are published" computed hint
+  const scorePublishHint = (() => {
+    if (scorePublishTiming === 'event-end' && eventDate && eventTime)
+      return `${fmtDate(eventDate)}, after ${fmtTime(eventTime)}`
+    if (scorePublishTiming === 'judging-close' && jugClose)
+      return `After ${fmtDate(jugClose)}`
+    return ''
+  })()
 
   const footerNote = "Who can see results comes from your club defaults; dates are set per competition."
 
@@ -1184,7 +1221,6 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
                   placeholder="Select a judge…"
                   width={200}
                 />
-                {!judgeIds[i] && <ProvChip isCustom chipText="" customText="Not yet assigned" resetTo="" onReset={() => {}} />}
               </Row>
             )
           })}
@@ -1211,23 +1247,53 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
           >
             {meeting && (
               <ChildRow>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <Row label="Event date & time" desc="Members see this on the club calendar." narrow>
-                    <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  {/* Event date & time — flat layout to avoid overflow */}
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: C.textBody }}>Event date &amp; time</div>
+                    <div style={{ marginTop: 3, fontSize: 12.5, color: C.textMuted }}>Members see this on the club calendar.</div>
+                    <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
                       <DateInput value={eventDate} onChange={onEventDate} />
-                      <input type="time" value={eventTime} onChange={e => onEventTime(e.target.value)}
+                      <input
+                        type="time"
+                        value={eventTime}
+                        onChange={e => onEventTime(e.target.value)}
                         style={{
                           background: C.inputBg, border: '1px solid rgba(255,255,255,.1)',
-                          borderRadius: 9, padding: '8px 12px', fontSize: 14,
+                          borderRadius: 9, padding: '8px 12px', fontSize: 14, width: 120,
                           color: eventTime ? C.textBody : C.textLabel, fontFamily: 'inherit',
-                        }} />
+                        }}
+                      />
                     </div>
-                  </Row>
+                  </div>
+                  {/* Scores published — only shown inside meeting */}
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: C.textBody }}>Scores are published</div>
+                    <div style={{ marginTop: 3, fontSize: 12.5, color: C.textMuted }}>
+                      Scores appear on the website and in member profiles once the event is over.
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      <Sel
+                        value={scorePublishTiming}
+                        onChange={onScorePublishTiming}
+                        options={SCORE_PUBLISH_OPTIONS}
+                        width={220}
+                      />
+                    </div>
+                    {scorePublishHint && (
+                      <div style={{ marginTop: 6, fontSize: 12.5, color: C.textLabel }}>{scorePublishHint}</div>
+                    )}
+                  </div>
+                  {/* Event location */}
                   {venueOptions.length > 0 && (
-                    <Row label="Event location" desc="Where the results are announced." narrow>
-                      <Sel value={eventVenue} onChange={onEventVenue}
-                        options={venueOptions} placeholder="Select a venue…" width={220} />
-                    </Row>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 500, color: C.textBody }}>Event location</div>
+                      <div style={{ marginTop: 3, fontSize: 12.5, color: C.textMuted }}>Where the results are announced.</div>
+                      <div style={{ marginTop: 10 }}>
+                        <Sel value={eventVenue} onChange={onEventVenue}
+                          options={venueOptions} placeholder="Select a venue…" width={220} />
+                      </div>
+                    </div>
                   )}
                 </div>
               </ChildRow>
@@ -1293,16 +1359,29 @@ export default function CreateCompetitionWizard({
   )
 
   // ── Step 6: Schedule ──
-  const [subOpen,     setSubOpen]     = useState('')
-  const [subClose,    setSubClose]    = useState('')
-  const [jugOpen,     setJugOpen]     = useState('')
-  const [jugClose,    setJugClose]    = useState('')
-  const [judgeIds,    setJudgeIds]    = useState<string[]>([])
-  const [meeting,     setMeeting]     = useState(true)
-  const [eventDate,   setEventDate]   = useState('')
-  const [eventTime,   setEventTime]   = useState('19:00')
-  const [eventVenue,  setEventVenue]  = useState('')
-  const [audience,    setAudience]    = useState('members-only')
+  const [subOpen,            setSubOpen]            = useState('')
+  const [subClose,           setSubClose]           = useState('')
+  const [jugOpen,            setJugOpen]            = useState('')
+  const [jugClose,           setJugClose]           = useState('')
+  const [judgeIds,           setJudgeIds]           = useState<string[]>([])
+  const [meeting,            setMeeting]            = useState(true)
+  const [eventDate,          setEventDate]          = useState('')
+  const [eventTime,          setEventTime]          = useState('19:00')
+  const [eventVenue,         setEventVenue]         = useState('')
+  const [audience,           setAudience]           = useState('members-only')
+  const [scorePublishTiming, setScorePublishTiming] = useState('event-end')
+
+  // Auto-populate subsequent dates when submission open is set
+  const handleSubOpenChange = (date: string) => {
+    setSubOpen(date)
+    if (date) {
+      const sc = addDays(date, 14)
+      setSubClose(sc)
+      const jo = addDays(sc, 2)
+      setJugOpen(jo)
+      setJugClose(addDays(jo, 14))
+    }
+  }
 
   // ── Step 5: Reuse ──
   const [saveTpl,    setSaveTpl]    = useState(true)
@@ -1356,6 +1435,7 @@ export default function CreateCompetitionWizard({
     setSubOpen(''); setSubClose(''); setJugOpen(''); setJugClose('')
     setJudgeIds([]); setMeeting(true)
     setEventDate(''); setEventTime('19:00'); setEventVenue(''); setAudience('members-only')
+    setScorePublishTiming('event-end')
     setSaveTpl(true); setTplAction('new'); setTplName('')
     setNameError('')
     onClose()
@@ -1510,7 +1590,7 @@ export default function CreateCompetitionWizard({
         )}
         {step === 6 && (
           <Step6
-            subOpen={subOpen} onSubOpen={setSubOpen}
+            subOpen={subOpen} onSubOpen={handleSubOpenChange}
             subClose={subClose} onSubClose={setSubClose}
             jugOpen={jugOpen} onJugOpen={setJugOpen}
             jugClose={jugClose} onJugClose={setJugClose}
@@ -1521,6 +1601,7 @@ export default function CreateCompetitionWizard({
             eventVenue={eventVenue} onEventVenue={setEventVenue}
             meetingLocations={meetingLocations}
             audience={audience} onAudience={setAudience}
+            scorePublishTiming={scorePublishTiming} onScorePublishTiming={setScorePublishTiming}
             members={members} numberOfJudges={config.numberOfJudges}
             clubSlug={clubSlug}
           />
