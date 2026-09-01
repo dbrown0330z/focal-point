@@ -762,21 +762,23 @@ function Step3({ config, onChange, baseline, start, clubSlug }: {
                 chipText={provText} customText={customText} />
             </Row>
 
-            <TogRow
-              label="Hide member names during judging"
-              on={config.blindHideName}
-              onChange={v => onChange({ blindHideName: v })}
-              onDesc="images are identified by number only."
-              offDesc="judges see the member's name with each image."
-            />
-            {namesCustom && (
-              <div style={{ paddingTop: 6 }}>
-                <ProvChip isCustom={namesCustom}
-                  resetTo={baseline.blindHideName ? 'on' : 'off'}
-                  onReset={() => onChange({ blindHideName: baseline.blindHideName })}
-                  chipText={provText} customText={customText} />
-              </div>
-            )}
+            <div>
+              <TogRow
+                label="Hide member names during judging"
+                on={config.blindHideName}
+                onChange={v => onChange({ blindHideName: v })}
+                onDesc="images are identified by number only."
+                offDesc="judges see the member's name with each image."
+              />
+              {namesCustom && (
+                <div style={{ marginTop: 6 }}>
+                  <ProvChip isCustom={namesCustom}
+                    resetTo={baseline.blindHideName ? 'on' : 'off'}
+                    onReset={() => onChange({ blindHideName: baseline.blindHideName })}
+                    chipText={provText} customText={customText} />
+                </div>
+              )}
+            </div>
 
             <Row label="Written feedback from judges"
               desc={config.judgeComments === 'none' ? 'Judges are not asked to write comments.' :
@@ -791,37 +793,39 @@ function Step3({ config, onChange, baseline, start, clubSlug }: {
                 chipText={provText} customText={customText} />
             </Row>
 
-            <TogRow
-              label="Minimum score to publish results"
-              on={config.minimumScoreToPublish}
-              onChange={v => onChange({ minimumScoreToPublish: v })}
-              onDesc="only entries at or above a set score are published."
-              offDesc="all entries appear in the published results regardless of their score."
-            >
-              {config.minimumScoreToPublish && (
-                <ChildRow>
-                  <div style={{ fontSize: 14, fontWeight: 500, color: C.textBody }}>Minimum score</div>
-                  <div style={{ marginTop: 3, fontSize: 12.5, color: C.textMuted }}>
-                    Entries scoring below {config.minimumScoreToPublishValue || 2} are left out of the published results.
-                  </div>
-                  <div style={{ marginTop: 10 }}>
-                    <Sel
-                      value={String(config.minimumScoreToPublishValue || 2)}
-                      onChange={v => onChange({ minimumScoreToPublishValue: Number(v) })}
-                      options={minScoreOptions} width={130}
-                    />
-                  </div>
-                </ChildRow>
+            <div>
+              <TogRow
+                label="Minimum score to publish results"
+                on={config.minimumScoreToPublish}
+                onChange={v => onChange({ minimumScoreToPublish: v })}
+                onDesc="only entries at or above a set score are published."
+                offDesc="all entries appear in the published results regardless of their score."
+              >
+                {config.minimumScoreToPublish && (
+                  <ChildRow>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: C.textBody }}>Minimum score</div>
+                    <div style={{ marginTop: 3, fontSize: 12.5, color: C.textMuted }}>
+                      Entries scoring below {config.minimumScoreToPublishValue || 2} are left out of the published results.
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      <Sel
+                        value={String(config.minimumScoreToPublishValue || 2)}
+                        onChange={v => onChange({ minimumScoreToPublishValue: Number(v) })}
+                        options={minScoreOptions} width={130}
+                      />
+                    </div>
+                  </ChildRow>
+                )}
+              </TogRow>
+              {minScoreCustom && (
+                <div style={{ marginTop: 6 }}>
+                  <ProvChip isCustom={minScoreCustom}
+                    resetTo={baseline.minimumScoreToPublish ? 'on' : 'off'}
+                    onReset={() => onChange({ minimumScoreToPublish: baseline.minimumScoreToPublish, minimumScoreToPublishValue: baseline.minimumScoreToPublishValue })}
+                    chipText={provText} customText={customText} />
+                </div>
               )}
-            </TogRow>
-            {minScoreCustom && (
-              <div style={{ paddingTop: 6 }}>
-                <ProvChip isCustom={minScoreCustom}
-                  resetTo={baseline.minimumScoreToPublish ? 'on' : 'off'}
-                  onReset={() => onChange({ minimumScoreToPublish: baseline.minimumScoreToPublish, minimumScoreToPublishValue: baseline.minimumScoreToPublishValue })}
-                  chipText={provText} customText={customText} />
-              </div>
-            )}
+            </div>
           </Rows>
         </Band>
       )}
@@ -862,25 +866,23 @@ function Step4({ config, onChange, baseline, start, clubSlug }: {
       {/* ── Standings ── */}
       {showStandings && (
         <Band label="Standings" subLine="How this competition affects current-season rankings">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: '20px 24px' }}>
+          <Rows>
             {/* Benchmark */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <span style={{ fontSize: 14.5, fontWeight: 500, color: config.benchmarkEnabled ? C.textBody : C.dimLabel }}>
-                  Benchmark classification
-                </span>
-                <InlineChip label={provText} />
-              </div>
-              <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: config.benchmarkEnabled ? C.textMuted : C.dimDesc, maxWidth: '56ch' }}>
-                {config.benchmarkEnabled
-                  ? 'On — images are classified against your club\'s bands, and member profiles update when results publish.'
-                  : 'Off — scores from this competition are not classified against your club\'s bands.'}
-              </div>
-              {config.benchmarkEnabled && benchmarkBands.length > 0 && (
-                <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {benchmarkBands.map(b => <BandChip key={b} label={b} dim={!config.benchmarkEnabled} />)}
-                </div>
-              )}
+              <TogRow
+                label="Benchmark classification"
+                on={config.benchmarkEnabled}
+                onChange={v => onChange({ benchmarkEnabled: v })}
+                onDesc="images are classified against your club's bands, and member profiles update when results publish."
+                offDesc="scores from this competition are not classified against your club's bands."
+                labelExtra={<InlineChip label={provText} />}
+              >
+                {config.benchmarkEnabled && benchmarkBands.length > 0 && (
+                  <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {benchmarkBands.map(b => <BandChip key={b} label={b} />)}
+                  </div>
+                )}
+              </TogRow>
               {benchCustom && (
                 <div style={{ marginTop: 8 }}>
                   <ProvChip isCustom={benchCustom}
@@ -890,24 +892,16 @@ function Step4({ config, onChange, baseline, start, clubSlug }: {
                 </div>
               )}
             </div>
-            <div style={{ paddingTop: 2, display: 'flex', justifyContent: 'flex-end' }}>
-              <Switch size="small" sx={switchSx} checked={config.benchmarkEnabled}
-                onChange={e => onChange({ benchmarkEnabled: e.target.checked })} />
-            </div>
-
             {/* POY */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <span style={{ fontSize: 14.5, fontWeight: 500, color: config.countTowardPOY ? C.textBody : C.dimLabel }}>
-                  Photographer of the Year
-                </span>
-                <InlineChip label={provText} />
-              </div>
-              <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: config.countTowardPOY ? C.textMuted : C.dimDesc, maxWidth: '56ch' }}>
-                {config.countTowardPOY
-                  ? 'On — every score counts toward the current season standings; rankings recalculate for all members when results publish.'
-                  : 'Off — scores from this competition do not count toward the season standings.'}
-              </div>
+              <TogRow
+                label="Photographer of the Year"
+                on={config.countTowardPOY}
+                onChange={v => onChange({ countTowardPOY: v })}
+                onDesc="every score counts toward the current season standings; rankings recalculate for all members when results publish."
+                offDesc="scores from this competition do not count toward the season standings."
+                labelExtra={<InlineChip label={provText} />}
+              />
               {poyCustom && (
                 <div style={{ marginTop: 8 }}>
                   <ProvChip isCustom={poyCustom}
@@ -917,11 +911,7 @@ function Step4({ config, onChange, baseline, start, clubSlug }: {
                 </div>
               )}
             </div>
-            <div style={{ paddingTop: 2, display: 'flex', justifyContent: 'flex-end' }}>
-              <Switch size="small" sx={switchSx} checked={config.countTowardPOY}
-                onChange={e => onChange({ countTowardPOY: e.target.checked })} />
-            </div>
-          </div>
+          </Rows>
         </Band>
       )}
 
@@ -1238,6 +1228,7 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
       {/* ── Results ── */}
       <Band label="Results" subLine="How and when they go out">
         <Rows>
+          {/* Meeting toggle + child rows */}
           <TogRow
             label="Announce at a meeting or event"
             on={meeting}
@@ -1247,8 +1238,8 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
           >
             {meeting && (
               <ChildRow>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                  {/* Event date & time — flat layout to avoid overflow */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {/* Event date & time */}
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 500, color: C.textBody }}>Event date &amp; time</div>
                     <div style={{ marginTop: 3, fontSize: 12.5, color: C.textMuted }}>Members see this on the club calendar.</div>
@@ -1266,24 +1257,6 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
                       />
                     </div>
                   </div>
-                  {/* Scores published — only shown inside meeting */}
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: C.textBody }}>Scores are published</div>
-                    <div style={{ marginTop: 3, fontSize: 12.5, color: C.textMuted }}>
-                      Scores appear on the website and in member profiles once the event is over.
-                    </div>
-                    <div style={{ marginTop: 10 }}>
-                      <Sel
-                        value={scorePublishTiming}
-                        onChange={onScorePublishTiming}
-                        options={SCORE_PUBLISH_OPTIONS}
-                        width={220}
-                      />
-                    </div>
-                    {scorePublishHint && (
-                      <div style={{ marginTop: 6, fontSize: 12.5, color: C.textLabel }}>{scorePublishHint}</div>
-                    )}
-                  </div>
                   {/* Event location */}
                   {venueOptions.length > 0 && (
                     <div>
@@ -1300,12 +1273,115 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
             )}
           </TogRow>
 
-          <Row label="Who can see results" desc="Controls who can view scores once published.">
+          {/* Scores are published — sibling row, below meeting section */}
+          <Row
+            label="Scores are published"
+            desc={meeting
+              ? 'Scores appear on the website and in member profiles once the event is over.'
+              : 'Scores appear on the website and in member profiles at this time.'}
+          >
+            {meeting ? (
+              <>
+                <Sel
+                  value={scorePublishTiming}
+                  onChange={onScorePublishTiming}
+                  options={SCORE_PUBLISH_OPTIONS}
+                  width={220}
+                />
+                {scorePublishHint && (
+                  <div style={{ fontSize: 12.5, color: C.textLabel }}>{scorePublishHint}</div>
+                )}
+              </>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <DateInput value={eventDate} onChange={onEventDate} />
+                <input
+                  type="time"
+                  value={eventTime}
+                  onChange={e => onEventTime(e.target.value)}
+                  style={{
+                    background: C.inputBg, border: '1px solid rgba(255,255,255,.1)',
+                    borderRadius: 9, padding: '8px 12px', fontSize: 14, width: 120,
+                    color: eventTime ? C.textBody : C.textLabel, fontFamily: 'inherit',
+                  }}
+                />
+              </div>
+            )}
+          </Row>
+
+          <Row label="Who can see results" desc="Signed-in members only — results are not public.">
             <Sel value={audience} onChange={onAudience} options={AUDIENCE_OPTIONS} width={220} />
             <ProvChip isCustom={false} chipText="Club default" resetTo="" onReset={() => {}} />
           </Row>
         </Rows>
       </Band>
+
+      {/* ── Timeline panel ── */}
+      {(subOpen || jugOpen) && (
+        <div style={{ padding: '0 32px 26px' }}>
+          <div style={{
+            background: C.sunken, border: `1px solid ${C.rule}`,
+            borderRadius: 10, padding: '18px 22px 20px',
+          }}>
+            {/* Panel eyebrow */}
+            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: C.textLabel, marginBottom: 16 }}>
+              Timeline
+            </div>
+            {/* Bar grid — proportional column widths */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: `${Math.max(subDays, 1)}fr 2fr ${Math.max(jugDays, 1)}fr auto`,
+              alignItems: 'end',
+              columnGap: 0,
+            }}>
+              {/* Stage 1: submissions */}
+              <div style={{ paddingRight: 10 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: C.textOnChip }}>Open for entries</div>
+                <div style={{ marginTop: 3, fontSize: 12.5, color: C.textSecondary, fontVariantNumeric: 'tabular-nums' }}>
+                  {subOpen && subClose ? `${fmtDate(subOpen)} – ${fmtDate(subClose)}${subDays > 0 ? ` · ${subDays} days` : ''}` : '—'}
+                </div>
+                <div style={{ marginTop: 8, height: 8, borderRadius: 4, background: C.accent, border: `1px solid ${C.accentBorder}` }} />
+              </div>
+              {/* Gap column */}
+              <div style={{ padding: '0 4px', textAlign: 'center' }}>
+                <div style={{ fontSize: 12.5, color: C.textFaint, marginBottom: 3 }}>
+                  {jugOpen && subClose ? `${daysBetween(subClose, jugOpen)} d` : ''}
+                </div>
+                <div style={{ height: 8, borderTop: `1px dashed rgba(255,255,255,.18)`, borderBottom: `1px dashed rgba(255,255,255,.18)` }} />
+              </div>
+              {/* Stage 2: judging */}
+              <div style={{ padding: '0 10px' }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: C.textOnChip }}>Judging</div>
+                <div style={{ marginTop: 3, fontSize: 12.5, color: C.textSecondary, fontVariantNumeric: 'tabular-nums' }}>
+                  {jugOpen && jugClose ? `${fmtDate(jugOpen)} – ${fmtDate(jugClose)}${jugDays > 0 ? ` · ${jugDays} days` : ''}` : '—'}
+                </div>
+                <div style={{ marginTop: 8, height: 8, borderRadius: 4, background: C.stepDone, border: `1px solid rgba(122,175,235,.3)` }} />
+              </div>
+              {/* End marker */}
+              <div style={{ minWidth: 112, textAlign: 'center', paddingLeft: 10 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: C.textPrimary }}>
+                  {meeting ? 'Announced' : 'Published'}
+                </div>
+                <div style={{ marginTop: 3, fontSize: 12.5, color: C.textSecondary }}>
+                  {meeting && eventDate ? `${fmtDate(eventDate)}, ${fmtTime(eventTime)}` : '—'}
+                </div>
+                <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
+                  <div style={{
+                    width: 14, height: 14, borderRadius: '50%',
+                    background: C.stepCurrent, boxShadow: '0 0 0 4px rgba(91,155,213,.18)',
+                  }} />
+                </div>
+              </div>
+            </div>
+            {/* Note */}
+            <div style={{ marginTop: 18, fontSize: 12.5, color: C.textLabel, lineHeight: 1.5 }}>
+              {meeting
+                ? 'Members see the submission window and the event on the club calendar; judging dates stay internal.'
+                : 'Members see the submission window on the club calendar; judging dates stay internal.'}
+            </div>
+          </div>
+        </div>
+      )}
 
       <DefFooter note={footerNote} clubSlug={clubSlug} />
     </>
