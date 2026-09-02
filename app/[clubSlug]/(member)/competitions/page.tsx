@@ -92,20 +92,29 @@ export default async function CompetitionsPage() {
     })
   )
 
-  // Library images: exclude any image already submitted to any active competition
-  const allSubmittedImageIds = new Set(
-    currentCompetitions.flatMap(c => c.mySubmissions.map(s => s.imageId))
-  )
-
+  // Library images: exclude any image the member has an active submission for,
+  // across ALL competitions (not just currently-open ones). A submission to a
+  // closed or results-published competition still holds the slot until the
+  // image is released/withdrawn, so we query submissions directly instead of
+  // relying on the currentCompetitions list.
   const libraryImages = user ? await (async () => {
-    const { data: imgs } = await supabase
-      .from('images')
-      .select('id, title, storage_path, created_at')
-      .eq('owner_id', user.id)
-      .order('created_at', { ascending: false })
+    const [{ data: imgs }, { data: activeSubs }] = await Promise.all([
+      supabase
+        .from('images')
+        .select('id, title, storage_path, created_at')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('submissions')
+        .select('image_id')
+        .eq('member_id', user.id)
+        .eq('status', 'submitted'),
+    ])
+
+    const submittedIds = new Set((activeSubs ?? []).map(s => s.image_id))
 
     return (imgs ?? [])
-      .filter(img => !allSubmittedImageIds.has(img.id))
+      .filter(img => !submittedIds.has(img.id))
       .map(img => ({
         id: img.id,
         title: img.title,
