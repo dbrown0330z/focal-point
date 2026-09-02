@@ -632,9 +632,10 @@ export async function deleteCompetition(id: string) {
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
 
-  revalidatePath('/admin/competitions')
+  const clubSlug = await requireClubSlug()
+  revalidatePath(`/${clubSlug}/admin/competitions`)
   revalidatePath('/competitions')
-  redirect('/admin/competitions')
+  redirect(`/${clubSlug}/admin/competitions`)
 }
 
 // ─── Lifecycle: cancel ────────────────────────────────────────────────────────
@@ -712,9 +713,11 @@ export async function cancelCompetition(id: string, reason: string) {
     })
     .eq('id', id)
 
-  revalidatePath('/admin/competitions')
-  revalidatePath(`/admin/competitions/${id}`)
+  const clubSlug = await requireClubSlug()
+  revalidatePath(`/${clubSlug}/admin/competitions`)
+  revalidatePath(`/${clubSlug}/admin/competitions/${id}`)
   revalidatePath('/competitions')
+  redirect(`/${clubSlug}/admin/competitions`)
 }
 
 // ─── Lifecycle: archive / unarchive ──────────────────────────────────────────

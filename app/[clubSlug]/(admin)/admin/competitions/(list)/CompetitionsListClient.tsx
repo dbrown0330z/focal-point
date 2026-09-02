@@ -161,13 +161,16 @@ export default function CompetitionsListClient({
   const [,           startTransition] = useTransition()
 
 
-  // Filter by club year first, then by status filter
+  // Filter by club year first, then by status filter.
+  // Competitions with no reference date (undated drafts) are always included
+  // in the current-year view so they are never silently hidden.
   const yearFiltered = (() => {
     if (yearFilter === 'all') return competitions
     const { start, end } = clubYearRange(yearFilter, seasonStartMonth)
     return competitions.filter(c => {
       const d = compRefDate(c)
-      return d && d >= start && d < end
+      if (!d) return yearFilter === currentYearLabel // undated → current year only
+      return d >= start && d < end
     })
   })()
 
