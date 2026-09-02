@@ -13,6 +13,7 @@ type CategorySlice = {
 
 type Props = {
   id:                 string
+  clubSlug:           string
   status:             string
   opensAt:            string | null
   closesAt:           string | null
@@ -81,11 +82,13 @@ function DonutChart({ categories, total, colors }: {
 
 function EntriesBlock({
   id,
+  clubSlug,
   submissionCount,
   submitterCount,
   categories,
 }: {
   id:              string
+  clubSlug:        string
   submissionCount: number
   submitterCount:  number
   categories:      CategorySlice[]
@@ -136,7 +139,7 @@ function EntriesBlock({
 
       {/* View all link */}
       <Link
-        href={`/admin/competitions/${id}/entries`}
+        href={`/${clubSlug}/admin/competitions/${id}/entries`}
         className="shrink-0 self-center text-sm text-action-primary hover:underline pl-8"
       >
         View all entries →
@@ -146,7 +149,7 @@ function EntriesBlock({
 }
 
 export function StatusBanner({
-  id, status, opensAt, closesAt, judgingOpensAt, judgingClosesAt,
+  id, clubSlug, status, opensAt, closesAt, judgingOpensAt, judgingClosesAt,
   cancelledAt, cancellationReason, submissionCount, submitterCount, judgeName, categories,
 }: Props) {
   const [isPending, startTransition] = useTransition()
@@ -190,7 +193,7 @@ export function StatusBanner({
     if (submissionsClosed) {
       return (
         <div className="rounded-xl border border-border-default bg-surface-1 px-8">
-          <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
+          <EntriesBlock id={id} clubSlug={clubSlug} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
         </div>
       )
     }
@@ -198,7 +201,7 @@ export function StatusBanner({
     // Active submissions — just show the entries block, no redundant status text
     return (
       <div className="rounded-xl border border-border-default bg-surface-1 px-8">
-        <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
+        <EntriesBlock id={id} clubSlug={clubSlug} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
       </div>
     )
   }
@@ -206,7 +209,7 @@ export function StatusBanner({
   if (status === 'judging') {
     return (
       <div className="rounded-xl border border-border-default bg-surface-1 px-8">
-        <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
+        <EntriesBlock id={id} clubSlug={clubSlug} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
       </div>
     )
   }
@@ -231,7 +234,7 @@ export function StatusBanner({
           </Link>
         </div>
         <div className="mt-4 pt-4 border-t border-status-warning/40">
-          <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
+          <EntriesBlock id={id} clubSlug={clubSlug} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
         </div>
       </div>
     )
@@ -254,7 +257,7 @@ export function StatusBanner({
           </button>
         </div>
         <div className="mt-4 pt-4 border-t border-border-subtle">
-          <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
+          <EntriesBlock id={id} clubSlug={clubSlug} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
         </div>
       </div>
     )
@@ -265,7 +268,7 @@ export function StatusBanner({
       <div className="rounded-xl border border-border-default bg-surface-1 px-5 py-4">
         <p className="text-sm text-content-primary">Results published · Competition closed</p>
         <div className="mt-4 pt-4 border-t border-border-subtle">
-          <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
+          <EntriesBlock id={id} clubSlug={clubSlug} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
         </div>
       </div>
     )
@@ -281,7 +284,7 @@ export function StatusBanner({
           <p className="text-sm text-content-secondary mt-0.5">Reason: {cancellationReason}</p>
         )}
         <div className="mt-4 pt-4 border-t border-border-subtle">
-          <EntriesBlock id={id} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
+          <EntriesBlock id={id} clubSlug={clubSlug} submissionCount={submissionCount} submitterCount={submitterCount} categories={categories} />
         </div>
       </div>
     )

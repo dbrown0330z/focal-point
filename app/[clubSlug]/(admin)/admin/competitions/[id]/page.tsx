@@ -265,6 +265,7 @@ export default async function CompetitionDetailPage({
       {/* Status banner */}
       <StatusBanner
         id={id}
+        clubSlug={clubSlug}
         status={competition.status}
         opensAt={competition.opens_at ?? null}
         closesAt={competition.closes_at ?? null}
