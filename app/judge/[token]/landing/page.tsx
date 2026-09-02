@@ -5,6 +5,7 @@ import CategoryCard from './CategoryCard'
 import SubmitButton from './SubmitButton'
 import StatusBadge, { type JudgeStatus } from './StatusBadge'
 import ResetJudgingButton from './ResetJudgingButton'
+import JudgeGuideModal from './JudgeGuideModal'
 import type { AwardTier } from '@/types/competition'
 
 export default async function JudgeLandingPage({
@@ -182,13 +183,14 @@ export default async function JudgeLandingPage({
             fontSize:   'clamp(15px, 2vw, 18px)',
             lineHeight: 1.6,
             color:      'var(--text-secondary)',
-            margin:     0,
+            margin:     '0 0 16px',
             maxWidth:   600,
           }}>
             You&apos;re judging{' '}
             <strong style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{competition.short_title ?? competition.title}</strong>.
             Work through each category below — your progress saves automatically.
           </p>
+          <JudgeGuideModal />
         </div>
       </section>
 
