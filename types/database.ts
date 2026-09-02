@@ -34,6 +34,120 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendar_events: {
+        Row: {
+          id:          string
+          title:       string
+          description: string | null
+          location:    string | null
+          starts_at:   string
+          ends_at:     string | null
+          all_day:     boolean
+          event_type:  string
+          created_by:  string | null
+          created_at:  string
+        }
+        Insert: {
+          id?:         string
+          title:       string
+          description?: string | null
+          location?:   string | null
+          starts_at:   string
+          ends_at?:    string | null
+          all_day?:    boolean
+          event_type:  string
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?:         string
+          title?:      string
+          description?: string | null
+          location?:   string | null
+          starts_at?:  string
+          ends_at?:    string | null
+          all_day?:    boolean
+          event_type?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      club_memberships: {
+        Row: {
+          id:                string
+          user_id:           string
+          club_id:           string
+          membership_status: string
+          role:              string | null
+          created_at:        string
+        }
+        Insert: {
+          id?:                string
+          user_id:            string
+          club_id:            string
+          membership_status?: string
+          role?:              string | null
+          created_at?:        string
+        }
+        Update: {
+          id?:                string
+          user_id?:           string
+          club_id?:           string
+          membership_status?: string
+          role?:              string | null
+          created_at?:        string
+        }
+        Relationships: []
+      }
+      clubs: {
+        Row: {
+          id:         string
+          slug:       string
+          name:       string
+          created_at: string
+        }
+        Insert: {
+          id?:        string
+          slug:       string
+          name:       string
+          created_at?: string
+        }
+        Update: {
+          id?:         string
+          slug?:       string
+          name?:       string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      club_settings: {
+        Row: {
+          id:            string
+          club_name:     string | null
+          contact_email: string | null
+          approval_mode: string | null
+          club_id:       string | null
+          created_at:    string
+        }
+        Insert: {
+          id?:            string
+          club_name?:     string | null
+          contact_email?: string | null
+          approval_mode?: string | null
+          club_id?:       string | null
+          created_at?:    string
+        }
+        Update: {
+          id?:            string
+          club_name?:     string | null
+          contact_email?: string | null
+          approval_mode?: string | null
+          club_id?:       string | null
+          created_at?:    string
+        }
+        Relationships: []
+      }
       competition_categories: {
         Row: {
           competition_id: string

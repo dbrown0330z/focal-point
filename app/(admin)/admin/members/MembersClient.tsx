@@ -290,7 +290,7 @@ export default function MembersClient({ profiles }: { profiles: Profile[] }) {
         onClose={() => setManageMember(null)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
+        slotProps={{ paper: { sx: { borderRadius: 2 } } }}
       >
         {manageMember && (
           <>

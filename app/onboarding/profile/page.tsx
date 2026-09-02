@@ -37,10 +37,10 @@ const EXPERIENCE_LEVELS = [
 
 function FieldLabel({ children, hint }: { children: React.ReactNode; hint?: string }) {
   return (
-    <Typography variant="body1" fontWeight={500} sx={{ mb: 1 }}>
+    <Typography variant="body1" sx={{ fontWeight: 500, mb: 1 }}>
       {children}
       {hint && (
-        <Typography component="span" variant="body1" color="text.secondary" fontWeight={400}>
+        <Typography component="span" variant="body1" color="text.secondary" sx={{ fontWeight: 400 }}>
           {' '}{hint}
         </Typography>
       )}
@@ -116,7 +116,7 @@ export default function OnboardingProfilePage() {
           <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Typography sx={{ fontSize: 11, fontWeight: 600, color: '#fff' }}>1</Typography>
           </Box>
-          <Typography variant="body1" fontWeight={600}>Complete your profile</Typography>
+          <Typography variant="body1" sx={{ fontWeight: 600 }}>Complete your profile</Typography>
         </Box>
         <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
