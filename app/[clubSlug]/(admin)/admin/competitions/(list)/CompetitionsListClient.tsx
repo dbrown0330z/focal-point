@@ -98,10 +98,14 @@ function clubYearRange(label: string, startMonth: number): { start: Date; end: D
   }
 }
 
-/** Reference date for a competition (first non-null: opens_at → closes_at → judging_at) */
+/** Reference date for a competition (first non-null: opens_at → closes_at → judging_at).
+ *  Parsed using the date part only in local time so UTC-offset timestamps don't
+ *  cross a day boundary and fall into the wrong club year. */
 function compRefDate(c: Competition): Date | null {
   const d = c.opens_at ?? c.closes_at ?? c.judging_at
-  return d ? new Date(d) : null
+  if (!d) return null
+  const [y, m, day] = d.slice(0, 10).split('-').map(Number)
+  return new Date(y, m - 1, day) // local midnight — matches clubYearRange boundaries
 }
 
 function formatDate(iso: string | null): string {
