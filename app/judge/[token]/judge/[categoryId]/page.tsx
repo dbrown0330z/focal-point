@@ -129,6 +129,7 @@ export default async function JudgeCategoryPage({
       token={token}
       categoryId={categoryId}
       categoryName={category.name}
+      competitionTitle={competition.title}
       submissions={items}
       prevCategoryId={prevCatId}
       nextCategoryId={nextCatId}

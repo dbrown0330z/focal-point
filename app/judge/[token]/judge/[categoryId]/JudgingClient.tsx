@@ -31,6 +31,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { saveScore, saveRank, saveFlag, applyBucketScores } from './actions'
 import type { SubmissionForJudge } from './page'
 import { useTheme } from '@/components/layout/ThemeProvider'
+import JudgeGuideModal from '../../landing/JudgeGuideModal'
 
 // ─── Triage bucket definitions ─────────────────────────────────────────────────
 // Header uses solid coloured background + white text for maximum vibrancy.
@@ -439,15 +440,16 @@ function UnsortedPool({
 
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function JudgingClient({
-  token, categoryId, categoryName, submissions,
+  token, categoryId, categoryName, competitionTitle, submissions,
   prevCategoryId, nextCategoryId, allCategories,
   scoreMin, scoreMax, allowHalfPoints, requireFeedback,
   showMemberName, showExif, isSubmitted,
 }: {
-  token:           string
-  categoryId:      string
-  categoryName:    string
-  submissions:     SubmissionForJudge[]
+  token:             string
+  categoryId:        string
+  categoryName:      string
+  competitionTitle:  string
+  submissions:       SubmissionForJudge[]
   prevCategoryId:  string | null
   nextCategoryId:  string | null
   allCategories:   { id: string; name: string }[]
@@ -941,26 +943,35 @@ export default function JudgingClient({
         gridTemplateColumns: '1fr auto 1fr',
         alignItems: 'center', gap: 8, flexShrink: 0,
       }}>
-        {/* Left: category nav */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden', minWidth: 0 }}>
-          <Link href={`/judge/${token}/landing`} style={{
-            fontSize: 14, color: 'var(--action-primary)', textDecoration: 'none',
-            flexShrink: 0, fontFamily: 'inherit', whiteSpace: 'nowrap', fontWeight: 500,
-          }}>← Home</Link>
-          <span style={{ color: 'var(--border-default)', flexShrink: 0 }}>|</span>
+        {/* Left: category name (large serif) + Home link + progress */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden', minWidth: 0 }}>
+          {/* Line 1: category name */}
           <span style={{
-            fontFamily: 'var(--font-primary)', fontSize: 15, fontWeight: 700,
+            fontFamily: 'var(--font-primary)', fontSize: 18, fontWeight: 700,
             color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            letterSpacing: '-0.01em',
+            letterSpacing: '-0.015em', lineHeight: 1.2,
           }}>{categoryName}</span>
-          <span style={{ fontSize: 14, color: 'var(--text-tertiary)', flexShrink: 0, whiteSpace: 'nowrap' }}>
-            {scoredCount}/{submissions.length}
-          </span>
-          <div style={{ width: 40, height: 4, background: 'var(--surface-0)', borderRadius: 3, overflow: 'hidden', flexShrink: 0 }}>
-            <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? 'var(--status-success)' : 'var(--action-primary)', borderRadius: 3 }} />
+          {/* Line 2: Home link + scored count + mini progress */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Link href={`/judge/${token}/landing`} style={{
+              fontSize: 12, color: 'var(--action-primary)', textDecoration: 'none',
+              flexShrink: 0, fontFamily: 'inherit', whiteSpace: 'nowrap', fontWeight: 500,
+            }}>← Home</Link>
+            <span style={{ fontSize: 12, color: 'var(--text-tertiary)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+              {scoredCount}/{submissions.length}
+            </span>
+            <div style={{ width: 36, height: 3, background: 'var(--surface-0)', borderRadius: 3, overflow: 'hidden', flexShrink: 0 }}>
+              <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? 'var(--status-success)' : 'var(--action-primary)', borderRadius: 3 }} />
+            </div>
           </div>
         </div>
-        {/* Center: mode controls — Triage pill | separator | Grid+Single segment */}
+        {/* Center: competition name + mode controls */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+          {/* Competition name */}
+          <span style={{
+            fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)',
+            letterSpacing: '0.01em', whiteSpace: 'nowrap',
+          }}>{competitionTitle}</span>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {/* Left group: Triage (standalone pill) */}
           {(() => {
@@ -1019,9 +1030,11 @@ export default function JudgingClient({
             )
           })}
         </div>
+        </div>
 
-        {/* Right: prev/next category */}
+        {/* Right: help link + prev/next category */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+          <JudgeGuideModal />
           {prevCategoryId && (
             <Link href={`/judge/${token}/judge/${prevCategoryId}`} style={{
               fontSize: 14, padding: '5px 10px', borderRadius: 6,
@@ -1651,15 +1664,8 @@ export default function JudgingClient({
             overflow: 'hidden', padding: '16px 24px 16px',
           }}>
 
-            {/* Header row: category name (prominent) + hint + reset */}
+            {/* Header row: hint + reset */}
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 12, flexShrink: 0 }}>
-              <h2 style={{
-                fontFamily: 'var(--font-primary)', fontSize: 22, fontWeight: 700,
-                letterSpacing: '-0.015em', color: 'var(--text-primary)', margin: 0,
-                lineHeight: 1.2,
-              }}>
-                {categoryName}
-              </h2>
               <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.5, flex: 1 }}>
                 Drag into groups · click ✕ on a card to return it to the strip
               </p>
