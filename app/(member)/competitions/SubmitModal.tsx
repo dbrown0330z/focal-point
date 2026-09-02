@@ -1,0 +1,810 @@
+'use client'
+
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { submitFromLibrary, submitUploadedImage } from './actions'
+import * as exifr from 'exifr'
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type Category = { id: string; name: string }
+
+type LibraryImage = {
+  id: string
+  title: string
+  storage_path: string
+  created_at: string
+  publicUrl: string
+}
+
+type SubmitModalProps = {
+  open: boolean
+  onClose: () => void
+  onSuccess: () => void
+  userId: string
+  competitionId: string
+  competitionTitle: string
+  categories: Category[]
+  libraryImages: LibraryImage[]
+}
+
+type Source = 'upload' | 'library'
+type Step = 0 | 1 | 2  // 0=source, 1=upload/library, 2=confirm
+
+// ─── Icons ───────────────────────────────────────────────────────────────────
+
+function IconClose() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M18 6L6 18M6 6l12 12"/>
+    </svg>
+  )
+}
+function IconCheck({ size = 16 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width={size} height={size}>
+      <path d="M20 6L9 17l-5-5"/>
+    </svg>
+  )
+}
+function IconChevronLeft() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M15 18l-6-6 6-6"/>
+    </svg>
+  )
+}
+function IconChevronRight() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <path d="M9 18l6-6-6-6"/>
+    </svg>
+  )
+}
+function IconUploadCloud() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7">
+      <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+      <path d="M12 12v9"/>
+      <path d="m16 16-4-4-4 4"/>
+    </svg>
+  )
+}
+function IconImage() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7">
+      <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+      <circle cx="9" cy="9" r="2"/>
+      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+    </svg>
+  )
+}
+function IconSearch() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <circle cx="11" cy="11" r="8"/>
+      <path d="m21 21-4.3-4.3"/>
+    </svg>
+  )
+}
+function IconZoomIn() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+      <circle cx="11" cy="11" r="8"/>
+      <path d="m21 21-4.3-4.3"/>
+      <path d="M11 8v6M8 11h6"/>
+    </svg>
+  )
+}
+
+// ─── Lightbox ─────────────────────────────────────────────────────────────────
+
+function Lightbox({ image, onClose }: { image: LibraryImage; onClose: () => void }) {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [onClose])
+
+  return (
+    <div
+      className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-2xl overflow-hidden rounded-xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-white"
+        >
+          <IconClose />
+        </button>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={image.publicUrl} alt={image.title} className="max-h-[400px] w-full object-cover" />
+        <div className="bg-[var(--surface-1)] px-4 py-3">
+          <p className="font-[var(--font-heading)] text-[15px] font-bold text-[var(--text-primary)]">{image.title}</p>
+          <p className="mt-0.5 font-[var(--font-body)] text-[13px] text-[var(--text-tertiary)]">
+            {new Date(image.created_at).toLocaleDateString()} · Press Esc to close
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Stepper ─────────────────────────────────────────────────────────────────
+
+const STEP_LABELS = ['Source', 'Image', 'Confirm']
+
+function Stepper({ step }: { step: Step }) {
+  return (
+    <div className="flex items-center gap-0 px-7 py-4">
+      {STEP_LABELS.map((label, i) => {
+        const done = i < step
+        const active = i === step
+        return (
+          <div key={i} className="flex flex-1 items-center">
+            <div className="flex flex-col items-center gap-1">
+              <div
+                className="flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors"
+                style={{
+                  background: done || active ? 'var(--action-primary)' : 'var(--surface-3, #333)',
+                  borderColor: done || active ? 'var(--action-primary)' : 'var(--border-default)',
+                  color: done || active ? '#fff' : 'var(--text-tertiary)',
+                }}
+              >
+                {done ? <IconCheck size={13} /> : i + 1}
+              </div>
+              <span
+                className="text-[10px] font-bold uppercase tracking-widest"
+                style={{ color: active ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
+              >
+                {label}
+              </span>
+            </div>
+            {i < STEP_LABELS.length - 1 && (
+              <div
+                className="mx-2 mb-4 h-0.5 flex-1 transition-colors"
+                style={{ background: i < step ? 'var(--action-primary)' : 'var(--border-default)' }}
+              />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Category Buttons ─────────────────────────────────────────────────────────
+
+function CategoryButtons({
+  categories,
+  selected,
+  onSelect,
+}: {
+  categories: Category[]
+  selected: string
+  onSelect: (id: string) => void
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {categories.map(cat => (
+        <button
+          key={cat.id}
+          type="button"
+          onClick={() => onSelect(cat.id)}
+          className="rounded-full border px-4 py-1.5 text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-[var(--action-primary)]/40"
+          style={{
+            background: selected === cat.id ? 'var(--action-primary)' : 'var(--surface-2)',
+            borderColor: selected === cat.id ? 'var(--action-primary)' : 'var(--border-default)',
+            color: selected === cat.id ? '#fff' : 'var(--text-secondary)',
+          }}
+        >
+          {cat.name}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── Step 0: Choose Source ────────────────────────────────────────────────────
+
+function SourceStep({ onSelect }: { onSelect: (src: Source) => void }) {
+  return (
+    <div className="fade-up space-y-3">
+      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+        Choose how to add your image to this competition.
+      </p>
+      {(['upload', 'library'] as Source[]).map(src => (
+        <button
+          key={src}
+          type="button"
+          onClick={() => onSelect(src)}
+          className="group flex w-full items-center gap-4 rounded-xl border-2 px-5 py-5 text-left transition-all focus:outline-none focus:ring-2 focus:ring-[var(--action-primary)]/40 hover:border-[var(--action-primary)]"
+          style={{ borderColor: 'var(--border-default)', background: 'transparent' }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(26,111,196,0.04)'
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'transparent'
+          }}
+        >
+          <div
+            className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg"
+            style={{ background: 'var(--surface-3, var(--surface-1))', color: 'var(--text-secondary)' }}
+          >
+            {src === 'upload' ? <IconUploadCloud /> : <IconImage />}
+          </div>
+          <div className="flex-1">
+            <p className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+              {src === 'upload' ? 'Upload a new photo' : 'Choose from my library'}
+            </p>
+            <p className="mt-0.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+              {src === 'upload'
+                ? 'Upload a JPEG, PNG or WebP file directly from your device'
+                : 'Select a photo you have already added to your library'}
+            </p>
+          </div>
+          <IconChevronRight />
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── Step 1a: Upload ──────────────────────────────────────────────────────────
+
+type UploadStepProps = {
+  categories: Category[]
+  categoryId: string
+  onCategorySelect: (id: string) => void
+  file: File | null
+  preview: string | null
+  title: string
+  onFileChange: (file: File, preview: string) => void
+  onTitleChange: (t: string) => void
+}
+
+function UploadStep({
+  categories, categoryId, onCategorySelect,
+  file, preview, title, onFileChange, onTitleChange,
+}: UploadStepProps) {
+  const [drag, setDrag] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  function handleFiles(files: FileList | null) {
+    const f = files?.[0]
+    if (!f) return
+    onFileChange(f, URL.createObjectURL(f))
+  }
+
+  return (
+    <div className="fade-up space-y-5">
+      {/* Drop zone */}
+      <div
+        onClick={() => fileRef.current?.click()}
+        onDragOver={e => { e.preventDefault(); setDrag(true) }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={e => { e.preventDefault(); setDrag(false); handleFiles(e.dataTransfer.files) }}
+        className="relative cursor-pointer overflow-hidden rounded-xl border-2 border-dashed transition-colors"
+        style={{
+          borderColor: drag ? 'var(--action-primary)' : 'var(--border-default)',
+          background: drag ? 'rgba(26,111,196,0.05)' : 'transparent',
+        }}
+      >
+        {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={preview} alt="Preview" className="max-h-[220px] w-full rounded-xl object-cover" />
+        ) : (
+          <div className="flex flex-col items-center justify-center py-10 text-center" style={{ color: 'var(--text-tertiary)' }}>
+            <IconUploadCloud />
+            <p className="mt-2 text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+              Click or drag &amp; drop to upload
+            </p>
+            <p className="mt-1 text-xs">JPEG, PNG, WebP · max 20 MB</p>
+          </div>
+        )}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={e => handleFiles(e.target.files)}
+        />
+      </div>
+
+      {/* Title */}
+      <div>
+        <label className="mb-1.5 block text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+          Image title <span style={{ color: 'var(--status-error)' }}>*</span>
+        </label>
+        <input
+          type="text"
+          value={title}
+          onChange={e => onTitleChange(e.target.value)}
+          placeholder="e.g. Golden Hour at the Pier"
+          maxLength={120}
+          className="w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+          style={{
+            border: '1.5px solid var(--border-default)',
+            background: 'var(--surface-2)',
+            color: 'var(--text-primary)',
+          }}
+          onFocus={e => (e.target.style.borderColor = 'var(--action-primary)')}
+          onBlur={e => (e.target.style.borderColor = 'var(--border-default)')}
+        />
+      </div>
+
+      {/* Category */}
+      <div>
+        <p className="mb-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Category</p>
+        <CategoryButtons categories={categories} selected={categoryId} onSelect={onCategorySelect} />
+      </div>
+    </div>
+  )
+}
+
+// ─── Step 1b: Library ─────────────────────────────────────────────────────────
+
+type LibraryStepProps = {
+  images: LibraryImage[]
+  selectedId: string
+  categoryId: string
+  categories: Category[]
+  onSelect: (id: string) => void
+  onCategorySelect: (id: string) => void
+}
+
+function LibraryStep({ images, selectedId, categoryId, categories, onSelect, onCategorySelect }: LibraryStepProps) {
+  const [search, setSearch] = useState('')
+  const [sort, setSort] = useState<'date_desc' | 'title_asc'>('date_desc')
+  const [lightbox, setLightbox] = useState<LibraryImage | null>(null)
+
+  const filtered = images
+    .filter(img => img.title.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => sort === 'date_desc'
+      ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      : a.title.localeCompare(b.title))
+
+  return (
+    <div className="fade-up space-y-4">
+      {/* Search + sort */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }}>
+            <IconSearch />
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search your library…"
+            className="w-full rounded-lg py-2 pl-9 pr-3 text-sm outline-none"
+            style={{
+              border: '1.5px solid var(--border-default)',
+              background: 'var(--surface-2)',
+              color: 'var(--text-primary)',
+            }}
+            onFocus={e => (e.target.style.borderColor = 'var(--action-primary)')}
+            onBlur={e => (e.target.style.borderColor = 'var(--border-default)')}
+          />
+        </div>
+        <select
+          value={sort}
+          onChange={e => setSort(e.target.value as typeof sort)}
+          className="rounded-lg px-3 py-2 text-sm outline-none"
+          style={{
+            border: '1.5px solid var(--border-default)',
+            background: 'var(--surface-2)',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          <option value="date_desc">Newest first</option>
+          <option value="title_asc">Title A–Z</option>
+        </select>
+      </div>
+
+      {/* Grid */}
+      {filtered.length === 0 ? (
+        <div className="py-8 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
+          {images.length === 0 ? 'No available images in your library.' : 'No images match your search.'}
+        </div>
+      ) : (
+        <div className="grid grid-cols-4 gap-2.5 max-h-[340px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
+          {filtered.map(img => {
+            const selected = img.id === selectedId
+            return (
+              <div
+                key={img.id}
+                onClick={() => onSelect(img.id)}
+                className="group relative cursor-pointer overflow-hidden rounded-[9px] transition-all"
+                style={{
+                  border: selected ? '2px solid var(--action-primary)' : '2px solid var(--border-default)',
+                  boxShadow: selected ? '0 0 0 3px rgba(26,111,196,0.22)' : 'none',
+                }}
+              >
+                {/* Image */}
+                <div className="relative" style={{ paddingTop: '70%' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.publicUrl}
+                    alt={img.title}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                  {/* Zoom btn */}
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); setLightbox(img) }}
+                    className="absolute right-1.5 top-1.5 hidden h-6 w-6 items-center justify-center rounded-full text-white group-hover:flex"
+                    style={{ background: 'rgba(0,0,0,0.60)' }}
+                  >
+                    <IconZoomIn />
+                  </button>
+                  {/* Checkmark */}
+                  {selected && (
+                    <div
+                      className="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full"
+                      style={{ background: 'var(--action-primary)', color: '#fff' }}
+                    >
+                      <IconCheck size={11} />
+                    </div>
+                  )}
+                </div>
+                {/* Footer */}
+                <div
+                  className="px-2 py-1.5"
+                  style={{ background: 'var(--surface-2)' }}
+                >
+                  <p
+                    className="overflow-hidden text-[11px] font-semibold leading-snug"
+                    style={{
+                      color: 'var(--text-primary)',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      minHeight: '2.3em',
+                    }}
+                  >
+                    {img.title}
+                  </p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Category selector — slides in after image is selected */}
+      {selectedId && (
+        <div className="fade-up space-y-3">
+          <hr style={{ borderColor: 'var(--border-subtle)' }} />
+          <div>
+            <p className="mb-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+              Choose a category
+            </p>
+            <CategoryButtons categories={categories} selected={categoryId} onSelect={onCategorySelect} />
+          </div>
+        </div>
+      )}
+
+      {lightbox && <Lightbox image={lightbox} onClose={() => setLightbox(null)} />}
+    </div>
+  )
+}
+
+// ─── Step 2: Confirm ──────────────────────────────────────────────────────────
+
+type ConfirmStepProps = {
+  source: Source
+  imageTitle: string
+  previewUrl: string | null
+  categoryName: string
+  competitionTitle: string
+}
+
+function ConfirmStep({ source, imageTitle, previewUrl, categoryName, competitionTitle }: ConfirmStepProps) {
+  return (
+    <div className="fade-up space-y-5">
+      {previewUrl && (
+        <div className="relative w-full overflow-hidden rounded-xl" style={{ paddingTop: '38%' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={previewUrl} alt={imageTitle} className="absolute inset-0 h-full w-full object-cover" />
+        </div>
+      )}
+
+      <div className="grid gap-y-2" style={{ gridTemplateColumns: '130px 1fr' }}>
+        {[
+          ['Image', imageTitle],
+          ['Category', categoryName],
+          ['Competition', competitionTitle],
+          ['Source', source === 'upload' ? 'New upload' : 'From library'],
+        ].map(([label, value]) => (
+          <>
+            <span key={`${label}-l`} className="text-sm" style={{ color: 'var(--text-tertiary)' }}>{label}</span>
+            <span key={`${label}-v`} className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{value}</span>
+          </>
+        ))}
+      </div>
+
+      <div
+        className="rounded-xl px-4 py-3 text-sm"
+        style={{
+          background: 'rgba(26,111,196,0.07)',
+          border: '1px solid rgba(26,111,196,0.20)',
+          color: 'var(--text-secondary)',
+        }}
+      >
+        Once submitted, this image will be reserved for this competition. You can withdraw it from the competitions page if needed.
+      </div>
+    </div>
+  )
+}
+
+// ─── Success overlay ──────────────────────────────────────────────────────────
+
+function SuccessOverlay({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/70 p-4" style={{ backdropFilter: 'blur(3px)' }}>
+      <div
+        className="scale-in w-full max-w-sm rounded-2xl p-8 text-center"
+        style={{ background: 'var(--surface-2)', border: '1px solid var(--border-default)' }}
+      >
+        <div
+          className="success-pop mx-auto mb-5 flex h-[72px] w-[72px] items-center justify-center rounded-full"
+          style={{ background: 'var(--status-success-bg)', color: 'var(--status-success)' }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-9 w-9">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+        </div>
+        <h2
+          className="mb-2 text-[22px] font-bold tracking-tight"
+          style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
+        >
+          Image submitted!
+        </h2>
+        <p className="mb-6 text-[15px]" style={{ color: 'var(--text-secondary)' }}>
+          Your entry has been added to the competition. Good luck!
+        </p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full rounded-lg py-2.5 text-[15px] font-bold text-white transition-colors"
+          style={{ background: 'var(--action-primary)' }}
+          onMouseEnter={e => ((e.target as HTMLButtonElement).style.background = 'var(--action-primary-hover)')}
+          onMouseLeave={e => ((e.target as HTMLButtonElement).style.background = 'var(--action-primary)')}
+        >
+          Return to competition
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Modal ───────────────────────────────────────────────────────────────
+
+export default function SubmitModal({
+  open, onClose, onSuccess,
+  userId, competitionId, competitionTitle,
+  categories, libraryImages,
+}: SubmitModalProps) {
+  const [step, setStep] = useState<Step>(0)
+  const [source, setSource] = useState<Source | null>(null)
+  const [file, setFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [title, setTitle] = useState('')
+  const [selectedImageId, setSelectedImageId] = useState('')
+  const [categoryId, setCategoryId] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  const selectedLibraryImage = libraryImages.find(img => img.id === selectedImageId) ?? null
+  const selectedCategory = categories.find(c => c.id === categoryId) ?? null
+
+  function reset() {
+    setStep(0); setSource(null); setFile(null); setPreview(null)
+    setTitle(''); setSelectedImageId(''); setCategoryId('')
+    setError(null); setSuccess(false)
+  }
+
+  function handleClose() { reset(); onClose() }
+
+  // Trap focus + Esc
+  useEffect(() => {
+    if (!open) return
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose() }
+    document.addEventListener('keydown', handleKey)
+    document.body.style.overflow = 'hidden'
+    return () => { document.removeEventListener('keydown', handleKey); document.body.style.overflow = '' }
+  }, [open])
+
+  function handleSourceSelect(src: Source) {
+    setSource(src)
+    setStep(1)
+  }
+
+  async function handleFileChange(f: File, p: string) {
+    setFile(f); setPreview(p)
+    try {
+      const parsed = await exifr.parse(f, {
+        pick: ['Make','Model','FNumber','ExposureTime','ISO','FocalLength','DateTimeOriginal'],
+      })
+      ;(f as File & { _exif?: unknown })._exif = parsed ?? null
+    } catch { /* ignore */ }
+  }
+
+  function canContinue() {
+    if (step === 0) return source !== null
+    if (step === 1) {
+      if (source === 'upload') return file !== null && title.trim().length > 0 && categoryId !== ''
+      return selectedImageId !== '' && categoryId !== ''
+    }
+    return true
+  }
+
+  async function handleSubmit() {
+    if (!canContinue() || submitting) return
+    if (step < 2) { setStep((s => (s + 1) as Step)(step)); return }
+
+    setSubmitting(true); setError(null)
+
+    if (source === 'library') {
+      const { error } = await submitFromLibrary(selectedImageId, competitionId, categoryId)
+      if (error) { setError(error); setSubmitting(false); return }
+    } else {
+      // Upload to storage first
+      const supabase = createClient()
+      const ext = file!.name.split('.').pop()
+      const storagePath = `${userId}/${crypto.randomUUID()}.${ext}`
+      const { error: uploadErr } = await supabase.storage.from('images').upload(storagePath, file!, { upsert: false })
+      if (uploadErr) { setError(uploadErr.message); setSubmitting(false); return }
+
+      const exifData = (file as File & { _exif?: unknown })._exif as Record<string, unknown> | null
+      const { error } = await submitUploadedImage({
+        storagePath, title: title.trim(), exifData: exifData ?? null,
+        competitionId, categoryId,
+      })
+      if (error) {
+        await supabase.storage.from('images').remove([storagePath])
+        setError(error); setSubmitting(false); return
+      }
+    }
+
+    setSuccess(true); setSubmitting(false)
+    onSuccess()
+  }
+
+  if (!open) return null
+
+  const previewUrl = source === 'library' ? selectedLibraryImage?.publicUrl ?? null : preview
+  const displayTitle = source === 'library' ? (selectedLibraryImage?.title ?? '') : title
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-[1000] flex items-center justify-center p-6"
+        style={{ background: 'rgba(0,0,0,0.70)', backdropFilter: 'blur(3px)' }}
+        onClick={handleClose}
+      >
+        {/* Modal */}
+        <div
+          className="scale-in flex w-full flex-col overflow-hidden"
+          style={{
+            maxWidth: 720,
+            borderRadius: 18,
+            maxHeight: 'calc(100vh - 48px)',
+            background: 'var(--surface-1)',
+            border: '1px solid var(--border-default)',
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div style={{ padding: '22px 28px 0', borderBottom: '1px solid var(--border-default)', flexShrink: 0 }}>
+            <div className="flex items-start justify-between pb-4">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.07em]" style={{ color: 'var(--text-tertiary)' }}>
+                  {competitionTitle}
+                </p>
+                <h2
+                  className="text-[22px] font-bold tracking-tight"
+                  style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
+                >
+                  Submit an image
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={handleClose}
+                className="flex h-[34px] w-[34px] items-center justify-center rounded-lg transition-colors"
+                style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)' }}
+                onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-0)')}
+                onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-2)')}
+              >
+                <IconClose />
+              </button>
+            </div>
+            {step > 0 && <Stepper step={step} />}
+          </div>
+
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto" style={{ padding: '22px 28px' }}>
+            {error && (
+              <div className="mb-4 rounded-lg px-4 py-3 text-sm" style={{ background: 'var(--status-error-bg)', border: '1px solid var(--status-error)', color: 'var(--status-error-text)' }}>
+                {error}
+              </div>
+            )}
+            {step === 0 && <SourceStep onSelect={handleSourceSelect} />}
+            {step === 1 && source === 'upload' && (
+              <UploadStep
+                categories={categories}
+                categoryId={categoryId}
+                onCategorySelect={setCategoryId}
+                file={file}
+                preview={preview}
+                title={title}
+                onFileChange={handleFileChange}
+                onTitleChange={setTitle}
+              />
+            )}
+            {step === 1 && source === 'library' && (
+              <LibraryStep
+                images={libraryImages}
+                selectedId={selectedImageId}
+                categoryId={categoryId}
+                categories={categories}
+                onSelect={setSelectedImageId}
+                onCategorySelect={setCategoryId}
+              />
+            )}
+            {step === 2 && (
+              <ConfirmStep
+                source={source!}
+                imageTitle={displayTitle}
+                previewUrl={previewUrl}
+                categoryName={selectedCategory?.name ?? ''}
+                competitionTitle={competitionTitle}
+              />
+            )}
+          </div>
+
+          {/* Footer */}
+          {step > 0 && (
+            <div
+              className="flex items-center justify-between"
+              style={{ padding: '14px 28px', borderTop: '1px solid var(--border-default)', flexShrink: 0 }}
+            >
+              <button
+                type="button"
+                onClick={() => setStep((s => (s - 1) as Step)(step))}
+                className="flex items-center gap-1.5 rounded-lg border px-4 py-2 text-[15px] font-medium transition-colors"
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'transparent' }}
+              >
+                <IconChevronLeft />
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!canContinue() || submitting}
+                className="rounded-lg px-6 py-2 text-[15px] font-bold text-white transition-all"
+                style={{
+                  background: canContinue() && !submitting ? 'var(--action-primary)' : 'var(--text-disabled)',
+                  cursor: canContinue() && !submitting ? 'pointer' : 'default',
+                  boxShadow: canContinue() && !submitting ? '0 2px 6px rgba(26,111,196,0.35)' : 'none',
+                }}
+              >
+                {submitting ? 'Submitting…' : step === 2 ? 'Submit entry' : 'Continue'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {success && <SuccessOverlay onClose={() => { handleClose(); }} />}
+    </>
+  )
+}

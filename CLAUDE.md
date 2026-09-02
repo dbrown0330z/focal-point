@@ -40,9 +40,12 @@ Long-term goal: evolve into a multi-tenant SaaS product for camera clubs broadly
 - Signup: self-serve but role defaults to null until admin approves; null-role users cannot access member zone
 
 ## Current Status
-- Project initialized: Next.js + Tailwind + Supabase SSR
-- Data model designed, migrations not yet written
-- Next: write Supabase migrations and scaffold route structure
+- Next.js + Tailwind + Supabase SSR initialized
+- 9 migrations written and applied (profiles, images, competitions, submissions, scores, judge_tokens, posts, calendar_events)
+- All route groups scaffolded: (auth), (member), (admin), /judge, /apply, /onboarding
+- Member zone complete: home, calendar, library (upload/delete), competitions, profile
+- Admin zone complete: dashboard, members, competitions (CRUD + status), posts (CRUD + publish)
+- Remaining stubs: /admin/content, /admin/documents, /admin/notifications, /onboarding/payment
 
 ## Component Library
 MUI v6 is installed. Theme is in `src/theme/index.ts` (main app)

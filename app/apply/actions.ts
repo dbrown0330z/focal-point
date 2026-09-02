@@ -38,7 +38,7 @@ export async function applyForMembership(
     // the member from 'pending' → 'approved' after they verify.
     const supabase = await createClient()
     const siteUrl  = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
-    const redirectTo = `${siteUrl}/auth/callback?next=/${ctx?.clubSlug ?? ''}/onboarding/profile&verify=1`
+    const redirectTo = `${siteUrl}/auth/callback?next=/onboarding/profile&verify=1`
 
     const { data: signUpData, error: createErr } = await supabase.auth.signUp({
       email:    data.email,

@@ -21,7 +21,7 @@ export default async function AdminDashboardPage() {
   ]
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-8">
       <div>
         <h1 className="text-xl font-semibold text-content-primary">Dashboard</h1>
         <p className="mt-1 text-sm text-content-secondary">Club overview</p>

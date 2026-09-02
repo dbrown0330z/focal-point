@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { Button } from '@mui/material'
 import { deleteImage } from '@/app/(member)/library/actions'
 
 type Image = {
@@ -468,20 +469,20 @@ export default function LibraryClient({ images }: { images: Image[] }) {
               </button>
             </div>
           )}
-          <Link href="/library/upload" className="rounded-lg bg-action-primary px-4 py-2 text-sm font-medium text-white hover:bg-action-primary-hover transition-colors">
-            Add photo
-          </Link>
+          <Button variant="contained" component={Link} href="/library/upload">
+            + Add image
+          </Button>
         </div>
       </div>
 
       {/* Empty state */}
       {images.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border-default py-20 text-center">
-          <p className="text-sm font-medium text-content-secondary">No photos yet</p>
-          <p className="mt-1 text-xs text-content-tertiary">Add your first photo to get started</p>
-          <Link href="/library/upload" className="mt-4 rounded-lg bg-action-primary px-4 py-2 text-sm font-medium text-white hover:bg-action-primary-hover transition-colors">
-            Add photo
-          </Link>
+          <p className="text-sm font-medium text-content-secondary">No images yet</p>
+          <p className="mt-1 text-xs text-content-tertiary">Add your first image to get started</p>
+          <Button variant="contained" component={Link} href="/library/upload" sx={{ mt: 2 }}>
+            + Add image
+          </Button>
         </div>
       )}
 

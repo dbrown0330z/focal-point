@@ -6,11 +6,15 @@ import { useEffect, useRef, useState } from 'react'
 import { logout } from '@/app/(auth)/actions'
 import { useTheme } from './ThemeProvider'
 
-const links = [
-  { href: '/',             label: 'Home' },
-  { href: '/calendar',     label: 'Calendar' },
-  { href: '/library',      label: 'My Images' },
-  { href: '/competitions', label: 'Competitions' },
+const topLinks = [
+  { href: '/',         label: 'Home' },
+  { href: '/calendar', label: 'Calendar' },
+  { href: '/library',  label: 'My Images' },
+]
+
+const competitionsLinks = [
+  { href: '/competitions',         label: 'Current Competition' },
+  { href: '/competitions/results', label: 'Results' },
 ]
 
 function getInitials(name: string) {
@@ -31,14 +35,17 @@ export default function MemberNav({
   const pathname = usePathname()
   const { theme, toggle } = useTheme()
   const [open, setOpen] = useState(false)
+  const [compOpen, setCompOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const compRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false)
+      if (compRef.current && !compRef.current.contains(e.target as Node)) setCompOpen(false)
     }
     function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') { setOpen(false); setCompOpen(false) }
     }
     document.addEventListener('mousedown', handleClick)
     document.addEventListener('keydown', handleKey)
@@ -49,6 +56,7 @@ export default function MemberNav({
   }, [])
 
   const initials = getInitials(displayName)
+  const isCompActive = pathname.startsWith('/competitions')
 
   return (
     <header className="border-b border-border-default bg-surface-2">
@@ -59,7 +67,7 @@ export default function MemberNav({
           <span className="mr-2 text-sm font-semibold text-content-primary">
             Focal Point
           </span>
-          {links.map(({ href, label }) => (
+          {topLinks.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
@@ -72,6 +80,52 @@ export default function MemberNav({
               {label}
             </Link>
           ))}
+
+          {/* Competitions dropdown */}
+          <div className="relative" ref={compRef}>
+            <button
+              onClick={() => setCompOpen(o => !o)}
+              className={`flex items-center gap-1 text-sm transition-colors ${
+                isCompActive
+                  ? 'font-medium text-content-primary'
+                  : 'text-content-secondary hover:text-content-primary'
+              }`}
+              aria-expanded={compOpen}
+            >
+              Competitions
+              <svg
+                className={`h-3 w-3 transition-transform ${compOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {compOpen && (
+              <div className="absolute left-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-border-default bg-surface-2 shadow-lg">
+                {competitionsLinks.map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setCompOpen(false)}
+                    className={`flex items-center px-4 py-2.5 text-sm transition-colors hover:bg-surface-1 ${
+                      href === '/competitions'
+                        ? pathname === '/competitions'
+                          ? 'font-medium text-content-primary'
+                          : 'text-content-secondary'
+                        : pathname.startsWith(href)
+                          ? 'font-medium text-content-primary'
+                          : 'text-content-secondary'
+                    }`}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* Right: avatar + dropdown */}

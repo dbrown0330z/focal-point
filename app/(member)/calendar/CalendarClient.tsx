@@ -809,7 +809,7 @@ export default function CalendarClient({
             </Box>
 
             {isAdmin && (
-              <Button variant="contained" size="small" onClick={() => setAddOpen(true)}>
+              <Button variant="contained" onClick={() => setAddOpen(true)}>
                 + Add event
               </Button>
             )}
