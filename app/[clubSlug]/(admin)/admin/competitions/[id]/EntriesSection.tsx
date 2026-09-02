@@ -15,7 +15,7 @@ type Props = {
   categories:      CategorySlice[]
 }
 
-export const SPOT_COLORS = ['#6C47D4', '#0097A7', '#E65100', '#AD1457', '#00796B', '#7B6B38']
+export const SPOT_COLORS = ['#5B86A8', '#4F9A91', '#6A9A63', '#A3A05C', '#C2905E', '#B8746E', '#96718F', '#6D74A3']
 
 export function DonutChart({
   slices,
@@ -43,6 +43,11 @@ export function DonutChart({
     )
   }
 
+  // Gap (in SVG arc units) creates the 1px white border between slices.
+  // Only apply when there are multiple non-zero slices.
+  const nonZero = slices.filter(s => s.count > 0).length
+  const gap     = nonZero > 1 ? 1.5 : 0
+
   let cumulative = 0
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
@@ -50,7 +55,7 @@ export function DonutChart({
       {slices.map((s, i) => {
         if (s.count === 0) return null
         const frac      = s.count / total
-        const dashLen   = frac * circ
+        const dashLen   = frac * circ - gap
         const dashOff   = -(cumulative / total) * circ
         cumulative += s.count
         const color     = SPOT_COLORS[i % SPOT_COLORS.length]
@@ -62,7 +67,7 @@ export function DonutChart({
             fill="none"
             stroke={color}
             strokeWidth={isHovered ? sw + 3 : sw}
-            strokeDasharray={`${dashLen} ${circ}`}
+            strokeDasharray={`${Math.max(0, dashLen)} ${circ}`}
             strokeDashoffset={dashOff}
             transform={`rotate(-90 ${cx} ${cy})`}
             style={{ transition: 'stroke-width 0.15s ease', cursor: 'default' }}

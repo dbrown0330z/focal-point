@@ -50,13 +50,16 @@ function DonutChart({ categories, total, colors }: {
   const cy = 50
   const C  = 2 * Math.PI * r
 
+  const nonZero  = categories.filter(c => c.count > 0).length
+  const gap      = nonZero > 1 ? 1.5 : 0
+
   const segments: { dash: string; offset: number; color: string }[] = []
   let cumulative = 0
 
   categories.forEach((cat, i) => {
     if (cat.count === 0 || total === 0) return
     const arc = (cat.count / total) * C
-    segments.push({ dash: `${arc} ${C - arc}`, offset: -cumulative, color: colors[i % colors.length] })
+    segments.push({ dash: `${Math.max(0, arc - gap)} ${C}`, offset: -cumulative, color: colors[i % colors.length] })
     cumulative += arc
   })
 

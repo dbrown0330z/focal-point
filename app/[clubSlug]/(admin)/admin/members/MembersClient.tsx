@@ -314,7 +314,7 @@ function getEngagement(competitionsThisYear: number) {
 
 // ─── Submission donut chart ───────────────────────────────────────────────────
 
-const DONUT_COLORS = ['#1E4D8C', '#0097A7', '#6C47D4', '#E65100', '#00796B', '#AD1457', '#7B6B38']
+const DONUT_COLORS = ['#5B86A8', '#4F9A91', '#6A9A63', '#A3A05C', '#C2905E', '#B8746E', '#96718F', '#6D74A3']
 
 function SubmissionDonut({ categories }: { categories: Record<string, number> }) {
   const entries = Object.entries(categories).filter(([, v]) => v > 0)
@@ -326,21 +326,35 @@ function SubmissionDonut({ categories }: { categories: Record<string, number> })
 
   const total = entries.reduce((sum, [, v]) => sum + v, 0)
   const cx = 34, cy = 34, r = 25, sw = 9
+  // Inner/outer radius of the donut ring for the white separator lines
+  const rInner = r - sw / 2, rOuter = r + sw / 2
 
   let cumAngle = -Math.PI / 2
   const segments = entries.map(([name, count], i) => {
     const slice = (count / total) * 2 * Math.PI
-    if (entries.length === 1) return { name, count, color: DONUT_COLORS[i % DONUT_COLORS.length], path: null }
+    if (entries.length === 1) return { name, count, color: DONUT_COLORS[i % DONUT_COLORS.length], path: null, startAngle: cumAngle }
     const x1 = cx + r * Math.cos(cumAngle)
     const y1 = cy + r * Math.sin(cumAngle)
+    const startAngle = cumAngle
     cumAngle += slice
     const x2 = cx + r * Math.cos(cumAngle)
     const y2 = cy + r * Math.sin(cumAngle)
     return {
       name, count, color: DONUT_COLORS[i % DONUT_COLORS.length],
       path: `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${slice > Math.PI ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`,
+      startAngle,
     }
   })
+
+  // Compute white separator line endpoints at each segment boundary
+  const separators = entries.length > 1
+    ? segments.map(s => ({
+        x1: (cx + rInner * Math.cos(s.startAngle)).toFixed(2),
+        y1: (cy + rInner * Math.sin(s.startAngle)).toFixed(2),
+        x2: (cx + rOuter * Math.cos(s.startAngle)).toFixed(2),
+        y2: (cy + rOuter * Math.sin(s.startAngle)).toFixed(2),
+      }))
+    : []
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.75 }}>
@@ -353,6 +367,9 @@ function SubmissionDonut({ categories }: { categories: Record<string, number> })
               <path key={i} d={s.path} fill="none" stroke={s.color} strokeWidth={sw} />
             ))
           )}
+          {separators.map((sep, i) => (
+            <line key={i} x1={sep.x1} y1={sep.y1} x2={sep.x2} y2={sep.y2} stroke="#fff" strokeWidth={1} />
+          ))}
           <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle"
             fontSize="12" fontWeight="700" fill="currentColor">{total}</text>
         </svg>
