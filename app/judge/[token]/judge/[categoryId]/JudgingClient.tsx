@@ -487,6 +487,28 @@ export default function JudgingClient({
   const [gridSize,     setGridSize]     = useState<GridSize>('L')
   const [bucketFilter, setBucketFilter] = useState<BucketFilter>('all')
 
+  // Thumbnail grid display order — committed only on explicit "Apply sort" click so
+  // cards don't jump around under the judge's mouse while they move a slider.
+  // The ranked list sub-view always sorts live (it's inherently score-ordered).
+  const [displayOrder, setDisplayOrder] = useState<string[]>(() => submissions.map(s => s.id))
+  const [sortStale,    setSortStale]    = useState(false)
+
+  function applySort(direction: 'score-desc' | 'score-asc' = listSort) {
+    setDisplayOrder(
+      [...submissions].sort((a, b) => {
+        const sa = localScores[a.id]?.score ?? null
+        const sb = localScores[b.id]?.score ?? null
+        if (sa === null && sb === null) return 0
+        if (sa === null) return 1
+        if (sb === null) return -1
+        const diff = direction === 'score-asc' ? sa - sb : sb - sa
+        if (diff !== 0) return diff
+        return (localScores[a.id]?.rank ?? 9999) - (localScores[b.id]?.rank ?? 9999)
+      }).map(s => s.id)
+    )
+    setSortStale(false)
+  }
+
   // Restore grid size preference
   useEffect(() => {
     const stored = localStorage.getItem('judge_thumb_size')
@@ -556,20 +578,23 @@ export default function JudgingClient({
     // Bucket filter
     if (bucketFilter === 'unsorted') base = base.filter(s => !bucketMap[s.id])
     else if (bucketFilter !== 'all') base = base.filter(s => bucketMap[s.id] === bucketFilter)
-    // Sort in grid view (applies to both thumbnail grid and ranked list subview)
     if (view === 'grid') {
-      return [...base].sort((a, b) => {
-        const sa = localScores[a.id]?.score ?? null
-        const sb = localScores[b.id]?.score ?? null
-        if (sa === null && sb === null) return 0
-        if (sa === null) return 1
-        if (sb === null) return -1
-        const diff = listSort === 'score-asc' ? sa - sb : sb - sa
-        if (diff !== 0) return diff
-        const ra = localScores[a.id]?.rank ?? Infinity
-        const rb = localScores[b.id]?.rank ?? Infinity
-        return ra - rb
-      })
+      if (gridSubView === 'list') {
+        // Ranked list is inherently score-ordered — sort live so the groups are always correct
+        return [...base].sort((a, b) => {
+          const sa = localScores[a.id]?.score ?? null
+          const sb = localScores[b.id]?.score ?? null
+          if (sa === null && sb === null) return 0
+          if (sa === null) return 1
+          if (sb === null) return -1
+          const diff = listSort === 'score-asc' ? sa - sb : sb - sa
+          if (diff !== 0) return diff
+          return (localScores[a.id]?.rank ?? 9999) - (localScores[b.id]?.rank ?? 9999)
+        })
+      }
+      // Thumbnail grid: use committed displayOrder so cards don't jump while the judge
+      // is moving a slider. Judge clicks "Sort" explicitly to reorder.
+      return [...base].sort((a, b) => displayOrder.indexOf(a.id) - displayOrder.indexOf(b.id))
     }
     return base
   })()
@@ -623,6 +648,7 @@ export default function JudgingClient({
   function handleScoreChange(submissionId: string, score: number) {
     setLocalScores(prev => ({ ...prev, [submissionId]: { ...prev[submissionId], score } }))
     scheduleAutoSave(submissionId, score)
+    setSortStale(true)   // grid thumbnail order is now stale — judge must click Sort to reorder
   }
 
   function handleNotesChange(submissionId: string, notes: string) {
@@ -1067,25 +1093,47 @@ export default function JudgingClient({
           <div style={{ flex: 1 }} />
 
           {view === 'grid' && (
-            <div style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
-              <select
-                value={listSort}
-                onChange={e => setListSort(e.target.value as typeof listSort)}
-                style={{
-                  appearance: 'none', WebkitAppearance: 'none',
-                  padding: '4px 24px 4px 8px', borderRadius: 6, fontSize: 13,
-                  border: '1px solid var(--border-default)',
-                  background: 'var(--surface-2)', color: 'var(--text-primary)',
-                  cursor: 'pointer', outline: 'none', fontFamily: 'inherit',
-                }}
-              >
-                <option value="score-desc">Score – high to low</option>
-                <option value="score-asc">Score – low to high</option>
-              </select>
-              <span style={{
-                position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-                pointerEvents: 'none', color: 'var(--text-tertiary)', fontSize: 11, lineHeight: 1,
-              }}>▾</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+              {/* Direction selector */}
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <select
+                  value={listSort}
+                  onChange={e => { setListSort(e.target.value as typeof listSort); setSortStale(true) }}
+                  style={{
+                    appearance: 'none', WebkitAppearance: 'none',
+                    padding: '4px 24px 4px 8px', borderRadius: 6, fontSize: 13,
+                    border: '1px solid var(--border-default)',
+                    background: 'var(--surface-2)', color: 'var(--text-primary)',
+                    cursor: 'pointer', outline: 'none', fontFamily: 'inherit',
+                  }}
+                >
+                  <option value="score-desc">Score – high to low</option>
+                  <option value="score-asc">Score – low to high</option>
+                </select>
+                <span style={{
+                  position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                  pointerEvents: 'none', color: 'var(--text-tertiary)', fontSize: 11, lineHeight: 1,
+                }}>▾</span>
+              </div>
+              {/* Explicit sort trigger — only active for thumbnail grid */}
+              {gridSubView === 'grid' && (
+                <button
+                  onClick={() => applySort()}
+                  title="Apply sort order to grid"
+                  style={{
+                    padding: '4px 12px', borderRadius: 6, fontSize: 13, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                    border: sortStale
+                      ? '1.5px solid var(--action-primary)'
+                      : '1px solid var(--border-default)',
+                    background: sortStale ? 'var(--action-primary)' : 'transparent',
+                    color:      sortStale ? '#fff' : 'var(--text-tertiary)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {sortStale ? 'Sort ↕' : '↕ Sorted'}
+                </button>
+              )}
             </div>
           )}
 
