@@ -27,7 +27,8 @@ export default function CategoryCard({
 }) {
   const [hovered, setHovered] = useState(false)
 
-  const scorePct  = !isAwardsOnly && total > 0 ? (scored / total) * 100 : 100
+  const isEmpty   = total === 0 && !isAwardsOnly
+  const scorePct  = !isAwardsOnly && total > 0 ? (scored / total) * 100 : 0
   const scoreDone = isAwardsOnly || (total > 0 && scored >= total)
   const isFullyDone = scoreDone && (!awardsEnabled || awardsComplete)
   const hasStarted  = scored > 0 || awardsComplete
@@ -53,6 +54,58 @@ export default function CategoryCard({
 
   const isComplete = status === 'complete'
 
+  // ── Empty category — not interactive ──────────────────────────────────────
+  if (isEmpty) {
+    return (
+      <section style={{
+        borderRadius: 12,
+        border:       '1px solid var(--border-subtle)',
+        background:   'var(--surface-1)',
+        padding:      '16px 20px',
+        opacity:      0.6,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h3 style={{
+              fontFamily:   'var(--font-heading)',
+              fontSize:     17,
+              fontWeight:   600,
+              letterSpacing: '-0.01em',
+              color:        'var(--text-primary)',
+              margin:       '0 0 6px',
+              overflow:     'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace:   'nowrap',
+            }}>
+              {name}
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>
+              No images in this category
+            </p>
+          </div>
+          <button
+            disabled
+            style={{
+              flexShrink:   0,
+              fontSize:     13,
+              fontWeight:   500,
+              padding:      '7px 16px',
+              borderRadius: 8,
+              border:       '1px solid var(--border-subtle)',
+              background:   'transparent',
+              color:        'var(--text-disabled)',
+              cursor:       'not-allowed',
+              whiteSpace:   'nowrap',
+            }}
+          >
+            Start →
+          </button>
+        </div>
+      </section>
+    )
+  }
+
+  // ── Normal interactive card ───────────────────────────────────────────────
   return (
     <Link href={href} style={{ textDecoration: 'none' }}>
       <section

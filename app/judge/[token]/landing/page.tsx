@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import CategoryCard from './CategoryCard'
 import SubmitButton from './SubmitButton'
 import StatusBadge, { type JudgeStatus } from './StatusBadge'
+import ResetJudgingButton from './ResetJudgingButton'
 import type { AwardTier } from '@/types/competition'
 
 export default async function JudgeLandingPage({
@@ -153,34 +154,29 @@ export default async function JudgeLandingPage({
   const formatDate = (d: Date) =>
     d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
 
-  const headlines = [
-    <>The shutter has clicked.{' '}<span style={{ color: 'var(--text-secondary)' }}>Now it&apos;s your turn, {firstName}.</span></>,
-    <>The images have been captured.{' '}<span style={{ color: 'var(--text-secondary)' }}>Now they await your verdict, {firstName}.</span></>,
-    <>Aperture set, images loaded.{' '}<span style={{ color: 'var(--text-secondary)' }}>The rest is up to you, {firstName}.</span></>,
-    <>Welcome back, {firstName}.{' '}<span style={{ color: 'var(--text-secondary)' }}>The images are ready for your eye.</span></>,
-  ]
-  // Deterministic pick — stable across renders, avoids hydration mismatch from Math.random()
-  const headlineIdx = judgeToken.judge_name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % headlines.length
-  const headline = headlines[headlineIdx]
-
   return (
     <div style={{ minHeight: '100vh', background: 'var(--surface-0)', color: 'var(--text-primary)' }}>
 
       {/* Welcome banner */}
       <section style={{ borderBottom: '1px solid var(--border-default)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '64px 24px 72px' }}>
-          <h1 style={{
-            fontFamily:    'var(--font-heading)',
-            fontSize:      'clamp(32px, 5vw, 56px)',
-            fontWeight:    500,
-            lineHeight:    1.15,
-            letterSpacing: '-0.02em',
-            color:         'var(--text-primary)',
-            margin:        '0 0 24px',
-            maxWidth:      800,
-          }}>
-            {headline}
-          </h1>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24, marginBottom: 20 }}>
+            <h1 style={{
+              fontFamily:    'var(--font-heading)',
+              fontSize:      'clamp(32px, 5vw, 56px)',
+              fontWeight:    500,
+              lineHeight:    1.15,
+              letterSpacing: '-0.02em',
+              color:         'var(--text-primary)',
+              margin:        0,
+              maxWidth:      800,
+            }}>
+              Welcome {firstName}
+            </h1>
+            <div style={{ paddingTop: 8, flexShrink: 0 }}>
+              <ResetJudgingButton token={token} />
+            </div>
+          </div>
           <p style={{
             fontSize:   'clamp(15px, 2vw, 18px)',
             lineHeight: 1.6,
@@ -188,9 +184,7 @@ export default async function JudgeLandingPage({
             margin:     0,
             maxWidth:   600,
           }}>
-            You&apos;re judging{' '}
-            <strong style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{competition.short_title ?? competition.title}</strong>.
-            Work through each category below — your progress saves automatically.
+            Happy to have you judging our competition.
           </p>
         </div>
       </section>
@@ -606,32 +600,23 @@ export default async function JudgeLandingPage({
                             ? 'Score every image across all categories to submit.'
                             : 'Complete awards assignment in all categories to submit.'}
                       </p>
-                      {allDone ? (
-                        <SubmitButton
-                          token={token}
-                          judgeName={judgeToken.judge_name}
-                          competitionTitle={competition.short_title ?? competition.title}
-                          awardsEnabled={awardsEnabled}
-                          isAwardsOnly={isAwardsOnly}
-                        />
-                      ) : (
-                        <button
-                          disabled
-                          style={{
-                            width:        '100%',
-                            borderRadius: 10,
-                            padding:      '15px 20px',
-                            fontSize:     16,
-                            fontWeight:   700,
-                            border:       '1px solid var(--border-default)',
-                            background:   'none',
-                            color:        'var(--text-disabled)',
-                            cursor:       'not-allowed',
-                          }}
-                        >
-                          {awardsEnabled ? 'Submit scores and awards' : 'Submit all scores'}
-                        </button>
-                      )}
+                      {/* Submit disabled while in testing mode — remove this wrapper to re-enable */}
+                      <button
+                        disabled
+                        style={{
+                          width:        '100%',
+                          borderRadius: 10,
+                          padding:      '15px 20px',
+                          fontSize:     16,
+                          fontWeight:   700,
+                          border:       '1px solid var(--border-default)',
+                          background:   'none',
+                          color:        'var(--text-disabled)',
+                          cursor:       'not-allowed',
+                        }}
+                      >
+                        {awardsEnabled ? 'Submit scores and awards' : 'Submit all scores'}
+                      </button>
                     </div>
                   </div>
                 )}
