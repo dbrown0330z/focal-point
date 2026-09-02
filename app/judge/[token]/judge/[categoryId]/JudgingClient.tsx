@@ -483,7 +483,7 @@ export default function JudgingClient({
   const [pendingView, setPendingView] = useState<'grid' | 'single'>('grid')
 
   const [gridSubView,  setGridSubView]  = useState<GridSubView>('grid')
-  const [listSort,     setListSort]     = useState<'score-desc' | 'score-asc'>('score-desc')
+  const [listSort,     setListSort]     = useState<'score-desc' | 'score-asc' | 'name-asc' | 'name-desc'>('score-desc')
   const [gridSize,     setGridSize]     = useState<GridSize>('L')
   const [bucketFilter, setBucketFilter] = useState<BucketFilter>('all')
 
@@ -493,9 +493,11 @@ export default function JudgingClient({
   const [displayOrder, setDisplayOrder] = useState<string[]>(() => submissions.map(s => s.id))
   const [sortStale,    setSortStale]    = useState(false)
 
-  function applySort(direction: 'score-desc' | 'score-asc' = listSort) {
+  function applySort(direction: 'score-desc' | 'score-asc' | 'name-asc' | 'name-desc' = listSort) {
     setDisplayOrder(
       [...submissions].sort((a, b) => {
+        if (direction === 'name-asc')  return a.imageTitle.localeCompare(b.imageTitle)
+        if (direction === 'name-desc') return b.imageTitle.localeCompare(a.imageTitle)
         const sa = localScores[a.id]?.score ?? null
         const sb = localScores[b.id]?.score ?? null
         if (sa === null && sb === null) return 0
@@ -582,6 +584,8 @@ export default function JudgingClient({
       if (gridSubView === 'list') {
         // Ranked list is inherently score-ordered — sort live so the groups are always correct
         return [...base].sort((a, b) => {
+          if (listSort === 'name-asc')  return a.imageTitle.localeCompare(b.imageTitle)
+          if (listSort === 'name-desc') return b.imageTitle.localeCompare(a.imageTitle)
           const sa = localScores[a.id]?.score ?? null
           const sb = localScores[b.id]?.score ?? null
           if (sa === null && sb === null) return 0
@@ -1077,7 +1081,7 @@ export default function JudgingClient({
                   cursor: 'pointer', outline: 'none', fontFamily: 'inherit',
                 }}
               >
-                <option value="all">All buckets</option>
+                <option value="all">All triage buckets</option>
                 <option value="strong">Strong</option>
                 <option value="maybe">Maybe</option>
                 <option value="weak">Weak</option>
@@ -1109,6 +1113,8 @@ export default function JudgingClient({
                 >
                   <option value="score-desc">Score – high to low</option>
                   <option value="score-asc">Score – low to high</option>
+                  <option value="name-asc">Name A – Z</option>
+                  <option value="name-desc">Name Z – A</option>
                 </select>
                 <span style={{
                   position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
@@ -1141,6 +1147,7 @@ export default function JudgingClient({
             <div style={{
               display: 'flex', background: 'var(--surface-0)', borderRadius: 7,
               border: '1px solid var(--border-default)', padding: 2, gap: 2, flexShrink: 0,
+              marginLeft: 10,
             }}>
               {([{ value: 'M', label: 'S' }, { value: 'L', label: 'L' }] as { value: GridSize; label: string }[]).map(({ value, label }) => (
                 <button key={value} onClick={() => setGridSize(value)} style={{
