@@ -27,7 +27,7 @@ const SECTIONS = [
     tips: [
       'Triage doesn\'t assign scores — it\'s purely for rough grouping.',
       'If the strip is too wide to see all at once, use the ‹ › arrows on each side to scroll through.',
-      'You can skip Triage entirely and go straight to Grid or Single view using the controls at the top.',
+      'You can skip Triage entirely and go straight to Grid or Single view using the controls at the top. Keyboard shortcuts: T = Quick Triage, G = Grid, S = Single.',
     ],
   },
   {
@@ -56,6 +56,8 @@ const SECTIONS = [
     tips: [
       'Flagged images get a purple ⚑ badge — useful for ones you want to revisit.',
       'The filmstrip at the bottom shows all images in the current category. Flagged images have a purple border; scored images show their score. Click any thumbnail to jump there.',
+      'The download button (↓) in the score panel lets you save the full-size image to your device.',
+      'If an image must be excluded from judging, use the "Disqualify image…" link at the bottom of the score panel. You\'ll be asked for a reason, which is saved for the club administrator.',
       'The progress bar in the top bar updates in real time.',
     ],
   },

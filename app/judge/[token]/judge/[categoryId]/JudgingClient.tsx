@@ -121,7 +121,7 @@ type LocalScore = {
 
 // ─── DraggableCard (triage mode) ──────────────────────────────────────────────
 function DraggableCard({
-  sub, localScore, bucketId, scoreMin, scoreMax, isDragOverlay, onView, onReturn, rank,
+  sub, localScore, bucketId, scoreMin, scoreMax, isDragOverlay, onView, onReturn, rank, isDQ,
 }: {
   sub:            SubmissionForJudge
   localScore:     LocalScore
@@ -132,6 +132,7 @@ function DraggableCard({
   onView?:        () => void
   onReturn?:      () => void
   rank?:          number
+  isDQ?:          boolean
 }) {
   const { theme: cardTheme } = useTheme()
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: sub.id })
@@ -186,6 +187,16 @@ function DraggableCard({
             background: localFlagColor, color: '#fff',
             fontSize: 12, borderRadius: 3, padding: '1px 5px', lineHeight: 1.5, pointerEvents: 'none',
           }}>⚑</span>
+        )}
+        {/* DQ badge */}
+        {isDQ && (
+          <span style={{
+            position: 'absolute', bottom: 3, right: 3,
+            background: '#D32F2F', color: '#fff',
+            fontSize: 10, fontWeight: 700, borderRadius: 3,
+            padding: '1px 5px', lineHeight: 1.5, pointerEvents: 'none',
+            letterSpacing: '0.04em',
+          }}>DQ</span>
         )}
       </div>
 
@@ -251,7 +262,7 @@ function DraggableCard({
 
 // ─── BucketColumn (triage droppable) ──────────────────────────────────────────
 function BucketColumn({
-  bucket, items, localScores, submissions, scoreMin, scoreMax, onJumpToGrid, onViewSub, onReturn, rankMap,
+  bucket, items, localScores, submissions, scoreMin, scoreMax, onJumpToGrid, onViewSub, onReturn, rankMap, dqMap,
 }: {
   bucket:       ThemedBucket
   items:        string[]
@@ -263,6 +274,7 @@ function BucketColumn({
   onViewSub:    (id: string) => void
   onReturn:     (id: string) => void
   rankMap:      Record<string, number>
+  dqMap:        Record<string, string>
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: bucket.id })
   return (
@@ -307,6 +319,7 @@ function BucketColumn({
               key={id} sub={sub} localScore={localScores[id]}
               bucketId={bucket.id as BucketId} scoreMin={scoreMin} scoreMax={scoreMax}
               onView={() => onViewSub(id)} onReturn={() => onReturn(id)} rank={rankMap[id]}
+              isDQ={!!dqMap[id]}
             />
           )
         })}
@@ -322,7 +335,7 @@ function BucketColumn({
 
 // ─── UnsortedPool (triage droppable — horizontal scrolling strip) ────────────
 function UnsortedPool({
-  items, localScores, submissions, scoreMin, scoreMax, rankMap,
+  items, localScores, submissions, scoreMin, scoreMax, rankMap, dqMap,
 }: {
   items:       string[]
   localScores: Record<string, LocalScore>
@@ -330,6 +343,7 @@ function UnsortedPool({
   scoreMin:    number
   scoreMax:    number
   rankMap:     Record<string, number>
+  dqMap:       Record<string, string>
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: 'unsorted' })
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -403,7 +417,7 @@ function UnsortedPool({
               <DraggableCard
                 key={id} sub={sub} localScore={localScores[id]}
                 bucketId={null} scoreMin={scoreMin} scoreMax={scoreMax}
-                rank={rankMap[id]}
+                rank={rankMap[id]} isDQ={!!dqMap[id]}
               />
             )
           })}
@@ -488,6 +502,11 @@ export default function JudgingClient({
   const [displayOrder, setDisplayOrder] = useState<string[]>(() => submissions.map(s => s.id))
   const [sortStale,    setSortStale]    = useState(false)
 
+  // Disqualification map — submissionId → reason (persisted in localStorage)
+  const [dqMap,     setDqMap]     = useState<Record<string, string>>({})
+  const [dqModalId, setDqModalId] = useState<string | null>(null)
+  const [dqReason,  setDqReason]  = useState('')
+
   function applySort(direction: 'score-desc' | 'score-asc' | 'name-asc' | 'name-desc' = listSort) {
     setDisplayOrder(
       [...submissions].sort((a, b) => {
@@ -514,6 +533,18 @@ export default function JudgingClient({
   useEffect(() => {
     localStorage.setItem('judge_thumb_size', gridSize)
   }, [gridSize])
+
+  // Restore / persist DQ map
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(`judge_dq_${token}_${categoryId}`)
+      if (stored) setDqMap(JSON.parse(stored))
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => {
+    try { localStorage.setItem(`judge_dq_${token}_${categoryId}`, JSON.stringify(dqMap)) } catch {}
+  }, [dqMap, token, categoryId])
 
   const [localScores, setLocalScores] = useState<Record<string, LocalScore>>(() => {
     const init: Record<string, LocalScore> = {}
@@ -706,6 +737,27 @@ export default function JudgingClient({
     setShowApplyPrompt(false)
     setView(pendingView)
     setCurrentIdx(0)
+  }
+
+  // ── Download full-size image ────────────────────────────────────────────────
+  function downloadCurrentImage() {
+    if (!currentSub) return
+    const url = currentSub.fullUrl
+    const rawName = url.split('?')[0].split('/').pop() ?? 'image'
+    const ext     = rawName.split('.').pop() ?? 'jpg'
+    const filename = currentSub.imageTitle.replace(/[^a-z0-9_\-]/gi, '_') + '.' + ext
+    fetch(url)
+      .then(r => r.blob())
+      .then(blob => {
+        const a = document.createElement('a')
+        a.href     = URL.createObjectURL(blob)
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        setTimeout(() => URL.revokeObjectURL(a.href), 10000)
+      })
+      .catch(() => window.open(url, '_blank'))
   }
 
   // ── Keyboard shortcuts ──────────────────────────────────────────────────────
@@ -908,6 +960,66 @@ export default function JudgingClient({
         </div>
       )}
 
+      {/* Disqualify modal */}
+      {dqModalId && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 24,
+        }}>
+          <div style={{
+            background: 'var(--surface-2)', border: '1px solid var(--border-default)',
+            borderRadius: 14, padding: '28px 28px 24px', maxWidth: 420, width: '100%',
+          }}>
+            <h2 style={{
+              fontFamily: 'var(--font-primary)', fontSize: 18, fontWeight: 700,
+              color: 'var(--text-primary)', margin: '0 0 8px', letterSpacing: '-0.01em',
+            }}>Disqualify this image?</h2>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 16px' }}>
+              Please provide a reason. This will be recorded for the club administrator to review.
+            </p>
+            <textarea
+              value={dqReason}
+              onChange={e => setDqReason(e.target.value)}
+              placeholder="e.g. Post-processing outside competition rules; image not taken by the entrant…"
+              rows={3}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                padding: '10px 12px', fontSize: 14,
+                border: '1px solid var(--border-default)', borderRadius: 8,
+                background: 'var(--surface-1)', color: 'var(--text-primary)',
+                fontFamily: 'inherit', lineHeight: 1.5, resize: 'vertical',
+                marginBottom: 20, outline: 'none',
+              }}
+            />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => { setDqModalId(null); setDqReason('') }}
+                style={{
+                  background: 'none', border: '1px solid var(--border-default)', borderRadius: 8,
+                  padding: '9px 20px', fontSize: 14, color: 'var(--text-secondary)',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >Cancel</button>
+              <button
+                onClick={() => {
+                  if (!dqReason.trim()) return
+                  setDqMap(prev => ({ ...prev, [dqModalId]: dqReason.trim() }))
+                  setDqModalId(null)
+                  setDqReason('')
+                }}
+                disabled={!dqReason.trim()}
+                style={{
+                  background: '#D32F2F', color: '#fff', border: 'none',
+                  borderRadius: 8, padding: '9px 20px', fontSize: 14, fontWeight: 600,
+                  cursor: dqReason.trim() ? 'pointer' : 'default', fontFamily: 'inherit',
+                  opacity: dqReason.trim() ? 1 : 0.5,
+                }}
+              >Confirm disqualification</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Submitted overlay */}
       {isSubmitted && (
         <div style={{
@@ -963,6 +1075,7 @@ export default function JudgingClient({
             return (
               <button
                 onClick={() => setView('triage')}
+                title="Quick Triage  (T)"
                 style={{
                   padding: '5px 18px',
                   background: active ? 'var(--toggle-selected)' : 'transparent',
@@ -989,14 +1102,15 @@ export default function JudgingClient({
 
           {/* Right group: Grid | Single (connected 2-button segment) */}
           {([
-            { id: 'grid',   label: 'Grid',   onClick: () => switchToScoreView('grid') },
-            { id: 'single', label: 'Single', onClick: () => switchToScoreView('single') },
+            { id: 'grid',   label: 'Grid',   title: 'Grid view  (G)',   onClick: () => switchToScoreView('grid') },
+            { id: 'single', label: 'Single', title: 'Single view  (S)', onClick: () => switchToScoreView('single') },
           ] as const).map((item, i) => {
             const active = view === item.id
             return (
               <button
                 key={item.id}
                 onClick={item.onClick}
+                title={item.title}
                 style={{
                   padding: '5px 18px',
                   background: active ? 'var(--toggle-selected)' : 'transparent',
@@ -1270,6 +1384,25 @@ export default function JudgingClient({
                       </button>
                     )}
 
+                    {/* DQ overlay on image */}
+                    {!zoom && currentSub && dqMap[currentSub.id] && (
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        background: 'rgba(211,47,47,0.15)',
+                        display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center',
+                        pointerEvents: 'none', zIndex: 3,
+                      }}>
+                        <div style={{
+                          background: 'rgba(211,47,47,0.88)', color: '#fff',
+                          padding: '10px 20px', borderRadius: 8, textAlign: 'center', maxWidth: '75%',
+                        }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Disqualified</div>
+                          <div style={{ fontSize: 12, marginTop: 5, opacity: 0.92, lineHeight: 1.4 }}>{dqMap[currentSub.id]}</div>
+                        </div>
+                      </div>
+                    )}
+
                   </div>
 
                   {/* Score panel — hidden in zoom */}
@@ -1282,15 +1415,45 @@ export default function JudgingClient({
                       overflow: 'hidden',
                     }}>
                       {/* Header */}
-                      <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border-default)', flexShrink: 0 }}>
-                        <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                          {currentSub && liveRankMap[currentSub.id] ? `#${liveRankMap[currentSub.id]}` : '—'}
-                        </span>
-                        <h2 style={{
-                          fontFamily: 'var(--font-lora, Lora, Georgia, serif)', fontSize: 16, fontWeight: 700,
-                          color: 'var(--text-primary)', margin: '2px 0 0', letterSpacing: '-0.01em',
-                          lineHeight: 1.3,
-                        }}>{currentSub?.imageTitle}</h2>
+                      <div style={{ padding: '14px 18px 12px', borderBottom: '1px solid var(--border-default)', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
+                          <div style={{ minWidth: 0 }}>
+                            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                              {currentSub && liveRankMap[currentSub.id] ? `#${liveRankMap[currentSub.id]}` : '—'}
+                            </span>
+                            <h2 style={{
+                              fontFamily: 'var(--font-lora, Lora, Georgia, serif)', fontSize: 16, fontWeight: 700,
+                              color: 'var(--text-primary)', margin: '2px 0 0', letterSpacing: '-0.01em',
+                              lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            }}>{currentSub?.imageTitle}</h2>
+                          </div>
+                          <button
+                            onClick={downloadCurrentImage}
+                            title="Download full-size image"
+                            style={{
+                              background: 'none', border: '1px solid var(--border-default)',
+                              borderRadius: 6, padding: '5px 7px', cursor: 'pointer',
+                              color: 'var(--text-secondary)', flexShrink: 0,
+                              display: 'flex', alignItems: 'center', marginTop: 2,
+                            }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                              <polyline points="7 10 12 15 17 10"/>
+                              <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                          </button>
+                        </div>
+                        {currentSub && dqMap[currentSub.id] && (
+                          <div style={{
+                            marginTop: 8, padding: '4px 8px',
+                            background: 'var(--status-error-bg)',
+                            border: '1px solid var(--status-error)',
+                            borderRadius: 5,
+                            fontSize: 11, color: 'var(--status-error-text)', fontWeight: 600,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>⛔ DQ: {dqMap[currentSub.id]}</div>
+                        )}
                       </div>
 
                       {/* Score section */}
@@ -1381,8 +1544,30 @@ export default function JudgingClient({
                           </button>
                         </div>
                         <p style={{ fontSize: 11, color: 'var(--text-hint)', margin: 0, textAlign: 'center' }}>
-                          ← → keys · Z zoom · F flag
+                          ← → navigate · T/G/S views · Z zoom · F flag
                         </p>
+                        {/* Disqualify link — subtle, single view only */}
+                        <div style={{ paddingTop: 10, textAlign: 'center' }}>
+                          {currentSub && dqMap[currentSub.id] ? (
+                            <button
+                              onClick={() => { const next = { ...dqMap }; delete next[currentSub!.id]; setDqMap(next) }}
+                              style={{
+                                background: 'none', border: 'none', padding: 0,
+                                fontSize: 12, color: 'var(--status-error)', cursor: 'pointer',
+                                fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: 2,
+                              }}
+                            >Remove disqualification</button>
+                          ) : (
+                            <button
+                              onClick={() => { setDqModalId(currentSub?.id ?? null); setDqReason('') }}
+                              style={{
+                                background: 'none', border: 'none', padding: 0,
+                                fontSize: 12, color: 'var(--text-hint)', cursor: 'pointer',
+                                fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: 2,
+                              }}
+                            >Disqualify image…</button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1559,6 +1744,14 @@ export default function JudgingClient({
                             fontSize: 12, fontWeight: 600, borderRadius: 3, padding: '2px 7px',
                           }}>⚑ Flagged</span>
                         )}
+                        {dqMap[sub.id] && (
+                          <span style={{
+                            position: 'absolute', bottom: 5, left: 5,
+                            background: '#D32F2F', color: '#fff',
+                            fontSize: 11, fontWeight: 700, borderRadius: 3, padding: '2px 6px',
+                            letterSpacing: '0.04em',
+                          }}>DQ</span>
+                        )}
                       </div>
 
                       <div style={{ padding: '10px 14px 14px' }}>
@@ -1686,7 +1879,7 @@ export default function JudgingClient({
               <UnsortedPool
                 items={sortPartitions.unsorted} localScores={localScores}
                 submissions={submissions} scoreMin={scoreMin} scoreMax={scoreMax}
-                rankMap={liveRankMap}
+                rankMap={liveRankMap} dqMap={dqMap}
               />
 
               {/* Bucket columns — fill remaining viewport height */}
@@ -1706,7 +1899,7 @@ export default function JudgingClient({
                       switchToScoreView('single')
                     }}
                     onReturn={id => setBucketMap(prev => ({ ...prev, [id]: null }))}
-                    rankMap={liveRankMap}
+                    rankMap={liveRankMap} dqMap={dqMap}
                   />
                 ))}
               </div>
