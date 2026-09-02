@@ -211,11 +211,7 @@ function CategoryButtons({
             }}
           >
             {cat.name}
-            {isFull
-              ? <span style={{ marginLeft: 5, opacity: 0.8 }}>· Full</span>
-              : cat.count !== undefined && cat.count > 0
-                ? <span style={{ marginLeft: 5, opacity: 0.55, fontSize: 11 }}>{cat.count}</span>
-                : null}
+            {isFull && <span style={{ marginLeft: 5, opacity: 0.8 }}>· Full</span>}
           </button>
         )
       })}
