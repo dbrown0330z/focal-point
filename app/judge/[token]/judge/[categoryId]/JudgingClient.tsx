@@ -363,13 +363,6 @@ function UnsortedPool({
 
   return (
     <div style={{ flexShrink: 0, marginBottom: 12 }}>
-      <p style={{
-        fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)',
-        textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px',
-      }}>
-        Unsorted — {items.length} remaining
-      </p>
-
       {/* Strip wrapper — arrow buttons overlay on left/right */}
       <div style={{ position: 'relative' }}>
         {canLeft && (
@@ -943,27 +936,24 @@ export default function JudgingClient({
         gridTemplateColumns: '1fr auto 1fr',
         alignItems: 'center', gap: 8, flexShrink: 0,
       }}>
-        {/* Left: category name (large serif) + Home link + progress */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden', minWidth: 0 }}>
-          {/* Line 1: category name */}
+        {/* Left: Home · category name · progress bar · scored count — all one line */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden', minWidth: 0 }}>
+          <Link href={`/judge/${token}/landing`} style={{
+            fontSize: 13, color: 'var(--action-primary)', textDecoration: 'none',
+            flexShrink: 0, fontFamily: 'inherit', whiteSpace: 'nowrap', fontWeight: 500,
+          }}>← Home</Link>
+          <span style={{ color: 'var(--border-default)', flexShrink: 0 }}>|</span>
           <span style={{
-            fontFamily: 'var(--font-primary)', fontSize: 18, fontWeight: 700,
-            color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            letterSpacing: '-0.015em', lineHeight: 1.2,
+            fontFamily: 'var(--font-primary)', fontSize: 17, fontWeight: 700,
+            color: 'var(--text-primary)', whiteSpace: 'nowrap',
+            letterSpacing: '-0.015em', flexShrink: 0,
           }}>{categoryName}</span>
-          {/* Line 2: Home link + scored count + mini progress */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Link href={`/judge/${token}/landing`} style={{
-              fontSize: 12, color: 'var(--action-primary)', textDecoration: 'none',
-              flexShrink: 0, fontFamily: 'inherit', whiteSpace: 'nowrap', fontWeight: 500,
-            }}>← Home</Link>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0, whiteSpace: 'nowrap' }}>
-              {scoredCount}/{submissions.length}
-            </span>
-            <div style={{ width: 36, height: 3, background: 'var(--surface-0)', borderRadius: 3, overflow: 'hidden', flexShrink: 0 }}>
-              <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? 'var(--status-success)' : 'var(--action-primary)', borderRadius: 3 }} />
-            </div>
+          <div style={{ flex: 1, height: 4, background: 'var(--surface-0)', borderRadius: 3, overflow: 'hidden', minWidth: 32 }}>
+            <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? 'var(--status-success)' : 'var(--action-primary)', borderRadius: 3 }} />
           </div>
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+            {scoredCount}/{submissions.length} scored
+          </span>
         </div>
         {/* Center: mode controls */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -1657,8 +1647,20 @@ export default function JudgingClient({
             overflow: 'hidden', padding: '16px 24px 16px',
           }}>
 
-            {/* Header row: reset (left) + hint (right) */}
+            {/* Header row: unsorted count (left) · hint + reset (right) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexShrink: 0 }}>
+              {sortPartitions.unsorted.length > 0 && (
+                <span style={{
+                  fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)',
+                  textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0,
+                }}>
+                  Unsorted — {sortPartitions.unsorted.length} remaining
+                </span>
+              )}
+              <span style={{ flex: 1 }} />
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5, flexShrink: 0 }}>
+                Drag into groups · click ✕ on a card to return it to the strip
+              </p>
               {Object.values(bucketMap).some(v => v !== null) && (
                 <button
                   onClick={() => setShowResetConfirm(true)}
@@ -1671,9 +1673,6 @@ export default function JudgingClient({
                   }}
                 >Reset triage</button>
               )}
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5, marginLeft: 'auto', textAlign: 'right' }}>
-                Drag into groups · click ✕ on a card to return it to the strip
-              </p>
             </div>
 
             <DndContext id="triage-dnd" sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
