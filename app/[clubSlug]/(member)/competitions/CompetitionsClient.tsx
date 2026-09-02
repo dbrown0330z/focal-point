@@ -853,18 +853,30 @@ function OpenCompetitionCard({
         </div>
         <div className="flex flex-col items-end gap-2.5">
           <PhasePill phase={phase} />
-          {canSubmit && phase !== 'judging' && (
-            <button
-              type="button"
-              onClick={onSubmitClick}
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white transition-colors"
-              style={{ background: 'var(--action-primary)' }}
-              onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--action-primary-hover)')}
-              onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--action-primary)')}
-            >
-              <IconUpload />
-              Submit an image
-            </button>
+          {phase !== 'judging' && (
+            canSubmit ? (
+              <button
+                type="button"
+                onClick={onSubmitClick}
+                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white transition-colors"
+                style={{ background: 'var(--action-primary)' }}
+                onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--action-primary-hover)')}
+                onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--action-primary)')}
+              >
+                <IconUpload />
+                Submit an image
+              </button>
+            ) : (
+              <div
+                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold"
+                style={{ background: 'var(--status-success-bg)', color: 'var(--status-success-text)', border: '1px solid rgba(46,125,50,0.25)' }}
+              >
+                <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                </svg>
+                All {competition.submission_limit} images submitted
+              </div>
+            )
           )}
         </div>
       </div>
