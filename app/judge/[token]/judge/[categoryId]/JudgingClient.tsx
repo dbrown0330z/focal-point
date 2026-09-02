@@ -1480,11 +1480,17 @@ export default function JudgingClient({
                             <span style={{
                               fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
                               fontFamily: 'var(--font-lora, Lora, Georgia, serif)',
-                              color: group.score !== null ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                              color: group.score !== null ? 'var(--text-primary)' : 'var(--text-secondary)',
                             }}>{group.score !== null ? group.score : 'Unscored'}</span>
                             {isTied && (
-                              <span style={{ fontSize: 14, color: 'var(--text-tertiary)' }}>
-                                · {group.subs.length} tied — drag to set preference
+                              <span style={{
+                                fontSize: 12, color: 'var(--action-primary)',
+                                background: 'rgba(26,111,196,0.08)',
+                                border: '1px solid rgba(26,111,196,0.20)',
+                                borderRadius: 9999, padding: '2px 9px',
+                                fontWeight: 500, whiteSpace: 'nowrap',
+                              }}>
+                                {group.subs.length} tied · drag to rank
                               </span>
                             )}
                             <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
@@ -2127,17 +2133,21 @@ function RankRow({
     }}>
       <span
         {...(isTied ? { ...attributes, ...listeners } : {})}
+        title={isTied ? 'Drag to set preference order' : undefined}
         style={{
-          display: 'flex', flexDirection: 'column', gap: 3,
-          cursor: isTied ? 'grab' : 'default', padding: '2px 4px',
-          color: isTied ? 'var(--text-tertiary)' : 'transparent',
-          flexShrink: 0, userSelect: 'none',
+          display: 'flex', flexDirection: 'column', gap: 4,
+          cursor: isTied ? 'grab' : 'default', padding: '4px 6px',
+          color: isTied ? 'var(--text-secondary)' : 'transparent',
+          flexShrink: 0, userSelect: 'none', borderRadius: 4,
+          transition: 'background 0.12s',
         }}
+        onMouseEnter={e => { if (isTied) (e.currentTarget as HTMLElement).style.background = 'var(--surface-1)' }}
+        onMouseLeave={e => { if (isTied) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
       >
         {[0, 1, 2].map(i => (
-          <span key={i} style={{ display: 'flex', gap: 3 }}>
-            <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'currentColor' }} />
-            <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'currentColor' }} />
+          <span key={i} style={{ display: 'flex', gap: 4 }}>
+            <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'currentColor' }} />
+            <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'currentColor' }} />
           </span>
         ))}
       </span>
