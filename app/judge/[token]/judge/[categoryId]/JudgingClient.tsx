@@ -384,7 +384,7 @@ export default function JudgingClient({
   const [pendingView, setPendingView] = useState<'grid' | 'single'>('grid')
 
   const [gridSubView,  setGridSubView]  = useState<GridSubView>('grid')
-  const [listSort,     setListSort]     = useState<'score-desc' | 'score-asc' | 'date'>('score-desc')
+  const [listSort,     setListSort]     = useState<'score-desc' | 'score-asc'>('score-desc')
   const [gridSize,     setGridSize]     = useState<GridSize>('L')
   const [bucketFilter, setBucketFilter] = useState<BucketFilter>('all')
 
@@ -457,9 +457,8 @@ export default function JudgingClient({
     // Bucket filter
     if (bucketFilter === 'unsorted') base = base.filter(s => !bucketMap[s.id])
     else if (bucketFilter !== 'all') base = base.filter(s => bucketMap[s.id] === bucketFilter)
-    // Sort for list sub-view
-    if (view === 'grid' && gridSubView === 'list') {
-      if (listSort === 'date') return base  // preserve original submission order
+    // Sort in grid view (applies to both thumbnail grid and ranked list subview)
+    if (view === 'grid') {
       return [...base].sort((a, b) => {
         const sa = localScores[a.id]?.score ?? null
         const sb = localScores[b.id]?.score ?? null
@@ -544,15 +543,8 @@ export default function JudgingClient({
 
   // ── View switching + apply-bucket prompt ────────────────────────────────────
   function switchToScoreView(targetView: 'grid' | 'single') {
-    if (!applyPromptDone) {
-      const hasBuckets  = submissions.some(s => bucketMap[s.id] !== null)
-      const hasUnscored = submissions.some(s => bucketMap[s.id] !== null && localScores[s.id]?.score === null)
-      if (hasBuckets && hasUnscored) {
-        setPendingView(targetView)
-        setShowApplyPrompt(true)
-        return
-      }
-    }
+    // Triage buckets are for rough sorting only — scores are not auto-assigned.
+    // Just switch directly to the scoring view; bucket state is preserved for reference.
     setView(targetView)
     setCurrentIdx(0)
   }
@@ -858,12 +850,17 @@ export default function JudgingClient({
                   position: 'relative', zIndex: active ? 1 : 0,
                   transition: 'background 0.12s, color 0.12s',
                 }}
-              >Triage</button>
+              >Quick Triage</button>
             )
           })()}
 
           {/* Separator */}
-          <div style={{ width: 1, height: 20, background: 'var(--border-default)', margin: '0 6px' }} />
+          <div style={{ width: 1, height: 20, background: 'var(--border-default)', margin: '0 18px' }} />
+
+          {/* Scoring views label */}
+          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)', marginRight: 6, whiteSpace: 'nowrap' }}>
+            Scoring views:
+          </span>
 
           {/* Right group: Grid | Single (connected 2-button segment) */}
           {([
@@ -919,77 +916,47 @@ export default function JudgingClient({
           padding: '7px 16px', display: 'flex', alignItems: 'center',
           gap: 6, flexShrink: 0, flexWrap: 'wrap',
         }}>
-          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)', marginRight: 2, whiteSpace: 'nowrap' }}>
-            Filter:
-          </span>
-          {(['all', 'unscored', 'scored', 'flagged'] as FilterMode[]).map(mode => (
-            <button key={mode} onClick={() => { setFilterMode(mode); setCurrentIdx(0) }} style={{
-              padding: '4px 10px', borderRadius: 6, fontSize: 13, fontWeight: 500,
-              cursor: 'pointer', fontFamily: 'inherit',
-              border: `1px solid ${filterMode === mode ? 'var(--toggle-selected)' : 'var(--border-default)'}`,
-              background: filterMode === mode ? 'var(--toggle-selected)' : 'transparent',
-              color: filterMode === mode ? '#fff' : 'var(--text-secondary)',
-              transition: 'all 0.12s',
-            }}>
-              {mode === 'all' ? 'All' : mode.charAt(0).toUpperCase() + mode.slice(1)}
-            </button>
-          ))}
+          {/* Filter button group — merged segment */}
+          <div style={{
+            display: 'flex', background: 'var(--surface-0)', borderRadius: 7,
+            border: '1px solid var(--border-default)', padding: 2, flexShrink: 0,
+          }}>
+            {(['all', 'unscored', 'scored', 'flagged'] as FilterMode[]).map((mode, i, arr) => (
+              <button key={mode} onClick={() => { setFilterMode(mode); setCurrentIdx(0) }} style={{
+                padding: '3px 10px', fontSize: 13, fontWeight: filterMode === mode ? 700 : 500,
+                cursor: 'pointer', fontFamily: 'inherit', border: 'none',
+                borderRadius: i === 0 ? '5px 0 0 5px' : i === arr.length - 1 ? '0 5px 5px 0' : 0,
+                background: filterMode === mode ? 'var(--action-primary)' : 'transparent',
+                color: filterMode === mode ? '#fff' : 'var(--text-secondary)',
+                transition: 'background 0.12s, color 0.12s', whiteSpace: 'nowrap',
+              }}>
+                {mode === 'all' ? 'All' : mode.charAt(0).toUpperCase() + mode.slice(1)}
+              </button>
+            ))}
+          </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>Bucket:</span>
-            <div style={{ position: 'relative', display: 'inline-block' }}>
+          <div style={{ flex: 1 }} />
+
+          {view === 'grid' && (
+            <div style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
               <select
-                value={bucketFilter}
-                onChange={e => { setBucketFilter(e.target.value as BucketFilter); setCurrentIdx(0) }}
+                value={listSort}
+                onChange={e => setListSort(e.target.value as typeof listSort)}
                 style={{
                   appearance: 'none', WebkitAppearance: 'none',
                   padding: '4px 24px 4px 8px', borderRadius: 6, fontSize: 13,
-                  border: `1px solid ${bucketFilter !== 'all' ? 'var(--action-primary)' : 'var(--border-default)'}`,
-                  background: bucketFilter !== 'all' ? 'rgba(26,111,196,0.08)' : 'var(--surface-2)',
-                  color: bucketFilter !== 'all' ? 'var(--action-primary)' : 'var(--text-primary)',
-                  fontWeight: bucketFilter !== 'all' ? 600 : 400,
+                  border: '1px solid var(--border-default)',
+                  background: 'var(--surface-2)', color: 'var(--text-primary)',
                   cursor: 'pointer', outline: 'none', fontFamily: 'inherit',
                 }}
               >
-                <option value="all">All</option>
-                <option value="strong">Strong</option>
-                <option value="maybe">Maybe</option>
-                <option value="weak">Weak</option>
-                <option value="unsorted">Unsorted</option>
+                <option value="score-desc">Score – high to low</option>
+                <option value="score-asc">Score – low to high</option>
               </select>
               <span style={{
                 position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
                 pointerEvents: 'none', color: 'var(--text-tertiary)', fontSize: 11, lineHeight: 1,
               }}>▾</span>
-            </div>
-          </div>
-
-          <div style={{ flex: 1 }} />
-
-          {view === 'grid' && gridSubView === 'list' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>Sort:</span>
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <select
-                  value={listSort}
-                  onChange={e => setListSort(e.target.value as typeof listSort)}
-                  style={{
-                    appearance: 'none', WebkitAppearance: 'none',
-                    padding: '4px 24px 4px 8px', borderRadius: 6, fontSize: 13,
-                    border: '1px solid var(--border-default)',
-                    background: 'var(--surface-2)', color: 'var(--text-primary)',
-                    cursor: 'pointer', outline: 'none', fontFamily: 'inherit',
-                  }}
-                >
-                  <option value="score-desc">Score (high to low)</option>
-                  <option value="score-asc">Score (low to high)</option>
-                  <option value="date">Submission date</option>
-                </select>
-                <span style={{
-                  position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-                  pointerEvents: 'none', color: 'var(--text-tertiary)', fontSize: 11, lineHeight: 1,
-                }}>▾</span>
-              </div>
             </div>
           )}
 
