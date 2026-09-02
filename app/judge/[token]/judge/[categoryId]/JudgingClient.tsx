@@ -376,13 +376,15 @@ function UnsortedPool({
             onPointerDown={e => e.stopPropagation()}
             onClick={() => scroll('left')}
             style={{
-              position: 'absolute', left: -2, top: '50%', transform: 'translateY(-50%)',
-              zIndex: 20, width: 32, height: 32,
-              background: 'var(--surface-2)', border: '1px solid var(--border-default)',
+              position: 'absolute', left: 4, top: '50%', transform: 'translateY(-50%)',
+              zIndex: 20, width: 40, height: 40,
+              background: 'rgba(0,0,0,0.72)',
+              border: '2px solid rgba(255,255,255,0.35)',
               borderRadius: '50%', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, color: 'var(--text-secondary)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
+              fontSize: 22, color: '#fff', fontWeight: 700,
+              boxShadow: '0 2px 12px rgba(0,0,0,0.40)',
+              backdropFilter: 'blur(4px)',
             }}
           >‹</button>
         )}
@@ -418,13 +420,15 @@ function UnsortedPool({
             onPointerDown={e => e.stopPropagation()}
             onClick={() => scroll('right')}
             style={{
-              position: 'absolute', right: -2, top: '50%', transform: 'translateY(-50%)',
-              zIndex: 20, width: 32, height: 32,
-              background: 'var(--surface-2)', border: '1px solid var(--border-default)',
+              position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
+              zIndex: 20, width: 40, height: 40,
+              background: 'rgba(0,0,0,0.72)',
+              border: '2px solid rgba(255,255,255,0.35)',
               borderRadius: '50%', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, color: 'var(--text-secondary)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
+              fontSize: 22, color: '#fff', fontWeight: 700,
+              boxShadow: '0 2px 12px rgba(0,0,0,0.40)',
+              backdropFilter: 'blur(4px)',
             }}
           >›</button>
         )}
@@ -1031,6 +1035,35 @@ export default function JudgingClient({
             ))}
           </div>
 
+          {/* Bucket filter — grid view only; sits right after the filter group */}
+          {view === 'grid' && (
+            <div style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
+              <select
+                value={bucketFilter}
+                onChange={e => { setBucketFilter(e.target.value as BucketFilter); setCurrentIdx(0) }}
+                style={{
+                  appearance: 'none', WebkitAppearance: 'none',
+                  padding: '4px 24px 4px 8px', borderRadius: 6, fontSize: 13,
+                  border: `1px solid ${bucketFilter !== 'all' ? 'var(--action-primary)' : 'var(--border-default)'}`,
+                  background: bucketFilter !== 'all' ? 'rgba(26,111,196,0.08)' : 'var(--surface-2)',
+                  color: bucketFilter !== 'all' ? 'var(--action-primary)' : 'var(--text-secondary)',
+                  fontWeight: bucketFilter !== 'all' ? 600 : 400,
+                  cursor: 'pointer', outline: 'none', fontFamily: 'inherit',
+                }}
+              >
+                <option value="all">All buckets</option>
+                <option value="strong">Strong</option>
+                <option value="maybe">Maybe</option>
+                <option value="weak">Weak</option>
+                <option value="unsorted">Unsorted</option>
+              </select>
+              <span style={{
+                position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                pointerEvents: 'none', color: 'var(--text-tertiary)', fontSize: 11, lineHeight: 1,
+              }}>▾</span>
+            </div>
+          )}
+
           <div style={{ flex: 1 }} />
 
           {view === 'grid' && (
@@ -1479,24 +1512,58 @@ export default function JudgingClient({
                         }}>{sub.imageTitle}</p>
 
                         <div onClick={e => e.stopPropagation()}>
-                          {/* Slider + score value */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                            <input
-                              type="range" min={scoreMin} max={scoreMax}
-                              step={allowHalfPoints ? 0.5 : 1}
-                              value={ls?.score ?? Math.round((scoreMin + scoreMax) / 2)}
-                              onChange={e => handleScoreChange(sub.id, Number(e.target.value))}
-                              style={{ flex: 1, accentColor: 'var(--action-primary)', cursor: 'pointer' }}
-                            />
-                            <HoverScoreInput
-                              score={ls?.score ?? null}
-                              scoreMin={scoreMin}
-                              scoreMax={scoreMax}
-                              defaultScore={Math.round((scoreMin + scoreMax) / 2)}
-                              fontSize={15}
-                              onScoreChange={n => handleScoreChange(sub.id, n)}
-                            />
-                          </div>
+                          {ls?.score === null ? (
+                            /* Unscored — show quick-pick buttons; no misleading slider position */
+                            <div style={{ marginBottom: 8 }}>
+                              <p style={{
+                                fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)',
+                                textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 5px',
+                              }}>Score</p>
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                {quickScores.map(qs => (
+                                  <button key={qs} onClick={() => handleScoreChange(sub.id, qs)} style={{
+                                    flex: 1, padding: '5px 0', borderRadius: 6, fontSize: 13, fontWeight: 600,
+                                    border: '1.5px solid var(--border-default)',
+                                    background: 'transparent', color: 'var(--text-secondary)',
+                                    cursor: 'pointer', fontFamily: 'inherit',
+                                    transition: 'background 0.1s, color 0.1s, border-color 0.1s',
+                                  }}
+                                    onMouseEnter={e => {
+                                      const el = e.currentTarget as HTMLButtonElement
+                                      el.style.background = 'var(--action-primary)'
+                                      el.style.color = '#fff'
+                                      el.style.borderColor = 'var(--action-primary)'
+                                    }}
+                                    onMouseLeave={e => {
+                                      const el = e.currentTarget as HTMLButtonElement
+                                      el.style.background = 'transparent'
+                                      el.style.color = 'var(--text-secondary)'
+                                      el.style.borderColor = 'var(--border-default)'
+                                    }}
+                                  >{qs}</button>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            /* Scored — show slider + editable number */
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                              <input
+                                type="range" min={scoreMin} max={scoreMax}
+                                step={allowHalfPoints ? 0.5 : 1}
+                                value={ls.score}
+                                onChange={e => handleScoreChange(sub.id, Number(e.target.value))}
+                                style={{ flex: 1, accentColor: 'var(--action-primary)', cursor: 'pointer' }}
+                              />
+                              <HoverScoreInput
+                                score={ls.score}
+                                scoreMin={scoreMin}
+                                scoreMax={scoreMax}
+                                defaultScore={ls.score}
+                                fontSize={15}
+                                onScoreChange={n => handleScoreChange(sub.id, n)}
+                              />
+                            </div>
+                          )}
 
                           {/* Flag + status */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
