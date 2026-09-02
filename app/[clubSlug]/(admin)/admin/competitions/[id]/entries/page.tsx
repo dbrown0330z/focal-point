@@ -1,16 +1,10 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireClubSlug } from '@/lib/club-context'
+import { EntryRow } from './EntryRow'
 
 export const dynamic = 'force-dynamic'
-
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-AU', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  })
-}
 
 export default async function CompetitionEntriesPage({
   params,
@@ -21,7 +15,6 @@ export default async function CompetitionEntriesPage({
   const clubSlug = await requireClubSlug()
   const admin    = createServiceClient()
 
-  // Fetch competition title
   const { data: competition } = await admin
     .from('competitions')
     .select('id, title, status, competition_categories(id, name)')
@@ -31,40 +24,44 @@ export default async function CompetitionEntriesPage({
   if (!competition) notFound()
 
   const categories = (competition.competition_categories as { id: string; name: string }[]) ?? []
-  const catMap     = Object.fromEntries(categories.map(c => [c.id, c.name]))
 
-  // Fetch all submissions with image and profile info
-  const { data: rows } = await admin
+  // Fetch submissions — note: profiles column is display_name, not full_name
+  const { data: rows, error: rowsError } = await admin
     .from('submissions')
-    .select('id, status, submitted_at, category_id, image_id, member_id, images(title, storage_path), profiles(full_name)')
+    .select('id, status, submitted_at, category_id, member_id, images(title, storage_path), profiles(display_name)')
     .eq('competition_id', id)
     .order('submitted_at', { ascending: true })
 
-  const submissions = (rows ?? []).map(r => {
-    const img  = r.images  as unknown as { title: string; storage_path: string } | null
-    const prof = r.profiles as unknown as { full_name: string | null } | null
+  if (rowsError) console.error('Entries query error:', rowsError.message)
+
+  type Row = typeof rows extends (infer R)[] | null ? R : never
+  const submissions = (rows ?? []).map((r: Row) => {
+    const img  = (r as unknown as { images:   { title: string; storage_path: string } | null }).images
+    const prof = (r as unknown as { profiles: { display_name: string } | null }).profiles
     return {
-      id:          r.id,
+      id:          r.id as string,
       status:      r.status as string,
-      createdAt:   r.submitted_at as string,
+      submittedAt: r.submitted_at as string,
       categoryId:  r.category_id as string | null,
-      imageId:     r.image_id   as string | null,
-      memberId:    r.member_id  as string | null,
       imageTitle:  img?.title ?? '—',
-      storagePath: img?.storage_path ?? '',
-      memberName:  prof?.full_name ?? 'Unknown member',
+      memberName:  prof?.display_name ?? 'Unknown member',
       publicUrl:   img?.storage_path
         ? admin.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl
         : null,
     }
   })
 
-  // Group by category for the summary header
+  const active    = submissions.filter(s => s.status === 'submitted')
+  const withdrawn = submissions.filter(s => s.status === 'withdrawn')
+
+  // Per-category counts (active only)
   const byCat: Record<string, number> = {}
-  for (const s of submissions) {
+  for (const s of active) {
     const key = s.categoryId ?? '__none__'
     byCat[key] = (byCat[key] ?? 0) + 1
   }
+
+  const showCategories = categories.length > 0
 
   return (
     <div className="space-y-6">
@@ -80,14 +77,16 @@ export default async function CompetitionEntriesPage({
         {competition.title}
       </Link>
 
-      {/* Page title + count */}
+      {/* Header */}
       <div className="flex items-baseline gap-3">
         <h1 className="text-2xl font-bold text-content-primary tracking-tight">Entries</h1>
-        <span className="text-sm text-content-secondary">{submissions.length} total</span>
+        <span className="text-sm text-content-secondary">
+          {active.length} submitted{withdrawn.length > 0 ? ` · ${withdrawn.length} withdrawn` : ''}
+        </span>
       </div>
 
       {/* Category summary chips */}
-      {categories.length > 0 && (
+      {showCategories && (
         <div className="flex flex-wrap gap-2">
           {categories.map(cat => (
             <span
@@ -111,93 +110,39 @@ export default async function CompetitionEntriesPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border-default bg-surface-0">
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-content-tertiary w-16">
-                  Image
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-content-tertiary">
-                  Title
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-content-tertiary">
-                  Member
-                </th>
-                {categories.length > 0 && (
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-content-tertiary">
-                    Category
-                  </th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-content-tertiary w-16" />
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-content-tertiary">Title</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-content-tertiary">Member</th>
+                {showCategories && (
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-content-tertiary">Category</th>
                 )}
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-content-tertiary">
-                  Submitted
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-content-tertiary">
-                  Status
-                </th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-content-tertiary">Submitted</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-content-tertiary">Status</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-content-tertiary">Actions</th>
               </tr>
             </thead>
             <tbody>
               {submissions.map((sub, idx) => (
-                <tr
+                <EntryRow
                   key={sub.id}
-                  className={`border-b border-border-subtle last:border-0 ${idx % 2 === 0 ? 'bg-surface-2' : 'bg-surface-1'}`}
-                >
-                  {/* Thumbnail */}
-                  <td className="px-4 py-2.5">
-                    {sub.publicUrl ? (
-                      <div className="relative w-12 h-10 rounded-md overflow-hidden bg-surface-1 shrink-0">
-                        <Image
-                          src={sub.publicUrl}
-                          alt={sub.imageTitle}
-                          fill
-                          sizes="48px"
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-12 h-10 rounded-md bg-surface-1 border border-border-subtle" />
-                    )}
-                  </td>
-
-                  {/* Image title */}
-                  <td className="px-4 py-2.5 font-medium text-content-primary max-w-[200px] truncate">
-                    {sub.imageTitle}
-                  </td>
-
-                  {/* Member name */}
-                  <td className="px-4 py-2.5 text-content-secondary whitespace-nowrap">
-                    {sub.memberName}
-                  </td>
-
-                  {/* Category */}
-                  {categories.length > 0 && (
-                    <td className="px-4 py-2.5 text-content-secondary whitespace-nowrap">
-                      {sub.categoryId ? (catMap[sub.categoryId] ?? '—') : '—'}
-                    </td>
-                  )}
-
-                  {/* Submitted date */}
-                  <td className="px-4 py-2.5 text-content-tertiary whitespace-nowrap">
-                    {fmtDate(sub.createdAt)}
-                  </td>
-
-                  {/* Status chip */}
-                  <td className="px-4 py-2.5">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                        sub.status === 'submitted'
-                          ? 'bg-status-success-bg text-status-success-text'
-                          : sub.status === 'withdrawn'
-                          ? 'bg-surface-1 text-content-tertiary'
-                          : 'bg-surface-1 text-content-secondary'
-                      }`}
-                    >
-                      {sub.status === 'submitted' ? 'Submitted' : sub.status === 'withdrawn' ? 'Withdrawn' : sub.status}
-                    </span>
-                  </td>
-                </tr>
+                  entry={sub}
+                  categories={categories}
+                  competitionId={id}
+                  showCategories={showCategories}
+                  even={idx % 2 === 0}
+                />
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      {/* Admin guidance note */}
+      <p className="text-xs text-content-tertiary">
+        Removing an entry withdraws it and frees the image for resubmission. Category changes take effect immediately.
+        Withdrawn entries can be reinstated if needed.
+      </p>
+
     </div>
   )
 }
