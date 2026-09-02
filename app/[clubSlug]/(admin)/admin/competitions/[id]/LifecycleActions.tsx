@@ -62,21 +62,21 @@ export function LifecycleActions({ id, title, status, submissionCount, isArchive
           </button>
         )}
 
-        {/* Cancel — red button, shown while competition is active */}
+        {/* Cancel — secondary style (destructive action confirmed in dialog) */}
         {canCancel && (
           <button
             onClick={() => setShowCancel(true)}
-            className={`${btnBase} border-[#D32F2F] text-[#D32F2F] bg-surface-2 hover:bg-[#FDEEEE]`}
+            className={`${btnBase} border-border-default bg-surface-2 text-content-secondary hover:bg-surface-1`}
           >
             Cancel competition
           </button>
         )}
 
-        {/* Delete — shown for draft/open with no submissions */}
+        {/* Delete — danger-outlined style */}
         {canDelete && (
           <button
             onClick={() => setShowDelete(true)}
-            className={`${btnBase} border-[#D32F2F] bg-[#D32F2F] text-white hover:bg-[#B71C1C]`}
+            className={`${btnBase} border-[#D32F2F] text-[#D32F2F] bg-surface-2 hover:bg-[#FDEEEE]`}
           >
             Delete
           </button>

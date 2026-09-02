@@ -2,9 +2,19 @@
 
 import { useState, useTransition } from 'react'
 import { addJudge, addJudgeFromMember, removeJudge, adminGrantJudgeAccess } from '../actions'
+import { saveJudge } from '../../judges/actions'
 import FormControl from '@mui/material/FormControl'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
+import Button from '@mui/material/Button'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
+import Stack from '@mui/material/Stack'
+import Box from '@mui/material/Box'
+import TextField from '@mui/material/TextField'
+import Typography from '@mui/material/Typography'
 
 type JudgeToken = {
   id:                  string
@@ -49,9 +59,160 @@ function deriveState(
   return 'pre-window'
 }
 
-const inputCls = "w-full rounded-lg border border-border-default bg-surface-0 px-3 py-1.5 text-sm text-content-primary placeholder-content-muted focus:border-action-primary focus:outline-none focus:ring-2 focus:ring-action-primary/20"
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-function AddJudgeForm({
+// ─── Add-new-judge modal (same fields as the Judges page) ─────────────────────
+
+function AddJudgeModal({
+  open,
+  onClose,
+  onSaved,
+}: {
+  open:    boolean
+  onClose: () => void
+  onSaved: (name: string, email: string) => void
+}) {
+  const [firstName,  setFirstName]  = useState('')
+  const [lastName,   setLastName]   = useState('')
+  const [email,      setEmail]      = useState('')
+  const [phone,      setPhone]      = useState('')
+  const [website,    setWebsite]    = useState('')
+  const [submitted,  setSubmitted]  = useState(false)
+  const [error,      setError]      = useState<string | null>(null)
+  const [pending,    start]         = useTransition()
+
+  function validate() {
+    return {
+      firstName: !firstName.trim() ? 'First name is required' : null,
+      lastName:  !lastName.trim()  ? 'Last name is required'  : null,
+      email:     !email.trim()
+        ? 'Email is required'
+        : !EMAIL_RE.test(email.trim())
+          ? 'Enter a valid email address'
+          : null,
+    }
+  }
+
+  function handleClose() {
+    setFirstName(''); setLastName(''); setEmail('')
+    setPhone(''); setWebsite(''); setSubmitted(false); setError(null)
+    onClose()
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSubmitted(true)
+    setError(null)
+    const errs = validate()
+    if (errs.firstName || errs.lastName || errs.email) return
+    start(async () => {
+      try {
+        await saveJudge({
+          first_name: firstName.trim(),
+          last_name:  lastName.trim(),
+          email:      email.trim(),
+          phone:      phone.trim() || null,
+          website:    website.trim() || null,
+        })
+        const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ')
+        onSaved(fullName, email.trim())
+        handleClose()
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Save failed')
+      }
+    })
+  }
+
+  const errs = validate()
+  const show = submitted
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
+      <DialogTitle>Add judge</DialogTitle>
+      <form onSubmit={handleSubmit} noValidate>
+        <DialogContent>
+          <Stack spacing={2.5} sx={{ pt: 0.5 }}>
+
+            <Stack direction="row" spacing={1.5}>
+              <Box sx={{ flex: 1 }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 0.75 }}>First name</Typography>
+                <TextField
+                  size="small" fullWidth autoFocus placeholder="Jane"
+                  value={firstName} onChange={e => setFirstName(e.target.value)}
+                  error={show && !!errs.firstName}
+                  helperText={show ? errs.firstName : undefined}
+                />
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 0.75 }}>Last name</Typography>
+                <TextField
+                  size="small" fullWidth placeholder="Smith"
+                  value={lastName} onChange={e => setLastName(e.target.value)}
+                  error={show && !!errs.lastName}
+                  helperText={show ? errs.lastName : undefined}
+                />
+              </Box>
+            </Stack>
+
+            <Box>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 0.75 }}>Email</Typography>
+              <TextField
+                size="small" fullWidth type="email" placeholder="jane@example.com"
+                value={email} onChange={e => setEmail(e.target.value)}
+                error={show && !!errs.email}
+                helperText={show && errs.email
+                  ? errs.email
+                  : <Typography component="span" sx={{ fontSize: 11, color: 'text.disabled', lineHeight: 1.5 }}>
+                      A magic-link will be sent here when assigned to a competition.
+                    </Typography>
+                }
+              />
+            </Box>
+
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, mb: 0.75 }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 700 }}>Phone</Typography>
+                <Typography sx={{ fontSize: 11, color: 'text.disabled' }}>optional</Typography>
+              </Box>
+              <TextField
+                size="small" fullWidth type="tel" placeholder="+1 555 000 0000"
+                value={phone} onChange={e => setPhone(e.target.value)}
+              />
+            </Box>
+
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, mb: 0.75 }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 700 }}>Website</Typography>
+                <Typography sx={{ fontSize: 11, color: 'text.disabled' }}>optional</Typography>
+              </Box>
+              <TextField
+                size="small" fullWidth type="url" placeholder="https://..."
+                value={website} onChange={e => setWebsite(e.target.value)}
+              />
+            </Box>
+
+            {error && (
+              <Typography sx={{ fontSize: 13, color: 'error.main' }}>⚠ {error}</Typography>
+            )}
+
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={handleClose} variant="outlined" color="secondary" size="small" disabled={pending}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="contained" size="small" disabled={pending}>
+            {pending ? 'Saving…' : 'Add judge'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  )
+}
+
+// ─── Assign-judge panel ───────────────────────────────────────────────────────
+
+function AssignJudgePanel({
   competitionId,
   members,
   onCancel,
@@ -60,94 +221,54 @@ function AddJudgeForm({
   members:       Member[]
   onCancel?:     () => void
 }) {
-  const [mode,          setMode]          = useState<'member' | 'manual'>(members.length > 0 ? 'member' : 'manual')
-  const [selectedId,    setSelectedId]    = useState('')
-  const [manualName,    setManualName]    = useState('')
-  const [manualEmail,   setManualEmail]   = useState('')
-  const [isPending,     startTransition]  = useTransition()
-  const [error,         setError]         = useState('')
+  const [selectedId,   setSelectedId]   = useState('')
+  const [modalOpen,    setModalOpen]    = useState(false)
+  const [isPending,    startTransition] = useTransition()
+  const [error,        setError]        = useState('')
 
-  function handleSubmit() {
+  function handleAssign() {
     setError('')
-    if (mode === 'member') {
-      if (!selectedId) { setError('Please select a member.'); return }
-      startTransition(async () => {
-        try {
-          await addJudgeFromMember(competitionId, selectedId)
-        } catch (e) {
-          setError(e instanceof Error ? e.message : 'Failed to assign judge')
-        }
-      })
-    } else {
-      if (!manualName.trim() || !manualEmail.trim()) { setError('Name and email are required.'); return }
-      const fd = new FormData()
-      fd.set('judge_name',  manualName.trim())
-      fd.set('judge_email', manualEmail.trim())
-      startTransition(async () => {
-        await addJudge(competitionId, fd)
-      })
-    }
+    if (!selectedId) { setError('Please select a judge.'); return }
+    startTransition(async () => {
+      try {
+        await addJudgeFromMember(competitionId, selectedId)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to assign judge')
+      }
+    })
+  }
+
+  async function handleNewJudgeSaved(name: string, email: string) {
+    // Assign the newly-added judge to this competition directly
+    const fd = new FormData()
+    fd.set('judge_name',  name)
+    fd.set('judge_email', email)
+    await addJudge(competitionId, fd)
   }
 
   return (
     <div className="space-y-3 px-4 py-3">
-      {/* Mode toggle */}
-      <div className="flex rounded-lg border border-border-default overflow-hidden text-xs font-medium w-fit">
-        <button
-          type="button"
-          onClick={() => setMode('member')}
-          className={`px-3 py-1.5 transition-colors ${mode === 'member' ? 'bg-action-primary text-white' : 'bg-surface-1 text-content-secondary hover:bg-surface-0'}`}
+      {/* Select from existing judge list */}
+      <FormControl fullWidth size="small">
+        <Select
+          value={selectedId}
+          onChange={e => setSelectedId(e.target.value)}
+          displayEmpty
         >
-          Select from list
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('manual')}
-          className={`px-3 py-1.5 transition-colors ${mode === 'manual' ? 'bg-action-primary text-white' : 'bg-surface-1 text-content-secondary hover:bg-surface-0'}`}
-        >
-          Enter manually
-        </button>
-      </div>
-
-      {mode === 'member' ? (
-        <FormControl fullWidth size="small">
-          <Select
-            value={selectedId}
-            onChange={e => setSelectedId(e.target.value)}
-            displayEmpty
-          >
-            <MenuItem value=""><em>Select a judge…</em></MenuItem>
-            {members.map(m => (
-              <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      ) : (
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            type="text"
-            value={manualName}
-            onChange={e => setManualName(e.target.value)}
-            placeholder="Judge name"
-            className={inputCls}
-          />
-          <input
-            type="email"
-            value={manualEmail}
-            onChange={e => setManualEmail(e.target.value)}
-            placeholder="judge@example.com"
-            className={inputCls}
-          />
-        </div>
-      )}
+          <MenuItem value=""><em>Select a judge…</em></MenuItem>
+          {members.map(m => (
+            <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
       {error && <p className="text-xs text-status-error-text">⚠ {error}</p>}
 
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={handleSubmit}
-          disabled={isPending}
+          onClick={handleAssign}
+          disabled={isPending || !selectedId}
           className="rounded-lg bg-action-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-action-primary-hover transition-colors disabled:opacity-60"
         >
           {isPending ? 'Assigning…' : 'Assign judge'}
@@ -162,6 +283,31 @@ function AddJudgeForm({
           </button>
         )}
       </div>
+
+      {/* Divider */}
+      <div className="flex items-center gap-3 py-1">
+        <div className="flex-1 border-t border-border-subtle" />
+        <span className="text-xs text-content-tertiary">or</span>
+        <div className="flex-1 border-t border-border-subtle" />
+      </div>
+
+      {/* Add new judge */}
+      <button
+        type="button"
+        onClick={() => setModalOpen(true)}
+        className="flex items-center gap-1.5 text-sm font-medium text-action-primary hover:underline transition-colors"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        Add new judge
+      </button>
+
+      <AddJudgeModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSaved={handleNewJudgeSaved}
+      />
     </div>
   )
 }
@@ -223,7 +369,7 @@ export function JudgeSection({
         {!showWarning && (
           <p className="px-4 py-3 text-sm text-content-tertiary">No judge assigned yet.</p>
         )}
-        <AddJudgeForm
+        <AssignJudgePanel
           competitionId={competitionId}
           members={members}
           onCancel={showAddForm ? () => setShowAddForm(false) : undefined}
