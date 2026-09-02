@@ -54,7 +54,20 @@ export default function ResetJudgingButton({ token }: { token: string }) {
       <button
         type="button"
         disabled={pending}
-        onClick={() => startTransition(() => resetJudging(token))}
+        onClick={() => {
+          // Clear all bucket triage state from localStorage before server reset
+          try {
+            const keysToRemove = Object.keys(localStorage).filter(k =>
+              k.startsWith(`judge_buckets_${token}_`) ||
+              k.startsWith(`judge_rank_${token}_`) ||
+              k.startsWith(`judge_scroll_${token}_`)
+            )
+            keysToRemove.forEach(k => localStorage.removeItem(k))
+          } catch {
+            // localStorage may be unavailable in some contexts — safe to skip
+          }
+          startTransition(() => resetJudging(token))
+        }}
         style={{
           fontSize:     12,
           fontWeight:   600,
