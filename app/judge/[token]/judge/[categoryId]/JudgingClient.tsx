@@ -364,7 +364,7 @@ function UnsortedPool({
   return (
     <div style={{ flexShrink: 0, marginBottom: 12 }}>
       <p style={{
-        fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)',
+        fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)',
         textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px',
       }}>
         Unsorted — {items.length} remaining
@@ -957,7 +957,7 @@ export default function JudgingClient({
               fontSize: 12, color: 'var(--action-primary)', textDecoration: 'none',
               flexShrink: 0, fontFamily: 'inherit', whiteSpace: 'nowrap', fontWeight: 500,
             }}>← Home</Link>
-            <span style={{ fontSize: 12, color: 'var(--text-tertiary)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0, whiteSpace: 'nowrap' }}>
               {scoredCount}/{submissions.length}
             </span>
             <div style={{ width: 36, height: 3, background: 'var(--surface-0)', borderRadius: 3, overflow: 'hidden', flexShrink: 0 }}>
@@ -993,7 +993,7 @@ export default function JudgingClient({
           <div style={{ width: 1, height: 20, background: 'var(--border-default)', margin: '0 18px' }} />
 
           {/* Scoring views label */}
-          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)', marginRight: 6, whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginRight: 6, whiteSpace: 'nowrap' }}>
             Scoring views:
           </span>
 
@@ -1139,7 +1139,7 @@ export default function JudgingClient({
                       ? '1.5px solid var(--action-primary)'
                       : '1px solid var(--border-default)',
                     background: sortStale ? 'var(--action-primary)' : 'transparent',
-                    color:      sortStale ? '#fff' : 'var(--text-tertiary)',
+                    color:      sortStale ? '#fff' : 'var(--text-secondary)',
                     transition: 'all 0.15s',
                   }}
                 >
@@ -1212,7 +1212,7 @@ export default function JudgingClient({
         {view === 'single' && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {filtered.length === 0 ? (
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 14 }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', fontSize: 14 }}>
                 No images match the current filter
               </div>
             ) : (
@@ -1293,7 +1293,7 @@ export default function JudgingClient({
                     }}>
                       {/* Header */}
                       <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border-default)', flexShrink: 0 }}>
-                        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                        <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                           {currentSub && liveRankMap[currentSub.id] ? `#${liveRankMap[currentSub.id]}` : '—'}
                         </span>
                         <h2 style={{
@@ -1327,7 +1327,7 @@ export default function JudgingClient({
                         <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-default)', flexShrink: 0 }}>
                           <span style={{
                             display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-                            letterSpacing: '0.07em', color: 'var(--text-tertiary)', marginBottom: 3,
+                            letterSpacing: '0.07em', color: 'var(--text-secondary)', marginBottom: 3,
                           }}>Photographer</span>
                           <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{currentSub.memberName}</span>
                         </div>
@@ -1338,7 +1338,7 @@ export default function JudgingClient({
                         <div style={{ padding: '12px 18px', flex: 1, overflow: 'auto' }}>
                           <span style={{
                             display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-                            letterSpacing: '0.07em', color: 'var(--text-tertiary)', marginBottom: 8,
+                            letterSpacing: '0.07em', color: 'var(--text-secondary)', marginBottom: 8,
                           }}>Capture data</span>
                           <ExifGrid exifData={currentSub.exifData} />
                         </div>
@@ -1577,7 +1577,7 @@ export default function JudgingClient({
                             /* Unscored — show quick-pick buttons; no misleading slider position */
                             <div style={{ marginBottom: 8 }}>
                               <p style={{
-                                fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)',
+                                fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)',
                                 textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 5px',
                               }}>Score</p>
                               <div style={{ display: 'flex', gap: 4 }}>
@@ -1636,7 +1636,7 @@ export default function JudgingClient({
                               cursor: 'pointer', fontWeight: ls?.flagged ? 600 : 400, fontFamily: 'inherit',
                             }}>⚑ {ls?.flagged ? 'Flagged' : 'Flag'}</button>
                             <div style={{ marginLeft: 'auto' }}>
-                              {ls?.saving && <span style={{ fontSize: 14, color: 'var(--text-hint)' }}>Saving…</span>}
+                              {ls?.saving && <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Saving…</span>}
                               {ls?.saved  && <span style={{ fontSize: 14, color: 'var(--status-success-text)' }}>Saved ✓</span>}
                             </div>
                           </div>
@@ -1657,11 +1657,8 @@ export default function JudgingClient({
             overflow: 'hidden', padding: '16px 24px 16px',
           }}>
 
-            {/* Header row: hint + reset */}
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 12, flexShrink: 0 }}>
-              <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.5, flex: 1 }}>
-                Drag into groups · click ✕ on a card to return it to the strip
-              </p>
+            {/* Header row: reset (left) + hint (right) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexShrink: 0 }}>
               {Object.values(bucketMap).some(v => v !== null) && (
                 <button
                   onClick={() => setShowResetConfirm(true)}
@@ -1674,6 +1671,9 @@ export default function JudgingClient({
                   }}
                 >Reset triage</button>
               )}
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5, marginLeft: 'auto', textAlign: 'right' }}>
+                Drag into groups · click ✕ on a card to return it to the strip
+              </p>
             </div>
 
             <DndContext id="triage-dnd" sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -1912,7 +1912,7 @@ function ScorePanel({
       <div>
         {/* Score label row: SCORE left, bucket badge + saving right */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
             Score
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1924,7 +1924,7 @@ function ScorePanel({
                 {assignedBucket.label}
               </span>
             )}
-            {localScore?.saving && <span style={{ fontSize: 11, color: 'var(--text-hint)' }}>saving…</span>}
+            {localScore?.saving && <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>saving…</span>}
             {localScore?.saved  && <span style={{ fontSize: 11, color: 'var(--status-success-text)' }}>saved ✓</span>}
           </div>
         </div>
@@ -1937,7 +1937,7 @@ function ScorePanel({
             fontSize={44}
             onScoreChange={n => onScoreChange(submissionId, n)}
           />
-          <span style={{ fontSize: 16, color: 'var(--text-tertiary)', marginLeft: 6 }}>/{scoreMax}</span>
+          <span style={{ fontSize: 16, color: 'var(--text-secondary)', marginLeft: 6 }}>/{scoreMax}</span>
         </div>
 
         {/* Number buttons for small ranges */}
@@ -1965,7 +1965,7 @@ function ScorePanel({
         {/* Feedback toggle + Flag on same row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, minHeight: 28 }}>
           {score === null && !assignedBucket ? (
-            <span style={{ fontSize: 12, color: 'var(--text-hint)', flex: 1 }}>Move slider to score</span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1 }}>Move slider to score</span>
           ) : <span style={{ flex: 1 }} />}
           {!requireFeedback && (
             <button
@@ -1983,7 +1983,7 @@ function ScorePanel({
                 transition: 'transform 0.15s', fontSize: 9,
               }}>▶</span>
               Feedback
-              <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--text-tertiary)' }}>(Optional)</span>
+              <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--text-secondary)' }}>(Optional)</span>
             </button>
           )}
           <button
@@ -2005,7 +2005,7 @@ function ScorePanel({
       {requireFeedback ? (
         <div style={{ marginTop: 10 }}>
           <span style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.07em', color: 'var(--text-tertiary)', marginBottom: 5 }}>
+            letterSpacing: '0.07em', color: 'var(--text-secondary)', marginBottom: 5 }}>
             Feedback <span style={{ fontSize: 14, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(Required)</span>
           </span>
           <textarea
@@ -2056,7 +2056,7 @@ function ExifGrid({ exifData }: { exifData: Record<string, unknown> }) {
         }
         return (
           <div style={{ marginBottom: 7 }}>
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block' }}>Captured</span>
+            <span style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block' }}>Captured</span>
             <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{formatted}</span>
           </div>
         )
@@ -2066,7 +2066,7 @@ function ExifGrid({ exifData }: { exifData: Record<string, unknown> }) {
         const lens = exifData['LensModel'] ?? exifData['lens'] ?? exifData['Lens']
         return lens ? (
           <div style={{ marginBottom: 7 }}>
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block' }}>Lens</span>
+            <span style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block' }}>Lens</span>
             <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, wordBreak: 'break-word' }}>
               {String(lens)}
             </span>
@@ -2092,7 +2092,7 @@ function ExifGrid({ exifData }: { exifData: Record<string, unknown> }) {
           ] as [string, unknown, (v: unknown) => string][]
         ).filter(([, v]) => v != null).map(([label, value, fmt]) => (
           <div key={label}>
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block' }}>{label}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block' }}>{label}</span>
             <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>
               {fmt(value)}
             </span>
@@ -2142,7 +2142,7 @@ function RankRow({
           </span>
         ))}
       </span>
-      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-tertiary)', minWidth: 24, textAlign: 'right', flexShrink: 0 }}>
+      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-secondary)', minWidth: 24, textAlign: 'right', flexShrink: 0 }}>
         {isTied ? `${rankWithinGroup}.` : ''}
       </span>
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -2150,7 +2150,7 @@ function RankRow({
       <span style={{ fontFamily: 'var(--font-primary)', flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {sub.imageTitle}
       </span>
-      <span style={{ fontSize: 14, color: 'var(--text-tertiary)', flexShrink: 0 }}>#{sub.entryNumber}</span>
+      <span style={{ fontSize: 14, color: 'var(--text-secondary)', flexShrink: 0 }}>#{sub.entryNumber}</span>
       {localScore.flagged && (
         <span style={{ fontSize: 14, fontWeight: 600, color: localFlagColor, flexShrink: 0 }}>⚑</span>
       )}
