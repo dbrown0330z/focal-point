@@ -23,6 +23,13 @@ export default async function JudgeLandingPage({
 
   const supabase = createServiceClient()
 
+  // Club contact — used for the "contact us" link in the welcome banner
+  const { data: clubSettings } = await supabase
+    .from('club_settings')
+    .select('contact_email')
+    .single()
+  const contactEmail = (clubSettings as unknown as { contact_email?: string | null } | null)?.contact_email ?? null
+
   const { data: judgeToken } = await supabase
     .from('judge_tokens')
     .select('id, judge_name, competition_id, submitted_at, competitions(title, short_title, status, judge_instructions, preset, awards_enabled, award_types, score_min, score_max, require_feedback, judging_closes_at, results_at, score_aggregation, blind_judging)')
@@ -179,17 +186,23 @@ export default async function JudgeLandingPage({
               <ResetJudgingButton token={token} />
             </div>
           </div>
-          <p style={{
-            fontSize:   'clamp(15px, 2vw, 18px)',
-            lineHeight: 1.6,
-            color:      'var(--text-secondary)',
-            margin:     '0 0 16px',
-            maxWidth:   600,
-          }}>
-            You&apos;re judging{' '}
-            <strong style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{competition.short_title ?? competition.title}</strong>.
-            Work through each category below — your progress saves automatically.
-          </p>
+          <div style={{ maxWidth: 600, marginBottom: 16 }}>
+            <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', lineHeight: 1.6, color: 'var(--text-secondary)', margin: '0 0 6px' }}>
+              You&apos;re judging{' '}
+              <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{competition.short_title ?? competition.title}</strong>.
+            </p>
+            <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', lineHeight: 1.6, color: 'var(--text-secondary)', margin: '0 0 6px' }}>
+              {judgingDeadline
+                ? <>You have until <strong style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{formatDate(judgingDeadline)}</strong> when the judging window closes — your progress saves automatically.</>
+                : <>Your progress saves automatically — you can return at any time before the deadline.</>}
+            </p>
+            <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', lineHeight: 1.6, color: 'var(--text-secondary)', margin: 0 }}>
+              If you have any issues{' '}
+              {contactEmail
+                ? <a href={`mailto:${contactEmail}`} style={{ color: 'var(--action-primary)', textDecoration: 'none', fontWeight: 500 }}>contact us</a>
+                : <span>contact us</span>}.
+            </p>
+          </div>
           <JudgeGuideModal />
         </div>
       </section>

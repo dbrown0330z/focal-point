@@ -944,11 +944,11 @@ export default function JudgingClient({
           }}>← Home</Link>
           <span style={{ color: 'var(--border-default)', flexShrink: 0 }}>|</span>
           <span style={{
-            fontFamily: 'var(--font-primary)', fontSize: 17, fontWeight: 700,
+            fontFamily: 'var(--font-primary)', fontSize: 20, fontWeight: 700,
             color: 'var(--text-primary)', whiteSpace: 'nowrap',
             letterSpacing: '-0.015em', flexShrink: 0,
           }}>{categoryName}</span>
-          <div style={{ flex: 1, height: 4, background: 'var(--surface-0)', borderRadius: 3, overflow: 'hidden', minWidth: 32 }}>
+          <div style={{ flex: 1, height: 2, background: 'var(--surface-0)', borderRadius: 3, overflow: 'hidden', minWidth: 32 }}>
             <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? 'var(--status-success)' : 'var(--action-primary)', borderRadius: 3 }} />
           </div>
           <span style={{ fontSize: 13, color: 'var(--text-secondary)', flexShrink: 0, whiteSpace: 'nowrap' }}>
