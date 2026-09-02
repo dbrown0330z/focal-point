@@ -41,7 +41,7 @@ const SECTIONS = [
     ],
     tips: [
       'Use the S / L toggle to adjust thumbnail size.',
-      'Switch to the list icon (☰) for a ranked view that groups images by score.',
+      'Switch to the list icon (☰) for a ranked view that groups images by score. Images with the same score are grouped together — if you want to express a preference within a tied group, drag the rows into your preferred order using the grip handle on the left.',
       'Clicking a thumbnail opens that image in Single view for a closer look.',
     ],
   },
