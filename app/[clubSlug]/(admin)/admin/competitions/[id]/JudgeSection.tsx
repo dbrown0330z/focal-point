@@ -55,6 +55,9 @@ function deriveState(
   if (status === 'closed') return 'complete'
   const now = new Date()
   if (judgingClosesAt && now > new Date(judgingClosesAt)) return 'complete'
+  // Competition status 'judging' means the admin has explicitly opened the judging
+  // window — show the link and PIN immediately regardless of the scheduled date.
+  if (status === 'judging') return 'window-open'
   if (judgingOpensAt  && now >= new Date(judgingOpensAt))  return 'window-open'
   return 'pre-window'
 }
