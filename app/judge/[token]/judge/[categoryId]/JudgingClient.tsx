@@ -120,7 +120,7 @@ type LocalScore = {
 
 // ─── DraggableCard (triage mode) ──────────────────────────────────────────────
 function DraggableCard({
-  sub, localScore, bucketId, scoreMin, scoreMax, isDragOverlay, onView, rank,
+  sub, localScore, bucketId, scoreMin, scoreMax, isDragOverlay, onView, onReturn, rank,
 }: {
   sub:            SubmissionForJudge
   localScore:     LocalScore
@@ -129,6 +129,7 @@ function DraggableCard({
   scoreMax:       number
   isDragOverlay?: boolean
   onView?:        () => void
+  onReturn?:      () => void
   rank?:          number
 }) {
   const { theme: cardTheme } = useTheme()
@@ -222,13 +223,34 @@ function DraggableCard({
           }}
         >↗</button>
       )}
+
+      {/* Return-to-unsorted badge — top-right corner of the outer card */}
+      {onReturn && (
+        <button
+          onPointerDown={e => e.stopPropagation()}
+          onClick={e => { e.stopPropagation(); onReturn() }}
+          title="Return to unsorted"
+          style={{
+            position: 'absolute', top: -9, right: -9,
+            width: 20, height: 20,
+            background: 'var(--surface-0)',
+            border: '1.5px solid var(--border-default)',
+            borderRadius: '50%',
+            color: 'var(--text-secondary)',
+            fontSize: 11, fontWeight: 700,
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            lineHeight: 1, zIndex: 10,
+          }}
+        >✕</button>
+      )}
     </div>
   )
 }
 
 // ─── BucketColumn (triage droppable) ──────────────────────────────────────────
 function BucketColumn({
-  bucket, items, localScores, submissions, scoreMin, scoreMax, onJumpToGrid, onViewSub, rankMap,
+  bucket, items, localScores, submissions, scoreMin, scoreMax, onJumpToGrid, onViewSub, onReturn, rankMap,
 }: {
   bucket:       ThemedBucket
   items:        string[]
@@ -238,11 +260,12 @@ function BucketColumn({
   scoreMax:     number
   onJumpToGrid: () => void
   onViewSub:    (id: string) => void
+  onReturn:     (id: string) => void
   rankMap:      Record<string, number>
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: bucket.id })
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
       {/* Solid coloured header — white text for clear vibrancy */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px',
@@ -251,6 +274,7 @@ function BucketColumn({
         borderLeft: `1px solid ${bucket.headerBg}`,
         borderRight: `1px solid ${bucket.headerBg}`,
         borderBottom: 'none', borderRadius: '10px 10px 0 0',
+        flexShrink: 0,
       }}>
         <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{bucket.label}</span>
         <span style={{ marginLeft: 'auto', fontSize: 14, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>{items.length}</span>
@@ -264,7 +288,7 @@ function BucketColumn({
         )}
       </div>
       <div ref={setNodeRef} style={{
-        height: 240, overflow: 'auto',
+        flex: 1, overflow: 'auto',
         borderTop: `1px solid ${bucket.border}`,
         borderLeft: `1px solid ${isOver ? bucket.border : 'var(--border-default)'}`,
         borderRight: `1px solid ${isOver ? bucket.border : 'var(--border-default)'}`,
@@ -272,7 +296,7 @@ function BucketColumn({
         borderRadius: '0 0 10px 10px',
         background: isOver ? bucket.bg : 'var(--surface-1)',
         transition: 'background 0.15s, border-color 0.15s',
-        padding: 10, display: 'flex', flexWrap: 'wrap', gap: 8, alignContent: 'flex-start',
+        padding: 14, display: 'flex', flexWrap: 'wrap', gap: 12, alignContent: 'flex-start',
       }}>
         {items.map(id => {
           const sub = submissions.find(s => s.id === id)
@@ -281,7 +305,7 @@ function BucketColumn({
             <DraggableCard
               key={id} sub={sub} localScore={localScores[id]}
               bucketId={bucket.id as BucketId} scoreMin={scoreMin} scoreMax={scoreMax}
-              onView={() => onViewSub(id)} rank={rankMap[id]}
+              onView={() => onViewSub(id)} onReturn={() => onReturn(id)} rank={rankMap[id]}
             />
           )
         })}
@@ -295,7 +319,7 @@ function BucketColumn({
   )
 }
 
-// ─── UnsortedPool (triage droppable) ──────────────────────────────────────────
+// ─── UnsortedPool (triage droppable — horizontal scrolling strip) ────────────
 function UnsortedPool({
   items, localScores, submissions, scoreMin, scoreMax, rankMap,
 }: {
@@ -307,32 +331,103 @@ function UnsortedPool({
   rankMap:     Record<string, number>
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: 'unsorted' })
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [canLeft,  setCanLeft]  = useState(false)
+  const [canRight, setCanRight] = useState(false)
+
+  function checkScroll() {
+    const el = scrollRef.current
+    if (!el) return
+    setCanLeft(el.scrollLeft > 2)
+    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2)
+  }
+
+  useEffect(() => { setTimeout(checkScroll, 50) }, [items.length])
+
+  function scroll(dir: 'left' | 'right') {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollBy({ left: dir === 'left' ? -220 : 220, behavior: 'smooth' })
+    setTimeout(checkScroll, 350)
+  }
+
+  // Merge droppable ref with scroll container ref
+  const setRefs = useCallback((node: HTMLDivElement | null) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(scrollRef as any).current = node
+    setNodeRef(node)
+  }, [setNodeRef])
+
   if (items.length === 0) return null
+
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div style={{ flexShrink: 0, marginBottom: 12 }}>
       <p style={{
-        fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)',
-        textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 8px',
+        fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)',
+        textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px',
       }}>
-        Not yet sorted — {items.length} remaining
+        Unsorted — {items.length} remaining
       </p>
-      <div ref={setNodeRef} style={{
-        display: 'flex', flexWrap: 'wrap', gap: 10, padding: 12, borderRadius: 10,
-        border: `1px solid ${isOver ? 'var(--action-primary)' : 'var(--border-default)'}`,
-        background: isOver ? 'rgba(26,111,196,0.06)' : 'var(--surface-1)',
-        transition: 'background 0.15s, border-color 0.15s', minHeight: 60,
-      }}>
-        {items.map(id => {
-          const sub = submissions.find(s => s.id === id)
-          if (!sub) return null
-          return (
-            <DraggableCard
-              key={id} sub={sub} localScore={localScores[id]}
-              bucketId={null} scoreMin={scoreMin} scoreMax={scoreMax}
-              rank={rankMap[id]}
-            />
-          )
-        })}
+
+      {/* Strip wrapper — arrow buttons overlay on left/right */}
+      <div style={{ position: 'relative' }}>
+        {canLeft && (
+          <button
+            onPointerDown={e => e.stopPropagation()}
+            onClick={() => scroll('left')}
+            style={{
+              position: 'absolute', left: -2, top: '50%', transform: 'translateY(-50%)',
+              zIndex: 20, width: 32, height: 32,
+              background: 'var(--surface-2)', border: '1px solid var(--border-default)',
+              borderRadius: '50%', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 18, color: 'var(--text-secondary)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
+            }}
+          >‹</button>
+        )}
+
+        <div
+          ref={setRefs}
+          onScroll={checkScroll}
+          style={{
+            display: 'flex', flexDirection: 'row', gap: 10,
+            overflowX: 'auto', scrollbarWidth: 'none',
+            padding: '10px 12px',
+            borderRadius: 10,
+            border: `1px solid ${isOver ? 'var(--action-primary)' : 'var(--border-default)'}`,
+            background: isOver ? 'rgba(26,111,196,0.06)' : 'var(--surface-1)',
+            transition: 'background 0.15s, border-color 0.15s',
+          }}
+        >
+          {items.map(id => {
+            const sub = submissions.find(s => s.id === id)
+            if (!sub) return null
+            return (
+              <DraggableCard
+                key={id} sub={sub} localScore={localScores[id]}
+                bucketId={null} scoreMin={scoreMin} scoreMax={scoreMax}
+                rank={rankMap[id]}
+              />
+            )
+          })}
+        </div>
+
+        {canRight && (
+          <button
+            onPointerDown={e => e.stopPropagation()}
+            onClick={() => scroll('right')}
+            style={{
+              position: 'absolute', right: -2, top: '50%', transform: 'translateY(-50%)',
+              zIndex: 20, width: 32, height: 32,
+              background: 'var(--surface-2)', border: '1px solid var(--border-default)',
+              borderRadius: '50%', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 18, color: 'var(--text-secondary)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
+            }}
+          >›</button>
+        )}
       </div>
     </div>
   )
@@ -820,8 +915,9 @@ export default function JudgingClient({
           }}>← Home</Link>
           <span style={{ color: 'var(--border-default)', flexShrink: 0 }}>|</span>
           <span style={{
-            fontFamily: 'var(--font-primary)', fontSize: 14, fontWeight: 600,
+            fontFamily: 'var(--font-primary)', fontSize: 15, fontWeight: 700,
             color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            letterSpacing: '-0.01em',
           }}>{categoryName}</span>
           <span style={{ fontSize: 14, color: 'var(--text-tertiary)', flexShrink: 0, whiteSpace: 'nowrap' }}>
             {scoredCount}/{submissions.length}
@@ -1428,11 +1524,22 @@ export default function JudgingClient({
 
         {/* TRIAGE VIEW */}
         {view === 'triage' && (
-          <div style={{ flex: 1, overflow: 'auto', padding: '20px 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 16 }}>
-              <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6, flex: 1 }}>
-                Drag images into groups as a rough first pass — no scores are assigned here.
-                Switch to Grid or Single to assign precise scores.
+          <div style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            overflow: 'hidden', padding: '16px 24px 16px',
+          }}>
+
+            {/* Header row: category name (prominent) + hint + reset */}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 12, flexShrink: 0 }}>
+              <h2 style={{
+                fontFamily: 'var(--font-primary)', fontSize: 22, fontWeight: 700,
+                letterSpacing: '-0.015em', color: 'var(--text-primary)', margin: 0,
+                lineHeight: 1.2,
+              }}>
+                {categoryName}
+              </h2>
+              <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.5, flex: 1 }}>
+                Drag into groups · click ✕ on a card to return it to the strip
               </p>
               {Object.values(bucketMap).some(v => v !== null) && (
                 <button
@@ -1440,20 +1547,24 @@ export default function JudgingClient({
                   style={{
                     flexShrink: 0, background: 'none',
                     border: '1px solid var(--border-default)',
-                    borderRadius: 8, padding: '6px 14px', fontSize: 14,
+                    borderRadius: 8, padding: '5px 12px', fontSize: 13,
                     color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit',
                     whiteSpace: 'nowrap',
                   }}
                 >Reset triage</button>
               )}
             </div>
+
             <DndContext id="triage-dnd" sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+              {/* Unsorted strip — fixed height across the top */}
               <UnsortedPool
                 items={sortPartitions.unsorted} localScores={localScores}
                 submissions={submissions} scoreMin={scoreMin} scoreMax={scoreMax}
                 rankMap={liveRankMap}
               />
-              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+
+              {/* Bucket columns — fill remaining viewport height */}
+              <div style={{ flex: 1, display: 'flex', gap: 12, minHeight: 0 }}>
                 {SORT_BUCKETS.map(rawBucket => (
                   <BucketColumn
                     key={rawBucket.id} bucket={themedBucket(rawBucket, theme)}
@@ -1468,10 +1579,12 @@ export default function JudgingClient({
                       setCurrentIdx(idx >= 0 ? idx : 0)
                       switchToScoreView('single')
                     }}
+                    onReturn={id => setBucketMap(prev => ({ ...prev, [id]: null }))}
                     rankMap={liveRankMap}
                   />
                 ))}
               </div>
+
               <DragOverlay>
                 {activeSub ? (
                   <DraggableCard
