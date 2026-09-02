@@ -171,7 +171,8 @@ export default async function JudgeLandingPage({
               margin:        0,
               maxWidth:      800,
             }}>
-              Welcome {firstName}
+              Welcome {firstName}.{' '}
+              <span style={{ color: 'var(--text-secondary)' }}>Happy to have you judging this competition.</span>
             </h1>
             <div style={{ paddingTop: 8, flexShrink: 0 }}>
               <ResetJudgingButton token={token} />
@@ -184,7 +185,9 @@ export default async function JudgeLandingPage({
             margin:     0,
             maxWidth:   600,
           }}>
-            Happy to have you judging our competition.
+            You&apos;re judging{' '}
+            <strong style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{competition.short_title ?? competition.title}</strong>.
+            Work through each category below — your progress saves automatically.
           </p>
         </div>
       </section>
