@@ -191,7 +191,7 @@ export default async function JudgeLandingPage({
               You&apos;re judging{' '}
               <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{competition.short_title ?? competition.title}</strong>.
             </p>
-            <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', lineHeight: 1.6, color: 'var(--text-secondary)', margin: '0 0 6px' }}>
+            <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', lineHeight: 1.6, color: 'var(--text-secondary)', margin: '0 0 6px', whiteSpace: 'nowrap' }}>
               {judgingDeadline
                 ? <>You have until <strong style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{formatDate(judgingDeadline)}</strong> when the judging window closes — your progress saves automatically.</>
                 : <>Your progress saves automatically — you can return at any time before the deadline.</>}
