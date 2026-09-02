@@ -20,8 +20,13 @@ export default async function JudgeLayout({
 
   const [{ data: club }, { data: judgeToken }] = await Promise.all([
     supabase.from('club_settings').select('club_name').single(),
-    service.from('judge_tokens').select('judge_name').eq('token', token).single(),
+    service.from('judge_tokens')
+      .select('judge_name, competitions(title)')
+      .eq('token', token)
+      .single(),
   ])
+
+  const competition = judgeToken?.competitions as unknown as { title: string } | null
 
   return (
     <div
@@ -35,6 +40,7 @@ export default async function JudgeLayout({
       <JudgeTopbar
         clubName={club?.club_name ?? 'Focal Point'}
         judgeName={judgeToken?.judge_name ?? null}
+        competitionTitle={competition?.title ?? null}
       />
       <main>{children}</main>
       <AppFooter variant="judge" />

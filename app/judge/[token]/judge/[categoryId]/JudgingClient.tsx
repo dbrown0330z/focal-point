@@ -965,13 +965,7 @@ export default function JudgingClient({
             </div>
           </div>
         </div>
-        {/* Center: competition name + mode controls */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-          {/* Competition name */}
-          <span style={{
-            fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)',
-            letterSpacing: '0.01em', whiteSpace: 'nowrap',
-          }}>{competitionTitle}</span>
+        {/* Center: mode controls */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {/* Left group: Triage (standalone pill) */}
           {(() => {
@@ -1029,7 +1023,6 @@ export default function JudgingClient({
               >{item.label}</button>
             )
           })}
-        </div>
         </div>
 
         {/* Right: help link + prev/next category */}

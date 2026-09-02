@@ -6,9 +6,11 @@ import { useTheme } from '@/components/layout/ThemeProvider'
 export default function JudgeTopbar({
   clubName,
   judgeName,
+  competitionTitle,
 }: {
-  clubName:  string
-  judgeName: string | null
+  clubName:         string
+  judgeName:        string | null
+  competitionTitle: string | null
 }) {
   const { theme, toggle } = useTheme()
 
@@ -45,17 +47,23 @@ export default function JudgeTopbar({
         {clubName}
       </Link>
 
-      {/* Center: portal label + judge name */}
+      {/* Center: portal label + judge name + competition title */}
       <span style={{
-        fontFamily:    'var(--font-body)',
-        fontSize:      14,
-        fontWeight:    600,
-        textTransform: 'uppercase',
-        letterSpacing: '0.16em',
-        color:         'var(--text-secondary)',
-        whiteSpace:    'nowrap',
+        fontFamily: 'var(--font-body)',
+        fontSize:   14,
+        color:      'var(--text-secondary)',
+        whiteSpace: 'nowrap',
+        display:    'flex',
+        alignItems: 'center',
+        gap:        0,
       }}>
-        Judging Portal{judgeName ? ` / ${judgeName}` : ''}
+        <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Judging Portal</span>
+        {judgeName && (
+          <span style={{ fontWeight: 400 }}> / {judgeName}</span>
+        )}
+        {competitionTitle && (
+          <span style={{ fontWeight: 400 }}> / {competitionTitle}</span>
+        )}
       </span>
 
       {/* Right: theme toggle — shows what it will switch TO */}
