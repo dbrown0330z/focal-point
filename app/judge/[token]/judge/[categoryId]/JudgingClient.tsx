@@ -1037,6 +1037,17 @@ export default function JudgingClient({
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
               Your scores are final. You can still review images but cannot make changes.
             </p>
+            {Object.values(bucketMap).some(v => v !== null) && (
+              <button
+                onClick={() => setShowResetConfirm(true)}
+                style={{
+                  marginTop: 20, background: 'none',
+                  border: '1px solid var(--border-default)',
+                  borderRadius: 8, padding: '7px 16px', fontSize: 13,
+                  color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >Reset triage</button>
+            )}
           </div>
         </div>
       )}
