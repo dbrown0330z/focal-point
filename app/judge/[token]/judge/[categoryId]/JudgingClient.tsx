@@ -28,7 +28,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { saveScore, saveRank, saveFlag, applyBucketScores } from './actions'
+import { saveScore, saveRank, saveFlag, applyBucketScores, resetAllJudgeScores } from './actions'
 import type { SubmissionForJudge } from './page'
 import { useTheme } from '@/components/layout/ThemeProvider'
 import JudgeGuideModal from '../../landing/JudgeGuideModal'
@@ -488,7 +488,10 @@ export default function JudgingClient({
   const [zoom, setZoom]               = useState(false)
   const [showApplyPrompt, setShowApplyPrompt] = useState(false)
   const [applyPromptDone, setApplyPromptDone] = useState(false)
-  const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [showResetConfirm, setShowResetConfirm]       = useState(false)
+  const [showFullResetConfirm, setShowFullResetConfirm] = useState(false)
+  const [fullResetting, setFullResetting]               = useState(false)
+  const [submitted, setSubmitted]                       = useState(isSubmitted)
   const [pendingView, setPendingView] = useState<'grid' | 'single'>('grid')
 
   const [gridSubView,  setGridSubView]  = useState<GridSubView>('grid')
@@ -1020,8 +1023,71 @@ export default function JudgingClient({
         </div>
       )}
 
+      {/* Full reset confirmation modal */}
+      {showFullResetConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 400, padding: 24,
+        }}>
+          <div style={{
+            background: 'var(--surface-2)', border: '1px solid var(--border-default)',
+            borderRadius: 14, padding: '28px 28px 24px', maxWidth: 420, width: '100%',
+          }}>
+            <h2 style={{
+              fontFamily: 'var(--font-primary)', fontSize: 20, fontWeight: 700,
+              color: 'var(--text-primary)', margin: '0 0 10px', letterSpacing: '-0.01em',
+            }}>Start over?</h2>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 24px' }}>
+              This will permanently delete all your scores across every category and reopen the
+              competition for re-judging. Triage groups will also be cleared. This cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowFullResetConfirm(false)}
+                disabled={fullResetting}
+                style={{
+                  background: 'none', border: '1px solid var(--border-default)', borderRadius: 8,
+                  padding: '9px 20px', fontSize: 14, color: 'var(--text-secondary)',
+                  cursor: 'pointer', fontFamily: 'inherit', opacity: fullResetting ? 0.5 : 1,
+                }}
+              >Cancel</button>
+              <button
+                disabled={fullResetting}
+                onClick={async () => {
+                  setFullResetting(true)
+                  const result = await resetAllJudgeScores(token)
+                  if (result?.error) {
+                    setFullResetting(false)
+                    return
+                  }
+                  // Clear all local state
+                  const emptyScore = { score: null, notes: '', rank: null, flagged: false, saving: false, saved: false }
+                  setLocalScores(Object.fromEntries(submissions.map(s => [s.id, emptyScore])))
+                  setBucketMap(Object.fromEntries(submissions.map(s => [s.id, null])))
+                  setDqMap({})
+                  setSubmitted(false)
+                  // Clear persisted localStorage
+                  try {
+                    localStorage.removeItem(`judge_buckets_${token}_${categoryId}`)
+                    localStorage.removeItem(`judge_dq_${token}_${categoryId}`)
+                  } catch { /* ignore */ }
+                  setFullResetting(false)
+                  setShowFullResetConfirm(false)
+                }}
+                style={{
+                  background: 'var(--status-error)', color: '#fff', border: 'none',
+                  borderRadius: 8, padding: '9px 20px', fontSize: 14, fontWeight: 600,
+                  cursor: fullResetting ? 'default' : 'pointer', fontFamily: 'inherit',
+                  opacity: fullResetting ? 0.7 : 1,
+                }}
+              >{fullResetting ? 'Resetting…' : 'Yes, start over'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Submitted overlay */}
-      {isSubmitted && (
+      {submitted && (
         <div style={{
           position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.50)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 24,
@@ -1034,20 +1100,31 @@ export default function JudgingClient({
             <p style={{ fontFamily: 'var(--font-primary)', fontSize: 17, fontWeight: 700, color: 'var(--status-success-text)', margin: '0 0 8px' }}>
               Scores submitted
             </p>
-            <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.6 }}>
               Your scores are final. You can still review images but cannot make changes.
             </p>
-            {Object.values(bucketMap).some(v => v !== null) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+              {Object.values(bucketMap).some(v => v !== null) && (
+                <button
+                  onClick={() => setShowResetConfirm(true)}
+                  style={{
+                    background: 'none', border: '1px solid var(--border-default)',
+                    borderRadius: 8, padding: '7px 16px', fontSize: 13,
+                    color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit',
+                    width: '100%',
+                  }}
+                >Reset triage groups</button>
+              )}
               <button
-                onClick={() => setShowResetConfirm(true)}
+                onClick={() => setShowFullResetConfirm(true)}
                 style={{
-                  marginTop: 20, background: 'none',
-                  border: '1px solid var(--border-default)',
+                  background: 'none', border: '1px solid var(--status-error)',
                   borderRadius: 8, padding: '7px 16px', fontSize: 13,
-                  color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit',
+                  color: 'var(--status-error)', cursor: 'pointer', fontFamily: 'inherit',
+                  width: '100%',
                 }}
-              >Reset triage</button>
-            )}
+              >Start over (reset all scores)</button>
+            </div>
           </div>
         </div>
       )}

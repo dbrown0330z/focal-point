@@ -117,6 +117,35 @@ export async function markAwardsComplete(
     )
 }
 
+// ── Reset all scores for this judge (all categories) + un-submit ─────────────
+export async function resetAllJudgeScores(
+  token: string,
+): Promise<{ error?: string }> {
+  const service = createServiceClient()
+
+  const { data: judgeToken } = await service
+    .from('judge_tokens')
+    .select('id')
+    .eq('token', token)
+    .single()
+
+  if (!judgeToken) return { error: 'Invalid token' }
+
+  // Delete every score row this judge produced
+  await service
+    .from('scores')
+    .delete()
+    .eq('judge_token_id', judgeToken.id)
+
+  // Clear submission state
+  await service
+    .from('judge_tokens')
+    .update({ submitted_at: null })
+    .eq('id', judgeToken.id)
+
+  return {}
+}
+
 // ── Apply bucket scores as starting points ────────────────────────────────────
 export async function applyBucketScores(
   token:    string,
