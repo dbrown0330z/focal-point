@@ -308,7 +308,9 @@ export default async function DualPanelBlock({ clubSlug }: { clubSlug: string })
 
   const s1 = openList.slice(0, MAX_CARDS)
   const r1 = MAX_CARDS - s1.length
-  const s2 = resultsList.slice(0, r1)
+  // Cap results at 1 — show only the most recent, let remaining slots go to
+  // judging/coming-soon cards which are more actionable.
+  const s2 = resultsList.slice(0, Math.min(1, r1))
   const r2 = r1 - s2.length
   const s3 = judgingList.slice(0, r2)
   const r3 = r2 - s3.length
