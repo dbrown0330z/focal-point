@@ -622,23 +622,32 @@ export default async function JudgeLandingPage({
                             ? 'Score every image across all categories to submit.'
                             : 'Complete awards assignment in all categories to submit.'}
                       </p>
-                      {/* Submit disabled while in testing mode — remove this wrapper to re-enable */}
-                      <button
-                        disabled
-                        style={{
-                          width:        '100%',
-                          borderRadius: 10,
-                          padding:      '15px 20px',
-                          fontSize:     16,
-                          fontWeight:   700,
-                          border:       '1px solid var(--border-default)',
-                          background:   'none',
-                          color:        'var(--text-disabled)',
-                          cursor:       'not-allowed',
-                        }}
-                      >
-                        {awardsEnabled ? 'Submit scores and awards' : 'Submit all scores'}
-                      </button>
+                      {allDone ? (
+                        <SubmitButton
+                          token={token}
+                          judgeName={judgeToken.judge_name}
+                          competitionTitle={competition.title}
+                          awardsEnabled={awardsEnabled}
+                          isAwardsOnly={isAwardsOnly}
+                        />
+                      ) : (
+                        <button
+                          disabled
+                          style={{
+                            width:        '100%',
+                            borderRadius: 10,
+                            padding:      '15px 20px',
+                            fontSize:     16,
+                            fontWeight:   700,
+                            border:       '1px solid var(--border-default)',
+                            background:   'none',
+                            color:        'var(--text-disabled)',
+                            cursor:       'not-allowed',
+                          }}
+                        >
+                          {awardsEnabled ? 'Submit scores and awards' : 'Submit all scores'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
