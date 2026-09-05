@@ -59,11 +59,13 @@ export default async function JudgeLandingPage({
   if (!judgeToken || (competition?.status !== 'judging' && !alreadySubmitted)) {
     redirect(`/judge/${token}/expired`)
   }
+  // competition is non-null here: judgeToken exists and joins competitions
+  const comp = competition!
 
   const isSubmitted   = !!judgeToken.submitted_at
-  const awardsEnabled = competition.awards_enabled ?? false
-  const awardTypes    = (competition.award_types ?? []) as AwardTier[]
-  const isAwardsOnly  = competition.preset === 'awards-only'
+  const awardsEnabled = comp.awards_enabled ?? false
+  const awardTypes    = (comp.award_types ?? []) as AwardTier[]
+  const isAwardsOnly  = comp.preset === 'awards-only'
 
   // Fetch categories
   const { data: categories } = await supabase
@@ -156,8 +158,8 @@ export default async function JudgeLandingPage({
 
   // Deadline / results dates
   const now = new Date()
-  const judgingDeadline = competition.judging_closes_at ? new Date(competition.judging_closes_at) : null
-  const resultsDate     = competition.results_at         ? new Date(competition.results_at)         : null
+  const judgingDeadline = comp.judging_closes_at ? new Date(comp.judging_closes_at) : null
+  const resultsDate     = comp.results_at         ? new Date(comp.results_at)         : null
   const daysRemainingRaw = judgingDeadline
     ? Math.ceil((judgingDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
     : null
@@ -194,7 +196,7 @@ export default async function JudgeLandingPage({
           <div style={{ maxWidth: 600, marginBottom: 16 }}>
             <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', lineHeight: 1.6, color: 'var(--text-secondary)', margin: '0 0 6px' }}>
               You&apos;re judging{' '}
-              <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{competition.short_title ?? competition.title}</strong>.
+              <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{comp.short_title ?? comp.title}</strong>.
             </p>
             <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', lineHeight: 1.6, color: 'var(--text-secondary)', margin: '0 0 6px', whiteSpace: 'nowrap' }}>
               {judgingDeadline && deadlinePassed
@@ -291,7 +293,7 @@ export default async function JudgeLandingPage({
                 {!isAwardsOnly && (
                   <li style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--text-primary)', opacity: 0.85 }}>
                     Score each image on a scale of{' '}
-                    <strong style={{ fontWeight: 600 }}>{competition.score_min}–{competition.score_max}</strong>.
+                    <strong style={{ fontWeight: 600 }}>{comp.score_min}–{comp.score_max}</strong>.
                   </li>
                 )}
                 {categoryStats.length > 1 && (
@@ -301,7 +303,7 @@ export default async function JudgeLandingPage({
                   </li>
                 )}
                 <li style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--text-primary)', opacity: 0.85 }}>
-                  {competition.require_feedback
+                  {comp.require_feedback
                     ? <>Written feedback is <strong style={{ fontWeight: 600 }}>required</strong> for every image.</>
                     : 'Written feedback is optional but encouraged.'}
                 </li>
@@ -310,7 +312,7 @@ export default async function JudgeLandingPage({
                 </li>
               </ul>
 
-              {competition.judge_instructions && (
+              {comp.judge_instructions && (
                 <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid rgba(0,151,167,0.20)' }}>
                   <p style={{
                     fontSize:      11,
@@ -323,7 +325,7 @@ export default async function JudgeLandingPage({
                     A note from the club
                   </p>
                   <p style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--text-primary)', margin: 0, opacity: 0.85, whiteSpace: 'pre-wrap' }}>
-                    {competition.judge_instructions}
+                    {comp.judge_instructions}
                   </p>
                 </div>
               )}
@@ -396,13 +398,13 @@ export default async function JudgeLandingPage({
                     ))}
                   </ul>
                   <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text-secondary)', margin: '20px 0 0' }}>
-                    {competition.score_aggregation === 'sum'
+                    {comp.score_aggregation === 'sum'
                       ? "Scores from all judges will be summed to produce each image's final score."
-                      : competition.score_aggregation === 'drop_extremes'
+                      : comp.score_aggregation === 'drop_extremes'
                         ? "The highest and lowest scores will be dropped, and the remainder averaged."
                         : "Scores from all judges will be averaged to produce each image's final score."}
                   </p>
-                  {competition.blind_judging && (
+                  {comp.blind_judging && (
                     <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text-secondary)', margin: '8px 0 0' }}>
                       Blind judging is enabled — you will not see other judges&apos; scores while the judging window is open.
                     </p>
@@ -629,7 +631,7 @@ export default async function JudgeLandingPage({
                         <SubmitButton
                           token={token}
                           judgeName={judgeToken.judge_name}
-                          competitionTitle={competition.title}
+                          competitionTitle={comp.title}
                           awardsEnabled={awardsEnabled}
                           isAwardsOnly={isAwardsOnly}
                         />
