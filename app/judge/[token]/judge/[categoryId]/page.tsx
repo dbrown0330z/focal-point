@@ -53,7 +53,9 @@ export default async function JudgeCategoryPage({
     require_feedback:  boolean
   } | null
 
-  if (!judgeToken || competition?.status !== 'judging') {
+  // Allow submitted judges to review their scores even after the competition
+  // has moved past 'judging' status.
+  if (!judgeToken || (competition?.status !== 'judging' && !judgeToken.submitted_at)) {
     redirect(`/judge/${token}/expired`)
   }
 

@@ -53,7 +53,10 @@ export default async function JudgeLandingPage({
     blind_judging:      boolean
   } | null
 
-  if (!judgeToken || competition?.status !== 'judging') {
+  // Let submitted judges through regardless of competition status — they need
+  // to see their confirmation state even after the competition moves to results_pending.
+  const alreadySubmitted = !!judgeToken?.submitted_at
+  if (!judgeToken || (competition?.status !== 'judging' && !alreadySubmitted)) {
     redirect(`/judge/${token}/expired`)
   }
 
