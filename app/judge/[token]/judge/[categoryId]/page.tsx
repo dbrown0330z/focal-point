@@ -58,6 +58,8 @@ export default async function JudgeCategoryPage({
   if (!judgeToken || (competition?.status !== 'judging' && !judgeToken.submitted_at)) {
     redirect(`/judge/${token}/expired`)
   }
+  // competition is non-null here: judgeToken exists and joins competitions
+  const comp = competition!
 
   // Validate category belongs to this competition
   const { data: category } = await supabase
@@ -131,17 +133,17 @@ export default async function JudgeCategoryPage({
       token={token}
       categoryId={categoryId}
       categoryName={category.name}
-      competitionTitle={competition.title}
+      competitionTitle={comp.title}
       submissions={items}
       prevCategoryId={prevCatId}
       nextCategoryId={nextCatId}
       allCategories={(allCategories ?? []).map(c => ({ id: c.id, name: c.name }))}
-      scoreMin={competition?.score_min ?? 1}
-      scoreMax={competition?.score_max ?? 10}
-      allowHalfPoints={competition?.allow_half_points ?? false}
-      requireFeedback={competition?.require_feedback ?? false}
-      showMemberName={!(competition?.anonymise_members ?? true)}
-      showExif={!(competition?.anonymise_exif ?? true)}
+      scoreMin={comp.score_min ?? 1}
+      scoreMax={comp.score_max ?? 10}
+      allowHalfPoints={comp.allow_half_points ?? false}
+      requireFeedback={comp.require_feedback ?? false}
+      showMemberName={!(comp.anonymise_members ?? true)}
+      showExif={!(comp.anonymise_exif ?? true)}
       isSubmitted={!!judgeToken.submitted_at}
     />
   )
