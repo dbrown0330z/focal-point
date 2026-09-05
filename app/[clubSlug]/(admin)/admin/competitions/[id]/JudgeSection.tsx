@@ -23,6 +23,7 @@ type JudgeToken = {
   token:               string
   access_code:         string | null
   invitation_sent_at?: string | null
+  submitted_at?:       string | null
 }
 
 type Member = {
@@ -384,15 +385,32 @@ export function JudgeSection({
   // ── State: complete ──────────────────────────────────────────────────────────
 
   if (state === 'complete') {
+    const deadlinePassed = judgingClosesAt ? new Date() > new Date(judgingClosesAt) : false
+    const notSubmitted   = !judge.submitted_at
+    const isOverdue      = deadlinePassed && notSubmitted
+
     return (
-      <div className="rounded-xl border border-border-default bg-surface-2">
+      <div className="rounded-xl border border-border-default bg-surface-2 divide-y divide-border-subtle">
+        {isOverdue && (
+          <div className="px-4 py-3 bg-status-warning-bg rounded-t-xl">
+            <p className="text-sm font-semibold text-status-warning-text">
+              ⚠ Judging deadline has passed — scores not yet submitted
+            </p>
+            <p className="text-xs text-status-warning-text mt-0.5">
+              {judge.judge_name} has not submitted their scores. Follow up directly, or mark judging
+              complete manually once you have the results.
+            </p>
+          </div>
+        )}
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-content-primary">{judge.judge_name}</p>
               <p className="text-xs text-content-tertiary">{judge.judge_email}</p>
             </div>
-            <span className="text-xs text-content-tertiary">Judging complete</span>
+            <span className="text-xs text-content-tertiary">
+              {isOverdue ? 'Scores not submitted' : 'Judging complete'}
+            </span>
           </div>
           {judgingUrl && (
             <>

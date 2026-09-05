@@ -155,9 +155,11 @@ export default async function JudgeLandingPage({
   const now = new Date()
   const judgingDeadline = competition.judging_closes_at ? new Date(competition.judging_closes_at) : null
   const resultsDate     = competition.results_at         ? new Date(competition.results_at)         : null
-  const daysRemaining   = judgingDeadline
-    ? Math.max(0, Math.ceil((judgingDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+  const daysRemainingRaw = judgingDeadline
+    ? Math.ceil((judgingDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
     : null
+  const deadlinePassed = daysRemainingRaw !== null && daysRemainingRaw < 0
+  const daysRemaining  = daysRemainingRaw !== null ? Math.max(0, daysRemainingRaw) : null
 
   const formatDate = (d: Date) =>
     d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
@@ -192,9 +194,11 @@ export default async function JudgeLandingPage({
               <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{competition.short_title ?? competition.title}</strong>.
             </p>
             <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', lineHeight: 1.6, color: 'var(--text-secondary)', margin: '0 0 6px', whiteSpace: 'nowrap' }}>
-              {judgingDeadline
-                ? <>You have until <strong style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{formatDate(judgingDeadline)}</strong> when the judging window closes — your progress saves automatically.</>
-                : <>Your progress saves automatically — you can return at any time before the deadline.</>}
+              {judgingDeadline && deadlinePassed
+                ? <>The judging window closed on <strong style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{formatDate(judgingDeadline)}</strong> — contact the club administrator if you still need to submit.</>
+                : judgingDeadline
+                  ? <>You have until <strong style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{formatDate(judgingDeadline)}</strong> when the judging window closes — your progress saves automatically.</>
+                  : <>Your progress saves automatically — you can return at any time before the deadline.</>}
             </p>
             <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', lineHeight: 1.6, color: 'var(--text-secondary)', margin: 0 }}>
               If you have any issues{' '}
@@ -558,7 +562,7 @@ export default async function JudgeLandingPage({
               )}
 
               {/* Countdown */}
-              {daysRemaining !== null && !isSubmitted && (
+              {daysRemaining !== null && !isSubmitted && !deadlinePassed && (
                 <div style={{
                   marginTop:    20,
                   padding:      '12px 16px',
