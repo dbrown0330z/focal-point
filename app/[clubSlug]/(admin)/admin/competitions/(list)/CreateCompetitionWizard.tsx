@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, createContext, useContext, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Collapse, Dialog, Switch } from '@mui/material'
 import { createCompetitionFromSchedule } from '../actions'
@@ -15,44 +15,104 @@ import {
 
 type Template = { id: string; name: string; config: CompetitionConfig }
 
-// ─── Design tokens (identical to CreateTemplateWizard) ────────────────────────
+// ─── Color palettes ───────────────────────────────────────────────────────────
 
-const C = {
-  surface:         '#16202F',
-  sunken:          '#111B28',
-  inputBg:         '#101A27',
-  accent:          '#3F7FC4',
-  accentBorder:    '#4D8FD6',
-  accentChipBg:    '#24405E',
-  accentChipBorder:'rgba(122,175,235,.35)',
-  stepCurrent:     '#5B9BD5',
-  stepDone:        '#2F6394',
-  stepPending:     'rgba(255,255,255,.09)',
-  link:            '#6AA9E9',
-  linkHover:       '#8FC2F5',
-  textPrimary:     '#F1F5FA',
-  textBody:        '#E6EDF6',
-  textOnChip:      '#DBE6F2',
-  textSecondary:   '#A9BACD',
-  textMuted:       '#8B9CB0',
-  textLabel:       '#7D90A6',
-  textFaint:       '#63748A',
-  textEyebrow:     '#6B7D92',
-  custom:          '#D8B23C',
-  customBorder:    'rgba(216,178,60,.35)',
-  rule:            'rgba(255,255,255,.07)',
-  ruleSoft:        'rgba(255,255,255,.055)',
-  bandChipBg:      '#111B28',
-  // Toggle-off dimming
-  dimLabel:        '#8394A8',
-  dimDesc:         '#6B7C90',
+const C_DARK = {
+  surface:            '#16202F',
+  sunken:             '#111B28',
+  inputBg:            '#101A27',
+  accent:             '#3F7FC4',
+  accentBorder:       '#4D8FD6',
+  accentChipBg:       '#24405E',
+  accentChipBorder:   'rgba(122,175,235,.35)',
+  stepCurrent:        '#5B9BD5',
+  stepDone:           '#2F6394',
+  stepPending:        'rgba(255,255,255,.09)',
+  link:               '#6AA9E9',
+  linkHover:          '#8FC2F5',
+  textPrimary:        '#F1F5FA',
+  textBody:           '#E6EDF6',
+  textOnChip:         '#DBE6F2',
+  textSecondary:      '#A9BACD',
+  textMuted:          '#8B9CB0',
+  textLabel:          '#7D90A6',
+  textFaint:          '#63748A',
+  textEyebrow:        '#6B7D92',
+  custom:             '#D8B23C',
+  customBorder:       'rgba(216,178,60,.35)',
+  rule:               'rgba(255,255,255,.07)',
+  ruleSoft:           'rgba(255,255,255,.055)',
+  bandChipBg:         '#111B28',
+  dimLabel:           '#8394A8',
+  dimDesc:            '#6B7C90',
+  inputBorder:        'rgba(255,255,255,.1)',
+  inputBorderAccent:  'rgba(122,175,235,.45)',
+  border:             'rgba(255,255,255,.14)',
+  borderSubtle:       'rgba(255,255,255,.09)',
+  indentBorder:       'rgba(122,175,235,.3)',
+  changeHighlight:    '#F4D98A',
+  stepDoneBorder:     'rgba(122,175,235,.3)',
+  stepCurrentGlow:    '0 0 0 4px rgba(91,155,213,.18)',
+  catBtnUnselBorder:  'rgba(255,255,255,.1)',
+  error:              '#D32F2F',
 }
 
-const switchSx = {
-  '& .MuiSwitch-switchBase.Mui-checked': { color: '#fff' },
-  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-    backgroundColor: C.accent, opacity: 1,
-  },
+const C_LIGHT = {
+  surface:            '#FFFFFF',
+  sunken:             '#F7F8FA',
+  inputBg:            '#EDF0F5',
+  accent:             '#1E4D8C',
+  accentBorder:       '#163A6B',
+  accentChipBg:       'rgba(30,77,140,0.08)',
+  accentChipBorder:   'rgba(30,77,140,0.3)',
+  stepCurrent:        '#1E4D8C',
+  stepDone:           '#3E5066',
+  stepPending:        'rgba(0,0,0,.09)',
+  link:               '#1E4D8C',
+  linkHover:          '#163A6B',
+  textPrimary:        '#131F2E',
+  textBody:           '#26374C',
+  textOnChip:         '#131F2E',
+  textSecondary:      '#5A6C82',
+  textMuted:          '#7E8EA3',
+  textLabel:          '#7E8EA3',
+  textFaint:          '#B0BACA',
+  textEyebrow:        '#5A6C82',
+  custom:             '#7B6B38',
+  customBorder:       'rgba(123,107,56,0.35)',
+  rule:               '#D8DDE7',
+  ruleSoft:           '#EDF0F5',
+  bandChipBg:         '#F7F8FA',
+  dimLabel:           '#B0BACA',
+  dimDesc:            '#D8DDE7',
+  inputBorder:        '#B0BACA',
+  inputBorderAccent:  'rgba(30,77,140,.35)',
+  border:             'rgba(0,0,0,.14)',
+  borderSubtle:       'rgba(0,0,0,.08)',
+  indentBorder:       'rgba(30,77,140,.25)',
+  changeHighlight:    '#7B6B38',
+  stepDoneBorder:     'rgba(30,77,140,.2)',
+  stepCurrentGlow:    '0 0 0 4px rgba(30,77,140,.15)',
+  catBtnUnselBorder:  'rgba(0,0,0,.1)',
+  error:              '#D32F2F',
+}
+
+type CType = typeof C_DARK
+const ThemeCtx = createContext<CType>(C_DARK)
+
+function useDarkMode(): boolean {
+  const [dark, setDark] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : false
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = (e: MediaQueryListEvent) => setDark(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  return dark
 }
 
 function differs(a: unknown, b: unknown): boolean {
@@ -81,23 +141,23 @@ function fmtTime(timeStr: string) {
 
 // ─── Primitives ───────────────────────────────────────────────────────────────
 
-/** Below-control provenance chip. chipText = what to show when not custom. */
 function ProvChip({ isCustom, resetTo, onReset, chipText = 'Club default', customText = 'Custom' }: {
   isCustom: boolean; resetTo: string; onReset: () => void
   chipText?: string; customText?: string
 }) {
+  const c = useContext(ThemeCtx)
   const chip: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', gap: 8,
     fontSize: 11.5, letterSpacing: '.03em', borderRadius: 5,
-    padding: '2px 7px', border: `1px solid ${isCustom ? C.customBorder : 'rgba(255,255,255,.1)'}`,
-    color: isCustom ? C.custom : C.textLabel,
+    padding: '2px 7px', border: `1px solid ${isCustom ? c.customBorder : c.inputBorder}`,
+    color: isCustom ? c.custom : c.textLabel,
   }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <span style={chip}>{isCustom ? customText : chipText}</span>
       {isCustom && (
         <button onClick={onReset} style={{
-          fontSize: 11.5, color: C.link, background: 'none', border: 'none',
+          fontSize: 11.5, color: c.link, background: 'none', border: 'none',
           cursor: 'pointer', padding: 0,
         }}>
           Reset to {resetTo}
@@ -107,39 +167,45 @@ function ProvChip({ isCustom, resetTo, onReset, chipText = 'Club default', custo
   )
 }
 
-/** Inline label chip (provenance, not custom) */
 function InlineChip({ label }: { label: string }) {
+  const c = useContext(ThemeCtx)
   return (
     <span style={{
       fontSize: 11, letterSpacing: '.03em', borderRadius: 5, whiteSpace: 'nowrap',
-      padding: '2px 7px', border: '1px solid rgba(255,255,255,.1)', color: C.textLabel,
+      padding: '2px 7px', border: `1px solid ${c.inputBorder}`, color: c.textLabel,
     }}>
       {label}
     </span>
   )
 }
 
-/** Read-only band chip — dims when dim=true */
 function BandChip({ label, dim }: { label: string; dim?: boolean }) {
+  const c = useContext(ThemeCtx)
   return (
     <span style={{
-      fontSize: 12.5, background: C.bandChipBg,
-      border: `1px solid ${C.rule}`, borderRadius: 6,
-      padding: '5px 10px', color: dim ? C.dimDesc : C.textSecondary,
+      fontSize: 12.5, background: c.bandChipBg,
+      border: `1px solid ${c.rule}`, borderRadius: 6,
+      padding: '5px 10px', color: dim ? c.dimDesc : c.textSecondary,
     }}>
       {label}
     </span>
   )
 }
 
-/** Toggle row with state-first copy and label/desc dimming when off */
 function TogRow({ label, on, onChange, onDesc, offDesc, narrow, labelExtra, children }: {
   label: string; on: boolean; onChange: (v: boolean) => void
   onDesc: string; offDesc: string; narrow?: boolean
   labelExtra?: React.ReactNode; children?: React.ReactNode
 }) {
-  const lc = on ? C.textBody : C.dimLabel
-  const dc = on ? C.textMuted : C.dimDesc
+  const c = useContext(ThemeCtx)
+  const switchSx = {
+    '& .MuiSwitch-switchBase.Mui-checked': { color: '#fff' },
+    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+      backgroundColor: c.accent, opacity: 1,
+    },
+  }
+  const lc = on ? c.textBody : c.dimLabel
+  const dc = on ? c.textMuted : c.dimDesc
   const desc = (on ? 'On — ' : 'Off — ') + (on ? onDesc : offDesc)
   return (
     <div>
@@ -160,71 +226,71 @@ function TogRow({ label, on, onChange, onDesc, offDesc, narrow, labelExtra, chil
   )
 }
 
-/** Indented child row — shown when a parent toggle is on */
 function ChildRow({ children }: { children: React.ReactNode }) {
+  const c = useContext(ThemeCtx)
   return (
     <div style={{
       marginTop: 12, marginLeft: 18, paddingLeft: 22,
-      borderLeft: '2px solid rgba(122,175,235,.3)',
+      borderLeft: `2px solid ${c.indentBorder}`,
     }}>
       {children}
     </div>
   )
 }
 
-/** Number stepper */
 function Stepper({ value, min, max, onChange }: {
   value: number; min: number; max?: number; onChange: (v: number) => void
 }) {
+  const c = useContext(ThemeCtx)
   const dec = () => onChange(Math.max(min, value - 1))
   const inc = () => onChange(max !== undefined ? Math.min(max, value + 1) : value + 1)
   const btn: React.CSSProperties = {
     width: 28, height: 28, borderRadius: 6, border: 'none', background: 'transparent',
-    color: C.textSecondary, fontSize: 16, cursor: 'pointer', display: 'flex',
+    color: c.textSecondary, fontSize: 16, cursor: 'pointer', display: 'flex',
     alignItems: 'center', justifyContent: 'center',
   }
   return (
     <div style={{
       display: 'flex', gap: 3, alignItems: 'center', padding: 3,
-      background: C.inputBg, border: '1px solid rgba(255,255,255,.1)', borderRadius: 9,
+      background: c.inputBg, border: `1px solid ${c.inputBorder}`, borderRadius: 9,
     }}>
       <button style={btn} onClick={dec}>−</button>
-      <span style={{ minWidth: 36, textAlign: 'center', fontSize: 15, fontWeight: 600, color: C.textPrimary }}>{value}</span>
+      <span style={{ minWidth: 36, textAlign: 'center', fontSize: 15, fontWeight: 600, color: c.textPrimary }}>{value}</span>
       <button style={btn} onClick={inc}>+</button>
     </div>
   )
 }
 
-/** Styled native select */
 function Sel({ value, onChange, options, width, placeholder }: {
   value: string; onChange: (v: string) => void
   options: { value: string; label: string }[]
   width?: number; placeholder?: string
 }) {
+  const c = useContext(ThemeCtx)
   return (
     <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', width: width ?? 'auto' }}>
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
         style={{
-          appearance: 'none', background: C.inputBg, border: '1px solid rgba(255,255,255,.1)',
-          borderRadius: 9, padding: '8px 32px 8px 12px', fontSize: 14, color: value ? C.textBody : C.textLabel,
+          appearance: 'none', background: c.inputBg, border: `1px solid ${c.inputBorder}`,
+          borderRadius: 9, padding: '8px 32px 8px 12px', fontSize: 14, color: value ? c.textBody : c.textLabel,
           cursor: 'pointer', width: '100%', minWidth: width ?? 150, fontFamily: 'inherit',
         }}
       >
         {placeholder && <option value="" disabled>{placeholder}</option>}
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
-      <span style={{ position: 'absolute', right: 10, pointerEvents: 'none', fontSize: 10, color: C.textLabel }}>▾</span>
+      <span style={{ position: 'absolute', right: 10, pointerEvents: 'none', fontSize: 10, color: c.textLabel }}>▾</span>
     </div>
   )
 }
 
-/** Text input styled to match selects */
 function TextInput({ value, onChange, placeholder, maxWidth, error, hint }: {
   value: string; onChange: (v: string) => void; placeholder?: string
   maxWidth?: number; error?: string; hint?: string
 }) {
+  const c = useContext(ThemeCtx)
   return (
     <div style={{ maxWidth: maxWidth ?? 420 }}>
       <input
@@ -234,33 +300,33 @@ function TextInput({ value, onChange, placeholder, maxWidth, error, hint }: {
         placeholder={placeholder}
         style={{
           width: '100%', boxSizing: 'border-box',
-          background: C.inputBg, border: `1px solid ${error ? '#D32F2F' : 'rgba(122,175,235,.45)'}`,
+          background: c.inputBg, border: `1px solid ${error ? c.error : c.inputBorderAccent}`,
           borderRadius: 9, padding: '11px 14px', fontSize: 15,
-          color: C.textPrimary, fontFamily: 'inherit',
+          color: c.textPrimary, fontFamily: 'inherit',
           outline: 'none',
         }}
       />
-      {hint && !error && <div style={{ marginTop: 6, fontSize: 12.5, color: C.textMuted }}>{hint}</div>}
-      {error && <div style={{ marginTop: 6, fontSize: 12.5, color: '#D32F2F' }}>{error}</div>}
+      {hint && !error && <div style={{ marginTop: 6, fontSize: 12.5, color: c.textMuted }}>{hint}</div>}
+      {error && <div style={{ marginTop: 6, fontSize: 12.5, color: c.error }}>{error}</div>}
     </div>
   )
 }
 
-/** Date input */
 function DateInput({ value, onChange, label }: {
   value: string; onChange: (v: string) => void; label?: string
 }) {
+  const c = useContext(ThemeCtx)
   return (
     <div>
-      {label && <div style={{ fontSize: 12.5, color: C.textLabel, marginBottom: 6 }}>{label}</div>}
+      {label && <div style={{ fontSize: 12.5, color: c.textLabel, marginBottom: 6 }}>{label}</div>}
       <input
         type="date"
         value={value}
         onChange={e => onChange(e.target.value)}
         style={{
-          background: C.inputBg, border: '1px solid rgba(255,255,255,.1)',
+          background: c.inputBg, border: `1px solid ${c.inputBorder}`,
           borderRadius: 9, padding: '8px 12px', fontSize: 14,
-          color: value ? C.textBody : C.textLabel,
+          color: value ? c.textBody : c.textLabel,
           fontFamily: 'inherit', cursor: 'pointer',
         }}
       />
@@ -268,20 +334,20 @@ function DateInput({ value, onChange, label }: {
   )
 }
 
-/** Radio option card */
 function OptionCard({ selected, onClick, title, desc, unavailable, badge }: {
   selected: boolean; onClick: () => void; title: string; desc: string
   unavailable?: boolean; badge?: string
 }) {
+  const c = useContext(ThemeCtx)
   return (
     <button
       onClick={unavailable ? undefined : onClick}
       disabled={unavailable}
       style={{
         textAlign: 'left', width: '100%', borderRadius: 10, padding: '14px 16px',
-        background: selected ? C.accentChipBg : C.sunken,
-        border: `1.5px solid ${selected ? C.stepCurrent : 'rgba(255,255,255,.09)'}`,
-        boxShadow: selected ? '0 0 0 1px rgba(91,155,213,.25)' : 'none',
+        background: selected ? c.accentChipBg : c.sunken,
+        border: `1.5px solid ${selected ? c.stepCurrent : c.stepPending}`,
+        boxShadow: selected ? `0 0 0 1px ${c.accentChipBorder}` : 'none',
         opacity: unavailable ? 0.55 : 1,
         cursor: unavailable ? 'default' : 'pointer',
         transition: 'border-color .12s',
@@ -291,34 +357,34 @@ function OptionCard({ selected, onClick, title, desc, unavailable, badge }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
         <div style={{
           width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
-          border: `1.5px solid ${selected ? C.stepCurrent : 'rgba(255,255,255,.22)'}`,
-          background: selected ? C.stepCurrent : 'transparent',
-          boxShadow: selected ? `inset 0 0 0 3.5px ${C.surface}` : 'none',
+          border: `1.5px solid ${selected ? c.stepCurrent : c.border}`,
+          background: selected ? c.stepCurrent : 'transparent',
+          boxShadow: selected ? `inset 0 0 0 3.5px ${c.surface}` : 'none',
         }} />
-        <span style={{ fontSize: 14.5, fontWeight: 600, color: C.textPrimary }}>{title}</span>
+        <span style={{ fontSize: 14.5, fontWeight: 600, color: c.textPrimary }}>{title}</span>
         {badge && (
           <span style={{
             fontSize: 11, padding: '2px 7px', borderRadius: 5,
-            border: '1px solid rgba(255,255,255,.1)', color: C.textLabel,
+            border: `1px solid ${c.inputBorder}`, color: c.textLabel,
           }}>{badge}</span>
         )}
       </div>
-      <div style={{ marginTop: 7, paddingLeft: 27, fontSize: 13, lineHeight: 1.5, color: C.textMuted }}>{desc}</div>
+      <div style={{ marginTop: 7, paddingLeft: 27, fontSize: 13, lineHeight: 1.5, color: c.textMuted }}>{desc}</div>
     </button>
   )
 }
 
-/** 6-step bar stepper */
 const STEP_LABELS = ['Basics', 'Entries', 'Judging', 'Recognition', 'Review', 'Schedule']
 function BarStepper({ step, onStep }: { step: number; onStep: (s: number) => void }) {
+  const c = useContext(ThemeCtx)
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 10, marginTop: 22 }}>
       {STEP_LABELS.map((label, i) => {
         const n = i + 1
         const done    = n < step
         const current = n === step
-        const barColor = done ? C.stepDone : current ? C.stepCurrent : C.stepPending
-        const lblColor = current ? C.textPrimary : done ? C.textSecondary : C.textEyebrow
+        const barColor = done ? c.stepDone : current ? c.stepCurrent : c.stepPending
+        const lblColor = current ? c.textPrimary : done ? c.textSecondary : c.textEyebrow
         const lblWeight = current ? 600 : 400
         return (
           <button
@@ -335,20 +401,20 @@ function BarStepper({ step, onStep }: { step: number; onStep: (s: number) => voi
   )
 }
 
-/** Section band */
 function Band({ label, subLine, children, gutterExtra }: {
   label: string; subLine?: string; children: React.ReactNode; gutterExtra?: React.ReactNode
 }) {
+  const c = useContext(ThemeCtx)
   return (
     <div style={{
       display: 'flex', gap: 32, padding: '24px 32px 26px',
-      borderTop: `1px solid ${C.rule}`,
+      borderTop: `1px solid ${c.rule}`,
     }}>
       <div style={{ width: 176, flexShrink: 0, paddingTop: 2 }}>
-        <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: C.textLabel }}>
+        <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: c.textLabel }}>
           {label}
         </div>
-        {subLine && <div style={{ marginTop: 6, fontSize: 12.5, lineHeight: 1.5, color: C.textFaint }}>{subLine}</div>}
+        {subLine && <div style={{ marginTop: 6, fontSize: 12.5, lineHeight: 1.5, color: c.textFaint }}>{subLine}</div>}
         {gutterExtra}
       </div>
       <div style={{ flex: 1 }}>{children}</div>
@@ -356,13 +422,13 @@ function Band({ label, subLine, children, gutterExtra }: {
   )
 }
 
-/** Row container — adds soft rules between children */
 function Rows({ children }: { children: React.ReactNode }) {
+  const c = useContext(ThemeCtx)
   const items = (Array.isArray(children) ? (children as unknown[]).flat() : [children]).filter(Boolean)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       {items.map((child, i) => (
-        <div key={i} style={{ paddingTop: i > 0 ? 16 : 0, borderTop: i > 0 ? `1px solid ${C.ruleSoft}` : 'none' }}>
+        <div key={i} style={{ paddingTop: i > 0 ? 16 : 0, borderTop: i > 0 ? `1px solid ${c.ruleSoft}` : 'none' }}>
           {child as React.ReactNode}
         </div>
       ))}
@@ -370,21 +436,21 @@ function Rows({ children }: { children: React.ReactNode }) {
   )
 }
 
-/** Two-column row: label+desc left, control right */
 function Row({ label, desc, children, narrow, labelExtra }: {
   label: string; desc?: string; children?: React.ReactNode
   narrow?: boolean; labelExtra?: React.ReactNode
 }) {
+  const c = useContext(ThemeCtx)
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: narrow ? '1fr 120px' : '1fr 260px',
       gap: 24, alignItems: 'start',
     }}>
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 14.5, fontWeight: 500, color: C.textBody }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 14.5, fontWeight: 500, color: c.textBody }}>
           <span>{label}</span>{labelExtra}
         </div>
-        {desc && <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: C.textMuted, maxWidth: '52ch' }}>{desc}</div>}
+        {desc && <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: c.textMuted, maxWidth: '52ch' }}>{desc}</div>}
       </div>
       {children && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 7 }}>
@@ -395,22 +461,24 @@ function Row({ label, desc, children, narrow, labelExtra }: {
   )
 }
 
-/** Defaults footer strip */
-function DefFooter({ note, clubSlug, linkText, linkHref }: {
-  note: React.ReactNode; clubSlug: string; linkText?: string; linkHref?: string
+function DefFooter({ note, linkText, linkHref }: {
+  note: React.ReactNode; linkText?: string; linkHref?: string
 }) {
+  const c = useContext(ThemeCtx)
   return (
     <div style={{
-      background: C.sunken, borderTop: `1px solid ${C.rule}`,
+      background: c.sunken, borderTop: `1px solid ${c.rule}`,
       padding: '14px 32px', display: 'flex', justifyContent: 'space-between',
       alignItems: 'center', flexShrink: 0,
     }}>
-      <span style={{ fontSize: 12.5, color: C.textMuted }}>{note}</span>
-      <a href={linkHref ?? `/${clubSlug}/admin/competitions/competition-defaults`}
-        target="_blank" rel="noopener noreferrer"
-        style={{ fontSize: 12.5, color: C.link, textDecoration: 'none', whiteSpace: 'nowrap' }}>
-        {linkText ?? 'Manage club defaults'} ↗
-      </a>
+      <span style={{ fontSize: 12.5, color: c.textMuted }}>{note}</span>
+      {linkHref && (
+        <a href={linkHref}
+          target="_blank" rel="noopener noreferrer"
+          style={{ fontSize: 12.5, color: c.link, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+          {linkText ?? 'Manage competition defaults'} ↗
+        </a>
+      )}
     </div>
   )
 }
@@ -425,14 +493,6 @@ const COMMENT_OPTIONS: { value: JudgeCommentsSetting; label: string }[] = [
   { value: 'required', label: 'Required' },
 ]
 
-const CAPTURE_DATE_OPTIONS = [
-  { value: 'none',    label: 'Not required' },
-  { value: '1-years', label: 'Within 1 year' },
-  { value: '2-years', label: 'Within 2 years' },
-  { value: '3-years', label: 'Within 3 years' },
-  { value: '5-years', label: 'Within 5 years' },
-]
-
 const REUSE_OPTIONS: { value: ImageReusePolicy; label: string }[] = [
   { value: 'once-per-type',   label: 'Allowed in other types' },
   { value: 'once-per-season', label: 'Once per season' },
@@ -444,8 +504,8 @@ const PRESET_OPTIONS: { value: JudgingPreset; label: string; desc: string; best:
   { value: 'simple-scored', label: 'Salon style',   desc: 'A judge gives each image a number; members see their score and where it ranked.', best: 'Best for monthly salons and regular club competitions.' },
   { value: 'salon',         label: 'Salon (panel)', desc: 'Multiple judges score independently and the scores are totalled per image.',       best: 'Best for larger salons with an invited panel.' },
   { value: 'awards-only',   label: 'Awards only',   desc: 'No numeric scores — judges name placings and honourable mentions.',                best: 'Best for themed nights and end-of-season shows.' },
-  { value: 'member-vote',   label: 'Member vote',   desc: 'Members rank the entries themselves; votes are tallied on close.',                  best: 'Best for club choice and people\'s-choice rounds.' },
-  { value: 'end-of-year',   label: 'End of year',   desc: 'Entries are drawn from the season\'s results and judged as a final round.',        best: 'Best for annual competitions and trophy nights.' },
+  { value: 'member-vote',   label: 'Member vote',   desc: 'Members rank the entries themselves; votes are tallied on close.',                  best: "Best for club choice and people's-choice rounds." },
+  { value: 'end-of-year',   label: 'End of year',   desc: "Entries are drawn from the season's results and judged as a final round.",        best: 'Best for annual competitions and trophy nights.' },
 ]
 
 const benchmarkBands = [...(CLUB_DEFAULTS.recognitionDefaults.benchmark?.bands ?? [])].reverse()
@@ -461,9 +521,9 @@ function Step1({ name, onName, showFriendly, onShowFriendly, friendlyName, onFri
   templates: Template[]; selectedTemplateId: string | null
   onSelectTemplate: (id: string | null) => void; clubSlug: string
 }) {
+  const c = useContext(ThemeCtx)
   return (
     <>
-      {/* ── Name ── */}
       <Band label="Name" subLine="Required to publish">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <TextInput
@@ -475,7 +535,7 @@ function Step1({ name, onName, showFriendly, onShowFriendly, friendlyName, onFri
           {!showFriendly && (
             <button
               onClick={() => onShowFriendly(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.link, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: c.link, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             >
               Add a member-friendly name <span style={{ fontSize: 10 }}>▾</span>
             </button>
@@ -491,7 +551,6 @@ function Step1({ name, onName, showFriendly, onShowFriendly, friendlyName, onFri
         </div>
       </Band>
 
-      {/* ── Starting point ── */}
       <Band label="Starting point" subLine="Sets the next three steps">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -518,7 +577,7 @@ function Step1({ name, onName, showFriendly, onShowFriendly, friendlyName, onFri
                 width={280}
               />
               <a href={`/${clubSlug}/admin/competitions/templates`} target="_blank" rel="noopener noreferrer"
-                style={{ fontSize: 12.5, color: C.link, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                style={{ fontSize: 12.5, color: c.link, textDecoration: 'none', whiteSpace: 'nowrap' }}>
                 Manage templates ↗
               </a>
             </div>
@@ -532,11 +591,12 @@ function Step1({ name, onName, showFriendly, onShowFriendly, friendlyName, onFri
 // ─── Step 2 — Entries & submissions ───────────────────────────────────────────
 
 function Step2({ config, onChange, clubCategories, includedCats, onIncludedCats,
-  baseline, start, clubSlug }: {
+  baseline, start }: {
   config: CompetitionConfig; onChange: (p: Partial<CompetitionConfig>) => void
   clubCategories: string[]; includedCats: string[]; onIncludedCats: (cats: string[]) => void
-  baseline: CompetitionConfig; start: 'template' | 'scratch'; clubSlug: string
+  baseline: CompetitionConfig; start: 'template' | 'scratch'
 }) {
+  const c = useContext(ThemeCtx)
   const provText   = start === 'template' ? 'From template' : 'Club default'
   const customText = 'Changed for this competition'
 
@@ -547,17 +607,13 @@ function Step2({ config, onChange, clubCategories, includedCats, onIncludedCats,
 
   const toggleCat = (cat: string) => {
     const next = includedCats.includes(cat)
-      ? includedCats.filter(c => c !== cat)
+      ? includedCats.filter(cc => cc !== cat)
       : [...includedCats, cat]
     onIncludedCats(next)
   }
 
-  const defaultsOnStep = [!perMemberCustom, !perCatCustom, !reuseCustom, !withdrawCustom].filter(Boolean).length
-  const footerNote = `${defaultsOnStep} of 4 values on this step come from your ${start === 'template' ? 'template' : 'club defaults'}. Editing one here affects this competition only.`
-
   return (
     <>
-      {/* ── Categories ── */}
       <Band label="Categories" subLine={`${includedCats.length} in this competition`}>
         <div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -570,9 +626,9 @@ function Step2({ config, onChange, clubCategories, includedCats, onIncludedCats,
                   style={{
                     fontSize: 13.5, borderRadius: 7, padding: '6px 11px', cursor: 'pointer',
                     fontFamily: 'inherit', border: 'none',
-                    color: included ? C.textOnChip : C.textMuted,
-                    background: included ? C.accentChipBg : 'transparent',
-                    outline: included ? `1px solid ${C.accentChipBorder}` : '1px solid rgba(255,255,255,.1)',
+                    color: included ? c.textOnChip : c.textMuted,
+                    background: included ? c.accentChipBg : 'transparent',
+                    outline: included ? `1px solid ${c.accentChipBorder}` : `1px solid ${c.catBtnUnselBorder}`,
                   }}
                 >
                   {cat}
@@ -580,13 +636,12 @@ function Step2({ config, onChange, clubCategories, includedCats, onIncludedCats,
               )
             })}
           </div>
-          <div style={{ marginTop: 10, fontSize: 12.5, color: C.textLabel }}>
+          <div style={{ marginTop: 10, fontSize: 12.5, color: c.textLabel }}>
             Tap a category to include or exclude it for this competition.
           </div>
         </div>
       </Band>
 
-      {/* ── Entry limits ── */}
       <Band label="Entry limits" subLine="How much a member may submit">
         <Rows>
           <Row label="Entries per member" desc="Total images one member may submit to this competition.">
@@ -609,17 +664,16 @@ function Step2({ config, onChange, clubCategories, includedCats, onIncludedCats,
         </Rows>
       </Band>
 
-      {/* ── Files & eligibility ── */}
       <Band label="Files & eligibility" subLine="What counts as a valid entry">
         <Rows>
           <Row label="Long edge maximum" desc="1920 px matches standard HD projector resolution.">
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              background: C.inputBg, border: '1px solid rgba(255,255,255,.1)',
+              background: c.inputBg, border: `1px solid ${c.inputBorder}`,
               borderRadius: 9, padding: '7px 12px',
             }}>
-              <span style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>1920</span>
-              <span style={{ fontSize: 13, color: C.textLabel }}>px</span>
+              <span style={{ fontSize: 15, fontWeight: 600, color: c.textPrimary }}>1920</span>
+              <span style={{ fontSize: 13, color: c.textLabel }}>px</span>
             </div>
             <ProvChip isCustom={false} resetTo="" onReset={() => {}} chipText="Club default" customText={customText} />
           </Row>
@@ -654,18 +708,17 @@ function Step2({ config, onChange, clubCategories, includedCats, onIncludedCats,
           )}
         </Rows>
       </Band>
-
-      <DefFooter note={footerNote} clubSlug={clubSlug} />
     </>
   )
 }
 
 // ─── Step 3 — Judging & scoring ───────────────────────────────────────────────
 
-function Step3({ config, onChange, baseline, start, clubSlug }: {
+function Step3({ config, onChange, baseline, start }: {
   config: CompetitionConfig; onChange: (p: Partial<CompetitionConfig>) => void
-  baseline: CompetitionConfig; start: 'template' | 'scratch'; clubSlug: string
+  baseline: CompetitionConfig; start: 'template' | 'scratch'
 }) {
+  const c = useContext(ThemeCtx)
   const provText   = start === 'template' ? 'From template' : 'Club default'
   const customText = 'Changed for this competition'
   const preset = config.judgingPreset
@@ -677,15 +730,6 @@ function Step3({ config, onChange, baseline, start, clubSlug }: {
   const commentsCustom  = differs(config.judgeComments, baseline.judgeComments)
   const minScoreCustom  = differs(config.minimumScoreToPublish, baseline.minimumScoreToPublish)
 
-  const defaultsOnStep = [
-    !scoreCustom && showScoring, !namesCustom && showScoring,
-    !commentsCustom && showScoring, !minScoreCustom && showScoring,
-  ].filter(Boolean).length
-  const totalOnStep = showScoring ? 4 : 0
-  const footerNote = totalOnStep > 0
-    ? `${defaultsOnStep} of ${totalOnStep} values on this step come from your ${start === 'template' ? 'template' : 'club defaults'}. Editing one here affects this competition only.`
-    : 'Judging panel settings apply to this competition only.'
-
   const minScoreOptions = Array.from({ length: config.scoreMax - 1 }, (_, i) => ({
     value: String(i + 2),
     label: `${i + 2} of ${config.scoreMax}`,
@@ -693,10 +737,8 @@ function Step3({ config, onChange, baseline, start, clubSlug }: {
 
   return (
     <>
-      {/* ── Judging preset ── */}
       <Band label="Judging preset" subLine="Sets the scoring model">
         <div style={{ display: 'flex', gap: 12 }}>
-          {/* Preset list */}
           <div style={{ width: 190, display: 'flex', flexDirection: 'column', gap: 4 }}>
             {PRESET_OPTIONS.map(opt => (
               <button key={opt.value} onClick={() => {
@@ -705,22 +747,20 @@ function Step3({ config, onChange, baseline, start, clubSlug }: {
                 textAlign: 'left', padding: '9px 12px', borderRadius: 8,
                 fontSize: 14, fontFamily: 'inherit', cursor: 'pointer',
                 fontWeight: opt.value === preset ? 600 : 400,
-                color: opt.value === preset ? C.textPrimary : C.textSecondary,
-                background: opt.value === preset ? C.accentChipBg : 'transparent',
-                border: opt.value === preset ? `1px solid ${C.accentChipBorder}` : '1px solid transparent',
+                color: opt.value === preset ? c.textPrimary : c.textSecondary,
+                background: opt.value === preset ? c.accentChipBg : 'transparent',
+                border: opt.value === preset ? `1px solid ${c.accentChipBorder}` : '1px solid transparent',
               }}>{opt.label}</button>
             ))}
           </div>
-          {/* Detail panel */}
-          <div style={{ flex: 1, background: C.sunken, border: `1px solid ${C.rule}`, borderRadius: 10, padding: '18px 20px' }}>
-            <div style={{ fontSize: 14.5, fontWeight: 600, color: C.textPrimary }}>{selectedPreset.label}</div>
-            <div style={{ marginTop: 6, fontSize: 13, lineHeight: 1.6, color: C.textMuted, maxWidth: '56ch' }}>{selectedPreset.desc}</div>
-            <div style={{ marginTop: 12, fontSize: 12.5, color: C.textLabel }}>{selectedPreset.best}</div>
+          <div style={{ flex: 1, background: c.sunken, border: `1px solid ${c.rule}`, borderRadius: 10, padding: '18px 20px' }}>
+            <div style={{ fontSize: 14.5, fontWeight: 600, color: c.textPrimary }}>{selectedPreset.label}</div>
+            <div style={{ marginTop: 6, fontSize: 13, lineHeight: 1.6, color: c.textMuted, maxWidth: '56ch' }}>{selectedPreset.desc}</div>
+            <div style={{ marginTop: 12, fontSize: 12.5, color: c.textLabel }}>{selectedPreset.best}</div>
           </div>
         </div>
       </Band>
 
-      {/* ── Judging panel ── */}
       {showScoring && (
         <Band label="Judging panel" subLine="Who scores the entries">
           <Rows>
@@ -736,7 +776,6 @@ function Step3({ config, onChange, baseline, start, clubSlug }: {
         </Band>
       )}
 
-      {/* ── Judge experience ── */}
       {showScoring && (
         <Band label="Judge experience" subLine="What judges see and enter">
           <Rows>
@@ -744,12 +783,12 @@ function Step3({ config, onChange, baseline, start, clubSlug }: {
               desc={`Judges score each entry from ${config.scoreMin} to ${config.scoreMax}.`}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{
-                  background: C.inputBg, border: '1px solid rgba(255,255,255,.1)',
+                  background: c.inputBg, border: `1px solid ${c.inputBorder}`,
                   borderRadius: 9, padding: '7px 12px',
                 }}>
-                  <span style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>1</span>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: c.textPrimary }}>1</span>
                 </div>
-                <span style={{ fontSize: 13, color: C.textLabel }}>to</span>
+                <span style={{ fontSize: 13, color: c.textLabel }}>to</span>
                 <Stepper value={config.scoreMax} min={2}
                   onChange={v => {
                     const clamped = Math.min(config.minimumScoreToPublishValue || v, v)
@@ -803,8 +842,8 @@ function Step3({ config, onChange, baseline, start, clubSlug }: {
               >
                 {config.minimumScoreToPublish && (
                   <ChildRow>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: C.textBody }}>Minimum score</div>
-                    <div style={{ marginTop: 3, fontSize: 12.5, color: C.textMuted }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: c.textBody }}>Minimum score</div>
+                    <div style={{ marginTop: 3, fontSize: 12.5, color: c.textMuted }}>
                       Entries scoring below {config.minimumScoreToPublishValue || 2} are left out of the published results.
                     </div>
                     <div style={{ marginTop: 10 }}>
@@ -829,17 +868,15 @@ function Step3({ config, onChange, baseline, start, clubSlug }: {
           </Rows>
         </Band>
       )}
-
-      <DefFooter note={footerNote} clubSlug={clubSlug} />
     </>
   )
 }
 
 // ─── Step 4 — Recognition ─────────────────────────────────────────────────────
 
-function Step4({ config, onChange, baseline, start, clubSlug }: {
+function Step4({ config, onChange, baseline, start }: {
   config: CompetitionConfig; onChange: (p: Partial<CompetitionConfig>) => void
-  baseline: CompetitionConfig; start: 'template' | 'scratch'; clubSlug: string
+  baseline: CompetitionConfig; start: 'template' | 'scratch'
 }) {
   const provText   = start === 'template' ? 'From template' : 'Default for new competitions'
   const customText = 'Changed for this competition'
@@ -852,7 +889,6 @@ function Step4({ config, onChange, baseline, start, clubSlug }: {
 
   return (
     <>
-      {/* ── Awards ── */}
       <Band label="Awards" subLine="Named placings">
         <TogRow
           label="Give awards for this competition"
@@ -863,11 +899,9 @@ function Step4({ config, onChange, baseline, start, clubSlug }: {
         />
       </Band>
 
-      {/* ── Standings ── */}
       {showStandings && (
         <Band label="Standings" subLine="How this competition affects current-season rankings">
           <Rows>
-            {/* Benchmark */}
             <div>
               <TogRow
                 label="Benchmark classification"
@@ -892,7 +926,6 @@ function Step4({ config, onChange, baseline, start, clubSlug }: {
                 </div>
               )}
             </div>
-            {/* POY */}
             <div>
               <TogRow
                 label="Photographer of the Year"
@@ -914,13 +947,6 @@ function Step4({ config, onChange, baseline, start, clubSlug }: {
           </Rows>
         </Band>
       )}
-
-      <DefFooter
-        note="Benchmark and POY settings are configured per-competition in Recognition & Standings."
-        clubSlug={clubSlug}
-        linkText="Manage recognition settings"
-        linkHref={`/${clubSlug}/admin/competitions/recognition`}
-      />
     </>
   )
 }
@@ -928,18 +954,14 @@ function Step4({ config, onChange, baseline, start, clubSlug }: {
 // ─── Step 5 — Review ──────────────────────────────────────────────────────────
 
 function ReviewLine({ primary, secondary }: { primary?: string; secondary?: string }) {
+  const c = useContext(ThemeCtx)
   return (
     <div>
-      {primary && <div style={{ fontSize: 14.5, color: C.textBody }}>{primary}</div>}
-      {secondary && <div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>{secondary}</div>}
+      {primary && <div style={{ fontSize: 14.5, color: c.textBody }}>{primary}</div>}
+      {secondary && <div style={{ fontSize: 13, color: c.textMuted, marginTop: 2 }}>{secondary}</div>}
     </div>
   )
 }
-
-const linkStyle = (): React.CSSProperties => ({
-  fontSize: 12.5, color: C.link, background: 'none', border: 'none',
-  cursor: 'pointer', padding: 0, fontFamily: 'inherit', textDecoration: 'none',
-})
 
 const PRESET_LABEL: Record<JudgingPreset, string> = {
   'simple-scored': 'Salon style', 'salon': 'Salon (panel)',
@@ -984,6 +1006,7 @@ function Step5({ name, config, baseline, includedCats, baseCats, start, selected
   tplName: string; onTplName: (v: string) => void
   onStep: (s: number) => void
 }) {
+  const c = useContext(ThemeCtx)
   const changes = getChanges(config, baseline, includedCats, baseCats)
   const hasChanges = changes.length > 0
   const preset = config.judgingPreset
@@ -1013,11 +1036,15 @@ function Step5({ name, config, baseline, includedCats, baseCats, start, selected
   const showUpdateCard = start === 'template' && hasChanges && saveTpl
   const showNameInput  = saveTpl && (start === 'scratch' || tplAction === 'new')
 
+  const editLinkStyle: React.CSSProperties = {
+    fontSize: 12.5, color: c.link, background: 'none', border: 'none',
+    cursor: 'pointer', padding: 0, fontFamily: 'inherit', textDecoration: 'none',
+  }
+
   return (
     <>
-      {/* ── Entries ── */}
       <Band label="Entries" gutterExtra={
-        <button onClick={() => onStep(2)} style={{ ...linkStyle(), marginTop: 6 }}>Edit step 2</button>
+        <button onClick={() => onStep(2)} style={{ ...editLinkStyle, marginTop: 6 }}>Edit step 2</button>
       }>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <ReviewLine primary={`${catLine}: ${includedCats.join(', ') || 'none selected'}`} />
@@ -1025,9 +1052,8 @@ function Step5({ name, config, baseline, includedCats, baseCats, start, selected
         </div>
       </Band>
 
-      {/* ── Judging ── */}
       <Band label="Judging" gutterExtra={
-        <button onClick={() => onStep(3)} style={{ ...linkStyle(), marginTop: 6 }}>Edit step 3</button>
+        <button onClick={() => onStep(3)} style={{ ...editLinkStyle, marginTop: 6 }}>Edit step 3</button>
       }>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <ReviewLine primary={judgingLine} />
@@ -1035,9 +1061,8 @@ function Step5({ name, config, baseline, includedCats, baseCats, start, selected
         </div>
       </Band>
 
-      {/* ── Recognition ── */}
       <Band label="Recognition" gutterExtra={
-        <button onClick={() => onStep(4)} style={{ ...linkStyle(), marginTop: 6 }}>Edit step 4</button>
+        <button onClick={() => onStep(4)} style={{ ...editLinkStyle, marginTop: 6 }}>Edit step 4</button>
       }>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <ReviewLine primary={recLine} />
@@ -1051,25 +1076,24 @@ function Step5({ name, config, baseline, includedCats, baseCats, start, selected
         </div>
       </Band>
 
-      {/* ── Changes ── */}
       {hasChanges && (
         <Band label="Changes" subLine={`${changes.length} setting${changes.length !== 1 ? 's' : ''} differ`}>
           <div>
-            <div style={{ fontSize: 13, color: C.textMuted, maxWidth: '64ch', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, color: c.textMuted, maxWidth: '64ch', marginBottom: 12 }}>
               Compared with {sourceLabel} this competition was built from.
             </div>
-            <div style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid ${C.rule}` }}>
-              {changes.map((c, i) => (
+            <div style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid ${c.rule}` }}>
+              {changes.map((ch, i) => (
                 <div key={i} style={{
-                  background: C.sunken, padding: '11px 16px',
-                  borderTop: i > 0 ? `1px solid ${C.ruleSoft}` : 'none',
+                  background: c.sunken, padding: '11px 16px',
+                  borderTop: i > 0 ? `1px solid ${c.ruleSoft}` : 'none',
                   display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'baseline',
                 }}>
-                  <span style={{ fontSize: 13.5, color: C.textBody }}>{c.label}</span>
+                  <span style={{ fontSize: 13.5, color: c.textBody }}>{ch.label}</span>
                   <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                    <span style={{ fontSize: 13, color: C.dimDesc, textDecoration: 'line-through' }}>{c.from}</span>
-                    <span style={{ fontSize: 11, color: C.textLabel }}>→</span>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: '#F4D98A' }}>{c.to}</span>
+                    <span style={{ fontSize: 13, color: c.dimDesc, textDecoration: 'line-through' }}>{ch.from}</span>
+                    <span style={{ fontSize: 11, color: c.textLabel }}>→</span>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: c.changeHighlight }}>{ch.to}</span>
                   </span>
                 </div>
               ))}
@@ -1078,7 +1102,6 @@ function Step5({ name, config, baseline, includedCats, baseCats, start, selected
         </Band>
       )}
 
-      {/* ── Reuse ── */}
       {showReuse && (
         <Band label="Reuse" subLine="Optional">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1123,21 +1146,21 @@ function Step5({ name, config, baseline, includedCats, baseCats, start, selected
 // ─── Step 6 — Schedule ────────────────────────────────────────────────────────
 
 const AUDIENCE_OPTIONS = [
-  { value: 'members-only',    label: 'Members only'            },
-  { value: 'public',          label: 'Public'                  },
+  { value: 'members-only',    label: 'Members only'               },
+  { value: 'public',          label: 'Public'                     },
   { value: 'members-first',   label: 'Members first, then public' },
 ]
 
 const SCORE_PUBLISH_OPTIONS = [
-  { value: 'event-end',     label: 'When the event ends'   },
-  { value: 'judging-close', label: 'After judging closes'  },
-  { value: 'specific-time', label: 'At a specific time'    },
+  { value: 'event-end',     label: 'When the event ends'  },
+  { value: 'judging-close', label: 'After judging closes' },
+  { value: 'specific-time', label: 'At a specific time'   },
 ]
 
 function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, jugClose, onJugClose,
   judgeIds, onJudgeIds, meeting, onMeeting, eventDate, onEventDate, eventTime, onEventTime,
   eventVenue, onEventVenue, meetingLocations, audience, onAudience,
-  scorePublishTiming, onScorePublishTiming, members, numberOfJudges, clubSlug }: {
+  scorePublishTiming, onScorePublishTiming, members, numberOfJudges }: {
   subOpen: string; onSubOpen: (v: string) => void
   subClose: string; onSubClose: (v: string) => void
   jugOpen: string; onJugOpen: (v: string) => void
@@ -1150,8 +1173,9 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
   meetingLocations: string[]; audience: string; onAudience: (v: string) => void
   scorePublishTiming: string; onScorePublishTiming: (v: string) => void
   members: { id: string; name: string }[]
-  numberOfJudges: number; clubSlug: string
+  numberOfJudges: number
 }) {
+  const c = useContext(ThemeCtx)
   const setJudgeAt = (i: number, id: string) => {
     const next = [...judgeIds]
     next[i] = id
@@ -1160,7 +1184,6 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
   const assignedIds = judgeIds.filter(Boolean)
   const venueOptions = meetingLocations.map(v => ({ value: v, label: v }))
 
-  // Duration hints
   const daysBetween = (a: string, b: string) => {
     if (!a || !b) return 0
     return Math.max(0, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000))
@@ -1168,7 +1191,6 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
   const subDays = daysBetween(subOpen, subClose)
   const jugDays = daysBetween(jugOpen, jugClose)
 
-  // "Scores are published" computed hint
   const scorePublishHint = (() => {
     if (scorePublishTiming === 'event-end' && eventDate && eventTime)
       return `${fmtDate(eventDate)}, after ${fmtTime(eventTime)}`
@@ -1177,28 +1199,23 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
     return ''
   })()
 
-  const footerNote = "Who can see results comes from your club defaults; dates are set per competition."
-
   return (
     <>
-      {/* ── Submissions ── */}
       <Band label="Submissions" subLine="Shown on the club calendar">
         <Rows>
           <Row label="Submission window" desc="When members can upload. Visible on the calendar once the competition is published.">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <DateInput value={subOpen} onChange={onSubOpen} />
-              <span style={{ fontSize: 13, color: C.textLabel }}>→</span>
+              <span style={{ fontSize: 13, color: c.textLabel }}>→</span>
               <DateInput value={subClose} onChange={onSubClose} />
             </div>
-            {subDays > 0 && <div style={{ fontSize: 11.5, color: C.textLabel }}>{subDays} days open</div>}
+            {subDays > 0 && <div style={{ fontSize: 11.5, color: c.textLabel }}>{subDays} days open</div>}
           </Row>
         </Rows>
       </Band>
 
-      {/* ── Judging ── */}
       <Band label="Judging" subLine="Internal — not shown to members">
         <Rows>
-          {/* Judge slots */}
           {Array.from({ length: Math.max(1, numberOfJudges) }).map((_, i) => {
             const available = members.filter(m => m.id === judgeIds[i] || !assignedIds.includes(m.id))
             return (
@@ -1217,18 +1234,16 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
           <Row label="Judging window" desc="Starts after submissions close; these dates stay internal.">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <DateInput value={jugOpen} onChange={onJugOpen} />
-              <span style={{ fontSize: 13, color: C.textLabel }}>→</span>
+              <span style={{ fontSize: 13, color: c.textLabel }}>→</span>
               <DateInput value={jugClose} onChange={onJugClose} />
             </div>
-            {jugDays > 0 && <div style={{ fontSize: 11.5, color: C.textLabel }}>{jugDays} days to judge</div>}
+            {jugDays > 0 && <div style={{ fontSize: 11.5, color: c.textLabel }}>{jugDays} days to judge</div>}
           </Row>
         </Rows>
       </Band>
 
-      {/* ── Results ── */}
       <Band label="Results" subLine="How and when they go out">
         <Rows>
-          {/* Meeting toggle + child rows */}
           <TogRow
             label="Announce at a meeting or event"
             on={meeting}
@@ -1239,10 +1254,9 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
             {meeting && (
               <ChildRow>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {/* Event date & time */}
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: C.textBody }}>Event date &amp; time</div>
-                    <div style={{ marginTop: 3, fontSize: 12.5, color: C.textMuted }}>Members see this on the club calendar.</div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: c.textBody }}>Event date &amp; time</div>
+                    <div style={{ marginTop: 3, fontSize: 12.5, color: c.textMuted }}>Members see this on the club calendar.</div>
                     <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
                       <DateInput value={eventDate} onChange={onEventDate} />
                       <input
@@ -1250,18 +1264,17 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
                         value={eventTime}
                         onChange={e => onEventTime(e.target.value)}
                         style={{
-                          background: C.inputBg, border: '1px solid rgba(255,255,255,.1)',
+                          background: c.inputBg, border: `1px solid ${c.inputBorder}`,
                           borderRadius: 9, padding: '8px 12px', fontSize: 14, width: 120,
-                          color: eventTime ? C.textBody : C.textLabel, fontFamily: 'inherit',
+                          color: eventTime ? c.textBody : c.textLabel, fontFamily: 'inherit',
                         }}
                       />
                     </div>
                   </div>
-                  {/* Event location */}
                   {venueOptions.length > 0 && (
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 500, color: C.textBody }}>Event location</div>
-                      <div style={{ marginTop: 3, fontSize: 12.5, color: C.textMuted }}>Where the results are announced.</div>
+                      <div style={{ fontSize: 14, fontWeight: 500, color: c.textBody }}>Event location</div>
+                      <div style={{ marginTop: 3, fontSize: 12.5, color: c.textMuted }}>Where the results are announced.</div>
                       <div style={{ marginTop: 10 }}>
                         <Sel value={eventVenue} onChange={onEventVenue}
                           options={venueOptions} placeholder="Select a venue…" width={220} />
@@ -1273,7 +1286,6 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
             )}
           </TogRow>
 
-          {/* Scores are published — sibling row, below meeting section */}
           <Row
             label="Scores are published"
             desc={meeting
@@ -1289,7 +1301,7 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
                   width={220}
                 />
                 {scorePublishHint && (
-                  <div style={{ fontSize: 12.5, color: C.textLabel }}>{scorePublishHint}</div>
+                  <div style={{ fontSize: 12.5, color: c.textLabel }}>{scorePublishHint}</div>
                 )}
               </>
             ) : (
@@ -1300,9 +1312,9 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
                   value={eventTime}
                   onChange={e => onEventTime(e.target.value)}
                   style={{
-                    background: C.inputBg, border: '1px solid rgba(255,255,255,.1)',
+                    background: c.inputBg, border: `1px solid ${c.inputBorder}`,
                     borderRadius: 9, padding: '8px 12px', fontSize: 14, width: 120,
-                    color: eventTime ? C.textBody : C.textLabel, fontFamily: 'inherit',
+                    color: eventTime ? c.textBody : c.textLabel, fontFamily: 'inherit',
                   }}
                 />
               </div>
@@ -1316,65 +1328,56 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
         </Rows>
       </Band>
 
-      {/* ── Timeline panel ── */}
       {(subOpen || jugOpen) && (
         <div style={{ padding: '0 32px 26px' }}>
           <div style={{
-            background: C.sunken, border: `1px solid ${C.rule}`,
+            background: c.sunken, border: `1px solid ${c.rule}`,
             borderRadius: 10, padding: '18px 22px 20px',
           }}>
-            {/* Panel eyebrow */}
-            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: C.textLabel, marginBottom: 16 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: c.textLabel, marginBottom: 16 }}>
               Timeline
             </div>
-            {/* Bar grid — proportional column widths */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: `${Math.max(subDays, 1)}fr 2fr ${Math.max(jugDays, 1)}fr auto`,
-              alignItems: 'end',
-              columnGap: 0,
+              alignItems: 'end', columnGap: 0,
             }}>
-              {/* Stage 1: submissions */}
               <div style={{ paddingRight: 10 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: C.textOnChip }}>Open for entries</div>
-                <div style={{ marginTop: 3, fontSize: 12.5, color: C.textSecondary, fontVariantNumeric: 'tabular-nums' }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: c.textOnChip }}>Open for entries</div>
+                <div style={{ marginTop: 3, fontSize: 12.5, color: c.textSecondary, fontVariantNumeric: 'tabular-nums' }}>
                   {subOpen && subClose ? `${fmtDate(subOpen)} – ${fmtDate(subClose)}${subDays > 0 ? ` · ${subDays} days` : ''}` : '—'}
                 </div>
-                <div style={{ marginTop: 8, height: 8, borderRadius: 4, background: C.accent, border: `1px solid ${C.accentBorder}` }} />
+                <div style={{ marginTop: 8, height: 8, borderRadius: 4, background: c.accent, border: `1px solid ${c.accentBorder}` }} />
               </div>
-              {/* Gap column */}
               <div style={{ padding: '0 4px', textAlign: 'center' }}>
-                <div style={{ fontSize: 12.5, color: C.textFaint, marginBottom: 3 }}>
+                <div style={{ fontSize: 12.5, color: c.textFaint, marginBottom: 3 }}>
                   {jugOpen && subClose ? `${daysBetween(subClose, jugOpen)} d` : ''}
                 </div>
-                <div style={{ height: 8, borderTop: `1px dashed rgba(255,255,255,.18)`, borderBottom: `1px dashed rgba(255,255,255,.18)` }} />
+                <div style={{ height: 8, borderTop: `1px dashed ${c.borderSubtle}`, borderBottom: `1px dashed ${c.borderSubtle}` }} />
               </div>
-              {/* Stage 2: judging */}
               <div style={{ padding: '0 10px' }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: C.textOnChip }}>Judging</div>
-                <div style={{ marginTop: 3, fontSize: 12.5, color: C.textSecondary, fontVariantNumeric: 'tabular-nums' }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: c.textOnChip }}>Judging</div>
+                <div style={{ marginTop: 3, fontSize: 12.5, color: c.textSecondary, fontVariantNumeric: 'tabular-nums' }}>
                   {jugOpen && jugClose ? `${fmtDate(jugOpen)} – ${fmtDate(jugClose)}${jugDays > 0 ? ` · ${jugDays} days` : ''}` : '—'}
                 </div>
-                <div style={{ marginTop: 8, height: 8, borderRadius: 4, background: C.stepDone, border: `1px solid rgba(122,175,235,.3)` }} />
+                <div style={{ marginTop: 8, height: 8, borderRadius: 4, background: c.stepDone, border: `1px solid ${c.stepDoneBorder}` }} />
               </div>
-              {/* End marker */}
               <div style={{ minWidth: 112, textAlign: 'center', paddingLeft: 10 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: C.textPrimary }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: c.textPrimary }}>
                   {meeting ? 'Announced' : 'Published'}
                 </div>
-                <div style={{ marginTop: 3, fontSize: 12.5, color: C.textSecondary }}>
+                <div style={{ marginTop: 3, fontSize: 12.5, color: c.textSecondary }}>
                   {meeting && eventDate ? `${fmtDate(eventDate)}, ${fmtTime(eventTime)}` : '—'}
                 </div>
                 <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
                   <div style={{
                     width: 14, height: 14, borderRadius: '50%',
-                    background: C.stepCurrent, boxShadow: '0 0 0 4px rgba(91,155,213,.18)',
+                    background: c.stepCurrent, boxShadow: c.stepCurrentGlow,
                   }} />
                 </div>
               </div>
             </div>
-            {/* Note */}
-            <div style={{ marginTop: 18, fontSize: 12.5, color: C.textLabel, lineHeight: 1.5 }}>
+            <div style={{ marginTop: 18, fontSize: 12.5, color: c.textLabel, lineHeight: 1.5 }}>
               {meeting
                 ? 'Members see the submission window and the event on the club calendar; judging dates stay internal.'
                 : 'Members see the submission window on the club calendar; judging dates stay internal.'}
@@ -1382,8 +1385,6 @@ function Step6({ subOpen, onSubOpen, subClose, onSubClose, jugOpen, onJugOpen, j
           </div>
         </div>
       )}
-
-      <DefFooter note={footerNote} clubSlug={clubSlug} />
     </>
   )
 }
@@ -1405,6 +1406,8 @@ export default function CreateCompetitionWizard({
 }) {
   const router = useRouter()
   const [saving, startSaving] = useTransition()
+  const isDark = useDarkMode()
+  const C = isDark ? C_DARK : C_LIGHT
 
   // ── Step ──
   const [step, setStep] = useState(1)
@@ -1447,7 +1450,6 @@ export default function CreateCompetitionWizard({
   const [audience,           setAudience]           = useState('members-only')
   const [scorePublishTiming, setScorePublishTiming] = useState('event-end')
 
-  // Auto-populate subsequent dates when submission open is set
   const handleSubOpenChange = (date: string) => {
     setSubOpen(date)
     if (date) {
@@ -1555,7 +1557,6 @@ export default function CreateCompetitionWizard({
         }
         await createCompetitionFromSchedule({ config: configPayload, schedule: schedulePayload, competitionType: 'digital', status })
 
-        // Optionally save as template
         if (saveTpl && tplName.trim()) {
           try { await saveTemplate(tplName.trim(), configPayload) } catch { /* best-effort */ }
         }
@@ -1581,189 +1582,242 @@ export default function CreateCompetitionWizard({
     'Set the dates, the judge, and how results reach members.',
   ][step - 1]
 
+  // ── Footer strip computed from current step ────────────────────────────────────────────
+  const footerForStep = (() => {
+    if (step === 2) {
+      const perMemberCustom = differs(config.maxEntriesPerMember, baseline.maxEntriesPerMember)
+      const perCatCustom    = differs(config.maxEntriesPerCategory, baseline.maxEntriesPerCategory)
+      const reuseCustom     = differs(config.imageReusePolicy, baseline.imageReusePolicy)
+      const withdrawCustom  = differs(config.allowWithdrawals, baseline.allowWithdrawals)
+      const count = [!perMemberCustom, !perCatCustom, !reuseCustom, !withdrawCustom].filter(Boolean).length
+      return {
+        note: `${count} of 4 values on this step come from your ${start === 'template' ? 'template' : 'club defaults'}. Editing one here affects this competition only.`,
+        linkHref: `/${clubSlug}/admin/competitions/competition-defaults`,
+      }
+    }
+    if (step === 3) {
+      const preset3 = config.judgingPreset
+      const showScoring3 = preset3 !== 'member-vote' && preset3 !== 'end-of-year' && preset3 !== 'awards-only'
+      const scoreCustom    = differs([config.scoreMin, config.scoreMax], [baseline.scoreMin, baseline.scoreMax])
+      const namesCustom    = differs(config.blindHideName, baseline.blindHideName)
+      const commentsCustom = differs(config.judgeComments, baseline.judgeComments)
+      const minScoreCustom = differs(config.minimumScoreToPublish, baseline.minimumScoreToPublish)
+      const count = [!scoreCustom && showScoring3, !namesCustom && showScoring3, !commentsCustom && showScoring3, !minScoreCustom && showScoring3].filter(Boolean).length
+      const total = showScoring3 ? 4 : 0
+      return {
+        note: total > 0
+          ? `${count} of ${total} values on this step come from your ${start === 'template' ? 'template' : 'club defaults'}. Editing one here affects this competition only.`
+          : 'Judging panel settings apply to this competition only.',
+        linkHref: `/${clubSlug}/admin/competitions/competition-defaults`,
+      }
+    }
+    if (step === 4) {
+      return {
+        note: 'Benchmark and POY settings are configured per-competition in Recognition & Standings.',
+        linkText: 'Manage recognition settings',
+        linkHref: `/${clubSlug}/admin/competitions/recognition`,
+      }
+    }
+    if (step === 6) {
+      return {
+        note: 'Who can see results comes from your club defaults; dates are set per competition.',
+        linkHref: `/${clubSlug}/admin/competitions/competition-defaults`,
+      }
+    }
+    return null
+  })()
+
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth={false}
-      slotProps={{
-        backdrop: { sx: { bgcolor: 'rgba(10,14,19,0.92)' } },
-        paper: {
-          sx: {
-            bgcolor: C.surface,
-            border: `1px solid ${C.rule}`,
-            borderRadius: '14px',
-            boxShadow: '0 24px 60px rgba(0,0,0,.5)',
-            maxWidth: 1040,
-            width: 'calc(100vw - 64px)',
-            maxHeight: '90vh',
-            m: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
+    <ThemeCtx.Provider value={C}>
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        maxWidth={false}
+        slotProps={{
+          backdrop: { sx: { bgcolor: 'rgba(10,14,19,0.82)' } },
+          paper: {
+            sx: {
+              bgcolor: C.surface,
+              border: `1px solid ${C.rule}`,
+              borderRadius: '14px',
+              boxShadow: '0 24px 60px rgba(0,0,0,.35)',
+              maxWidth: 1040,
+              width: 'calc(100vw - 64px)',
+              height: '90vh',
+              maxHeight: '90vh',
+              m: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            },
           },
-        },
-      }}
-    >
-      {/* ── Header ── */}
-      <div style={{ padding: '26px 32px 22px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '.14em', textTransform: 'uppercase', color: C.textEyebrow }}>
-            New competition
-          </span>
-          <span style={{ fontSize: 12, color: C.textEyebrow }}>Step {step} of {STEPS}</span>
+        }}
+      >
+        {/* Header */}
+        <div style={{ padding: '26px 32px 22px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '.14em', textTransform: 'uppercase', color: C.textEyebrow }}>
+              New competition
+            </span>
+            <span style={{ fontSize: 12, color: C.textEyebrow }}>Step {step} of {STEPS}</span>
+          </div>
+          <div style={{ marginTop: 8, fontSize: 27, fontWeight: 600, letterSpacing: '-.015em', color: C.textPrimary }}>
+            {stepTitle}
+          </div>
+          <div style={{ marginTop: 6, fontSize: 13.5, lineHeight: 1.6, color: C.textMuted, maxWidth: '66ch' }}>
+            {stepBlurb}
+          </div>
+          <BarStepper step={step} onStep={goTo} />
         </div>
-        <div style={{ marginTop: 8, fontSize: 27, fontWeight: 600, letterSpacing: '-.015em', color: C.textPrimary }}>
-          {stepTitle}
-        </div>
-        <div style={{ marginTop: 6, fontSize: 13.5, lineHeight: 1.6, color: C.textMuted, maxWidth: '66ch' }}>
-          {stepBlurb}
-        </div>
-        <BarStepper step={step} onStep={goTo} />
-      </div>
 
-      {/* ── Scrollable content ── */}
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-        {step === 1 && (
-          <Step1
-            name={name} onName={v => { setName(v); if (v.trim()) setNameError('') }}
-            showFriendly={showFriendly} onShowFriendly={setShowFriendly}
-            friendlyName={friendlyName} onFriendlyName={setFriendlyName}
-            start={start} onStart={handleStart}
-            templates={templates} selectedTemplateId={selectedTplId} onSelectTemplate={handleSelectTemplate}
-            clubSlug={clubSlug}
-          />
-        )}
-        {step === 2 && (
-          <Step2
-            config={config} onChange={onChange}
-            clubCategories={clubCategories} includedCats={includedCats} onIncludedCats={setIncludedCats}
-            baseline={baseline} start={start} clubSlug={clubSlug}
-          />
-        )}
-        {step === 3 && (
-          <Step3
-            config={config} onChange={onChange}
-            baseline={baseline} start={start} clubSlug={clubSlug}
-          />
-        )}
-        {step === 4 && (
-          <Step4
-            config={config} onChange={onChange}
-            baseline={baseline} start={start} clubSlug={clubSlug}
-          />
-        )}
-        {step === 5 && (
-          <Step5
-            name={name} config={config} baseline={baseline}
-            includedCats={includedCats} baseCats={baseCats}
-            start={start} selectedTemplate={selectedTemplate}
-            saveTpl={saveTpl} onSaveTpl={setSaveTpl}
-            tplAction={tplAction} onTplAction={setTplAction}
-            tplName={tplName} onTplName={setTplName}
-            onStep={goTo}
-          />
-        )}
-        {step === 6 && (
-          <Step6
-            subOpen={subOpen} onSubOpen={handleSubOpenChange}
-            subClose={subClose} onSubClose={setSubClose}
-            jugOpen={jugOpen} onJugOpen={setJugOpen}
-            jugClose={jugClose} onJugClose={setJugClose}
-            judgeIds={judgeIds} onJudgeIds={setJudgeIds}
-            meeting={meeting} onMeeting={setMeeting}
-            eventDate={eventDate} onEventDate={setEventDate}
-            eventTime={eventTime} onEventTime={setEventTime}
-            eventVenue={eventVenue} onEventVenue={setEventVenue}
-            meetingLocations={meetingLocations}
-            audience={audience} onAudience={setAudience}
-            scorePublishTiming={scorePublishTiming} onScorePublishTiming={setScorePublishTiming}
-            members={members} numberOfJudges={config.numberOfJudges}
-            clubSlug={clubSlug}
-          />
-        )}
-
-        {/* Name error — step 1 only, no footer strip */}
-        {step === 1 && nameError && (
-          <div style={{ padding: '0 32px 16px', fontSize: 13, color: '#D32F2F' }}>{nameError}</div>
-        )}
-      </div>
-
-      {/* ── Button bar ── */}
-      <div style={{
-        borderTop: `1px solid ${C.rule}`, padding: '18px 32px',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        flexShrink: 0,
-      }}>
-        {/* Back */}
-        <button
-          onClick={() => setStep(s => Math.max(s - 1, 1))}
-          disabled={step === 1}
-          style={{
-            fontSize: 14, borderRadius: 9, padding: '10px 20px', fontFamily: 'inherit',
-            cursor: step === 1 ? 'default' : 'pointer',
-            background: 'transparent',
-            border: step === 1 ? `1px solid rgba(255,255,255,.09)` : `1px solid rgba(255,255,255,.14)`,
-            color: step === 1 ? C.textFaint : C.textSecondary,
-          }}
-        >
-          Back
-        </button>
-
-        {/* Right group */}
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button
-            onClick={handleClose}
-            style={{
-              fontSize: 14, borderRadius: 9, padding: '10px 20px', fontFamily: 'inherit',
-              cursor: 'pointer', background: 'transparent',
-              border: `1px solid rgba(255,255,255,.14)`, color: C.textSecondary,
-            }}
-          >
-            Cancel
-          </button>
-
-          {step < 6 && (
-            <button
-              onClick={goNext}
-              style={{
-                fontSize: 14, fontWeight: 600, borderRadius: 9, padding: '10px 22px',
-                fontFamily: 'inherit', cursor: 'pointer',
-                background: C.accent, border: `1px solid ${C.accentBorder}`, color: '#fff',
-              }}
-            >
-              {step === 5 ? 'Continue to schedule' : 'Continue'}
-            </button>
+        {/* Scrollable content */}
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+          {step === 1 && (
+            <Step1
+              name={name} onName={v => { setName(v); if (v.trim()) setNameError('') }}
+              showFriendly={showFriendly} onShowFriendly={setShowFriendly}
+              friendlyName={friendlyName} onFriendlyName={setFriendlyName}
+              start={start} onStart={handleStart}
+              templates={templates} selectedTemplateId={selectedTplId} onSelectTemplate={handleSelectTemplate}
+              clubSlug={clubSlug}
+            />
+          )}
+          {step === 2 && (
+            <Step2
+              config={config} onChange={onChange}
+              clubCategories={clubCategories} includedCats={includedCats} onIncludedCats={setIncludedCats}
+              baseline={baseline} start={start}
+            />
+          )}
+          {step === 3 && (
+            <Step3
+              config={config} onChange={onChange}
+              baseline={baseline} start={start}
+            />
+          )}
+          {step === 4 && (
+            <Step4
+              config={config} onChange={onChange}
+              baseline={baseline} start={start}
+            />
+          )}
+          {step === 5 && (
+            <Step5
+              name={name} config={config} baseline={baseline}
+              includedCats={includedCats} baseCats={baseCats}
+              start={start} selectedTemplate={selectedTemplate}
+              saveTpl={saveTpl} onSaveTpl={setSaveTpl}
+              tplAction={tplAction} onTplAction={setTplAction}
+              tplName={tplName} onTplName={setTplName}
+              onStep={goTo}
+            />
+          )}
+          {step === 6 && (
+            <Step6
+              subOpen={subOpen} onSubOpen={handleSubOpenChange}
+              subClose={subClose} onSubClose={setSubClose}
+              jugOpen={jugOpen} onJugOpen={setJugOpen}
+              jugClose={jugClose} onJugClose={setJugClose}
+              judgeIds={judgeIds} onJudgeIds={setJudgeIds}
+              meeting={meeting} onMeeting={setMeeting}
+              eventDate={eventDate} onEventDate={setEventDate}
+              eventTime={eventTime} onEventTime={setEventTime}
+              eventVenue={eventVenue} onEventVenue={setEventVenue}
+              meetingLocations={meetingLocations}
+              audience={audience} onAudience={setAudience}
+              scorePublishTiming={scorePublishTiming} onScorePublishTiming={setScorePublishTiming}
+              members={members} numberOfJudges={config.numberOfJudges}
+            />
           )}
 
-          {step === 6 && (
-            <>
+          {step === 1 && nameError && (
+            <div style={{ padding: '0 32px 16px', fontSize: 13, color: C.error }}>{nameError}</div>
+          )}
+        </div>
+
+        {/* Defaults footer — pinned above button bar */}
+        {footerForStep && (
+          <DefFooter
+            note={footerForStep.note}
+            linkText={'linkText' in footerForStep ? (footerForStep as { linkText: string }).linkText : undefined}
+            linkHref={footerForStep.linkHref}
+          />
+        )}
+
+        {/* Button bar */}
+        <div style={{
+          borderTop: `1px solid ${C.rule}`, padding: '18px 32px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          flexShrink: 0,
+        }}>
+          <button
+            onClick={() => setStep(s => Math.max(s - 1, 1))}
+            disabled={step === 1}
+            style={{
+              fontSize: 14, borderRadius: 9, padding: '10px 20px', fontFamily: 'inherit',
+              cursor: step === 1 ? 'default' : 'pointer',
+              background: 'transparent',
+              border: step === 1 ? `1px solid ${C.borderSubtle}` : `1px solid ${C.border}`,
+              color: step === 1 ? C.textFaint : C.textSecondary,
+            }}
+          >
+            Back
+          </button>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={handleClose}
+              style={{
+                fontSize: 14, borderRadius: 9, padding: '10px 20px', fontFamily: 'inherit',
+                cursor: 'pointer', background: 'transparent',
+                border: `1px solid ${C.border}`, color: C.textSecondary,
+              }}
+            >
+              Cancel
+            </button>
+
+            {step < 6 && (
               <button
-                onClick={() => handleSave('draft')}
-                disabled={saving}
-                style={{
-                  fontSize: 14, borderRadius: 9, padding: '10px 20px', fontFamily: 'inherit',
-                  cursor: saving ? 'default' : 'pointer', background: 'transparent',
-                  border: `1px solid rgba(255,255,255,.14)`, color: C.textSecondary,
-                }}
-              >
-                {saving ? 'Saving…' : 'Save as draft'}
-              </button>
-              <button
-                onClick={() => handleSave('open')}
-                disabled={saving}
+                onClick={goNext}
                 style={{
                   fontSize: 14, fontWeight: 600, borderRadius: 9, padding: '10px 22px',
-                  fontFamily: 'inherit', cursor: saving ? 'default' : 'pointer',
+                  fontFamily: 'inherit', cursor: 'pointer',
                   background: C.accent, border: `1px solid ${C.accentBorder}`, color: '#fff',
                 }}
               >
-                {saving ? 'Publishing…' : 'Publish competition'}
+                {step === 5 ? 'Continue to schedule' : 'Continue'}
               </button>
-            </>
-          )}
+            )}
+
+            {step === 6 && (
+              <>
+                <button
+                  onClick={() => handleSave('draft')}
+                  disabled={saving}
+                  style={{
+                    fontSize: 14, borderRadius: 9, padding: '10px 20px', fontFamily: 'inherit',
+                    cursor: saving ? 'default' : 'pointer', background: 'transparent',
+                    border: `1px solid ${C.border}`, color: C.textSecondary,
+                  }}
+                >
+                  {saving ? 'Saving…' : 'Save as draft'}
+                </button>
+                <button
+                  onClick={() => handleSave('open')}
+                  disabled={saving}
+                  style={{
+                    fontSize: 14, fontWeight: 600, borderRadius: 9, padding: '10px 22px',
+                    fontFamily: 'inherit', cursor: saving ? 'default' : 'pointer',
+                    background: C.accent, border: `1px solid ${C.accentBorder}`, color: '#fff',
+                  }}
+                >
+                  {saving ? 'Publishing…' : 'Publish competition'}
+                </button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
-    </Dialog>
+      </Dialog>
+    </ThemeCtx.Provider>
   )
 }
