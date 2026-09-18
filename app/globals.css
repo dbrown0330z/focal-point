@@ -552,3 +552,13 @@ a[href]:not(.MuiButtonBase-root):not(.MuiButton-root):not([class*="Mui"]):not([c
   display: block;
   clear: both;
 }
+
+/* Hero slideshow — blurred background fill */
+.hero-blur-bg {
+  filter: blur(18px) brightness(0.55);
+}
+@media (prefers-color-scheme: light) {
+  .hero-blur-bg {
+    filter: blur(18px) brightness(0.82);
+  }
+}

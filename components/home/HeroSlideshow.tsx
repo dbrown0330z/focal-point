@@ -52,7 +52,8 @@ function SlideLayer({
         className="object-cover"
         priority={priority}
         sizes="(max-width: 1152px) 100vw, 1152px"
-        style={{ filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.08)' }}
+        className="hero-blur-bg"
+        style={{ transform: 'scale(1.08)' }}
       />
       {/* Sharp image — never cropped */}
       <Image
