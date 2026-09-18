@@ -49,10 +49,9 @@ function SlideLayer({
         alt=""
         aria-hidden
         fill
-        className="object-cover"
+        className="object-cover hero-blur-bg"
         priority={priority}
         sizes="(max-width: 1152px) 100vw, 1152px"
-        className="hero-blur-bg"
         style={{ transform: 'scale(1.08)' }}
       />
       {/* Sharp image — never cropped */}
