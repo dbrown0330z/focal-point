@@ -559,6 +559,6 @@ a[href]:not(.MuiButtonBase-root):not(.MuiButton-root):not([class*="Mui"]):not([c
 }
 @media (prefers-color-scheme: light) {
   .hero-blur-bg {
-    filter: blur(18px) brightness(0.82);
+    filter: blur(18px) brightness(1.8) saturate(0.4);
   }
 }
