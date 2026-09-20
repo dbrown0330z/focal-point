@@ -13,8 +13,8 @@ import { EXIF_TAGS, buildExifRows } from '@/lib/exif'
 export type CompetitionCategory = {
   id:    string
   name:  string
-  count: number       // club-wide entries in this category
-  limit: number | null // per-category cap; null = no cap
+  count: number
+  limit: number | null
 }
 
 export type OpenCompetition = {
@@ -25,58 +25,96 @@ export type OpenCompetition = {
   categories:        CompetitionCategory[]
 }
 
-// ─── Icon ─────────────────────────────────────────────────────────────────────
+// ─── Icons ────────────────────────────────────────────────────────────────────
 
 function IconClose() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width={14} height={14}>
+      <path d="M18 6L6 18M6 6l12 12"/>
     </svg>
   )
 }
 
 function IconUpload() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8">
-      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-      <polyline points="17 8 12 3 7 8" />
-      <line x1="12" y1="3" x2="12" y2="15" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width={36} height={36}>
+      <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+      <path d="M12 12v9"/><path d="m16 16-4-4-4 4"/>
     </svg>
+  )
+}
+
+// ─── Shared atoms ─────────────────────────────────────────────────────────────
+
+function ExifPanel({ rows }: { rows: { label: string; value: string }[] }) {
+  if (rows.length === 0) return null
+  return (
+    <div>
+      <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 10 }}>
+        Camera data
+      </p>
+      <dl style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {rows.map(({ label, value }) => (
+          <div key={label}>
+            <dt style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>{label}</dt>
+            <dd style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  )
+}
+
+function TitleField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6, display: 'block' }}>
+        Image name <span style={{ color: 'var(--status-error)' }}>*</span>
+      </label>
+      <input
+        type="text" value={value} onChange={e => onChange(e.target.value)} maxLength={120}
+        placeholder="e.g. Golden Hour at the Pier"
+        style={{
+          width: '100%', boxSizing: 'border-box',
+          border: '1.5px solid var(--border-default)', borderRadius: 8,
+          background: 'var(--surface-2)', color: 'var(--text-primary)',
+          padding: '8px 12px', fontSize: 14, outline: 'none', fontFamily: 'inherit',
+        }}
+        onFocus={e => (e.target.style.borderColor = 'var(--action-primary)')}
+        onBlur={e  => (e.target.style.borderColor = 'var(--border-default)')}
+      />
+    </div>
   )
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function UploadModal({
-  open,
-  onClose,
-  userId,
-  openCompetition,
+  open, onClose, userId, openCompetition,
 }: {
-  open:             boolean
-  onClose:          () => void
-  userId:           string
-  openCompetition:  OpenCompetition | null
+  open:            boolean
+  onClose:         () => void
+  userId:          string
+  openCompetition: OpenCompetition | null
 }) {
-  const router = useRouter()
+  const router  = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const [file,          setFile]          = useState<File | null>(null)
-  const [preview,       setPreview]       = useState<string | null>(null)
-  const [exifData,      setExifData]      = useState<Record<string, unknown> | null>(null)
-  const [title,         setTitle]         = useState('')
-  const [description,   setDescription]   = useState('')
-  const [submitToComp,  setSubmitToComp]  = useState(false)
-  const [categoryId,    setCategoryId]    = useState('')
-  const [uploading,     setUploading]     = useState(false)
-  const [error,         setError]         = useState<string | null>(null)
+  const [file,         setFile]         = useState<File | null>(null)
+  const [preview,      setPreview]      = useState<string | null>(null)
+  const [exifData,     setExifData]     = useState<Record<string, unknown> | null>(null)
+  const [title,        setTitle]        = useState('')
+  const [submitToComp, setSubmitToComp] = useState(false)
+  const [categoryId,   setCategoryId]   = useState('')
+  const [uploading,    setUploading]    = useState(false)
+  const [error,        setError]        = useState<string | null>(null)
 
-  // Body scroll lock + Escape key
+  // Scroll lock + Escape
   useEffect(() => {
     if (!open) return
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
-    document.body.style.overflow      = 'hidden'
-    document.body.style.paddingRight  = `${scrollbarWidth}px`
+    const w = window.innerWidth - document.documentElement.clientWidth
+    document.body.style.overflow     = 'hidden'
+    document.body.style.paddingRight = `${w}px`
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
     return () => {
@@ -86,394 +124,272 @@ export default function UploadModal({
     }
   }, [open, onClose])
 
-  // Reset when modal opens
+  // Reset on open
   useEffect(() => {
     if (open) {
       setFile(null); setPreview(null); setExifData(null)
-      setTitle(''); setDescription('')
-      setSubmitToComp(false); setCategoryId('')
-      setError(null)
+      setTitle(''); setSubmitToComp(false); setCategoryId(''); setError(null)
     }
   }, [open])
 
   if (!open) return null
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const selected = e.target.files?.[0]
-    if (!selected) return
+  async function pickFile(selected: File) {
     setFile(selected)
     setPreview(URL.createObjectURL(selected))
     setError(null)
     try {
       const parsed = await exifr.parse(selected, { pick: EXIF_TAGS })
       setExifData(parsed ?? null)
-    } catch {
-      setExifData(null)
-    }
+    } catch { setExifData(null) }
   }
 
-  async function handleDrop(e: React.DragEvent) {
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (f) pickFile(f)
+  }
+
+  function handleDrop(e: React.DragEvent) {
     e.preventDefault()
-    const selected = e.dataTransfer.files?.[0]
-    if (!selected || !selected.type.startsWith('image/')) return
-    setFile(selected)
-    setPreview(URL.createObjectURL(selected))
-    setError(null)
-    try {
-      const parsed = await exifr.parse(selected, { pick: EXIF_TAGS })
-      setExifData(parsed ?? null)
-    } catch {
-      setExifData(null)
-    }
+    const f = e.dataTransfer.files?.[0]
+    if (f && f.type.startsWith('image/')) pickFile(f)
   }
 
-  async function handleSubmit() {
+  async function handleUpload() {
     if (!file || !title.trim()) return
-    setUploading(true)
-    setError(null)
+    setUploading(true); setError(null)
 
-    // Upload file to storage
-    const ext = file.name.split('.').pop() ?? 'jpg'
+    const ext         = file.name.split('.').pop() ?? 'jpg'
     const storagePath = `${userId}/${crypto.randomUUID()}.${ext}`
-    const supabase = createClient()
-    const { error: storageErr } = await supabase.storage
-      .from('images')
-      .upload(storagePath, file, { upsert: false })
+    const supabase    = createClient()
+    const { error: storageErr } = await supabase.storage.from('images').upload(storagePath, file, { upsert: false })
+    if (storageErr) { setError(storageErr.message); setUploading(false); return }
 
-    if (storageErr) {
-      setError(storageErr.message)
-      setUploading(false)
-      return
-    }
-
-    // Create image + optional submission
     if (submitToComp && openCompetition && categoryId) {
       const { error: err } = await submitUploadedImage({
-        storagePath,
-        title:          title.trim(),
-        description:    description.trim(),
-        exifData,
-        competitionId:  openCompetition.id,
-        categoryId,
+        storagePath, title: title.trim(), description: '', exifData, competitionId: openCompetition.id, categoryId,
       })
-      if (err) {
-        await supabase.storage.from('images').remove([storagePath])
-        setError(err)
-        setUploading(false)
-        return
-      }
+      if (err) { await supabase.storage.from('images').remove([storagePath]); setError(err); setUploading(false); return }
     } else {
-      const { error: err } = await uploadImageToLibrary({
-        title:        title.trim(),
-        description:  description.trim(),
-        storage_path: storagePath,
-        exif_data:    exifData,
-      })
-      if (err) {
-        await supabase.storage.from('images').remove([storagePath])
-        setError(err)
-        setUploading(false)
-        return
-      }
+      const { error: err } = await uploadImageToLibrary({ title: title.trim(), description: '', storage_path: storagePath, exif_data: exifData })
+      if (err) { await supabase.storage.from('images').remove([storagePath]); setError(err); setUploading(false); return }
     }
 
-    setUploading(false)
-    router.refresh()
-    onClose()
+    setUploading(false); router.refresh(); onClose()
   }
 
   const exifRows = exifData ? buildExifRows(exifData) : []
-  const hasExif  = exifRows.length > 0
+  const atLimit  = openCompetition?.submissionLimit !== null && (openCompetition?.mySubmissionCount ?? 0) >= (openCompetition?.submissionLimit ?? 0)
   const canSave  = !!file && !!title.trim() && (!submitToComp || !!categoryId)
-
-  const btnLabel = uploading
-    ? 'Uploading…'
-    : submitToComp && categoryId
-      ? 'Upload & submit'
-      : 'Add to library'
+  const btnLabel = uploading ? 'Uploading…' : submitToComp && categoryId ? 'Upload & submit' : 'Add to library'
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center p-4 overflow-hidden"
+      className="fixed inset-0 z-[200] flex items-center justify-center p-6"
       style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
       <div
-        className="flex flex-col rounded-2xl shadow-2xl w-full"
-        style={{
-          maxWidth:   hasExif ? 860 : 540,
-          maxHeight:  '90vh',
-          background: 'var(--surface-1)',
-          border:     '1px solid var(--border-default)',
-        }}
         onClick={e => e.stopPropagation()}
+        style={{
+          width: 'min(900px, calc(100vw - 48px))',
+          height: 'min(640px, calc(100vh - 48px))',
+          display: 'flex', flexDirection: 'column',
+          background: 'var(--surface-1)',
+          border: '1px solid var(--border-default)',
+          borderRadius: 18, overflow: 'hidden',
+        }}
       >
-        {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div
-          className="flex items-center justify-between flex-shrink-0"
-          style={{ padding: '18px 24px', borderBottom: '1px solid var(--border-default)' }}
-        >
-          <h2 className="text-[17px] font-bold" style={{ color: 'var(--text-primary)' }}>
-            Add image
-          </h2>
+        {/* ── Header ──────────────────────────────────────────────────────── */}
+        <div style={{
+          padding: '18px 24px', borderBottom: '1px solid var(--border-default)',
+          flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+              {file ? 'Add image' : 'Upload a photo'}
+            </h2>
+            {file && (
+              <p style={{ fontSize: 13, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                Name your image{openCompetition && !atLimit ? ' and optionally submit it to a competition' : ''}
+              </p>
+            )}
+          </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
-            style={{ color: 'var(--text-tertiary)', background: 'var(--surface-2)' }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+            style={{
+              width: 32, height: 32, borderRadius: 8, border: 'none', flexShrink: 0,
+              background: 'var(--surface-2)', color: 'var(--text-secondary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-0)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface-2)')}
           >
             <IconClose />
           </button>
         </div>
 
-        {/* ── Body ───────────────────────────────────────────────────────── */}
-        <div className="flex flex-1 min-h-0 overflow-hidden">
-
-          {/* Left: form */}
-          <div className="flex flex-col flex-1 min-w-0 overflow-y-auto" style={{ padding: '24px' }}>
-
-            {/* Drop zone */}
+        {/* ── Body ────────────────────────────────────────────────────────── */}
+        {!file ? (
+          /* Step A: drop zone */
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
             <div
-              className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors flex-shrink-0"
-              style={{
-                height:      file ? 180 : 148,
-                borderColor: 'var(--border-default)',
-                background:  'var(--surface-0)',
-              }}
               onClick={() => fileRef.current?.click()}
-              onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--action-primary)' }}
-              onDragLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)' }}
-              onDrop={handleDrop}
+              onDragOver={e => { e.preventDefault(); (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--action-primary)'; (e.currentTarget as HTMLDivElement).style.background = 'rgba(26,111,196,0.04)' }}
+              onDragLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border-default)'; (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
+              onDrop={e => { handleDrop(e); (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border-default)'; (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
+              style={{
+                width: '100%', maxWidth: 480, border: '2px dashed var(--border-default)',
+                borderRadius: 14, padding: '60px 40px', cursor: 'pointer', textAlign: 'center',
+                background: 'transparent', transition: 'border-color .15s, background .15s',
+              }}
             >
-              {preview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={preview} alt="Preview" className="h-full w-full rounded-xl object-contain p-2" />
-              ) : (
-                <div className="flex flex-col items-center gap-2 text-center px-4">
-                  <span style={{ color: 'var(--text-tertiary)' }}><IconUpload /></span>
-                  <p className="text-[14px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-                    Click or drag a photo here
-                  </p>
-                  <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-                    JPEG · PNG · WebP — max 20 MB
-                  </p>
+              <div style={{ color: 'var(--text-tertiary)', marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
+                <IconUpload />
+              </div>
+              <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>
+                Click or drag a photo here
+              </p>
+              <p style={{ fontSize: 12.5, color: 'var(--text-tertiary)', marginTop: 6 }}>
+                JPEG &middot; PNG &middot; WebP &mdash; max 20 MB
+              </p>
+            </div>
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleInputChange} />
+          </div>
+        ) : (
+          /* Step B: two-column */
+          <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+            {/* Left: preview */}
+            <div
+              title="Click to choose a different photo"
+              onClick={() => fileRef.current?.click()}
+              style={{
+                flex: '0 0 57%', background: 'var(--surface-0)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                overflow: 'hidden', cursor: 'pointer', position: 'relative',
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={preview!} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }} />
+              <div style={{
+                position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
+                background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 11.5, fontWeight: 500,
+                padding: '4px 10px', borderRadius: 20, pointerEvents: 'none', whiteSpace: 'nowrap',
+              }}>
+                Click to change photo
+              </div>
+              <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleInputChange} />
+            </div>
+
+            {/* Right: form */}
+            <div style={{
+              flex: 1, overflowY: 'auto', padding: '22px 22px',
+              borderLeft: '1px solid var(--border-subtle)',
+              display: 'flex', flexDirection: 'column', gap: 18,
+            }}>
+
+              {/* EXIF */}
+              <ExifPanel rows={exifRows} />
+              {exifRows.length > 0 && <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />}
+
+              {/* Title */}
+              <TitleField value={title} onChange={setTitle} />
+
+              {/* Competition block */}
+              {openCompetition && atLimit && (
+                <div style={{ borderRadius: 8, padding: '10px 14px', fontSize: 12.5, background: 'var(--status-warning-bg)', color: 'var(--status-warning-text)', border: '1px solid rgba(166,124,0,0.25)' }}>
+                  You&apos;ve used all {openCompetition.submissionLimit} submissions for this competition.
                 </div>
               )}
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-            </div>
-
-            {/* EXIF quick summary (single-col mode: no right panel) */}
-            {!hasExif && exifData && (
-              <p className="mt-3 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-                <span style={{ color: 'var(--status-success)' }}>✓</span>{' '}
-                EXIF detected — camera data saved with your image
-              </p>
-            )}
-
-            {/* Title */}
-            <div style={{ marginTop: 20 }}>
-              <label className="mb-1.5 block text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-                Title <span style={{ color: 'var(--status-error)' }}>*</span>
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                maxLength={120}
-                placeholder="Golden Hour at the Pier"
-                className="w-full rounded-lg px-3 py-2 text-[14px] outline-none transition-colors"
-                style={{ border: '1px solid var(--border-default)', background: 'var(--surface-2)', color: 'var(--text-primary)' }}
-                onFocus={e  => (e.target.style.borderColor = 'var(--action-primary)')}
-                onBlur={e   => (e.target.style.borderColor = 'var(--border-default)')}
-              />
-            </div>
-
-            {/* Description */}
-            <div style={{ marginTop: 14 }}>
-              <label className="mb-1.5 block text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-                Description{' '}
-                <span className="font-normal text-[12px]" style={{ color: 'var(--text-tertiary)' }}>(optional)</span>
-              </label>
-              <textarea
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                rows={2}
-                maxLength={500}
-                placeholder="Camera settings, story behind the shot…"
-                className="w-full rounded-lg px-3 py-2 text-[14px] outline-none resize-none transition-colors"
-                style={{ border: '1px solid var(--border-default)', background: 'var(--surface-2)', color: 'var(--text-primary)' }}
-                onFocus={e  => (e.target.style.borderColor = 'var(--action-primary)')}
-                onBlur={e   => (e.target.style.borderColor = 'var(--border-default)')}
-              />
-            </div>
-
-            {/* Competition submission block */}
-            {openCompetition && openCompetition.submissionLimit !== null && openCompetition.mySubmissionCount >= openCompetition.submissionLimit && (
-              <div className="rounded-lg px-3 py-2.5 text-[12px] flex-shrink-0" style={{ marginTop: 18, background: 'var(--status-warning-bg)', color: 'var(--status-warning-text)', border: '1px solid rgba(166,124,0,0.25)' }}>
-                You&apos;ve used all {openCompetition.submissionLimit} submissions for this competition.
-              </div>
-            )}
-            {openCompetition && !(openCompetition.submissionLimit !== null && openCompetition.mySubmissionCount >= openCompetition.submissionLimit) && (
-              <div
-                className="rounded-xl flex-shrink-0"
-                style={{
-                  marginTop:  18,
-                  padding:    '14px 16px',
-                  background: 'var(--surface-2)',
-                  border:     '1px solid var(--border-subtle)',
-                }}
-              >
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={submitToComp}
-                    onChange={e => {
-                      setSubmitToComp(e.target.checked)
-                      if (!e.target.checked) setCategoryId('')
-                    }}
-                    className="mt-0.5 h-4 w-4 flex-shrink-0"
-                    style={{ accentColor: 'var(--action-primary)' }}
-                  />
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>
-                      Submit to open competition
-                    </p>
-                    <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                      {openCompetition.title}
-                    </p>
-                  </div>
-                </label>
-
-                {submitToComp && (
-                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
-                    <p className="text-[12px] font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
-                      Select a category
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {openCompetition.categories.map(cat => {
-                        const isFull     = cat.limit !== null && cat.count >= cat.limit
-                        const isSelected = categoryId === cat.id
-                        return (
-                          <button
-                            key={cat.id}
-                            type="button"
-                            disabled={isFull}
-                            onClick={() => !isFull && setCategoryId(cat.id)}
-                            className="rounded-full px-3 py-1 text-[12px] font-semibold transition-all"
-                            style={{
-                              background: isSelected ? 'var(--action-primary)' : isFull ? 'var(--surface-0)' : 'var(--surface-1)',
-                              border:     `1px solid ${isSelected ? 'var(--action-primary)' : 'var(--border-default)'}`,
-                              color:      isSelected ? '#fff' : isFull ? 'var(--text-disabled)' : 'var(--text-secondary)',
-                              cursor:     isFull ? 'not-allowed' : 'pointer',
-                              opacity:    isFull ? 0.6 : 1,
-                            }}
-                          >
-                            {cat.name}
-                            {cat.limit !== null && (
-                              <span style={{ marginLeft: 4, opacity: 0.7 }}>({cat.count}/{cat.limit})</span>
-                            )}
-                          </button>
-                        )
-                      })}
+              {openCompetition && !atLimit && (
+                <div style={{ borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border-subtle)', padding: '12px 14px' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox" checked={submitToComp}
+                      onChange={e => { setSubmitToComp(e.target.checked); if (!e.target.checked) setCategoryId('') }}
+                      style={{ marginTop: 2, accentColor: 'var(--action-primary)', flexShrink: 0 }}
+                    />
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Also submit to open competition</p>
+                      <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{openCompetition.title}</p>
                     </div>
-                    {!categoryId && (
-                      <p className="mt-2 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                        Choose a category to enable submission
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+                  </label>
+                  {submitToComp && (
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>Select a category</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {openCompetition.categories.map(cat => {
+                          const isFull     = cat.limit !== null && cat.count >= cat.limit
+                          const isSelected = categoryId === cat.id
+                          return (
+                            <button
+                              key={cat.id} type="button" disabled={isFull}
+                              onClick={() => !isFull && setCategoryId(cat.id)}
+                              style={{
+                                borderRadius: 20, padding: '5px 12px', fontSize: 12.5, fontWeight: 600,
+                                border: `1px solid ${isSelected ? 'var(--action-primary)' : 'var(--border-default)'}`,
+                                background: isSelected ? 'var(--action-primary)' : isFull ? 'var(--surface-0)' : 'transparent',
+                                color: isSelected ? '#fff' : isFull ? 'var(--text-disabled)' : 'var(--text-secondary)',
+                                cursor: isFull ? 'not-allowed' : 'pointer', opacity: isFull ? 0.6 : 1,
+                                fontFamily: 'inherit',
+                              }}
+                            >
+                              {cat.name}
+                              {cat.limit !== null && <span style={{ marginLeft: 4, opacity: 0.7 }}>({cat.count}/{cat.limit})</span>}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
-            {/* Error */}
-            {error && (
-              <div
-                className="rounded-lg px-4 py-3 text-[13px] flex-shrink-0"
-                style={{
-                  marginTop:  14,
-                  background: 'var(--status-error-bg)',
-                  color:      'var(--status-error-text)',
-                  border:     '1px solid rgba(211,47,47,0.3)',
-                }}
-              >
-                {error}
-              </div>
+              {/* Error */}
+              {error && (
+                <div style={{ borderRadius: 8, padding: '10px 14px', fontSize: 13, background: 'var(--status-error-bg)', color: 'var(--status-error-text)', border: '1px solid rgba(211,47,47,0.3)' }}>
+                  {error}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Footer ──────────────────────────────────────────────────────── */}
+        <div style={{
+          padding: '14px 24px', borderTop: '1px solid var(--border-default)',
+          flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            {file && (
+              <p style={{ fontSize: 12.5, color: 'var(--text-tertiary)', margin: 0 }}>
+                {file.name}
+              </p>
             )}
           </div>
-
-          {/* Right: EXIF panel — only when EXIF is available */}
-          {hasExif && (
-            <div
-              className="flex-shrink-0 overflow-y-auto"
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              type="button" onClick={onClose}
               style={{
-                width:       240,
-                padding:     '24px 20px',
-                borderLeft:  '1px solid var(--border-subtle)',
-                background:  'var(--surface-0)',
+                borderRadius: 8, padding: '8px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)',
+                fontFamily: 'inherit',
               }}
             >
-              <p
-                className="text-[11px] font-bold uppercase tracking-[0.07em] mb-4"
-                style={{ color: 'var(--text-tertiary)' }}
-              >
-                EXIF Data
-              </p>
-              <dl className="space-y-3">
-                {exifRows.map(({ label, value }) => (
-                  <div key={label}>
-                    <dt
-                      className="text-[10px] font-semibold uppercase tracking-wide"
-                      style={{ color: 'var(--text-tertiary)' }}
-                    >
-                      {label}
-                    </dt>
-                    <dd
-                      className="text-[12px] font-medium mt-0.5 leading-snug"
-                      style={{ color: 'var(--text-primary)' }}
-                    >
-                      {value}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          )}
-        </div>
-
-        {/* ── Footer ─────────────────────────────────────────────────────── */}
-        <div
-          className="flex items-center justify-end gap-3 flex-shrink-0"
-          style={{ padding: '16px 24px', borderTop: '1px solid var(--border-default)' }}
-        >
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border px-4 py-2 text-[14px] font-semibold transition-colors"
-            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'transparent' }}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={uploading || !canSave}
-            className="rounded-lg px-5 py-2 text-[14px] font-bold text-white transition-opacity"
-            style={{
-              background: 'var(--action-primary)',
-              opacity:    uploading || !canSave ? 0.5 : 1,
-              cursor:     uploading || !canSave ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {btnLabel}
-          </button>
+              Cancel
+            </button>
+            <button
+              type="button" onClick={handleUpload}
+              disabled={uploading || !canSave}
+              style={{
+                borderRadius: 8, padding: '8px 20px', fontSize: 14, fontWeight: 700, cursor: uploading || !canSave ? 'not-allowed' : 'pointer',
+                background: 'var(--action-primary)', color: '#fff', border: 'none',
+                opacity: uploading || !canSave ? 0.45 : 1, fontFamily: 'inherit',
+              }}
+            >
+              {btnLabel}
+            </button>
+          </div>
         </div>
       </div>
     </div>
