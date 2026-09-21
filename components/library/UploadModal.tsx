@@ -200,7 +200,7 @@ export default function UploadModal({
         onClick={e => e.stopPropagation()}
         style={{
           width: 'min(900px, calc(100vw - 48px))',
-          height: 'min(640px, calc(100vh - 48px))',
+          height: 'min(760px, calc(100vh - 48px))',
           display: 'flex', flexDirection: 'column',
           background: 'var(--surface-1)',
           border: '1px solid var(--border-default)',
@@ -298,7 +298,6 @@ export default function UploadModal({
 
               {/* EXIF */}
               <ExifPanel rows={displayRows} />
-              {displayRows.length > 0 && <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />}
 
               {/* Title */}
               <TitleField value={title} onChange={setTitle} />
@@ -319,7 +318,10 @@ export default function UploadModal({
                     />
                     <div>
                       <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Also submit to open competition</p>
-                      <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{openCompetition.title}</p>
+                      <p style={{ fontSize: 13, marginTop: 3 }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Salon name: </span>
+                      <span style={{ color: 'var(--action-primary)', fontWeight: 700 }}>{openCompetition.title}</span>
+                    </p>
                     </div>
                   </label>
                   {submitToComp && (
