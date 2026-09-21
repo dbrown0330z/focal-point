@@ -417,55 +417,92 @@ function BtnPrimary({ onClick, disabled, children }: { onClick: () => void; disa
 
 // ─── Step 0: Source choice ─────────────────────────────────────────────────
 
-function SourceStep({ onSelect }: { onSelect: (src: Source) => void }) {
-  const items = [
-    {
-      src: 'upload' as Source,
-      icon: <IconUploadCloud />,
-      label: 'Upload a new photo',
-      sub:   'Upload a JPEG, PNG or WebP directly from your device',
-    },
-    {
-      src: 'library' as Source,
-      icon: <IconImage />,
-      label: 'Choose from my library',
-      sub:   'Select a photo you’ve already added to your library',
-    },
-  ]
+function SourceStep({
+  onSelectLibrary, onFileSelect,
+}: {
+  onSelectLibrary: () => void
+  onFileSelect:    (f: File) => void
+}) {
+  const [drag, setDrag] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  function handleFiles(files: FileList | null) {
+    const f = files?.[0]; if (!f) return
+    onFileSelect(f)
+  }
+
   return (
-    <div style={{ display: 'flex', flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: '75%', display: 'flex', gap: 16 }}>
-        {items.map(({ src, icon, label, sub }) => (
-          <button
-            key={src} type="button" onClick={() => onSelect(src)}
-            style={{
-              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              gap: 14, padding: '32px 20px', textAlign: 'center',
-              borderRadius: 14, border: '2px solid var(--border-default)',
-              background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'var(--action-primary)'
-              e.currentTarget.style.background  = 'rgba(26,111,196,0.04)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'var(--border-default)'
-              e.currentTarget.style.background  = 'transparent'
-            }}
-          >
-            <div style={{
-              width: 56, height: 56, borderRadius: 12, flexShrink: 0,
-              background: 'var(--surface-2)', color: 'var(--text-secondary)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              {icon}
-            </div>
-            <div>
-              <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{label}</p>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>{sub}</p>
-            </div>
-          </button>
-        ))}
+    <div style={{ display: 'flex', flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+      <div style={{ width: '100%', maxWidth: 720, display: 'flex', gap: 16, height: 280 }}>
+
+        {/* Left: actual drop / click target */}
+        <div
+          onClick={() => fileRef.current?.click()}
+          onDragOver={e => { e.preventDefault(); setDrag(true) }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={e => { e.preventDefault(); setDrag(false); handleFiles(e.dataTransfer.files) }}
+          style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 14,
+            borderRadius: 14, border: `2px dashed ${drag ? 'var(--action-primary)' : 'var(--border-default)'}`,
+            background: drag ? 'rgba(26,111,196,0.04)' : 'transparent',
+            cursor: 'pointer', transition: 'border-color .15s, background .15s',
+          }}
+        >
+          <div style={{ color: drag ? 'var(--action-primary)' : 'var(--text-tertiary)', transition: 'color .15s' }}>
+            <IconUploadCloud />
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Upload a new photo</p>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>
+              Drop a file here, or click to browse
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>JPEG · PNG · WebP — max 20 MB</p>
+          </div>
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+            onChange={e => handleFiles(e.target.files)} />
+        </div>
+
+        {/* Divider */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, flexShrink: 0 }}>
+          <div style={{ width: 1, flex: 1, background: 'var(--border-default)' }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.06em' }}>OR</span>
+          <div style={{ width: 1, flex: 1, background: 'var(--border-default)' }} />
+        </div>
+
+        {/* Right: library card */}
+        <button
+          type="button" onClick={onSelectLibrary}
+          style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 14,
+            borderRadius: 14, border: '2px solid var(--border-default)',
+            background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+            transition: 'border-color .15s, background .15s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = 'var(--action-primary)'
+            e.currentTarget.style.background  = 'rgba(26,111,196,0.04)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = 'var(--border-default)'
+            e.currentTarget.style.background  = 'transparent'
+          }}
+        >
+          <div style={{
+            width: 56, height: 56, borderRadius: 12,
+            background: 'var(--surface-2)', color: 'var(--text-secondary)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <IconImage />
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Choose from my library</p>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>
+              Select a photo you’ve already uploaded
+            </p>
+          </div>
+        </button>
       </div>
     </div>
   )
@@ -565,21 +602,15 @@ function UploadBody({
       </div>
       <FormColumn>
         {exifRows.length > 0 && (
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 10 }}>
-              Photo info
-            </p>
-            <dl style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: 0 }}>
-              {exifRows.map(({ label, value }) => (
-                <div key={label}>
-                  <dt style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>{label}</dt>
-                  <dd style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
+          <dl style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: 0, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 16 }}>
+            {exifRows.map(({ label, value }) => (
+              <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <dt style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>{label === 'Captured' ? 'Date' : label}</dt>
+                <dd style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>{value}</dd>
+              </div>
+            ))}
+          </dl>
         )}
-        {exifRows.length > 0 && <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />}
         <TitleField value={title} onChange={onTitleChange} />
         <CategoryPicker categories={categories} selected={categoryId} onSelect={onCategorySelect} fullCategoryIds={fullCategoryIds} />
       </FormColumn>
@@ -880,6 +911,12 @@ export default function SubmitModal({
     if (src === 'library' && (libraryImagesProp?.length ?? 0) === 0) fetchLibraryImages()
   }
 
+  async function handleSourceFileSelect(f: File) {
+    setSource('upload')
+    await handleFileChange(f, URL.createObjectURL(f))
+    setStep(1)
+  }
+
   async function handleFileChange(f: File, p: string) {
     setFile(f); setPreview(p)
     try {
@@ -940,12 +977,15 @@ export default function SubmitModal({
 
   const headerNode = (
     <>
-      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-secondary)', margin: '0 0 5px' }}>
-        Submit to competition
-      </p>
       <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.01em' }}>
-        {competitionTitle}
+        Submit an image
       </h2>
+      {competitionTitle && (
+        <p style={{ fontSize: 13, marginTop: 4 }}>
+          <span style={{ color: 'var(--text-secondary)' }}>Salon name: </span>
+          <span style={{ color: 'var(--action-primary)', fontWeight: 700 }}>{competitionTitle}</span>
+        </p>
+      )}
     </>
   )
 
@@ -984,11 +1024,10 @@ export default function SubmitModal({
   }
 
   // ── normal multi-step flow ─────────────────────────────────────────────────
-  const twoColumn     = (step === 1 && source === 'upload' && !!preview) || step === 2
-  const hasUploadDrop = step === 1 && source === 'upload' && !preview
+  const twoColumn     = (step === 1 && source === 'upload') || step === 2
 
   const bodyNode = (() => {
-    if (step === 0) return <SourceStep onSelect={handleSourceSelect} />
+    if (step === 0) return <SourceStep onSelectLibrary={() => handleSourceSelect('library')} onFileSelect={handleSourceFileSelect} />
     if (step === 1 && source === 'upload') {
       return (
         <UploadBody
@@ -1018,7 +1057,7 @@ export default function SubmitModal({
   })()
 
   // For steps that need a full-height container without the standard padding
-  const needsRawContainer = (step === 1 && source === 'library') || twoColumn || hasUploadDrop
+  const needsRawContainer = (step === 1 && source === 'library') || twoColumn
 
   return (
     <>

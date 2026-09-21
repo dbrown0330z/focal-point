@@ -49,19 +49,14 @@ function IconUpload() {
 function ExifPanel({ rows }: { rows: { label: string; value: string }[] }) {
   if (rows.length === 0) return null
   return (
-    <div>
-      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 10 }}>
-        Photo info
-      </p>
-      <dl style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {rows.map(({ label, value }) => (
-          <div key={label}>
-            <dt style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>{label}</dt>
-            <dd style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>{value}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
+    <dl style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: 0, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 16 }}>
+      {rows.map(({ label, value }) => (
+        <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <dt style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>{label === 'Captured' ? 'Date' : label}</dt>
+          <dd style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>{value}</dd>
+        </div>
+      ))}
+    </dl>
   )
 }
 
@@ -208,7 +203,7 @@ export default function UploadModal({
         }}>
           <div>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-              {file ? 'Add image' : 'Upload a photo'}
+              {file ? 'Upload an image' : 'Upload an image'}
             </h2>
             {file && (
               <p style={{ fontSize: 13, color: 'var(--text-tertiary)', marginTop: 2 }}>
