@@ -177,6 +177,7 @@ function FormColumn({ children }: { children: React.ReactNode }) {
     <div style={{
       flex: 1, overflowY: 'auto', padding: '24px 22px',
       borderLeft: '1px solid var(--border-subtle)',
+      background: 'var(--surface-2)',
       display: 'flex', flexDirection: 'column', gap: 20,
     }}>
       {children}
