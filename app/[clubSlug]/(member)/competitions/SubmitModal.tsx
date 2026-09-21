@@ -938,7 +938,7 @@ export default function SubmitModal({
     if (isLibraryEntry)    return title.trim().length > 0 && categoryId !== ''
     if (step === 0)        return source !== null
     if (step === 1 && source === 'upload')  return file !== null && title.trim().length > 0 && categoryId !== ''
-    if (step === 1 && source === 'library') return selectedImageId !== '' && categoryId !== ''
+    if (step === 1 && source === 'library') return selectedImageId !== ''
     return true
   }
 
