@@ -50,13 +50,13 @@ function ExifPanel({ rows }: { rows: { label: string; value: string }[] }) {
   if (rows.length === 0) return null
   return (
     <div>
-      <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 10 }}>
-        Camera data
+      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 10 }}>
+        Photo info
       </p>
       <dl style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {rows.map(({ label, value }) => (
           <div key={label}>
-            <dt style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>{label}</dt>
+            <dt style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>{label}</dt>
             <dd style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>{value}</dd>
           </div>
         ))}
@@ -286,6 +286,7 @@ export default function UploadModal({
             <div style={{
               flex: 1, overflowY: 'auto', padding: '22px 22px',
               borderLeft: '1px solid var(--border-subtle)',
+              background: 'var(--surface-2)',
               display: 'flex', flexDirection: 'column', gap: 18,
             }}>
 

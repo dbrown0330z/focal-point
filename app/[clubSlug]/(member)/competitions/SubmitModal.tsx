@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { submitFromLibrary, submitUploadedImage, editImageTitleAction } from './actions'
 import * as exifr from 'exifr'
+import { EXIF_TAGS, buildExifRows } from '@/lib/exif'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -432,7 +433,7 @@ function SourceStep({ onSelect }: { onSelect: (src: Source) => void }) {
     },
   ]
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+    <div style={{ display: 'flex', flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ width: '75%', display: 'flex', gap: 16 }}>
         {items.map(({ src, icon, label, sub }) => (
           <button
@@ -474,7 +475,7 @@ function SourceStep({ onSelect }: { onSelect: (src: Source) => void }) {
 
 function UploadBody({
   file, preview, title, categories, categoryId, fullCategoryIds,
-  onTitleChange, onCategorySelect, onFileChange,
+  exifRows, onTitleChange, onCategorySelect, onFileChange,
 }: {
   file:             File | null
   preview:          string | null
@@ -482,6 +483,7 @@ function UploadBody({
   categories:       Category[]
   categoryId:       string
   fullCategoryIds:  string[]
+  exifRows:         { label: string; value: string }[]
   onTitleChange:    (v: string) => void
   onCategorySelect: (id: string) => void
   onFileChange:     (f: File, p: string) => void
@@ -495,7 +497,7 @@ function UploadBody({
 
   if (!preview) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 40 }}>
+      <div style={{ display: 'flex', flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
         <div
           onClick={() => fileRef.current?.click()}
           onDragOver={e => {
@@ -562,6 +564,22 @@ function UploadBody({
         <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => handleFiles(e.target.files)} />
       </div>
       <FormColumn>
+        {exifRows.length > 0 && (
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 10 }}>
+              Photo info
+            </p>
+            <dl style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: 0 }}>
+              {exifRows.map(({ label, value }) => (
+                <div key={label}>
+                  <dt style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>{label}</dt>
+                  <dd style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
+        {exifRows.length > 0 && <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />}
         <TitleField value={title} onChange={onTitleChange} />
         <CategoryPicker categories={categories} selected={categoryId} onSelect={onCategorySelect} fullCategoryIds={fullCategoryIds} />
       </FormColumn>
@@ -721,13 +739,13 @@ function ConfirmBody({
       }
       <FormColumn>
         <div>
-          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 14 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 14 }}>
             Submission details
           </p>
           <dl style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {([['Image', imageTitle], ['Category', categoryName], ['Competition', competitionTitle]] as [string, string][]).map(([label, value]) => (
               <div key={label}>
-                <dt style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>{label}</dt>
+                <dt style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>{label}</dt>
                 <dd style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2 }}>{value}</dd>
               </div>
             ))}
@@ -795,6 +813,7 @@ export default function SubmitModal({
   const [title,           setTitle]           = useState(preselectedImage?.title ?? '')
   const [selectedImageId, setSelectedImageId] = useState(preselectedImage?.id ?? '')
   const [categoryId,      setCategoryId]      = useState('')
+  const [fileExif,        setFileExif]        = useState<Record<string, unknown> | null>(null)
   const [submitting,      setSubmitting]      = useState(false)
   const [error,           setError]           = useState<string | null>(null)
   const [success,         setSuccess]         = useState(false)
@@ -864,9 +883,10 @@ export default function SubmitModal({
   async function handleFileChange(f: File, p: string) {
     setFile(f); setPreview(p)
     try {
-      const parsed = await exifr.parse(f, { pick: ['Make','Model','FNumber','ExposureTime','ISO','FocalLength','DateTimeOriginal'] })
-      ;(f as File & { _exif?: unknown })._exif = parsed ?? null
-    } catch { /* ignore */ }
+      const parsed = (await exifr.parse(f, { pick: EXIF_TAGS })) ?? null
+      setFileExif(parsed)
+      ;(f as File & { _exif?: unknown })._exif = parsed
+    } catch { setFileExif(null) }
   }
 
   function canContinue(): boolean {
@@ -920,12 +940,12 @@ export default function SubmitModal({
 
   const headerNode = (
     <>
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-        Submit an image
-      </h2>
-      <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--action-primary)', marginTop: 3 }}>
-        {competitionTitle}
+      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-secondary)', margin: '0 0 5px' }}>
+        Submit to competition
       </p>
+      <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.01em' }}>
+        {competitionTitle}
+      </h2>
     </>
   )
 
@@ -974,6 +994,7 @@ export default function SubmitModal({
         <UploadBody
           file={file} preview={preview} title={title}
           categories={categories} categoryId={categoryId} fullCategoryIds={fullCategoryIds}
+          exifRows={fileExif ? buildExifRows(fileExif).filter(r => r.label === 'Dimensions' || r.label === 'Captured') : []}
           onTitleChange={setTitle} onCategorySelect={setCategoryId} onFileChange={handleFileChange}
         />
       )
