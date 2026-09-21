@@ -636,17 +636,13 @@ function UploadBody({
 // ─── Step 1b: Library grid ─────────────────────────────────────────────────
 
 function LibraryBody({
-  images, loading, selectedId, categoryId, categories, fullCategoryIds,
-  onSelect, onCategorySelect,
+  images, loading, selectedId,
+  onSelect,
 }: {
-  images:           LibraryImage[]
-  loading:          boolean
-  selectedId:       string
-  categoryId:       string
-  categories:       Category[]
-  fullCategoryIds:  string[]
-  onSelect:         (id: string) => void
-  onCategorySelect: (id: string) => void
+  images:     LibraryImage[]
+  loading:    boolean
+  selectedId: string
+  onSelect:   (id: string) => void
 }) {
   const [search, setSearch]   = useState('')
   const [sort, setSort]       = useState<'date_desc' | 'title_asc'>('date_desc')
@@ -755,13 +751,6 @@ function LibraryBody({
         </div>
       )}
 
-      {/* Category picker when image selected */}
-      {selectedId && (
-        <div style={{ flexShrink: 0, borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
-          <CategoryPicker categories={categories} selected={categoryId} onSelect={onCategorySelect} fullCategoryIds={fullCategoryIds} />
-        </div>
-      )}
-
       {lightbox && <Lightbox image={lightbox} onClose={() => setLightbox(null)} />}
     </div>
   )
@@ -770,27 +759,18 @@ function LibraryBody({
 // ─── Step 2: Confirm (two-column) ─────────────────────────────────────────────
 
 function ConfirmBody({
-  previewUrl, imageTitle, categoryId, categories, fullCategoryIds, onCategorySelect,
+  previewUrl, imageTitle, title, categories, categoryId, fullCategoryIds,
+  onTitleChange, onCategorySelect,
 }: {
   previewUrl:       string | null
   imageTitle:       string
-  categoryId:       string
+  title:            string
   categories:       Category[]
+  categoryId:       string
   fullCategoryIds:  string[]
+  onTitleChange:    (v: string) => void
   onCategorySelect: (id: string) => void
 }) {
-  const [dims, setDims] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!previewUrl) return
-    const img = new window.Image()
-    img.onload = () => setDims(`${img.naturalWidth.toLocaleString()} × ${img.naturalHeight.toLocaleString()} px`)
-    img.src = previewUrl
-  }, [previewUrl])
-
-  const exifRows: { label: string; value: string }[] = []
-  if (dims) exifRows.push({ label: 'Dimensions', value: dims })
-
   return (
     <>
       {previewUrl
@@ -798,11 +778,7 @@ function ConfirmBody({
         : <div style={{ flex: '0 0 57%', background: 'var(--surface-0)' }} />
       }
       <FormColumn>
-        <div>
-          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 4 }}>Title</p>
-          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{imageTitle}</p>
-        </div>
-        {exifRows.length > 0 && <ExifPanel rows={exifRows} />}
+        <TitleField value={title} onChange={onTitleChange} />
         <CategoryPicker categories={categories} selected={categoryId} onSelect={onCategorySelect} fullCategoryIds={fullCategoryIds} />
       </FormColumn>
     </>
@@ -1076,17 +1052,16 @@ export default function SubmitModal({
       return (
         <LibraryBody
           images={effectiveLibraryImages} loading={fetchingImages}
-          selectedId={selectedImageId} categoryId={categoryId}
-          categories={categories} fullCategoryIds={fullCategoryIds}
-          onSelect={setSelectedImageId} onCategorySelect={setCategoryId}
+          selectedId={selectedImageId}
+          onSelect={id => { setSelectedImageId(id); const img = effectiveLibraryImages.find(i => i.id === id); if (img) setTitle(img.title) }}
         />
       )
     }
     return (
       <ConfirmBody
         previewUrl={previewUrl} imageTitle={displayTitle}
-        categoryId={categoryId} categories={categories} fullCategoryIds={fullCategoryIds}
-        onCategorySelect={setCategoryId}
+        title={title} categories={categories} categoryId={categoryId} fullCategoryIds={fullCategoryIds}
+        onTitleChange={setTitle} onCategorySelect={setCategoryId}
       />
     )
   })()
