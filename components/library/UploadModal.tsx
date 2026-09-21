@@ -52,7 +52,7 @@ function ExifPanel({ rows }: { rows: { label: string; value: string }[] }) {
     <dl style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: 0, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 16 }}>
       {rows.map(({ label, value }) => (
         <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <dt style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>{label === 'Captured' ? 'Date' : label}</dt>
+          <dt style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>{label}</dt>
           <dd style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>{value}</dd>
         </div>
       ))}
@@ -98,6 +98,7 @@ export default function UploadModal({
   const [file,         setFile]         = useState<File | null>(null)
   const [preview,      setPreview]      = useState<string | null>(null)
   const [exifData,     setExifData]     = useState<Record<string, unknown> | null>(null)
+  const [imageDims,    setImageDims]    = useState<string | null>(null)
   const [title,        setTitle]        = useState('')
   const [submitToComp, setSubmitToComp] = useState(false)
   const [categoryId,   setCategoryId]   = useState('')
@@ -122,7 +123,7 @@ export default function UploadModal({
   // Reset on open
   useEffect(() => {
     if (open) {
-      setFile(null); setPreview(null); setExifData(null)
+      setFile(null); setPreview(null); setExifData(null); setImageDims(null)
       setTitle(''); setSubmitToComp(false); setCategoryId(''); setError(null)
     }
   }, [open])
@@ -130,9 +131,17 @@ export default function UploadModal({
   if (!open) return null
 
   async function pickFile(selected: File) {
+    const url = URL.createObjectURL(selected)
     setFile(selected)
-    setPreview(URL.createObjectURL(selected))
+    setPreview(url)
     setError(null)
+    // Derive dimensions from the actual image — works on every format, no EXIF needed
+    const img = new window.Image()
+    img.onload = () => setImageDims(
+      `${img.naturalWidth.toLocaleString()} × ${img.naturalHeight.toLocaleString()} px`
+    )
+    img.src = url
+    // Parse EXIF only for the capture date
     try {
       const parsed = await exifr.parse(selected, { pick: EXIF_TAGS })
       setExifData(parsed ?? null)
@@ -173,8 +182,10 @@ export default function UploadModal({
     setUploading(false); router.refresh(); onClose()
   }
 
-  const allExifRows = exifData ? buildExifRows(exifData) : []
-  const exifRows    = allExifRows.filter(r => r.label === 'Dimensions' || r.label === 'Captured')
+  const displayRows: { label: string; value: string }[] = []
+  if (imageDims) displayRows.push({ label: 'Dimensions', value: imageDims })
+  const capturedRow = exifData ? buildExifRows(exifData).find(r => r.label === 'Captured') : null
+  if (capturedRow) displayRows.push({ label: 'Date', value: capturedRow.value })
   const atLimit  = openCompetition?.submissionLimit !== null && (openCompetition?.mySubmissionCount ?? 0) >= (openCompetition?.submissionLimit ?? 0)
   const canSave  = !!file && !!title.trim() && (!submitToComp || !!categoryId)
   const btnLabel = uploading ? 'Uploading…' : submitToComp && categoryId ? 'Upload & submit' : 'Add to library'
@@ -286,8 +297,8 @@ export default function UploadModal({
             }}>
 
               {/* EXIF */}
-              <ExifPanel rows={exifRows} />
-              {exifRows.length > 0 && <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />}
+              <ExifPanel rows={displayRows} />
+              {displayRows.length > 0 && <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />}
 
               {/* Title */}
               <TitleField value={title} onChange={setTitle} />

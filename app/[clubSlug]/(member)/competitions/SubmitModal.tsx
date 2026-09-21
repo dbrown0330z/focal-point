@@ -845,6 +845,7 @@ export default function SubmitModal({
   const [selectedImageId, setSelectedImageId] = useState(preselectedImage?.id ?? '')
   const [categoryId,      setCategoryId]      = useState('')
   const [fileExif,        setFileExif]        = useState<Record<string, unknown> | null>(null)
+  const [fileDimensions,  setFileDimensions]  = useState<string | null>(null)
   const [submitting,      setSubmitting]      = useState(false)
   const [error,           setError]           = useState<string | null>(null)
   const [success,         setSuccess]         = useState(false)
@@ -885,7 +886,7 @@ export default function SubmitModal({
 
   function reset() {
     setStep(initialStep); setSource(initialSource)
-    setFile(null); setPreview(null)
+    setFile(null); setPreview(null); setFileDimensions(null)
     setTitle(preselectedImage?.title ?? ''); setSelectedImageId(preselectedImage?.id ?? '')
     setCategoryId(''); setError(null); setSuccess(false)
   }
@@ -919,6 +920,12 @@ export default function SubmitModal({
 
   async function handleFileChange(f: File, p: string) {
     setFile(f); setPreview(p)
+    // Derive dimensions from the actual image element — works on every format
+    const img = new window.Image()
+    img.onload = () => setFileDimensions(
+      `${img.naturalWidth.toLocaleString()} × ${img.naturalHeight.toLocaleString()} px`
+    )
+    img.src = p
     try {
       const parsed = (await exifr.parse(f, { pick: EXIF_TAGS })) ?? null
       setFileExif(parsed)
@@ -1033,7 +1040,13 @@ export default function SubmitModal({
         <UploadBody
           file={file} preview={preview} title={title}
           categories={categories} categoryId={categoryId} fullCategoryIds={fullCategoryIds}
-          exifRows={fileExif ? buildExifRows(fileExif).filter(r => r.label === 'Dimensions' || r.label === 'Captured') : []}
+          exifRows={(() => {
+            const rows: { label: string; value: string }[] = []
+            if (fileDimensions) rows.push({ label: 'Dimensions', value: fileDimensions })
+            const captured = fileExif ? buildExifRows(fileExif).find(r => r.label === 'Captured') : null
+            if (captured) rows.push({ label: 'Date', value: captured.value })
+            return rows
+          })()}
           onTitleChange={setTitle} onCategorySelect={setCategoryId} onFileChange={handleFileChange}
         />
       )
