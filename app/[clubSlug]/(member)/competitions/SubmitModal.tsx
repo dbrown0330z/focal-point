@@ -328,7 +328,7 @@ function ModalShell({
             {body}
           </div>
         ) : (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '22px 24px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '22px 24px', background: 'var(--surface-2)' }}>
             {body}
           </div>
         )}
@@ -534,7 +534,7 @@ function UploadBody({
 
   if (!preview) {
     return (
-      <div style={{ display: 'flex', flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+      <div style={{ display: 'flex', flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center', padding: 40, background: 'var(--surface-2)' }}>
         <div
           onClick={() => fileRef.current?.click()}
           onDragOver={e => {
@@ -644,7 +644,7 @@ function LibraryBody({
       : a.title.localeCompare(b.title))
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ height: '100%', overflowY: 'auto', padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: 14, background: 'var(--surface-2)' }}>
       {/* Search + sort */}
       <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
         <div style={{ flex: 1, position: 'relative' }}>
