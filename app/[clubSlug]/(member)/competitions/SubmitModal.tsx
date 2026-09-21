@@ -417,49 +417,55 @@ function BtnPrimary({ onClick, disabled, children }: { onClick: () => void; disa
 // ─── Step 0: Source choice ─────────────────────────────────────────────────
 
 function SourceStep({ onSelect }: { onSelect: (src: Source) => void }) {
+  const items = [
+    {
+      src: 'upload' as Source,
+      icon: <IconUploadCloud />,
+      label: 'Upload a new photo',
+      sub:   'Upload a JPEG, PNG or WebP directly from your device',
+    },
+    {
+      src: 'library' as Source,
+      icon: <IconImage />,
+      label: 'Choose from my library',
+      sub:   'Select a photo you’ve already added to your library',
+    },
+  ]
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 4 }}>
-        Choose how to add your image to this competition.
-      </p>
-      {(['upload', 'library'] as Source[]).map(src => (
-        <button
-          key={src} type="button" onClick={() => onSelect(src)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 16, width: '100%',
-            borderRadius: 12, border: '2px solid var(--border-default)',
-            padding: '18px 20px', textAlign: 'left', cursor: 'pointer',
-            background: 'transparent', fontFamily: 'inherit',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.borderColor = 'var(--action-primary)'
-            e.currentTarget.style.background  = 'rgba(26,111,196,0.04)'
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.borderColor = 'var(--border-default)'
-            e.currentTarget.style.background  = 'transparent'
-          }}
-        >
-          <div style={{
-            width: 48, height: 48, borderRadius: 10, flexShrink: 0,
-            background: 'var(--surface-2)', color: 'var(--text-secondary)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            {src === 'upload' ? <IconUploadCloud /> : <IconImage />}
-          </div>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-              {src === 'upload' ? 'Upload a new photo' : 'Choose from my library'}
-            </p>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 3 }}>
-              {src === 'upload'
-                ? 'Upload a JPEG, PNG or WebP file directly from your device'
-                : 'Select a photo you have already added to your library'}
-            </p>
-          </div>
-          <IconChevronRight />
-        </button>
-      ))}
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+      <div style={{ width: '75%', display: 'flex', gap: 16 }}>
+        {items.map(({ src, icon, label, sub }) => (
+          <button
+            key={src} type="button" onClick={() => onSelect(src)}
+            style={{
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+              gap: 14, padding: '32px 20px', textAlign: 'center',
+              borderRadius: 14, border: '2px solid var(--border-default)',
+              background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'var(--action-primary)'
+              e.currentTarget.style.background  = 'rgba(26,111,196,0.04)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'var(--border-default)'
+              e.currentTarget.style.background  = 'transparent'
+            }}
+          >
+            <div style={{
+              width: 56, height: 56, borderRadius: 12, flexShrink: 0,
+              background: 'var(--surface-2)', color: 'var(--text-secondary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {icon}
+            </div>
+            <div>
+              <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{label}</p>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>{sub}</p>
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
@@ -492,23 +498,42 @@ function UploadBody({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 40 }}>
         <div
           onClick={() => fileRef.current?.click()}
-          onDragOver={e => { e.preventDefault(); setDrag(true) }}
-          onDragLeave={() => setDrag(false)}
-          onDrop={e => { e.preventDefault(); setDrag(false); handleFiles(e.dataTransfer.files) }}
+          onDragOver={e => {
+            e.preventDefault()
+            setDrag(true)
+            ;(e.currentTarget as HTMLDivElement).style.borderColor = 'var(--action-primary)'
+            ;(e.currentTarget as HTMLDivElement).style.background  = 'rgba(26,111,196,0.04)'
+          }}
+          onDragLeave={e => {
+            setDrag(false)
+            ;(e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border-default)'
+            ;(e.currentTarget as HTMLDivElement).style.background  = 'transparent'
+          }}
+          onDrop={e => {
+            e.preventDefault(); setDrag(false)
+            ;(e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border-default)'
+            ;(e.currentTarget as HTMLDivElement).style.background  = 'transparent'
+            handleFiles(e.dataTransfer.files)
+          }}
           style={{
-            width: '100%', maxWidth: 440, border: '2px dashed', cursor: 'pointer',
-            borderColor: drag ? 'var(--action-primary)' : 'var(--border-default)',
-            background: drag ? 'rgba(26,111,196,0.05)' : 'transparent',
-            borderRadius: 14, padding: '56px 40px', textAlign: 'center',
+            width: '100%', maxWidth: 480, border: '2px dashed var(--border-default)',
+            borderRadius: 14, padding: '60px 40px', cursor: 'pointer', textAlign: 'center',
+            background: 'transparent', transition: 'border-color .15s, background .15s',
           }}
         >
-          <div style={{ color: 'var(--text-tertiary)', display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+          <div style={{ color: 'var(--text-tertiary)', marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
             <IconUploadCloud />
           </div>
-          <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)' }}>Click or drag a photo here</p>
-          <p style={{ fontSize: 12.5, color: 'var(--text-tertiary)', marginTop: 6 }}>JPEG · PNG · WebP — max 20 MB</p>
+          <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>
+            Click or drag a photo here
+          </p>
+          <p style={{ fontSize: 12.5, color: 'var(--text-tertiary)', marginTop: 6 }}>
+            JPEG · PNG · WebP — max 20 MB
+          </p>
           <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => handleFiles(e.target.files)} />
         </div>
+        {/* drag state tracked in element styles above — variable unused but keep for drop handler */}
+        {drag && null}
       </div>
     )
   }
@@ -939,7 +964,6 @@ export default function SubmitModal({
   }
 
   // ── normal multi-step flow ─────────────────────────────────────────────────
-  const stepLabels    = ['Source', 'Image', 'Confirm']
   const twoColumn     = (step === 1 && source === 'upload' && !!preview) || step === 2
   const hasUploadDrop = step === 1 && source === 'upload' && !preview
 
@@ -979,7 +1003,6 @@ export default function SubmitModal({
     <>
       <ModalShell
         header={headerNode}
-        stepper={<Stepper stepIndex={step} labels={stepLabels} />}
         twoColumn={needsRawContainer}
         body={needsRawContainer ? bodyNode : (
           <div>

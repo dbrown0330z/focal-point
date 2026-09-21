@@ -178,7 +178,8 @@ export default function UploadModal({
     setUploading(false); router.refresh(); onClose()
   }
 
-  const exifRows = exifData ? buildExifRows(exifData) : []
+  const allExifRows = exifData ? buildExifRows(exifData) : []
+  const exifRows    = allExifRows.filter(r => r.label === 'Dimensions' || r.label === 'Captured')
   const atLimit  = openCompetition?.submissionLimit !== null && (openCompetition?.mySubmissionCount ?? 0) >= (openCompetition?.submissionLimit ?? 0)
   const canSave  = !!file && !!title.trim() && (!submitToComp || !!categoryId)
   const btnLabel = uploading ? 'Uploading…' : submitToComp && categoryId ? 'Upload & submit' : 'Add to library'
