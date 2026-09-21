@@ -99,7 +99,7 @@ function IconZoomIn() {
 // ─── Shared atoms ─────────────────────────────────────────────────────────────
 
 const MODAL_W = 'min(900px, calc(100vw - 48px))'
-const MODAL_H = 'min(640px, calc(100vh - 48px))'
+const MODAL_H = 'min(760px, calc(100vh - 48px))'
 
 function TitleField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
@@ -182,6 +182,20 @@ function FormColumn({ children }: { children: React.ReactNode }) {
     }}>
       {children}
     </div>
+  )
+}
+
+function ExifPanel({ rows }: { rows: { label: string; value: string }[] }) {
+  if (rows.length === 0) return null
+  return (
+    <dl style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: 0, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 16 }}>
+      {rows.map(({ label, value }) => (
+        <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <dt style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>{label}</dt>
+          <dd style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>{value}</dd>
+        </div>
+      ))}
+    </dl>
   )
 }
 
@@ -645,7 +659,7 @@ function LibraryBody({
       : a.title.localeCompare(b.title))
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: 14, background: 'var(--surface-2)' }}>
+    <div style={{ flex: 1, height: '100%', overflowY: 'auto', padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: 14, background: 'var(--surface-2)' }}>
       {/* Search + sort */}
       <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
         <div style={{ flex: 1, position: 'relative' }}>
@@ -756,13 +770,27 @@ function LibraryBody({
 // ─── Step 2: Confirm (two-column) ─────────────────────────────────────────────
 
 function ConfirmBody({
-  previewUrl, imageTitle, categoryName, competitionTitle,
+  previewUrl, imageTitle, categoryId, categories, fullCategoryIds, onCategorySelect,
 }: {
   previewUrl:       string | null
   imageTitle:       string
-  categoryName:     string
-  competitionTitle: string
+  categoryId:       string
+  categories:       Category[]
+  fullCategoryIds:  string[]
+  onCategorySelect: (id: string) => void
 }) {
+  const [dims, setDims] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!previewUrl) return
+    const img = new window.Image()
+    img.onload = () => setDims(`${img.naturalWidth.toLocaleString()} × ${img.naturalHeight.toLocaleString()} px`)
+    img.src = previewUrl
+  }, [previewUrl])
+
+  const exifRows: { label: string; value: string }[] = []
+  if (dims) exifRows.push({ label: 'Dimensions', value: dims })
+
   return (
     <>
       {previewUrl
@@ -771,19 +799,11 @@ function ConfirmBody({
       }
       <FormColumn>
         <div>
-          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 14 }}>
-            Submission details
-          </p>
-          <dl style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {([['Image', imageTitle], ['Category', categoryName], ['Competition', competitionTitle]] as [string, string][]).map(([label, value]) => (
-              <div key={label}>
-                <dt style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>{label}</dt>
-                <dd style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2 }}>{value}</dd>
-              </div>
-            ))}
-          </dl>
+          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 4 }}>Title</p>
+          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{imageTitle}</p>
         </div>
-        <SubmissionNote />
+        {exifRows.length > 0 && <ExifPanel rows={exifRows} />}
+        <CategoryPicker categories={categories} selected={categoryId} onSelect={onCategorySelect} fullCategoryIds={fullCategoryIds} />
       </FormColumn>
     </>
   )
@@ -810,7 +830,6 @@ function DirectConfirmBody({
       <FormColumn>
         <TitleField value={title} onChange={onTitleChange} />
         <CategoryPicker categories={categories} selected={categoryId} onSelect={onCategorySelect} fullCategoryIds={fullCategoryIds} />
-        <SubmissionNote />
         {error && (
           <div style={{
             borderRadius: 8, padding: '10px 14px', fontSize: 13,
@@ -939,6 +958,7 @@ export default function SubmitModal({
     if (step === 0)        return source !== null
     if (step === 1 && source === 'upload')  return file !== null && title.trim().length > 0 && categoryId !== ''
     if (step === 1 && source === 'library') return selectedImageId !== ''
+    if (step === 2) return categoryId !== ''
     return true
   }
 
@@ -1065,7 +1085,8 @@ export default function SubmitModal({
     return (
       <ConfirmBody
         previewUrl={previewUrl} imageTitle={displayTitle}
-        categoryName={selectedCategory?.name ?? ''} competitionTitle={competitionTitle}
+        categoryId={categoryId} categories={categories} fullCategoryIds={fullCategoryIds}
+        onCategorySelect={setCategoryId}
       />
     )
   })()
