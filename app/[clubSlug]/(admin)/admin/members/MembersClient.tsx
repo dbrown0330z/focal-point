@@ -1557,7 +1557,7 @@ function SkillLevelsTab({
                       cls={cls}
                       onRename={onRename}
                       onDelete={onDelete}
-                      disabled={classPending || classes.length <= 1}
+                      disabled={classPending || classes.length <= 2}
                     />
                   ))}
                 </Stack>
@@ -1698,7 +1698,7 @@ export default function MembersClient({
     startClass(async () => {
       await setMemberClassesEnabled(enabled)
       // Seed Class A, B, C in a single server call when enabling for the first time
-      if (enabled && classes.length === 0) {
+      if (enabled && classes.length < 3) {
         const { classes: seeded } = await seedDefaultMemberClasses()
         if (seeded?.length) setClasses(seeded)
       }

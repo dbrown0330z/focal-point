@@ -334,14 +334,20 @@ export async function addMemberClass(name: string): Promise<{ error?: string; id
 export async function seedDefaultMemberClasses(): Promise<{ error?: string; classes?: { id: string; name: string }[] }> {
   const supabase = createServiceClient()
   const defaults = ['Class A', 'Class B', 'Class C']
-  const rows = defaults.map((name, sort_order) => ({ name, sort_order }))
-  const { data, error } = await supabase
-    .from('member_classes')
-    .insert(rows)
-    .select('id, name')
-  if (error) return { error: error.message }
+  // Fetch existing names so we only insert the ones that are missing
+  const { data: existing } = await supabase.from('member_classes').select('name')
+  const existingNames = new Set((existing ?? []).map(r => r.name))
+  const toInsert = defaults
+    .filter(name => !existingNames.has(name))
+    .map((name, i) => ({ name, sort_order: (existing?.length ?? 0) + i }))
+  if (toInsert.length > 0) {
+    const { error } = await supabase.from('member_classes').insert(toInsert)
+    if (error) return { error: error.message }
+  }
+  // Return the full up-to-date list
+  const { data: all } = await supabase.from('member_classes').select('id, name').order('sort_order')
   revalidatePath('/admin/members')
-  return { classes: data }
+  return { classes: all ?? [] }
 }
 
 export async function renameMemberClass(id: string, name: string): Promise<{ error?: string }> {
