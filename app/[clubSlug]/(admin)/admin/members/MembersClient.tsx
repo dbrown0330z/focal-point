@@ -1716,6 +1716,7 @@ export default function MembersClient({
         const { classes: seeded } = await seedDefaultMemberClasses()
         if (seeded?.length) setClasses(seeded)
       }
+      flashClassSaved()
     })
   }
 
@@ -1728,19 +1729,26 @@ export default function MembersClient({
         setClasses(prev => [...prev, { id, name }])
         setNewClassName('')
         setClassAdding(false)
+        flashClassSaved()
       }
     })
   }
 
   function handleRenameClass(id: string, name: string) {
     setClasses(prev => prev.map(c => c.id === id ? { ...c, name } : c))
-    startClass(async () => { await renameMemberClass(id, name) })
+    startClass(async () => {
+      await renameMemberClass(id, name)
+      flashClassSaved()
+    })
   }
 
   function handleDeleteClass(id: string) {
     startClass(async () => {
       const { error } = await deleteMemberClass(id)
-      if (!error) setClasses(prev => prev.filter(c => c.id !== id))
+      if (!error) {
+        setClasses(prev => prev.filter(c => c.id !== id))
+        flashClassSaved()
+      }
     })
   }
 
