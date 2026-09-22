@@ -289,7 +289,7 @@ export default function MemberNav({
 
           {/* Images ▾ */}
           <NavDropdown label="Images" isActive={isActive('/library')}>
-            <DropdownLink href={`${base}/competitions`}        label="Submit image…" icon={<SubmitIcon />}    active={false} />
+            <DropdownLink href={`${base}/library?upload=true`} label="Upload an image…" icon={<SubmitIcon />} active={false} />
             <DropdownLink href={`${base}/library`}           label="My images" icon={<ImagesIcon />}   active={isActive('/library', true)} />
             <DropdownLink href={`${base}/library/galleries`} label="My Galleries" icon={<GalleriesIcon />} active={isActive('/library/galleries')} />
             {customPages.filter(p => p.parent_system === 'images').map(p => (
