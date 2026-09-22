@@ -129,7 +129,15 @@ function SeasonSelector({
         size="small"
         value={current}
         onChange={e => handleChange({ target: { value: String(e.target.value) } } as React.ChangeEvent<HTMLSelectElement>)}
-        sx={{ fontSize: 13, fontFamily: 'inherit', minWidth: 120 }}
+        sx={{
+          fontSize: 13, fontFamily: 'inherit', minWidth: 120,
+          background: 'var(--surface-2)',
+          color: 'var(--text-primary)',
+          '& .MuiSelect-select': { color: 'var(--text-primary)' },
+          '& .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--border-default)' },
+          '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--border-strong)' },
+          '& .MuiSvgIcon-root': { color: 'var(--text-secondary)' },
+        }}
       >
         {options.map(o => (
           <MenuItem key={o.year} value={o.year} sx={{ fontSize: 13, fontFamily: 'inherit' }}>

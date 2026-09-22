@@ -201,7 +201,15 @@ export default function MembersClient({
               value={skillFilter}
               onChange={e => setSkill(e.target.value)}
               displayEmpty
-              sx={{ fontSize: 14, fontFamily: 'inherit', minWidth: 150 }}
+              sx={{
+                  fontSize: 14, fontFamily: 'inherit', minWidth: 150,
+                  background: 'var(--surface-2)',
+                  color: 'var(--text-primary)',
+                  '& .MuiSelect-select': { color: 'var(--text-primary)' },
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--border-default)' },
+                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--border-strong)' },
+                  '& .MuiSvgIcon-root': { color: 'var(--text-secondary)' },
+                }}
             >
               <MenuItem value="" sx={{ fontSize: 14, fontFamily: 'inherit' }}>All skill levels</MenuItem>
               {EXPERIENCE_LEVELS.map(l => (
@@ -213,7 +221,15 @@ export default function MembersClient({
               value={interestFilter}
               onChange={e => setInterest(e.target.value)}
               displayEmpty
-              sx={{ fontSize: 14, fontFamily: 'inherit', minWidth: 150 }}
+              sx={{
+                  fontSize: 14, fontFamily: 'inherit', minWidth: 150,
+                  background: 'var(--surface-2)',
+                  color: 'var(--text-primary)',
+                  '& .MuiSelect-select': { color: 'var(--text-primary)' },
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--border-default)' },
+                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--border-strong)' },
+                  '& .MuiSvgIcon-root': { color: 'var(--text-secondary)' },
+                }}
             >
               <MenuItem value="" sx={{ fontSize: 14, fontFamily: 'inherit' }}>All interests</MenuItem>
               {SHOOTING_INTERESTS.map(i => (
