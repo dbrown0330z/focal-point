@@ -1448,6 +1448,7 @@ interface SkillLevelsTabProps {
   classesEnabled: boolean
   classes: { id: string; name: string }[]
   classPending: boolean
+  classSaved: boolean
   classAdding: boolean
   newClassName: string
   clubSlug: string
@@ -1465,6 +1466,7 @@ function SkillLevelsTab({
   classesEnabled,
   classes,
   classPending,
+  classSaved,
   classAdding,
   newClassName,
   clubSlug,
@@ -1527,9 +1529,14 @@ function SkillLevelsTab({
       {/* Enable toggle */}
       <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px', mb: 2.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: classesEnabled ? 2.5 : 0 }}>
-          <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary' }}>
-            Skill levels
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary' }}>
+              Skill levels
+            </Typography>
+            {classSaved && (
+              <Typography sx={{ fontSize: 12, color: 'success.main', fontWeight: 600 }}>Changes saved</Typography>
+            )}
+          </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography sx={{ fontSize: 13, color: classesEnabled ? 'text.primary' : 'text.disabled', fontWeight: 500 }}>
               {classesEnabled ? 'On' : 'Off'}
@@ -1692,6 +1699,13 @@ export default function MembersClient({
   const [classAdding, setClassAdding]       = useState(false)
   const [newClassName, setNewClassName]     = useState('')
   const [classPending, startClass]          = useTransition()
+  const [classSaved, setClassSaved]         = useState(false)
+  const classSavedTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  function flashClassSaved() {
+    setClassSaved(true)
+    if (classSavedTimer.current) clearTimeout(classSavedTimer.current)
+    classSavedTimer.current = setTimeout(() => setClassSaved(false), 2000)
+  }
 
   function handleToggleClasses(enabled: boolean) {
     setClassesEnabled(enabled)
@@ -2128,6 +2142,7 @@ export default function MembersClient({
           classesEnabled={classesEnabled}
           classes={classes}
           classPending={classPending}
+          classSaved={classSaved}
           classAdding={classAdding}
           newClassName={newClassName}
           clubSlug={clubSlug}
