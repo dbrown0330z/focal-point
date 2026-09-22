@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { deleteImage } from '@/app/[clubSlug]/(member)/library/actions'
 import { withdrawFromCompetition } from '@/app/[clubSlug]/(member)/competitions/actions'
 import { Lightbox, type LightboxImage, type LightboxSubmission } from '@/components/ui/Lightbox'
@@ -157,16 +157,14 @@ export default function LibraryClient({
   openCompetition: OpenCompetition | null
 }) {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [view, setView]                         = useState<View>('gallery')
   const [lightboxIndex, setLightboxIndex]       = useState<number | null>(null)
   const [uploadOpen, setUploadOpen]             = useState(false)
   useEffect(() => {
-    if (searchParams.get('upload') === 'true') {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('upload') === 'true') {
       setUploadOpen(true)
-      const url = new URL(window.location.href)
-      url.searchParams.delete('upload')
-      router.replace(url.pathname, { scroll: false })
+      router.replace(window.location.pathname, { scroll: false })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
