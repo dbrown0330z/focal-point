@@ -141,11 +141,13 @@ export default function ComposeClient({
   fromAddress,
   clubName,
   initialRecipientId,
+  onClose,
 }: {
   members: Member[]
   fromAddress: string
   clubName: string
   initialRecipientId?: string
+  onClose?: () => void
 }) {
   const validInitialId = initialRecipientId && members.some(m => m.id === initialRecipientId)
     ? initialRecipientId : undefined
@@ -525,7 +527,9 @@ export default function ComposeClient({
     if (result.ok) {
       setSentCount(result.recipientCount)
       setSubject('')
+      setAttachments([])
       if (editorRef.current) editorRef.current.innerHTML = ''
+      setTimeout(() => onClose?.(), 2000)
     } else {
       setSendError(result.error)
     }
@@ -533,7 +537,7 @@ export default function ComposeClient({
 
   return (
     <>
-      <Paper variant="outlined">
+      <Paper variant="outlined" sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
         {/* Top bar */}
         <Box sx={{
@@ -553,6 +557,7 @@ export default function ComposeClient({
                 setSubject('')
                 setAttachments([])
                 if (editorRef.current) editorRef.current.innerHTML = ''
+                onClose?.()
               }}
             >
               Discard
@@ -569,18 +574,18 @@ export default function ComposeClient({
             </Button>
           </Box>
           {sentCount !== null && (
-            <Typography sx={{ fontSize: 12, color: 'success.main', mt: 0.5, textAlign: 'right' }}>
+            <Typography sx={{ fontSize: 12, color: 'success.main', ml: 1 }}>
               ✓ Sent to {sentCount} recipient{sentCount !== 1 ? 's' : ''}
             </Typography>
           )}
           {sendError && (
-            <Typography sx={{ fontSize: 12, color: 'error.main', mt: 0.5, textAlign: 'right' }}>
+            <Typography sx={{ fontSize: 12, color: 'error.main', ml: 1 }}>
               {sendError}
             </Typography>
           )}
         </Box>
 
-        {/* From — read-only, styled disabled */}
+        {/* From — read-only, no-reply notice */}
         <Box sx={{
           px: 2.5, py: 1.25,
           display: 'flex', alignItems: 'center', gap: 2,
@@ -591,6 +596,13 @@ export default function ComposeClient({
           </Typography>
           <Typography sx={{ fontSize: 13, color: 'text.disabled' }}>
             {fromAddress}
+          </Typography>
+          <Typography sx={{
+            fontSize: 11, color: 'text.secondary', ml: 1,
+            bgcolor: 'action.hover', px: 1, py: 0.25,
+            borderRadius: 1, whiteSpace: 'nowrap',
+          }}>
+            No-reply — members cannot respond to this email
           </Typography>
         </Box>
 
@@ -821,7 +833,9 @@ export default function ComposeClient({
           data-placeholder="Write your message here…"
           onClick={handleEditorClick}
           sx={{
-            minHeight: 340,
+            flex: 1,
+            minHeight: 240,
+            overflow: 'auto',
             px: 2.5,
             py: 2,
             fontSize: 14,
