@@ -17,6 +17,13 @@ function ImagesIcon() {
     </svg>
   )
 }
+function SubmitIcon() {
+  return (
+    <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+    </svg>
+  )
+}
 function GalleriesIcon() {
   return (
     <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -282,6 +289,7 @@ export default function MemberNav({
 
           {/* Images ▾ */}
           <NavDropdown label="Images" isActive={isActive('/library')}>
+            <DropdownLink href={`${base}/competitions`}        label="Submit image…" icon={<SubmitIcon />}    active={false} />
             <DropdownLink href={`${base}/library`}           label="My images" icon={<ImagesIcon />}   active={isActive('/library', true)} />
             <DropdownLink href={`${base}/library/galleries`} label="My Galleries" icon={<GalleriesIcon />} active={isActive('/library/galleries')} />
             {customPages.filter(p => p.parent_system === 'images').map(p => (

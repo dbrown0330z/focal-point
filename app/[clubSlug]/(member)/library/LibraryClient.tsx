@@ -315,7 +315,14 @@ export default function LibraryClient({
                 value={gallerySort}
                 onChange={e => setGallerySort(e.target.value as GallerySort)}
                 size="small"
-                sx={{ fontSize: 14, fontFamily: 'inherit', minWidth: 140 }}
+                sx={{
+                  fontSize: 14, fontFamily: 'inherit', minWidth: 140,
+                  background: 'var(--surface-2)',
+                  color: 'var(--text-primary)',
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--border-default)' },
+                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--border-strong)' },
+                  '& .MuiSvgIcon-root': { color: 'var(--text-secondary)' },
+                }}
               >
                 <MenuItem value="date_desc" sx={{ fontSize: 14, fontFamily: 'inherit' }}>Date added</MenuItem>
                 <MenuItem value="title_asc"  sx={{ fontSize: 14, fontFamily: 'inherit' }}>Name (A–Z)</MenuItem>
