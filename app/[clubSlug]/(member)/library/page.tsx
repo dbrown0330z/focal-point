@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireClubSlug } from '@/lib/club-context'
+import { Suspense } from 'react'
 import LibraryClient from './LibraryClient'
 
 export const dynamic = 'force-dynamic'
@@ -125,11 +126,13 @@ export default async function LibraryPage() {
   })
 
   return (
-    <LibraryClient
-      images={imagesWithUrls}
-      clubSlug={clubSlug}
-      userId={user.id}
-      openCompetition={openCompetition}
-    />
+    <Suspense>
+      <LibraryClient
+        images={imagesWithUrls}
+        clubSlug={clubSlug}
+        userId={user.id}
+        openCompetition={openCompetition}
+      />
+    </Suspense>
   )
 }
