@@ -73,6 +73,14 @@ function DocumentsIcon() {
     </svg>
   )
 }
+
+function ResourcesIcon() {
+  return (
+    <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+    </svg>
+  )
+}
 function ChevronDown({ open }: { open: boolean }) {
   return (
     <svg className={`h-3 w-3 transition-transform flex-shrink-0 ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -315,7 +323,7 @@ export default function MemberNav({
           <NavDropdown label="Our Club" isActive={isActive('/our-club') && !isActive('/our-club/members/standings')}>
             <DropdownLink href={`${base}/our-club/about`}    label="About our club"   icon={<AboutIcon />}     active={isActive('/our-club/about')} />
             <DropdownLink href={`${base}/our-club/members`}  label="Member directory" icon={<MembersIcon />}   active={isActive('/our-club/members', true)} />
-            <DropdownLink href={`${base}/our-club/documents`}  label="Documents"      icon={<DocumentsIcon />}  active={isActive('/our-club/documents')} />
+            <DropdownLink href={`${base}/resources`}  label="Resources"      icon={<ResourcesIcon />}  active={isActive('/resources')} />
             <DropdownLink href={`${base}/our-club/galleries`} label="Club galleries" icon={<GalleriesIcon />}  active={isActive('/our-club/galleries')} />
             {customPages.filter(p => p.parent_system === 'our-club').map(p => (
               <DropdownLink key={p.id} href={customPageHref(p, base)} label={p.title}
