@@ -10,8 +10,8 @@ export default async function AdminResourcesPage() {
   const [clubId, clubSlug] = await Promise.all([requireClubId(), requireClubSlug()])
   const supabase = createServiceClient()
 
-  // Seed default categories if this is the first visit
-  await seedDefaultCategories(clubId)
+  // Seed default categories if this is the first visit (no-op if table doesn't exist yet)
+  try { await seedDefaultCategories(clubId) } catch { /* migration not yet applied */ }
 
   const [catsResult, resResult] = await Promise.all([
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,8 +29,8 @@ export default async function AdminResourcesPage() {
       .order('created_at', { ascending: false }),
   ])
 
-  const categories: ResourceCategory[] = (catsResult.data as ResourceCategory[]) ?? []
-  const resources:  Resource[]          = (resResult.data as Resource[]) ?? []
+  const categories: ResourceCategory[] = ((catsResult as any)?.data as ResourceCategory[]) ?? []
+  const resources:  Resource[]          = ((resResult as any)?.data as Resource[]) ?? []
 
   return <ResourcesClient categories={categories} resources={resources} clubSlug={clubSlug} />
 }
