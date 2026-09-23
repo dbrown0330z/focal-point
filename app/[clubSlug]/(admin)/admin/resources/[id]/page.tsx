@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubId } from '@/lib/club-context'
+import { requireClubId, requireClubSlug } from '@/lib/club-context'
 import ResourceFormClient from '../ResourceFormClient'
 import type { ResourceCategory, Resource } from '../actions'
 import { Box, Typography } from '@mui/material'
@@ -14,7 +14,7 @@ export default async function EditResourcePage({
   params: Promise<{ id: string }>
 }) {
   const { id }   = await params
-  const clubId   = await requireClubId()
+  const [clubId, clubSlug] = await Promise.all([requireClubId(), requireClubSlug()])
   const supabase = createServiceClient()
 
   const [catsResult, resourceResult, countResult] = await Promise.all([
@@ -50,7 +50,7 @@ export default async function EditResourcePage({
       <Box sx={{ mb: 3 }}>
         <Typography
           component={Link}
-          href="/admin/resources"
+          href={`/${clubSlug}/admin/resources`}
           sx={{ fontSize: 13, color: 'text.secondary', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
         >
           ← Resources
@@ -64,6 +64,7 @@ export default async function EditResourcePage({
         categories={categories}
         existing={resource}
         pinnedCount={pinnedCount}
+        clubSlug={clubSlug}
       />
     </Box>
   )

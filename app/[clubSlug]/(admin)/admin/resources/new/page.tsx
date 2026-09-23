@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubId } from '@/lib/club-context'
+import { requireClubId, requireClubSlug } from '@/lib/club-context'
 import { seedDefaultCategories } from '../actions'
 import ResourceFormClient from '../ResourceFormClient'
 import type { ResourceCategory } from '../actions'
@@ -9,7 +9,7 @@ import Link from 'next/link'
 export const dynamic = 'force-dynamic'
 
 export default async function NewResourcePage() {
-  const clubId  = await requireClubId()
+  const [clubId, clubSlug] = await Promise.all([requireClubId(), requireClubSlug()])
   const supabase = createServiceClient()
 
   await seedDefaultCategories(clubId)
@@ -37,7 +37,7 @@ export default async function NewResourcePage() {
       <Box sx={{ mb: 3 }}>
         <Typography
           component={Link}
-          href="/admin/resources"
+          href={`/${clubSlug}/admin/resources`}
           sx={{ fontSize: 13, color: 'text.secondary', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
         >
           ← Resources
@@ -50,6 +50,7 @@ export default async function NewResourcePage() {
       <ResourceFormClient
         categories={categories}
         pinnedCount={pinnedCount}
+        clubSlug={clubSlug}
       />
     </Box>
   )

@@ -84,10 +84,12 @@ export default function ResourceFormClient({
   categories,
   existing,
   pinnedCount,
+  clubSlug,
 }: {
   categories:  ResourceCategory[]
   existing?:   Resource
   pinnedCount: number
+  clubSlug:    string
 }) {
   const router = useRouter()
 
@@ -260,7 +262,7 @@ export default function ResourceFormClient({
     }
 
     setSaving(false)
-    router.push('/admin/resources')
+    router.push(`/${clubSlug}/admin/resources`)
   }
 
   async function handleUnpublish() {
@@ -268,7 +270,7 @@ export default function ResourceFormClient({
     setSaving(true)
     await unpublishResource(existing.id)
     setSaving(false)
-    router.push('/admin/resources')
+    router.push(`/${clubSlug}/admin/resources`)
   }
 
   const canPin = form.isPinned || pinnedCount < 3
@@ -653,7 +655,7 @@ export default function ResourceFormClient({
           <Button
             variant="outlined"
             color="secondary"
-            onClick={() => router.push('/admin/resources')}
+            onClick={() => router.push(`/${clubSlug}/admin/resources`)}
             disabled={saving}
           >
             Cancel

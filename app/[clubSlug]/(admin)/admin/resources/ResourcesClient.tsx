@@ -95,10 +95,12 @@ function ResourceRowMenu({
   resource,
   pinnedCount,
   onRefresh,
+  clubSlug,
 }: {
   resource:    Resource
   pinnedCount: number
   onRefresh:   () => void
+  clubSlug:    string
 }) {
   const [anchor, setAnchor]     = useState<null | HTMLElement>(null)
   const [delOpen, setDelOpen]   = useState(false)
@@ -129,7 +131,7 @@ function ResourceRowMenu({
       </IconButton>
 
       <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={close}>
-        <MenuItem component={Link} href={`/admin/resources/${resource.id}`} onClick={close}>
+        <MenuItem component={Link} href={`/${clubSlug}/admin/resources/${resource.id}`} onClick={close}>
           Edit
         </MenuItem>
 
@@ -224,9 +226,11 @@ const COL_CELL: object = {
 export default function ResourcesClient({
   categories: initialCategories,
   resources:  initialResources,
+  clubSlug,
 }: {
   categories: ResourceCategory[]
   resources:  Resource[]
+  clubSlug:   string
 }) {
   const [categories, setCategories] = useState(initialCategories)
   const [resources,  setResources]  = useState(initialResources)
@@ -312,7 +316,7 @@ export default function ResourcesClient({
           <Button
             variant="contained"
             component={Link}
-            href="/admin/resources/new"
+            href={`/${clubSlug}/admin/resources/new`}
             startIcon={<Add />}
           >
             Add resource
@@ -418,7 +422,7 @@ export default function ResourcesClient({
               </Box>
             </Box>
             {pinned.map(r => (
-              <ResourceRow key={r.id} resource={r} pinnedCount={pinnedCount} onRefresh={handleRefresh} />
+              <ResourceRow key={r.id} resource={r} pinnedCount={pinnedCount} onRefresh={handleRefresh} clubSlug={clubSlug} />
             ))}
           </Box>
         )}
@@ -477,7 +481,7 @@ export default function ResourcesClient({
                     </Box>
                   ) : (
                     items.map(r => (
-                      <ResourceRow key={r.id} resource={r} pinnedCount={pinnedCount} onRefresh={handleRefresh} />
+                      <ResourceRow key={r.id} resource={r} pinnedCount={pinnedCount} onRefresh={handleRefresh} clubSlug={clubSlug} />
                     ))
                   )}
                 </>
@@ -516,10 +520,12 @@ function ResourceRow({
   resource,
   pinnedCount,
   onRefresh,
+  clubSlug,
 }: {
   resource:    Resource
   pinnedCount: number
   onRefresh:   () => void
+  clubSlug:    string
 }) {
   const typeName = mimeToType(resource)
 
@@ -585,7 +591,7 @@ function ResourceRow({
 
       {/* Actions */}
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 0.5 }}>
-        <ResourceRowMenu resource={resource} pinnedCount={pinnedCount} onRefresh={onRefresh} />
+        <ResourceRowMenu resource={resource} pinnedCount={pinnedCount} onRefresh={onRefresh} clubSlug={clubSlug} />
       </Box>
     </Box>
   )
