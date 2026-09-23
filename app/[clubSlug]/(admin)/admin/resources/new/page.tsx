@@ -3,8 +3,6 @@ import { requireClubId, requireClubSlug } from '@/lib/club-context'
 import { seedDefaultCategories } from '../actions'
 import ResourceFormClient from '../ResourceFormClient'
 import type { ResourceCategory } from '../actions'
-import { Box, Typography } from '@mui/material'
-import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +10,7 @@ export default async function NewResourcePage() {
   const [clubId, clubSlug] = await Promise.all([requireClubId(), requireClubSlug()])
   const supabase = createServiceClient()
 
-  await seedDefaultCategories(clubId)
+  try { await seedDefaultCategories(clubId) } catch { /* migration guard */ }
 
   const [catsResult, countResult] = await Promise.all([
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,29 +27,27 @@ export default async function NewResourcePage() {
       .eq('is_pinned', true),
   ])
 
-  const categories: ResourceCategory[] = (catsResult.data as ResourceCategory[]) ?? []
-  const pinnedCount: number             = countResult.count ?? 0
+  const categories: ResourceCategory[] = ((catsResult as any)?.data as ResourceCategory[]) ?? []
+  const pinnedCount: number             = (countResult as any)?.count ?? 0
 
   return (
-    <Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography
-          component={Link}
+    <div>
+      <div className="mb-4">
+        <a
           href={`/${clubSlug}/admin/resources`}
-          sx={{ fontSize: 13, color: 'text.secondary', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+          className="text-sm text-content-secondary hover:underline"
         >
           ← Resources
-        </Typography>
-        <Typography variant="h1" sx={{ mt: 1, fontSize: 22, fontWeight: 700, letterSpacing: '-0.015em', color: 'text.primary' }}>
+        </a>
+        <h1 className="mt-1 text-[22px] font-bold tracking-[-0.015em] text-content-primary">
           Add resource
-        </Typography>
-      </Box>
-
+        </h1>
+      </div>
       <ResourceFormClient
         categories={categories}
         pinnedCount={pinnedCount}
         clubSlug={clubSlug}
       />
-    </Box>
+    </div>
   )
 }

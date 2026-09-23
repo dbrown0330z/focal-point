@@ -3,8 +3,6 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { requireClubId, requireClubSlug } from '@/lib/club-context'
 import ResourceFormClient from '../ResourceFormClient'
 import type { ResourceCategory, Resource } from '../actions'
-import { Box, Typography } from '@mui/material'
-import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,33 +37,31 @@ export default async function EditResourcePage({
       .eq('is_pinned', true),
   ])
 
-  if (!resourceResult.data) notFound()
+  if (!(resourceResult as any)?.data) notFound()
 
-  const categories: ResourceCategory[] = (catsResult.data as ResourceCategory[]) ?? []
-  const resource:   Resource            = resourceResult.data as Resource
-  const pinnedCount: number             = countResult.count ?? 0
+  const categories: ResourceCategory[] = ((catsResult as any)?.data as ResourceCategory[]) ?? []
+  const resource:   Resource            = (resourceResult as any).data as Resource
+  const pinnedCount: number             = (countResult as any)?.count ?? 0
 
   return (
-    <Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography
-          component={Link}
+    <div>
+      <div className="mb-4">
+        <a
           href={`/${clubSlug}/admin/resources`}
-          sx={{ fontSize: 13, color: 'text.secondary', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+          className="text-sm text-content-secondary hover:underline"
         >
           ← Resources
-        </Typography>
-        <Typography variant="h1" sx={{ mt: 1, fontSize: 22, fontWeight: 700, letterSpacing: '-0.015em', color: 'text.primary' }}>
+        </a>
+        <h1 className="mt-1 text-[22px] font-bold tracking-[-0.015em] text-content-primary">
           Edit resource
-        </Typography>
-      </Box>
-
+        </h1>
+      </div>
       <ResourceFormClient
         categories={categories}
         existing={resource}
         pinnedCount={pinnedCount}
         clubSlug={clubSlug}
       />
-    </Box>
+    </div>
   )
 }
