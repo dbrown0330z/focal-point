@@ -1628,7 +1628,7 @@ export default function NavigationClient({
             </Box>
           ) : (
             <Box sx={{ flex: 1, overflow: 'hidden' }}>
-              <AboutPageEditor pageId={aboutPageData.id} initialContent={aboutPageData.content} />
+              <AboutPageEditor pageId={aboutPageData.id} initialContent={aboutPageData.content} clubInfo={null} />
             </Box>
           )}
         </Box>
