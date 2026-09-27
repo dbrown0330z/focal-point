@@ -30,6 +30,17 @@ export default async function ClubDefaultsPage() {
     membership_terms_content:      row?.membership_terms_content      ?? null,
     membership_terms_file_path:    row?.membership_terms_file_path    ?? null,
     membership_terms_file_name:    row?.membership_terms_file_name    ?? null,
+    // About panel
+    annual_dues:                   row?.annual_dues                   ?? '',
+    join_fee:                      row?.join_fee                      ?? '',
+    meeting_schedule:              row?.meeting_schedule              ?? '',
+    meeting_notes:                 row?.meeting_notes                 ?? '',
+    founded_year:                  row?.founded_year                  ?? null,
+    member_count_approx:           row?.member_count_approx           ?? null,
+    website_url:                   row?.website_url                   ?? '',
+    facebook_url:                  row?.facebook_url                  ?? '',
+    instagram_url:                 row?.instagram_url                 ?? '',
+    join_open:                     row?.join_open                     ?? true,
   }
 
   return (

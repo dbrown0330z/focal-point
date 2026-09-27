@@ -1,20 +1,42 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getClubContext } from '@/lib/club-context'
-import Link from 'next/link'
+import AboutClient from './AboutClient'
 
 export const dynamic = 'force-dynamic'
 
+type ClubInfo = {
+  club_name:           string
+  club_location:       string | null
+  contact_email:       string | null
+  website_url:         string | null
+  facebook_url:        string | null
+  instagram_url:       string | null
+  annual_dues:         string | null
+  join_fee:            string | null
+  meeting_schedule:    string | null
+  meeting_notes:       string | null
+  founded_year:        number | null
+  member_count_approx: number | null
+  join_open:           boolean
+}
+
 export default async function AboutPage() {
   const supabase = await createClient()
-  const admin = createServiceClient()
-  const ctx    = await getClubContext()
-  const clubId = ctx?.clubId
+  const admin    = createServiceClient()
+  const ctx      = await getClubContext()
+  const clubId   = ctx?.clubId
 
-  const [{ data: { user } }, { data: settingsRaw }, { data: pageRaw }] = await Promise.all([
+  const [
+    { data: { user } },
+    { data: settingsRaw },
+    { data: pageRaw },
+  ] = await Promise.all([
     supabase.auth.getUser(),
     clubId
-      ? admin.from('club_settings').select('club_name').eq('club_id', clubId).single() as unknown as Promise<{ data: { club_name: string } | null }>
+      ? admin.from('club_settings').select(
+          'club_name, club_location, contact_email, website_url, facebook_url, instagram_url, annual_dues, join_fee, meeting_schedule, meeting_notes, founded_year, member_count_approx, join_open'
+        ).eq('club_id', clubId).single() as unknown as Promise<{ data: ClubInfo | null }>
       : Promise.resolve({ data: null }),
     clubId
       ? admin.from('pages').select('id, content').eq('slug', 'about').eq('club_id', clubId).maybeSingle() as unknown as Promise<{ data: { id: string; content: string | null } | null }>
@@ -25,56 +47,21 @@ export default async function AboutPage() {
   const clubSlug   = ctx?.clubSlug ?? ''
   const html       = pageRaw?.content ?? null
   const isLoggedIn = Boolean(user)
+  const info: ClubInfo = settingsRaw ?? {
+    club_name: clubName, club_location: null, contact_email: null,
+    website_url: null, facebook_url: null, instagram_url: null,
+    annual_dues: null, join_fee: null, meeting_schedule: null,
+    meeting_notes: null, founded_year: null, member_count_approx: null,
+    join_open: true,
+  }
 
   return (
-    <div>
-
-      {/* Page title */}
-      <div className="mb-10">
-        <h1
-          className="font-[family-name:var(--font-lora)] font-bold text-content-primary"
-          style={{ fontSize: '28px', letterSpacing: '-0.02em', lineHeight: 1.25 }}
-        >
-          About our club
-        </h1>
-        <p
-          className="mt-1 font-[family-name:var(--font-lora)] text-content-secondary"
-          style={{ fontSize: '17px', fontWeight: 500 }}
-        >
-          {clubName}
-        </p>
-      </div>
-
-      {/* Rich-text content from editor */}
-      {html ? (
-        <div
-          className="about-page-content"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-      ) : (
-        <div className="rounded-xl border border-border-default bg-surface-1 px-6 py-10 text-center">
-          <p className="text-sm text-content-secondary">
-            Club information coming soon. Check back later.
-          </p>
-        </div>
-      )}
-
-      {/* Join CTA — visitors only */}
-      {!isLoggedIn && (
-        <div className="mt-14 max-w-2xl rounded-xl border border-border-default bg-surface-1 px-6 py-7">
-          <h3 className="mb-1 text-base font-semibold text-content-primary">Interested in joining?</h3>
-          <p className="mb-4 text-sm text-content-secondary leading-relaxed">
-            Membership is open to anyone with a passion for photography.
-          </p>
-          <Link
-            href={`/${clubSlug}/apply`}
-            className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
-            style={{ background: 'var(--action-primary)' }}
-          >
-            Apply for membership
-          </Link>
-        </div>
-      )}
-    </div>
+    <AboutClient
+      clubName={clubName}
+      clubSlug={clubSlug}
+      html={html}
+      isLoggedIn={isLoggedIn}
+      info={info}
+    />
   )
 }

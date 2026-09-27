@@ -66,6 +66,17 @@ type Settings = {
   membership_terms_content: string | null
   membership_terms_file_path: string | null
   membership_terms_file_name: string | null
+  // About panel
+  annual_dues: string
+  join_fee: string
+  meeting_schedule: string
+  meeting_notes: string
+  founded_year: number | null
+  member_count_approx: number | null
+  website_url: string
+  facebook_url: string
+  instagram_url: string
+  join_open: boolean
 }
 
 type Location = { id: string; name: string; address: string | null }
@@ -659,6 +670,16 @@ export default function ClubDefaultsClient({
         season_start_month:          s.season_start_month,
         season_end_month:            s.season_end_month,
         member_directory_visibility: s.member_directory_visibility,
+        annual_dues:                 s.annual_dues || null,
+        join_fee:                    s.join_fee || null,
+        meeting_schedule:            s.meeting_schedule || null,
+        meeting_notes:               s.meeting_notes || null,
+        founded_year:                s.founded_year || null,
+        member_count_approx:         s.member_count_approx || null,
+        website_url:                 s.website_url || null,
+        facebook_url:                s.facebook_url || null,
+        instagram_url:               s.instagram_url || null,
+        join_open:                   s.join_open,
       })
       setSaveStatus(result.error ? 'error' : 'saved')
       if (!result.error) markClean()
@@ -923,6 +944,98 @@ export default function ClubDefaultsClient({
             Add location
           </Button>
         )}
+
+      </Paper>
+
+      {/* ── About Our Club ───────────────────────────────────────────────── */}
+      <SectionTitle>About our club</SectionTitle>
+      <Paper variant="outlined" sx={{ mb: 6, px: 3, py: '20px' }}>
+
+        <FormHelperText sx={{ mx: 0, mb: 2.5, lineHeight: 1.5, color: 'text.disabled' }}>
+          This information appears in the details panel on the About Our Club page, visible to members and prospective visitors.
+        </FormHelperText>
+
+        <Field label="Annual dues" hint='Shown on the About page. e.g. "$75/year" or "Free — donations welcome"'>
+          <TextField {...tf} value={s.annual_dues} onChange={e => set('annual_dues', e.target.value)} placeholder="$75/year" />
+        </Field>
+        <Divider sx={{ my: '20px' }} />
+
+        <Field label="Join fee" hint="One-time fee when joining, if any. Leave blank if included in dues.">
+          <TextField {...tf} value={s.join_fee} onChange={e => set('join_fee', e.target.value)} placeholder="$25 one-time" />
+        </Field>
+        <Divider sx={{ my: '20px' }} />
+
+        <Field label="Meetings" hint='Schedule text shown in the panel. e.g. "2nd Tuesday of each month, 7 – 9 pm"'>
+          <TextField {...tf} value={s.meeting_schedule} onChange={e => set('meeting_schedule', e.target.value)} placeholder="2nd Tuesday of each month, 7pm" />
+        </Field>
+        <Divider sx={{ my: '20px' }} />
+
+        <Field label="Meeting notes" hint="Optional extra info: parking, entry instructions, virtual link, etc.">
+          <TextField {...tf} value={s.meeting_notes} onChange={e => set('meeting_notes', e.target.value)} placeholder="Free parking in the rear lot" />
+        </Field>
+        <Divider sx={{ my: '20px' }} />
+
+        <Field label="Club website" hint="Optional external website URL (in addition to this platform).">
+          <TextField {...tf} value={s.website_url} onChange={e => set('website_url', e.target.value)} placeholder="https://yourclub.org" />
+        </Field>
+        <Divider sx={{ my: '20px' }} />
+
+        <Field label="Instagram" hint="Handle only, without @.">
+          <TextField {...tf} value={s.instagram_url} onChange={e => set('instagram_url', e.target.value)} placeholder="yourclubname"
+            slotProps={{ input: { startAdornment: <InputAdornment position="start"><Typography sx={{ fontSize: 13, color: 'text.disabled' }}>@</Typography></InputAdornment> } }} />
+        </Field>
+        <Divider sx={{ my: '20px' }} />
+
+        <Field label="Facebook" hint="Full Facebook Page URL.">
+          <TextField {...tf} value={s.facebook_url} onChange={e => set('facebook_url', e.target.value)} placeholder="https://facebook.com/yourclubpage" />
+        </Field>
+        <Divider sx={{ my: '20px' }} />
+
+        <Field label="Year founded" hint="Optional. Shown as 'Est. XXXX'.">
+          <TextField
+            {...tf} type="number"
+            value={s.founded_year ?? ''}
+            onChange={e => set('founded_year', e.target.value ? parseInt(e.target.value) : null)}
+            placeholder="1985"
+            slotProps={{ htmlInput: { min: 1800, max: new Date().getFullYear(), style: { MozAppearance: 'textfield' } } }}
+          />
+        </Field>
+        <Divider sx={{ my: '20px' }} />
+
+        <Field label="Approx. member count" hint="Optional. Shows as 'X+ members'.">
+          <TextField
+            {...tf} type="number"
+            value={s.member_count_approx ?? ''}
+            onChange={e => set('member_count_approx', e.target.value ? parseInt(e.target.value) : null)}
+            placeholder="80"
+            slotProps={{ htmlInput: { min: 1, style: { MozAppearance: 'textfield' } } }}
+          />
+        </Field>
+        <Divider sx={{ my: '20px' }} />
+
+        <Field label="Applications open" hint="Toggles the Join button on the About page and application flow.">
+          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
+            <Box
+              component="button"
+              type="button"
+              onClick={() => set('join_open', !s.join_open)}
+              sx={{
+                display: 'flex', alignItems: 'center', width: 40, height: 22, borderRadius: 11,
+                px: '2px', border: 'none', cursor: 'pointer', transition: 'background 0.2s',
+                bgcolor: s.join_open ? 'primary.main' : 'action.disabledBackground',
+              }}
+            >
+              <Box sx={{
+                width: 18, height: 18, borderRadius: '50%', bgcolor: 'background.paper',
+                boxShadow: 1, transition: 'transform 0.2s',
+                transform: s.join_open ? 'translateX(18px)' : 'translateX(0)',
+              }} />
+            </Box>
+            <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+              {s.join_open ? 'Open — visitors can apply' : 'Closed — application button hidden'}
+            </Typography>
+          </Box>
+        </Field>
 
       </Paper>
 

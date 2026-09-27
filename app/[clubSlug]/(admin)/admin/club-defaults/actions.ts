@@ -27,6 +27,17 @@ export async function saveClubSettings(data: {
   season_start_month: number
   season_end_month: number
   member_directory_visibility: string
+  // About panel fields
+  annual_dues?: string | null
+  join_fee?: string | null
+  meeting_schedule?: string | null
+  meeting_notes?: string | null
+  founded_year?: number | null
+  member_count_approx?: number | null
+  website_url?: string | null
+  facebook_url?: string | null
+  instagram_url?: string | null
+  join_open?: boolean
 }): Promise<{ error?: string }> {
   const supabase = createServiceClient()
   const clubId = await requireClubId()
