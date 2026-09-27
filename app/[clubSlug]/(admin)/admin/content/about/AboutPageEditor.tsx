@@ -20,6 +20,7 @@ import {
   MenuItem,
   Popover,
   TextField,
+  Switch,
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
@@ -44,9 +45,19 @@ import RedoIcon               from '@mui/icons-material/Redo'
 import LightModeIcon          from '@mui/icons-material/LightMode'
 import DarkModeIcon           from '@mui/icons-material/DarkMode'
 import SaveIcon               from '@mui/icons-material/Save'
+import EditIcon               from '@mui/icons-material/Edit'
+import LocationOnIcon         from '@mui/icons-material/LocationOn'
+import EmailOutlinedIcon      from '@mui/icons-material/EmailOutlined'
+import CalendarMonthIcon      from '@mui/icons-material/CalendarMonth'
+import GroupsIcon             from '@mui/icons-material/Groups'
+import PublicIcon             from '@mui/icons-material/Public'
+import InstagramIcon          from '@mui/icons-material/Instagram'
+import FacebookIcon           from '@mui/icons-material/Facebook'
+import PaidOutlinedIcon       from '@mui/icons-material/PaidOutlined'
 import SearchIcon             from '@mui/icons-material/Search'
 import InsertDriveFileIcon    from '@mui/icons-material/InsertDriveFile'
 import { createClient } from '@/lib/supabase/client'
+import { saveAboutPanelFields, type AboutPanelFields } from './actions'
 import { useAdminTheme }  from '@/components/layout/AdminThemeContext'
 
 // ── Font stacks ───────────────────────────────────────────────────────────────
@@ -166,14 +177,34 @@ function DropdownBtn({
   )
 }
 
+// ── ClubInfo type ─────────────────────────────────────────────────────────────
+
+type ClubInfo = {
+  club_name:           string
+  club_location:       string | null
+  contact_email:       string | null
+  website_url:         string | null
+  facebook_url:        string | null
+  instagram_url:       string | null
+  annual_dues:         string | null
+  join_fee:            string | null
+  meeting_schedule:    string | null
+  meeting_notes:       string | null
+  founded_year:        number | null
+  member_count_approx: number | null
+  join_open:           boolean
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function AboutPageEditor({
   pageId,
   initialContent,
+  clubInfo,
 }: {
   pageId:         string | null
   initialContent: string
+  clubInfo:       ClubInfo | null
 }) {
   const { theme: adminTheme } = useAdminTheme()
 
@@ -185,6 +216,19 @@ export default function AboutPageEditor({
   // Save state
   const [, startSave]  = useTransition()
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+
+  // Panel state
+  const [panelInfo, setPanelInfo] = useState<ClubInfo>(clubInfo ?? {
+    club_name: '', club_location: null, contact_email: null,
+    website_url: null, facebook_url: null, instagram_url: null,
+    annual_dues: null, join_fee: null, meeting_schedule: null,
+    meeting_notes: null, founded_year: null, member_count_approx: null,
+    join_open: true,
+  })
+  const [panelEditOpen, setPanelEditOpen] = useState(false)
+  const [panelForm, setPanelForm] = useState<AboutPanelFields>({})
+  const [panelSaving, setPanelSaving] = useState(false)
+  const [panelSaveError, setPanelSaveError] = useState<string | null>(null)
 
   // Preview theme (defaults to admin theme, toggleable independently)
   const [previewTheme, setPreviewTheme] = useState<'light' | 'dark'>(
@@ -576,6 +620,49 @@ export default function AboutPageEditor({
     })
   }
 
+  const openPanelEdit = () => {
+    setPanelForm({
+      club_location:       panelInfo.club_location,
+      contact_email:       panelInfo.contact_email,
+      annual_dues:         panelInfo.annual_dues,
+      join_fee:            panelInfo.join_fee,
+      meeting_schedule:    panelInfo.meeting_schedule,
+      meeting_notes:       panelInfo.meeting_notes,
+      founded_year:        panelInfo.founded_year,
+      member_count_approx: panelInfo.member_count_approx,
+      website_url:         panelInfo.website_url,
+      facebook_url:        panelInfo.facebook_url,
+      instagram_url:       panelInfo.instagram_url,
+      join_open:           panelInfo.join_open,
+    })
+    setPanelSaveError(null)
+    setPanelEditOpen(true)
+  }
+
+  const handlePanelSave = async () => {
+    setPanelSaving(true)
+    setPanelSaveError(null)
+    const result = await saveAboutPanelFields(panelForm)
+    setPanelSaving(false)
+    if (result.error) { setPanelSaveError(result.error); return }
+    setPanelInfo(prev => ({
+      ...prev,
+      club_location:       panelForm.club_location ?? prev.club_location,
+      contact_email:       panelForm.contact_email ?? prev.contact_email,
+      annual_dues:         panelForm.annual_dues ?? prev.annual_dues,
+      join_fee:            panelForm.join_fee ?? prev.join_fee,
+      meeting_schedule:    panelForm.meeting_schedule ?? prev.meeting_schedule,
+      meeting_notes:       panelForm.meeting_notes ?? prev.meeting_notes,
+      founded_year:        panelForm.founded_year ?? prev.founded_year,
+      member_count_approx: panelForm.member_count_approx ?? prev.member_count_approx,
+      website_url:         panelForm.website_url ?? prev.website_url,
+      facebook_url:        panelForm.facebook_url ?? prev.facebook_url,
+      instagram_url:       panelForm.instagram_url ?? prev.instagram_url,
+      join_open:           panelForm.join_open ?? prev.join_open,
+    }))
+    setPanelEditOpen(false)
+  }
+
   // ── Derived site tokens ───────────────────────────────────────────────────────
 
   const tok = previewTheme === 'dark' ? SITE_DARK : SITE_LIGHT
@@ -829,29 +916,134 @@ export default function AboutPageEditor({
         bgcolor: tok.bg,
         transition: 'background-color 0.2s',
       }}>
-        <Box sx={{ maxWidth: 800, mx: 'auto', py: 6, px: 4 }}>
+        <Box sx={{ maxWidth: 1140, mx: 'auto', py: 6, px: 4, display: 'flex', gap: 5, alignItems: 'flex-start' }}>
 
-          {/* Simulated page title — non-editable */}
-          <Box sx={{ mb: 4, pointerEvents: 'none', userSelect: 'none' }}>
-            <Box sx={{ fontFamily: CSS_FONT_LORA, fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.25, color: tok.textPrimary }}>
-              About our club
+          {/* ── Left: main content editor ──────────────────────────────────────── */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            {/* Simulated page title — non-editable */}
+            <Box sx={{ mb: 4, pointerEvents: 'none', userSelect: 'none' }}>
+              <Box sx={{ fontFamily: CSS_FONT_LORA, fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.25, color: tok.textPrimary }}>
+                About our club
+              </Box>
+              <Box sx={{ mt: 0.5, fontFamily: CSS_FONT_LORA, fontSize: 17, fontWeight: 500, color: tok.textSecondary }}>
+                {panelInfo.club_name || 'Club name'}
+              </Box>
+              <Box sx={{ mt: 2, height: 1, bgcolor: tok.borderDefault }} />
             </Box>
-            <Box sx={{ mt: 0.5, fontFamily: CSS_FONT_LORA, fontSize: 17, fontWeight: 500, color: tok.textSecondary }}>
-              Club name
-            </Box>
-            <Box sx={{ mt: 2, height: 1, bgcolor: tok.borderDefault }} />
+
+            {/* Editable content */}
+            <Box
+              ref={editorRef}
+              component="div"
+              contentEditable
+              suppressContentEditableWarning
+              data-placeholder="Start writing about your club…"
+              onClick={handleEditorClick}
+              sx={editorContentSx}
+            />
           </Box>
 
-          {/* Editable content */}
-          <Box
-            ref={editorRef}
-            component="div"
-            contentEditable
-            suppressContentEditableWarning
-            data-placeholder="Start writing about your club…"
-            onClick={handleEditorClick}
-            sx={editorContentSx}
-          />
+          {/* ── Right: club details panel preview ──────────────────────────────── */}
+          <Box sx={{ width: 272, flexShrink: 0 }}>
+            <Box sx={{
+              bgcolor: previewTheme === 'dark' ? tok.surface1 : '#FFFFFF',
+              border: `1px solid ${tok.borderDefault}`,
+              borderRadius: '12px',
+              p: 2.5,
+              position: 'sticky',
+              top: 24,
+            }}>
+              {/* Panel header */}
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: tok.textSecondary }}>
+                  Club Details
+                </Typography>
+                <Box
+                  component="button"
+                  onClick={openPanelEdit}
+                  sx={{
+                    display: 'inline-flex', alignItems: 'center', gap: 0.5,
+                    fontSize: 12, color: tok.actionPrimary, border: 'none',
+                    bgcolor: 'transparent', cursor: 'pointer', p: '2px 6px',
+                    borderRadius: '4px', fontFamily: 'inherit',
+                    '&:hover': { textDecoration: 'underline' },
+                  }}
+                >
+                  <EditIcon sx={{ fontSize: 13 }} /> Edit
+                </Box>
+              </Box>
+
+              {/* Panel rows */}
+              {(() => {
+                const rows: { icon: React.ReactNode; text: string }[] = []
+                if (panelInfo.club_location)  rows.push({ icon: <LocationOnIcon sx={{ fontSize: 15 }} />, text: panelInfo.club_location })
+                if (panelInfo.contact_email)  rows.push({ icon: <EmailOutlinedIcon sx={{ fontSize: 15 }} />, text: panelInfo.contact_email })
+                if (panelInfo.meeting_schedule) rows.push({ icon: <CalendarMonthIcon sx={{ fontSize: 15 }} />, text: panelInfo.meeting_schedule })
+                if (panelInfo.founded_year || panelInfo.member_count_approx) {
+                  const parts = []
+                  if (panelInfo.founded_year) parts.push(`Est. ${panelInfo.founded_year}`)
+                  if (panelInfo.member_count_approx) parts.push(`~${panelInfo.member_count_approx} members`)
+                  rows.push({ icon: <GroupsIcon sx={{ fontSize: 15 }} />, text: parts.join(' · ') })
+                }
+                if (panelInfo.annual_dues || panelInfo.join_fee) {
+                  const parts = []
+                  if (panelInfo.annual_dues) parts.push(`Dues: ${panelInfo.annual_dues}`)
+                  if (panelInfo.join_fee)    parts.push(`Join fee: ${panelInfo.join_fee}`)
+                  rows.push({ icon: <PaidOutlinedIcon sx={{ fontSize: 15 }} />, text: parts.join(' · ') })
+                }
+
+                if (rows.length === 0) {
+                  return (
+                    <Typography sx={{ fontSize: 12, color: tok.textSecondary, fontStyle: 'italic', mb: 1.5 }}>
+                      Club details coming soon
+                    </Typography>
+                  )
+                }
+
+                return rows.map((row, i) => (
+                  <Box key={i} sx={{ display: 'flex', gap: 1.25, mb: 1.25, alignItems: 'flex-start' }}>
+                    <Box sx={{ color: tok.textSecondary, mt: '1px', flexShrink: 0 }}>{row.icon}</Box>
+                    <Typography sx={{ fontSize: 13, color: tok.textSecondary, lineHeight: 1.5 }}>
+                      {row.text}
+                    </Typography>
+                  </Box>
+                ))
+              })()}
+
+              {/* Social links */}
+              {(panelInfo.website_url || panelInfo.instagram_url || panelInfo.facebook_url) && (
+                <Box sx={{ display: 'flex', gap: 0.75, mt: 1.5, flexWrap: 'wrap' }}>
+                  {panelInfo.website_url && (
+                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 12, color: tok.actionPrimary }}>
+                      <PublicIcon sx={{ fontSize: 14 }} /> Website
+                    </Box>
+                  )}
+                  {panelInfo.instagram_url && (
+                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 12, color: tok.actionPrimary }}>
+                      <InstagramIcon sx={{ fontSize: 14 }} /> Instagram
+                    </Box>
+                  )}
+                  {panelInfo.facebook_url && (
+                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 12, color: tok.actionPrimary }}>
+                      <FacebookIcon sx={{ fontSize: 14 }} /> Facebook
+                    </Box>
+                  )}
+                </Box>
+              )}
+
+              {/* Divider + join status */}
+              <Box sx={{ height: 1, bgcolor: tok.borderDefault, my: 2 }} />
+              <Box sx={{
+                display: 'inline-block', px: 1.5, py: 0.5, borderRadius: '9999px',
+                fontSize: 12, fontWeight: 500,
+                bgcolor: panelInfo.join_open ? 'rgba(46,125,50,0.12)' : 'rgba(0,0,0,0.06)',
+                color: panelInfo.join_open ? '#2E7D32' : tok.textSecondary,
+              }}>
+                {panelInfo.join_open ? 'Accepting new members' : 'Applications closed'}
+              </Box>
+            </Box>
+          </Box>
+
         </Box>
       </Box>
 
@@ -1021,6 +1213,104 @@ export default function AboutPageEditor({
             }
           >
             Insert link
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+
+      {/* ── Panel edit dialog ─────────────────────────────────────────────────── */}
+      <Dialog open={panelEditOpen} onClose={() => setPanelEditOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>Edit club details</DialogTitle>
+        <DialogContent sx={{ pt: '20px !important' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+            <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: -1 }}>Membership</Typography>
+
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField label="Annual dues" size="small" sx={{ flex: 1 }}
+                value={panelForm.annual_dues ?? ''}
+                onChange={e => setPanelForm(p => ({ ...p, annual_dues: e.target.value || null }))}
+                placeholder="e.g. $60/year" />
+              <TextField label="Join fee" size="small" sx={{ flex: 1 }}
+                value={panelForm.join_fee ?? ''}
+                onChange={e => setPanelForm(p => ({ ...p, join_fee: e.target.value || null }))}
+                placeholder="e.g. $25 one-time" />
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                       border: '1px solid', borderColor: 'divider', borderRadius: 1, px: 1.5, py: 0.5 }}>
+              <Typography sx={{ fontSize: 13 }}>Accepting new members</Typography>
+              <Switch
+                size="small"
+                checked={panelForm.join_open ?? true}
+                onChange={e => setPanelForm(p => ({ ...p, join_open: e.target.checked }))}
+              />
+            </Box>
+
+            <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: -1 }}>Meeting info</Typography>
+
+            <TextField label="Meeting schedule" size="small" fullWidth
+              value={panelForm.meeting_schedule ?? ''}
+              onChange={e => setPanelForm(p => ({ ...p, meeting_schedule: e.target.value || null }))}
+              placeholder="e.g. 1st & 3rd Tuesday, 7 pm" />
+
+            <TextField label="Meeting notes" size="small" fullWidth multiline rows={2}
+              value={panelForm.meeting_notes ?? ''}
+              onChange={e => setPanelForm(p => ({ ...p, meeting_notes: e.target.value || null }))}
+              placeholder="Additional details about where you meet…" />
+
+            <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: -1 }}>Club history</Typography>
+
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField label="Founded year" size="small" type="number" sx={{ flex: 1 }}
+                value={panelForm.founded_year ?? ''}
+                onChange={e => setPanelForm(p => ({ ...p, founded_year: e.target.value ? parseInt(e.target.value) : null }))}
+                placeholder="e.g. 1985" />
+              <TextField label="Approx. member count" size="small" type="number" sx={{ flex: 1 }}
+                value={panelForm.member_count_approx ?? ''}
+                onChange={e => setPanelForm(p => ({ ...p, member_count_approx: e.target.value ? parseInt(e.target.value) : null }))}
+                placeholder="e.g. 45" />
+            </Box>
+
+            <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: -1 }}>Contact & links</Typography>
+
+            <TextField label="Location" size="small" fullWidth
+              value={panelForm.club_location ?? ''}
+              onChange={e => setPanelForm(p => ({ ...p, club_location: e.target.value || null }))}
+              placeholder="City, State"
+              helperText="Also editable in Club Basics → General" />
+
+            <TextField label="Contact email" size="small" fullWidth
+              value={panelForm.contact_email ?? ''}
+              onChange={e => setPanelForm(p => ({ ...p, contact_email: e.target.value || null }))}
+              placeholder="club@example.com"
+              helperText="Also editable in Club Basics → General" />
+
+            <TextField label="Website URL" size="small" fullWidth
+              value={panelForm.website_url ?? ''}
+              onChange={e => setPanelForm(p => ({ ...p, website_url: e.target.value || null }))}
+              placeholder="https://yourclub.org" />
+
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField label="Instagram URL" size="small" sx={{ flex: 1 }}
+                value={panelForm.instagram_url ?? ''}
+                onChange={e => setPanelForm(p => ({ ...p, instagram_url: e.target.value || null }))}
+                placeholder="https://instagram.com/…" />
+              <TextField label="Facebook URL" size="small" sx={{ flex: 1 }}
+                value={panelForm.facebook_url ?? ''}
+                onChange={e => setPanelForm(p => ({ ...p, facebook_url: e.target.value || null }))}
+                placeholder="https://facebook.com/…" />
+            </Box>
+
+            {panelSaveError && (
+              <Typography sx={{ fontSize: 13, color: 'error.main' }}>{panelSaveError}</Typography>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button variant="outlined" color="secondary" onClick={() => setPanelEditOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handlePanelSave} disabled={panelSaving}>
+            {panelSaving ? 'Saving…' : 'Save'}
           </Button>
         </DialogActions>
       </Dialog>
