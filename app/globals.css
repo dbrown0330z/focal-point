@@ -562,3 +562,21 @@ a[href]:not(.MuiButtonBase-root):not(.MuiButton-root):not([class*="Mui"]):not([c
     filter: blur(18px) brightness(1.8) saturate(0.4);
   }
 }
+
+/* ── Help article typography ─────────────────────────────────────────────── */
+.help-article { color: var(--text-primary); line-height: 1.7; }
+.help-article h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.015em; margin: 0 0 8px; color: var(--text-primary); }
+.help-article h2 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin: 32px 0 10px; color: var(--text-primary); }
+.help-article h3 { font-size: 14px; font-weight: 600; margin: 24px 0 8px; color: var(--text-primary); }
+.help-article p  { font-size: 14px; margin: 0 0 14px; }
+.help-article ul, .help-article ol { font-size: 14px; margin: 0 0 14px; padding-left: 20px; }
+.help-article li { margin-bottom: 6px; }
+.help-article a  { color: var(--action-primary); text-decoration: underline; text-underline-offset: 2px; }
+.help-article strong { font-weight: 600; }
+.help-article blockquote { margin: 16px 0; padding: 10px 16px; border-left: 3px solid var(--action-primary); background: var(--surface-1); border-radius: 0 6px 6px 0; font-size: 13px; color: var(--text-secondary); }
+.help-article blockquote p { margin: 0; }
+.help-article code { font-family: var(--font-code, monospace); font-size: 12px; background: var(--surface-1); padding: 1px 5px; border-radius: 4px; }
+.help-article table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 0 0 16px; }
+.help-article th { text-align: left; padding: 8px 12px; background: var(--surface-1); font-weight: 600; border-bottom: 1px solid var(--border-default); }
+.help-article td { padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); }
+.help-article hr { border: none; border-top: 1px solid var(--border-subtle); margin: 24px 0; }
