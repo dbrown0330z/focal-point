@@ -365,6 +365,8 @@ export default function MemberNav({
         <div className="flex items-center justify-end gap-2">
           <Link
             href={`/${clubSlug}/help`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="hidden sm:flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors hover:bg-surface-1"
             style={{ color: 'var(--text-secondary)' }}
           >
