@@ -28,7 +28,25 @@ import DescriptionIcon from '@mui/icons-material/Description'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import { TrashBtn } from '@/components/ui/TrashBtn'
 import { createClient } from '@/lib/supabase/client'
-import type { AdminDocumentRow, CategoryRow } from './page'
+export type AdminDocumentRow = {
+  id:          string
+  title:       string
+  description: string | null
+  file_name:   string
+  file_size:   number | null
+  mime_type:   string | null
+  file_path:   string
+  visibility:  string
+  sort_order:  number
+  uploaded_at: string
+  category:    { id: string; name: string } | null
+}
+
+export type CategoryRow = {
+  id:         string
+  name:       string
+  sort_order: number
+}
 
 function formatBytes(bytes: number | null): string {
   if (!bytes) return '—'

@@ -1,7 +1,18 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import type { DocumentRow } from './page'
+export type DocumentRow = {
+  id:          string
+  title:       string
+  description: string | null
+  file_name:   string
+  file_size:   number | null
+  mime_type:   string | null
+  file_path:   string
+  sort_order:  number
+  uploaded_at: string
+  category:    { id: string; name: string } | null
+}
 
 function formatBytes(bytes: number | null): string {
   if (!bytes) return ''
