@@ -234,9 +234,9 @@ export default function AboutPageEditor({
     annual_dues: null, join_fee: null, meeting_schedule: null,
     meeting_notes: null, founded_year: null, member_count_actual: null,
     join_open: true,
-    panel_show_founded_year: true, panel_show_member_count: true,
-    panel_show_schedule: true, panel_show_location: true,
-    panel_show_instagram: true, panel_show_facebook: true,
+    panel_show_founded_year: false, panel_show_member_count: false,
+    panel_show_schedule: false, panel_show_location: false,
+    panel_show_instagram: false, panel_show_facebook: false,
     panel_show_join_button: true, panel_show_contact: true,
   })
   const [panelEditOpen, setPanelEditOpen] = useState(false)
@@ -695,6 +695,11 @@ export default function AboutPageEditor({
 
   const tok = previewTheme === 'dark' ? SITE_DARK : SITE_LIGHT
 
+  // Live preview: when dialog is open, merge panelForm edits into preview
+  const previewInfo: ClubInfo = panelEditOpen
+    ? { ...panelInfo, ...(panelForm as Partial<ClubInfo>) }
+    : panelInfo
+
   // ── Editor content sx — text colours use live token values not MUI theme ─────
 
   const editorContentSx = {
@@ -1004,22 +1009,22 @@ export default function AboutPageEditor({
               {/* Panel rows */}
               {(() => {
                 const rows: { icon: React.ReactNode; text: string }[] = []
-                if (panelInfo.panel_show_location && panelInfo.club_location)
-                  rows.push({ icon: <LocationOnIcon sx={{ fontSize: 15 }} />, text: panelInfo.club_location })
-                if (panelInfo.panel_show_schedule && panelInfo.meeting_schedule)
-                  rows.push({ icon: <CalendarMonthIcon sx={{ fontSize: 15 }} />, text: panelInfo.meeting_schedule })
-                const showFounded = panelInfo.panel_show_founded_year && panelInfo.founded_year
-                const showMembers = panelInfo.panel_show_member_count && panelInfo.member_count_actual
+                if (previewInfo.panel_show_location && previewInfo.club_location)
+                  rows.push({ icon: <LocationOnIcon sx={{ fontSize: 15 }} />, text: previewInfo.club_location })
+                if (previewInfo.panel_show_schedule && previewInfo.meeting_schedule)
+                  rows.push({ icon: <CalendarMonthIcon sx={{ fontSize: 15 }} />, text: previewInfo.meeting_schedule })
+                const showFounded = previewInfo.panel_show_founded_year && previewInfo.founded_year
+                const showMembers = previewInfo.panel_show_member_count && previewInfo.member_count_actual
                 if (showFounded || showMembers) {
                   const parts: string[] = []
-                  if (showFounded) parts.push(`Est. ${panelInfo.founded_year}`)
-                  if (showMembers) parts.push(`${panelInfo.member_count_actual} members`)
+                  if (showFounded) parts.push(`Est. ${previewInfo.founded_year}`)
+                  if (showMembers) parts.push(`${previewInfo.member_count_actual} members`)
                   rows.push({ icon: <GroupsIcon sx={{ fontSize: 15 }} />, text: parts.join(' · ') })
                 }
-                if (panelInfo.annual_dues || panelInfo.join_fee) {
+                if (previewInfo.annual_dues || previewInfo.join_fee) {
                   const parts: string[] = []
-                  if (panelInfo.annual_dues) parts.push(`Dues: ${panelInfo.annual_dues}`)
-                  if (panelInfo.join_fee)    parts.push(`Join fee: ${panelInfo.join_fee}`)
+                  if (previewInfo.annual_dues) parts.push(`Dues: ${previewInfo.annual_dues}`)
+                  if (previewInfo.join_fee)    parts.push(`Join fee: ${previewInfo.join_fee}`)
                   rows.push({ icon: <PaidOutlinedIcon sx={{ fontSize: 15 }} />, text: parts.join(' · ') })
                 }
 
@@ -1042,19 +1047,19 @@ export default function AboutPageEditor({
               })()}
 
               {/* Social links */}
-              {(panelInfo.website_url || (panelInfo.panel_show_instagram && panelInfo.instagram_url) || (panelInfo.panel_show_facebook && panelInfo.facebook_url)) && (
+              {(previewInfo.website_url || (previewInfo.panel_show_instagram && previewInfo.instagram_url) || (previewInfo.panel_show_facebook && previewInfo.facebook_url)) && (
                 <Box sx={{ display: 'flex', gap: 0.75, mt: 1.5, flexWrap: 'wrap' }}>
-                  {panelInfo.website_url && (
+                  {previewInfo.website_url && (
                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 12, color: tok.actionPrimary }}>
                       <PublicIcon sx={{ fontSize: 14 }} /> Website
                     </Box>
                   )}
-                  {panelInfo.panel_show_instagram && panelInfo.instagram_url && (
+                  {previewInfo.panel_show_instagram && previewInfo.instagram_url && (
                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 12, color: tok.actionPrimary }}>
                       <InstagramIcon sx={{ fontSize: 14 }} /> Instagram
                     </Box>
                   )}
-                  {panelInfo.panel_show_facebook && panelInfo.facebook_url && (
+                  {previewInfo.panel_show_facebook && previewInfo.facebook_url && (
                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 12, color: tok.actionPrimary }}>
                       <FacebookIcon sx={{ fontSize: 14 }} /> Facebook
                     </Box>
@@ -1065,17 +1070,17 @@ export default function AboutPageEditor({
               {/* Divider + CTA preview */}
               <Box sx={{ height: 1, bgcolor: tok.borderDefault, my: 2 }} />
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {panelInfo.panel_show_join_button && (
+                {previewInfo.panel_show_join_button && (
                   <Box sx={{
                     textAlign: 'center', px: 2, py: 1, borderRadius: '8px', fontSize: 13, fontWeight: 600,
-                    bgcolor: panelInfo.join_open ? tok.actionPrimary : 'transparent',
-                    border: panelInfo.join_open ? 'none' : `1px solid ${tok.borderDefault}`,
-                    color: panelInfo.join_open ? '#fff' : tok.textSecondary,
+                    bgcolor: previewInfo.join_open ? tok.actionPrimary : 'transparent',
+                    border: previewInfo.join_open ? 'none' : `1px solid ${tok.borderDefault}`,
+                    color: previewInfo.join_open ? '#fff' : tok.textSecondary,
                   }}>
-                    {panelInfo.join_open ? 'Join us' : 'Applications closed'}
+                    {previewInfo.join_open ? 'Join us' : 'Applications closed'}
                   </Box>
                 )}
-                {panelInfo.panel_show_contact && (
+                {previewInfo.panel_show_contact && (
                   <Box sx={{
                     textAlign: 'center', px: 2, py: 1, borderRadius: '8px', fontSize: 13,
                     border: `1.5px solid ${tok.actionSecondary}`, color: tok.actionSecondary,
@@ -1280,11 +1285,6 @@ export default function AboutPageEditor({
                 <Typography sx={{ fontSize: 13 }}>Show "Join us" button</Typography>
                 <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Visible to non-members only</Typography>
               </Box>
-              <Typography sx={{ fontSize: 12, color: 'text.secondary', mr: 0.5 }}>
-                {panelForm.join_open ? 'Open' : 'Closed'}
-              </Typography>
-              <Switch size="small" checked={panelForm.join_open ?? true}
-                onChange={e => setPanelForm(p => ({ ...p, join_open: e.target.checked }))} />
             </Box>
 
             {/* Contact us */}
