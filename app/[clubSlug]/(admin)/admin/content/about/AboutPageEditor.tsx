@@ -106,22 +106,24 @@ const btnSx = {
 // ── Public site token sets (for live-preview theming) ─────────────────────────
 
 const SITE_LIGHT = {
-  bg:            '#F5F5F5',
-  textPrimary:   '#1A1A1A',
-  textSecondary: '#696969',
-  actionPrimary: '#1A6FC4',
-  borderDefault: 'rgba(0,0,0,0.14)',
-  surface1:      '#ECECEC',
-  tableHead:     'rgba(0,0,0,0.04)',
+  bg:              '#F5F5F5',
+  textPrimary:     '#1A1A1A',
+  textSecondary:   '#696969',
+  actionPrimary:   '#1A6FC4',
+  actionSecondary: '#5A7A96',
+  borderDefault:   'rgba(0,0,0,0.14)',
+  surface1:        '#ECECEC',
+  tableHead:       'rgba(0,0,0,0.04)',
 }
 const SITE_DARK = {
-  bg:            '#141414',
-  textPrimary:   '#E8E8E8',
-  textSecondary: '#9E9E9E',
-  actionPrimary: '#4A90D4',
-  borderDefault: 'rgba(255,255,255,0.12)',
-  surface1:      '#1E1E1E',
-  tableHead:     'rgba(255,255,255,0.05)',
+  bg:              '#141414',
+  textPrimary:     '#E8E8E8',
+  textSecondary:   '#9E9E9E',
+  actionPrimary:   '#4A90D4',
+  actionSecondary: '#6EA8D8',
+  borderDefault:   'rgba(255,255,255,0.12)',
+  surface1:        '#1E1E1E',
+  tableHead:       'rgba(255,255,255,0.05)',
 }
 
 // ── Document type (for link picker) ──────────────────────────────────────────
@@ -180,19 +182,27 @@ function DropdownBtn({
 // ── ClubInfo type ─────────────────────────────────────────────────────────────
 
 type ClubInfo = {
-  club_name:           string
-  club_location:       string | null
-  contact_email:       string | null
-  website_url:         string | null
-  facebook_url:        string | null
-  instagram_url:       string | null
-  annual_dues:         string | null
-  join_fee:            string | null
-  meeting_schedule:    string | null
-  meeting_notes:       string | null
-  founded_year:        number | null
-  member_count_approx: number | null
-  join_open:           boolean
+  club_name:              string
+  club_location:          string | null
+  contact_email:          string | null
+  website_url:            string | null
+  facebook_url:           string | null
+  instagram_url:          string | null
+  annual_dues:            string | null
+  join_fee:               string | null
+  meeting_schedule:       string | null
+  meeting_notes:          string | null
+  founded_year:           number | null
+  member_count_actual:    number | null
+  join_open:              boolean
+  panel_show_founded_year: boolean
+  panel_show_member_count: boolean
+  panel_show_schedule:     boolean
+  panel_show_location:     boolean
+  panel_show_instagram:    boolean
+  panel_show_facebook:     boolean
+  panel_show_join_button:  boolean
+  panel_show_contact:      boolean
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -222,8 +232,12 @@ export default function AboutPageEditor({
     club_name: '', club_location: null, contact_email: null,
     website_url: null, facebook_url: null, instagram_url: null,
     annual_dues: null, join_fee: null, meeting_schedule: null,
-    meeting_notes: null, founded_year: null, member_count_approx: null,
+    meeting_notes: null, founded_year: null, member_count_actual: null,
     join_open: true,
+    panel_show_founded_year: true, panel_show_member_count: true,
+    panel_show_schedule: true, panel_show_location: true,
+    panel_show_instagram: true, panel_show_facebook: true,
+    panel_show_join_button: true, panel_show_contact: true,
   })
   const [panelEditOpen, setPanelEditOpen] = useState(false)
   const [panelForm, setPanelForm] = useState<AboutPanelFields>({})
@@ -622,18 +636,25 @@ export default function AboutPageEditor({
 
   const openPanelEdit = () => {
     setPanelForm({
-      club_location:       panelInfo.club_location,
-      contact_email:       panelInfo.contact_email,
-      annual_dues:         panelInfo.annual_dues,
-      join_fee:            panelInfo.join_fee,
-      meeting_schedule:    panelInfo.meeting_schedule,
-      meeting_notes:       panelInfo.meeting_notes,
-      founded_year:        panelInfo.founded_year,
-      member_count_approx: panelInfo.member_count_approx,
-      website_url:         panelInfo.website_url,
-      facebook_url:        panelInfo.facebook_url,
-      instagram_url:       panelInfo.instagram_url,
-      join_open:           panelInfo.join_open,
+      club_location:           panelInfo.club_location,
+      contact_email:           panelInfo.contact_email,
+      annual_dues:             panelInfo.annual_dues,
+      join_fee:                panelInfo.join_fee,
+      meeting_schedule:        panelInfo.meeting_schedule,
+      meeting_notes:           panelInfo.meeting_notes,
+      founded_year:            panelInfo.founded_year,
+      website_url:             panelInfo.website_url,
+      facebook_url:            panelInfo.facebook_url,
+      instagram_url:           panelInfo.instagram_url,
+      join_open:               panelInfo.join_open,
+      panel_show_founded_year: panelInfo.panel_show_founded_year,
+      panel_show_member_count: panelInfo.panel_show_member_count,
+      panel_show_schedule:     panelInfo.panel_show_schedule,
+      panel_show_location:     panelInfo.panel_show_location,
+      panel_show_instagram:    panelInfo.panel_show_instagram,
+      panel_show_facebook:     panelInfo.panel_show_facebook,
+      panel_show_join_button:  panelInfo.panel_show_join_button,
+      panel_show_contact:      panelInfo.panel_show_contact,
     })
     setPanelSaveError(null)
     setPanelEditOpen(true)
@@ -647,18 +668,25 @@ export default function AboutPageEditor({
     if (result.error) { setPanelSaveError(result.error); return }
     setPanelInfo(prev => ({
       ...prev,
-      club_location:       panelForm.club_location ?? prev.club_location,
-      contact_email:       panelForm.contact_email ?? prev.contact_email,
-      annual_dues:         panelForm.annual_dues ?? prev.annual_dues,
-      join_fee:            panelForm.join_fee ?? prev.join_fee,
-      meeting_schedule:    panelForm.meeting_schedule ?? prev.meeting_schedule,
-      meeting_notes:       panelForm.meeting_notes ?? prev.meeting_notes,
-      founded_year:        panelForm.founded_year ?? prev.founded_year,
-      member_count_approx: panelForm.member_count_approx ?? prev.member_count_approx,
-      website_url:         panelForm.website_url ?? prev.website_url,
-      facebook_url:        panelForm.facebook_url ?? prev.facebook_url,
-      instagram_url:       panelForm.instagram_url ?? prev.instagram_url,
-      join_open:           panelForm.join_open ?? prev.join_open,
+      club_location:           panelForm.club_location           ?? prev.club_location,
+      contact_email:           panelForm.contact_email           ?? prev.contact_email,
+      annual_dues:             panelForm.annual_dues             ?? prev.annual_dues,
+      join_fee:                panelForm.join_fee                ?? prev.join_fee,
+      meeting_schedule:        panelForm.meeting_schedule        ?? prev.meeting_schedule,
+      meeting_notes:           panelForm.meeting_notes           ?? prev.meeting_notes,
+      founded_year:            panelForm.founded_year            ?? prev.founded_year,
+      website_url:             panelForm.website_url             ?? prev.website_url,
+      facebook_url:            panelForm.facebook_url            ?? prev.facebook_url,
+      instagram_url:           panelForm.instagram_url           ?? prev.instagram_url,
+      join_open:               panelForm.join_open               ?? prev.join_open,
+      panel_show_founded_year: panelForm.panel_show_founded_year ?? prev.panel_show_founded_year,
+      panel_show_member_count: panelForm.panel_show_member_count ?? prev.panel_show_member_count,
+      panel_show_schedule:     panelForm.panel_show_schedule     ?? prev.panel_show_schedule,
+      panel_show_location:     panelForm.panel_show_location     ?? prev.panel_show_location,
+      panel_show_instagram:    panelForm.panel_show_instagram    ?? prev.panel_show_instagram,
+      panel_show_facebook:     panelForm.panel_show_facebook     ?? prev.panel_show_facebook,
+      panel_show_join_button:  panelForm.panel_show_join_button  ?? prev.panel_show_join_button,
+      panel_show_contact:      panelForm.panel_show_contact      ?? prev.panel_show_contact,
     }))
     setPanelEditOpen(false)
   }
@@ -976,17 +1004,20 @@ export default function AboutPageEditor({
               {/* Panel rows */}
               {(() => {
                 const rows: { icon: React.ReactNode; text: string }[] = []
-                if (panelInfo.club_location)  rows.push({ icon: <LocationOnIcon sx={{ fontSize: 15 }} />, text: panelInfo.club_location })
-                if (panelInfo.contact_email)  rows.push({ icon: <EmailOutlinedIcon sx={{ fontSize: 15 }} />, text: panelInfo.contact_email })
-                if (panelInfo.meeting_schedule) rows.push({ icon: <CalendarMonthIcon sx={{ fontSize: 15 }} />, text: panelInfo.meeting_schedule })
-                if (panelInfo.founded_year || panelInfo.member_count_approx) {
-                  const parts = []
-                  if (panelInfo.founded_year) parts.push(`Est. ${panelInfo.founded_year}`)
-                  if (panelInfo.member_count_approx) parts.push(`~${panelInfo.member_count_approx} members`)
+                if (panelInfo.panel_show_location && panelInfo.club_location)
+                  rows.push({ icon: <LocationOnIcon sx={{ fontSize: 15 }} />, text: panelInfo.club_location })
+                if (panelInfo.panel_show_schedule && panelInfo.meeting_schedule)
+                  rows.push({ icon: <CalendarMonthIcon sx={{ fontSize: 15 }} />, text: panelInfo.meeting_schedule })
+                const showFounded = panelInfo.panel_show_founded_year && panelInfo.founded_year
+                const showMembers = panelInfo.panel_show_member_count && panelInfo.member_count_actual
+                if (showFounded || showMembers) {
+                  const parts: string[] = []
+                  if (showFounded) parts.push(`Est. ${panelInfo.founded_year}`)
+                  if (showMembers) parts.push(`${panelInfo.member_count_actual} members`)
                   rows.push({ icon: <GroupsIcon sx={{ fontSize: 15 }} />, text: parts.join(' · ') })
                 }
                 if (panelInfo.annual_dues || panelInfo.join_fee) {
-                  const parts = []
+                  const parts: string[] = []
                   if (panelInfo.annual_dues) parts.push(`Dues: ${panelInfo.annual_dues}`)
                   if (panelInfo.join_fee)    parts.push(`Join fee: ${panelInfo.join_fee}`)
                   rows.push({ icon: <PaidOutlinedIcon sx={{ fontSize: 15 }} />, text: parts.join(' · ') })
@@ -1011,19 +1042,19 @@ export default function AboutPageEditor({
               })()}
 
               {/* Social links */}
-              {(panelInfo.website_url || panelInfo.instagram_url || panelInfo.facebook_url) && (
+              {(panelInfo.website_url || (panelInfo.panel_show_instagram && panelInfo.instagram_url) || (panelInfo.panel_show_facebook && panelInfo.facebook_url)) && (
                 <Box sx={{ display: 'flex', gap: 0.75, mt: 1.5, flexWrap: 'wrap' }}>
                   {panelInfo.website_url && (
                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 12, color: tok.actionPrimary }}>
                       <PublicIcon sx={{ fontSize: 14 }} /> Website
                     </Box>
                   )}
-                  {panelInfo.instagram_url && (
+                  {panelInfo.panel_show_instagram && panelInfo.instagram_url && (
                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 12, color: tok.actionPrimary }}>
                       <InstagramIcon sx={{ fontSize: 14 }} /> Instagram
                     </Box>
                   )}
-                  {panelInfo.facebook_url && (
+                  {panelInfo.panel_show_facebook && panelInfo.facebook_url && (
                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 12, color: tok.actionPrimary }}>
                       <FacebookIcon sx={{ fontSize: 14 }} /> Facebook
                     </Box>
@@ -1031,15 +1062,27 @@ export default function AboutPageEditor({
                 </Box>
               )}
 
-              {/* Divider + join status */}
+              {/* Divider + CTA preview */}
               <Box sx={{ height: 1, bgcolor: tok.borderDefault, my: 2 }} />
-              <Box sx={{
-                display: 'inline-block', px: 1.5, py: 0.5, borderRadius: '9999px',
-                fontSize: 12, fontWeight: 500,
-                bgcolor: panelInfo.join_open ? 'rgba(46,125,50,0.12)' : 'rgba(0,0,0,0.06)',
-                color: panelInfo.join_open ? '#2E7D32' : tok.textSecondary,
-              }}>
-                {panelInfo.join_open ? 'Accepting new members' : 'Applications closed'}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {panelInfo.panel_show_join_button && (
+                  <Box sx={{
+                    textAlign: 'center', px: 2, py: 1, borderRadius: '8px', fontSize: 13, fontWeight: 600,
+                    bgcolor: panelInfo.join_open ? tok.actionPrimary : 'transparent',
+                    border: panelInfo.join_open ? 'none' : `1px solid ${tok.borderDefault}`,
+                    color: panelInfo.join_open ? '#fff' : tok.textSecondary,
+                  }}>
+                    {panelInfo.join_open ? 'Join us' : 'Applications closed'}
+                  </Box>
+                )}
+                {panelInfo.panel_show_contact && (
+                  <Box sx={{
+                    textAlign: 'center', px: 2, py: 1, borderRadius: '8px', fontSize: 13,
+                    border: `1.5px solid ${tok.actionSecondary}`, color: tok.actionSecondary,
+                  }}>
+                    Contact us for more info
+                  </Box>
+                )}
               </Box>
             </Box>
           </Box>
@@ -1220,90 +1263,111 @@ export default function AboutPageEditor({
 
       {/* ── Panel edit dialog ─────────────────────────────────────────────────── */}
       <Dialog open={panelEditOpen} onClose={() => setPanelEditOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>Edit club details</DialogTitle>
-        <DialogContent sx={{ pt: '20px !important' }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>Side panel settings</DialogTitle>
+        <DialogContent sx={{ pt: '8px !important' }}>
+          <Box>
+            {/* ── Buttons ── */}
+            <Typography sx={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'text.secondary', mt: 1.5, mb: 0.5 }}>
+              Buttons
+            </Typography>
 
-            <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: -1 }}>Membership</Typography>
-
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField label="Annual dues" size="small" sx={{ flex: 1 }}
-                value={panelForm.annual_dues ?? ''}
-                onChange={e => setPanelForm(p => ({ ...p, annual_dues: e.target.value || null }))}
-                placeholder="e.g. $60/year" />
-              <TextField label="Join fee" size="small" sx={{ flex: 1 }}
-                value={panelForm.join_fee ?? ''}
-                onChange={e => setPanelForm(p => ({ ...p, join_fee: e.target.value || null }))}
-                placeholder="e.g. $25 one-time" />
+            {/* Join us */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Checkbox size="small" checked={panelForm.panel_show_join_button ?? true}
+                onChange={e => setPanelForm(p => ({ ...p, panel_show_join_button: e.target.checked }))}
+                sx={{ p: 0 }} />
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography sx={{ fontSize: 13 }}>Show "Join us" button</Typography>
+                <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Visible to non-members only</Typography>
+              </Box>
+              <Typography sx={{ fontSize: 12, color: 'text.secondary', mr: 0.5 }}>
+                {panelForm.join_open ? 'Open' : 'Closed'}
+              </Typography>
+              <Switch size="small" checked={panelForm.join_open ?? true}
+                onChange={e => setPanelForm(p => ({ ...p, join_open: e.target.checked }))} />
             </Box>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                       border: '1px solid', borderColor: 'divider', borderRadius: 1, px: 1.5, py: 0.5 }}>
-              <Typography sx={{ fontSize: 13 }}>Accepting new members</Typography>
-              <Switch
-                size="small"
-                checked={panelForm.join_open ?? true}
-                onChange={e => setPanelForm(p => ({ ...p, join_open: e.target.checked }))}
-              />
+            {/* Contact us */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Checkbox size="small" checked={panelForm.panel_show_contact ?? true}
+                onChange={e => setPanelForm(p => ({ ...p, panel_show_contact: e.target.checked }))}
+                sx={{ p: 0 }} />
+              <Typography sx={{ fontSize: 13, flex: 1 }}>Show "Contact us" button</Typography>
             </Box>
 
-            <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: -1 }}>Meeting info</Typography>
+            {/* ── Details ── */}
+            <Typography sx={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'text.secondary', mt: 2, mb: 0.5 }}>
+              Details
+            </Typography>
 
-            <TextField label="Meeting schedule" size="small" fullWidth
-              value={panelForm.meeting_schedule ?? ''}
-              onChange={e => setPanelForm(p => ({ ...p, meeting_schedule: e.target.value || null }))}
-              placeholder="e.g. 1st & 3rd Tuesday, 7 pm" />
-
-            <TextField label="Meeting notes" size="small" fullWidth multiline rows={2}
-              value={panelForm.meeting_notes ?? ''}
-              onChange={e => setPanelForm(p => ({ ...p, meeting_notes: e.target.value || null }))}
-              placeholder="Additional details about where you meet…" />
-
-            <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: -1 }}>Club history</Typography>
-
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField label="Founded year" size="small" type="number" sx={{ flex: 1 }}
-                value={panelForm.founded_year ?? ''}
-                onChange={e => setPanelForm(p => ({ ...p, founded_year: e.target.value ? parseInt(e.target.value) : null }))}
-                placeholder="e.g. 1985" />
-              <TextField label="Approx. member count" size="small" type="number" sx={{ flex: 1 }}
-                value={panelForm.member_count_approx ?? ''}
-                onChange={e => setPanelForm(p => ({ ...p, member_count_approx: e.target.value ? parseInt(e.target.value) : null }))}
-                placeholder="e.g. 45" />
+            {/* Founded year */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Checkbox size="small" checked={panelForm.panel_show_founded_year ?? true}
+                onChange={e => setPanelForm(p => ({ ...p, panel_show_founded_year: e.target.checked }))}
+                sx={{ p: 0 }} />
+              <Typography sx={{ fontSize: 13, flex: 1 }}>Founded year</Typography>
+              <TextField size="small" type="number" placeholder="e.g. 1985"
+                sx={{ width: 130 }} value={panelForm.founded_year ?? ''}
+                onChange={e => setPanelForm(p => ({ ...p, founded_year: e.target.value ? parseInt(e.target.value) : null }))} />
             </Box>
 
-            <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: -1 }}>Contact & links</Typography>
+            {/* Member count */}
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Checkbox size="small" checked={panelForm.panel_show_member_count ?? true}
+                onChange={e => setPanelForm(p => ({ ...p, panel_show_member_count: e.target.checked }))}
+                sx={{ p: 0, mt: 0.25 }} />
+              <Box>
+                <Typography sx={{ fontSize: 13 }}>Member count</Typography>
+                <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Shows current active members automatically</Typography>
+              </Box>
+            </Box>
 
-            <TextField label="Location" size="small" fullWidth
-              value={panelForm.club_location ?? ''}
-              onChange={e => setPanelForm(p => ({ ...p, club_location: e.target.value || null }))}
-              placeholder="City, State"
-              helperText="Also editable in Club Basics → General" />
+            {/* Meeting schedule */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Checkbox size="small" checked={panelForm.panel_show_schedule ?? true}
+                onChange={e => setPanelForm(p => ({ ...p, panel_show_schedule: e.target.checked }))}
+                sx={{ p: 0 }} />
+              <Typography sx={{ fontSize: 13, flex: 1 }}>Meeting schedule</Typography>
+              <TextField size="small" placeholder="e.g. 1st Tuesday, 7 pm"
+                sx={{ width: 200 }} value={panelForm.meeting_schedule ?? ''}
+                onChange={e => setPanelForm(p => ({ ...p, meeting_schedule: e.target.value || null }))} />
+            </Box>
 
-            <TextField label="Contact email" size="small" fullWidth
-              value={panelForm.contact_email ?? ''}
-              onChange={e => setPanelForm(p => ({ ...p, contact_email: e.target.value || null }))}
-              placeholder="club@example.com"
-              helperText="Also editable in Club Basics → General" />
+            {/* Location */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Checkbox size="small" checked={panelForm.panel_show_location ?? true}
+                onChange={e => setPanelForm(p => ({ ...p, panel_show_location: e.target.checked }))}
+                sx={{ p: 0 }} />
+              <Typography sx={{ fontSize: 13, flex: 1 }}>Location</Typography>
+              <TextField size="small" placeholder="City, State"
+                sx={{ width: 200 }} value={panelForm.club_location ?? ''}
+                onChange={e => setPanelForm(p => ({ ...p, club_location: e.target.value || null }))} />
+            </Box>
 
-            <TextField label="Website URL" size="small" fullWidth
-              value={panelForm.website_url ?? ''}
-              onChange={e => setPanelForm(p => ({ ...p, website_url: e.target.value || null }))}
-              placeholder="https://yourclub.org" />
+            {/* Instagram */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Checkbox size="small" checked={panelForm.panel_show_instagram ?? true}
+                onChange={e => setPanelForm(p => ({ ...p, panel_show_instagram: e.target.checked }))}
+                sx={{ p: 0 }} />
+              <Typography sx={{ fontSize: 13, flex: 1 }}>Instagram</Typography>
+              <TextField size="small" placeholder="https://instagram.com/…"
+                sx={{ width: 200 }} value={panelForm.instagram_url ?? ''}
+                onChange={e => setPanelForm(p => ({ ...p, instagram_url: e.target.value || null }))} />
+            </Box>
 
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField label="Instagram URL" size="small" sx={{ flex: 1 }}
-                value={panelForm.instagram_url ?? ''}
-                onChange={e => setPanelForm(p => ({ ...p, instagram_url: e.target.value || null }))}
-                placeholder="https://instagram.com/…" />
-              <TextField label="Facebook URL" size="small" sx={{ flex: 1 }}
-                value={panelForm.facebook_url ?? ''}
-                onChange={e => setPanelForm(p => ({ ...p, facebook_url: e.target.value || null }))}
-                placeholder="https://facebook.com/…" />
+            {/* Facebook */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
+              <Checkbox size="small" checked={panelForm.panel_show_facebook ?? true}
+                onChange={e => setPanelForm(p => ({ ...p, panel_show_facebook: e.target.checked }))}
+                sx={{ p: 0 }} />
+              <Typography sx={{ fontSize: 13, flex: 1 }}>Facebook</Typography>
+              <TextField size="small" placeholder="https://facebook.com/…"
+                sx={{ width: 200 }} value={panelForm.facebook_url ?? ''}
+                onChange={e => setPanelForm(p => ({ ...p, facebook_url: e.target.value || null }))} />
             </Box>
 
             {panelSaveError && (
-              <Typography sx={{ fontSize: 13, color: 'error.main' }}>{panelSaveError}</Typography>
+              <Typography sx={{ fontSize: 13, color: 'error.main', mt: 1.5 }}>{panelSaveError}</Typography>
             )}
           </Box>
         </DialogContent>

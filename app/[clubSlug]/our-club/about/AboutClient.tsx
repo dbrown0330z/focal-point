@@ -3,19 +3,27 @@
 import { useState } from 'react'
 
 type ClubInfo = {
-  club_name:           string
-  club_location:       string | null
-  contact_email:       string | null
-  website_url:         string | null
-  facebook_url:        string | null
-  instagram_url:       string | null
-  annual_dues:         string | null
-  join_fee:            string | null
-  meeting_schedule:    string | null
-  meeting_notes:       string | null
-  founded_year:        number | null
-  member_count_approx: number | null
-  join_open:           boolean
+  club_name:              string
+  club_location:          string | null
+  contact_email:          string | null
+  website_url:            string | null
+  facebook_url:           string | null
+  instagram_url:          string | null
+  annual_dues:            string | null
+  join_fee:               string | null
+  meeting_schedule:       string | null
+  meeting_notes:          string | null
+  founded_year:           number | null
+  member_count_actual:    number | null
+  join_open:              boolean
+  panel_show_founded_year: boolean
+  panel_show_member_count: boolean
+  panel_show_schedule:     boolean
+  panel_show_location:     boolean
+  panel_show_instagram:    boolean
+  panel_show_facebook:     boolean
+  panel_show_join_button:  boolean
+  panel_show_contact:      boolean
 }
 
 // ── Ask for more info modal ───────────────────────────────────────────────────
@@ -211,9 +219,14 @@ export default function AboutClient({
   const [askOpen, setAskOpen] = useState(false)
 
   const hasPanel =
-    info.club_location || info.annual_dues || info.join_fee ||
-    info.meeting_schedule || info.founded_year || info.member_count_approx ||
-    info.contact_email || info.website_url || info.instagram_url || info.facebook_url
+    (info.panel_show_location && info.club_location) ||
+    (info.panel_show_founded_year && info.founded_year) ||
+    (info.panel_show_member_count && info.member_count_actual) ||
+    (info.panel_show_schedule && info.meeting_schedule) ||
+    info.annual_dues || info.join_fee || info.contact_email ||
+    info.website_url ||
+    (info.panel_show_instagram && info.instagram_url) ||
+    (info.panel_show_facebook && info.facebook_url)
 
   return (
     <>
@@ -260,17 +273,17 @@ export default function AboutClient({
             <h2 className="mb-1 text-sm font-bold uppercase tracking-wider text-content-tertiary">Club details</h2>
 
             {/* Established + member count */}
-            {(info.founded_year || info.member_count_approx) && (
+            {((info.panel_show_founded_year && info.founded_year) || (info.panel_show_member_count && info.member_count_actual)) && (
               <>
                 <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1">
-                  {info.founded_year && (
+                  {info.panel_show_founded_year && info.founded_year && (
                     <span className="text-sm text-content-secondary">
                       Est. <span className="font-semibold text-content-primary">{info.founded_year}</span>
                     </span>
                   )}
-                  {info.member_count_approx && (
+                  {info.panel_show_member_count && info.member_count_actual && (
                     <span className="text-sm text-content-secondary">
-                      <span className="font-semibold text-content-primary">{info.member_count_approx}+</span> members
+                      <span className="font-semibold text-content-primary">{info.member_count_actual}</span> members
                     </span>
                   )}
                 </div>
@@ -279,7 +292,7 @@ export default function AboutClient({
             )}
 
             {/* Location */}
-            {info.club_location && (
+            {info.panel_show_location && info.club_location && (
               <>
                 <DetailRow
                   icon={<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>}
@@ -291,7 +304,7 @@ export default function AboutClient({
             )}
 
             {/* Meetings */}
-            {info.meeting_schedule && (
+            {info.panel_show_schedule && info.meeting_schedule && (
               <>
                 <DetailRow
                   icon={<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>}
@@ -341,7 +354,7 @@ export default function AboutClient({
             )}
 
             {/* Links */}
-            {(info.website_url || info.instagram_url || info.facebook_url) && (
+            {(info.website_url || (info.panel_show_instagram && info.instagram_url) || (info.panel_show_facebook && info.facebook_url)) && (
               <div className="py-2.5">
                 <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-content-tertiary">Links</p>
                 <div className="flex flex-wrap gap-2">
@@ -351,7 +364,7 @@ export default function AboutClient({
                       <WebIcon /> Website
                     </a>
                   )}
-                  {info.instagram_url && (
+                  {info.panel_show_instagram && info.instagram_url && (
                     <a
                       href={info.instagram_url.startsWith('http') ? info.instagram_url : `https://instagram.com/${info.instagram_url}`}
                       target="_blank" rel="noopener noreferrer"
@@ -359,7 +372,7 @@ export default function AboutClient({
                       <InstagramIcon /> Instagram
                     </a>
                   )}
-                  {info.facebook_url && (
+                  {info.panel_show_facebook && info.facebook_url && (
                     <a href={info.facebook_url} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1.5 rounded-lg border border-border-default px-3 py-1.5 text-xs font-medium text-content-secondary hover:border-border-strong hover:text-content-primary transition-colors">
                       <FacebookIcon /> Facebook
@@ -376,27 +389,29 @@ export default function AboutClient({
 
             {/* CTAs */}
             <div className="mt-4 flex flex-col gap-2">
-              {!isLoggedIn && info.join_open && (
+              {!isLoggedIn && info.panel_show_join_button && info.join_open && (
                 <a
                   href={`/${clubSlug}/apply`}
                   className="flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:opacity-90"
                   style={{ background: 'var(--action-primary)' }}
                 >
-                  Apply for membership
+                  Join us
                 </a>
               )}
-              {!isLoggedIn && !info.join_open && (
+              {!isLoggedIn && info.panel_show_join_button && !info.join_open && (
                 <div className="rounded-lg border border-border-default px-4 py-2.5 text-center text-sm text-content-secondary">
                   Applications currently closed
                 </div>
               )}
-              <button
-                onClick={() => setAskOpen(true)}
-                className="flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
-                style={{ border: '1.5px solid var(--action-secondary)', color: 'var(--action-secondary)' }}
-              >
-                Ask for more info
-              </button>
+              {info.panel_show_contact && (
+                <button
+                  onClick={() => setAskOpen(true)}
+                  className="flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
+                  style={{ border: '1.5px solid var(--action-secondary)', color: 'var(--action-secondary)' }}
+                >
+                  Contact us for more info
+                </button>
+              )}
             </div>
           </div>
         </aside>
