@@ -5,17 +5,17 @@ import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
-type Props = { params: Promise<{ clubSlug: string; slug: string[] }> }
+type Props = { params: Promise<{ clubSlug: string; section: string; slug: string[] }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params
-  const article  = getArticle(slug)
+  const { section, slug } = await params
+  const article = getArticle([section, ...slug])
   return { title: article?.title ?? 'Help' }
 }
 
 export default async function HelpArticlePage({ params }: Props) {
-  const { slug }  = await params
-  const article   = getArticle(slug)
+  const { section, slug } = await params
+  const article = getArticle([section, ...slug])
   if (!article) notFound()
 
   return (
