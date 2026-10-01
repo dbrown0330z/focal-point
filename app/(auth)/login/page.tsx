@@ -32,5 +32,5 @@ export default async function LoginPage({
   } // end !fp
 
   // Fallback: no club found, or fp bypass — render form as-is
-  return <LoginForm errorParam={error} pendingParam={pending} resetParam={reset} nextParam={next} />
+  return <LoginForm errorParam={error} pendingParam={pending} resetParam={reset} nextParam={next ?? (fp ? '/fp-admin' : undefined)} />
 }
