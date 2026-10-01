@@ -1,10 +1,19 @@
-import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import { AppFooter } from '@/components/layout/AppFooter'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const { data } = await supabase.from('club_settings').select('club_name').single()
-  const clubName = data?.club_name ?? 'Our Camera Club'
+  // Only show club branding when there's an active club cookie (set by middleware
+  // when a club slug is resolved). Missing in incognito and on fp-admin login.
+  const cookieStore = await cookies()
+  const clubId      = cookieStore.get('x-club-id')?.value
+
+  let clubName: string | null = null
+  if (clubId) {
+    const admin = createServiceClient()
+    const { data } = await admin.from('club_settings').select('club_name').eq('club_id', clubId).single()
+    clubName = data?.club_name ?? null
+  }
 
   return (
     <div
@@ -12,30 +21,32 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
       style={{ background: '#141414' }}
     >
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-12">
-        <div className="mb-8 text-center">
-          <h1
-            style={{
-              fontFamily: 'var(--font-lora, Lora, Georgia, serif)',
-              fontSize: '26px',
-              fontWeight: 700,
-              letterSpacing: '-0.01em',
-              color: 'var(--action-primary)',
-              lineHeight: 1.2,
-            }}
-          >
-            {clubName}
-          </h1>
-          <p
-            style={{
-              marginTop: '6px',
-              fontSize: '14px',
-              color: '#9E9E9E',
-              fontFamily: 'var(--font-nunito, Nunito, system-ui, sans-serif)',
-            }}
-          >
-            Your camera club, online.
-          </p>
-        </div>
+        {clubName && (
+          <div className="mb-8 text-center">
+            <h1
+              style={{
+                fontFamily: 'var(--font-lora, Lora, Georgia, serif)',
+                fontSize: '26px',
+                fontWeight: 700,
+                letterSpacing: '-0.01em',
+                color: 'var(--action-primary)',
+                lineHeight: 1.2,
+              }}
+            >
+              {clubName}
+            </h1>
+            <p
+              style={{
+                marginTop: '6px',
+                fontSize: '14px',
+                color: '#9E9E9E',
+                fontFamily: 'var(--font-nunito, Nunito, system-ui, sans-serif)',
+              }}
+            >
+              Your camera club, online.
+            </p>
+          </div>
+        )}
 
         <div
           className="w-full max-w-sm rounded-xl p-8"
