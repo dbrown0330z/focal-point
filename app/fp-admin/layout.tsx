@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 export default async function FPAdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) redirect('/login?fp=1')
 
   const admin = createServiceClient()
   const { data: profile } = await admin

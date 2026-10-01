@@ -5,10 +5,12 @@ import LoginForm from './LoginForm'
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; pending?: string; reset?: string; next?: string }>
+  searchParams: Promise<{ error?: string; pending?: string; reset?: string; next?: string; fp?: string }>
 }) {
-  const { error, pending, reset, next } = await searchParams
+  const { error, pending, reset, next, fp } = await searchParams
 
+  // fp=1 bypasses club redirect — used by /fp-admin login flow
+  if (!fp) {
   // Look up the default club and redirect to the club-specific login
   const admin = createServiceClient()
   const { data: club } = await admin
@@ -27,6 +29,8 @@ export default async function LoginPage({
     redirect(`/${club.slug}/login${qs ? `?${qs}` : ''}`)
   }
 
-  // Fallback: no club found — render form as-is
+  } // end !fp
+
+  // Fallback: no club found, or fp bypass — render form as-is
   return <LoginForm errorParam={error} pendingParam={pending} resetParam={reset} nextParam={next} />
 }
