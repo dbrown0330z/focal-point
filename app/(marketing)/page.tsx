@@ -64,8 +64,8 @@ export default async function HomePage({
               all in one place built by people who actually love photography.
             </p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <Link href="/pricing" className="mkt-btn mkt-btn-amber">
-                Start your free trial <IconArrow />
+              <Link href="/start" className="mkt-btn mkt-btn-amber">
+                Start your club <IconArrow />
               </Link>
               <Link href="/features" className="mkt-btn mkt-btn-ghost">
                 See features

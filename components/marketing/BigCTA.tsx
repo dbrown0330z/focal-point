@@ -29,7 +29,7 @@ export function BigCTA() {
               Free for 30 days. Bring your whole club. We&apos;ll help you migrate.
             </p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <Link href="/pricing" className="mkt-btn mkt-btn-amber">
+              <Link href="/start" className="mkt-btn mkt-btn-amber">
                 Start free trial <IconArrow />
               </Link>
               <Link
