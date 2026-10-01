@@ -12,7 +12,7 @@ const RESERVED_SEGMENTS = new Set([
   // Global auth callback
   'auth',
   // Focal Point internal
-  'super-admin',
+  'super-admin', 'fp-admin', 'start',
   // API + assets
   'api', '_next', 'favicon.ico', 'sitemap.xml', 'robots.txt',
   // Judge portal (token-gated, not club-scoped via slug)
@@ -145,6 +145,22 @@ export async function updateSession(request: NextRequest) {
   // ── Non-club routes (marketing page, super-admin, global auth) ──────────
 
   const isSuperAdmin = pathname.startsWith('/super-admin')
+  const isFpAdmin = pathname.startsWith('/fp-admin')
+
+  if (isFpAdmin) {
+    if (!user) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_fp_admin')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile?.is_fp_admin) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+  }
 
   if (isSuperAdmin) {
     if (!user) {
