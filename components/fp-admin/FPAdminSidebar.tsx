@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { logout } from '@/app/(auth)/actions'
+import { fpAdminLogout } from '@/app/fp-admin/actions'
 
 const NAV = [
   {
@@ -70,7 +70,7 @@ export default function FPAdminSidebar() {
 
       {/* Footer */}
       <div className="border-t px-2 py-3" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-        <form action={logout}>
+        <form action={fpAdminLogout}>
           <button
             type="submit"
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors"
