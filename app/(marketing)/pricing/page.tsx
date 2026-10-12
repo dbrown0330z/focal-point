@@ -298,9 +298,13 @@ export default function PricingPage() {
             kicker="FAQ"
             kickerColor="var(--teal)"
             title="Common questions"
-            lead={<>Anything else, email us at <a href="mailto:hello@focalpointhq.com" style={{ color: 'var(--teal)' }}>hello@focalpointhq.com</a></>}
+            lead="Anything else? We&apos;d love to help."
             align="center"
           />
+          <p style={{ textAlign: 'center', marginTop: -24, marginBottom: 32, fontSize: 14, color: 'var(--muted)' }}>
+            Email us at{' '}
+            <a href="mailto:hello@focalpointhq.com" style={{ color: 'var(--teal)' }}>hello@focalpointhq.com</a>
+          </p>
           <div className="mkt-acc" style={{ maxWidth: 780, margin: '0 auto' }}>
             {FAQ_ITEMS.map((item, i) => (
               <div key={i} className={'mkt-acc-item' + (openFaq === i ? ' open' : '')}>
