@@ -125,10 +125,8 @@ export default function PricingPage() {
       <section className="mkt-band" style={{ paddingBottom: 64 }}>
         <div className="mkt-wrap" style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center' }}>
           <SectionHeader
-            kicker="Pricing"
-            kickerColor="var(--teal)"
             title="Everything your club needs. No surprises."
-            lead="All features are available at every tier — the only difference is how many members and images your plan supports. Pick the size that fits your club."
+            lead="Run your competitions online, manage members, publish results automatically, and give your club a proper home on the web — all in one place. Pick the plan that fits your club size and get started in minutes."
             align="center"
           />
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginTop: 36 }}>
@@ -145,21 +143,6 @@ export default function PricingPage() {
       {/* ── Tier cards ── */}
       <section style={{ padding: '0 var(--gutter) 16px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-
-          {/* "All features, any plan" callout */}
-          <Reveal>
-            <div style={{
-              textAlign: 'center', marginBottom: 32,
-              padding: '16px 24px', borderRadius: 10,
-              background: 'var(--surface-teal)',
-              border: '1px solid rgba(63,168,137,0.2)',
-            }}>
-              <p style={{ margin: 0, fontSize: 15, fontWeight: 500, color: 'var(--ink-soft)' }}>
-                <span style={{ color: 'var(--teal)', fontWeight: 700 }}>Every feature</span> is included at every tier.
-                Plans differ only in member count, image allowance, and storage.
-              </p>
-            </div>
-          </Reveal>
 
           <div style={{
             display: 'grid',
@@ -232,10 +215,8 @@ export default function PricingPage() {
       <section className="mkt-band" style={{ background: 'var(--paper-warm)' }}>
         <div className="mkt-wrap" style={{ maxWidth: 1100, margin: '0 auto' }}>
           <SectionHeader
-            kicker="Included at every tier"
-            kickerColor="var(--teal)"
             title="Every feature. Every plan."
-            lead="There are no feature gates between tiers. Every club gets the full Focal Point platform — the only thing that changes is capacity."
+            lead="No add-ons, no feature gates, no per-judge fees. Every club gets the complete Focal Point platform from day one — the only thing that changes between plans is capacity."
             align="center"
           />
           <div style={{
@@ -258,8 +239,6 @@ export default function PricingPage() {
       <section className="mkt-band">
         <div className="mkt-wrap" style={{ maxWidth: 1100, margin: '0 auto' }}>
           <SectionHeader
-            kicker="Why Focal Point"
-            kickerColor="var(--teal)"
             title="Built differently"
             lead="A few things worth knowing before you compare."
             align="center"
@@ -295,10 +274,7 @@ export default function PricingPage() {
       <section className="mkt-band" style={{ background: 'var(--surface-teal)' }}>
         <div className="mkt-wrap" style={{ maxWidth: 1100, margin: '0 auto' }}>
           <SectionHeader
-            kicker="FAQ"
-            kickerColor="var(--teal)"
             title="Common questions"
-            lead="Anything else? We&apos;d love to help."
             align="center"
           />
           <p style={{ textAlign: 'center', marginTop: -24, marginBottom: 32, fontSize: 14, color: 'var(--muted)' }}>
