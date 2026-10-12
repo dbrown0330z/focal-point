@@ -4,7 +4,12 @@
 export type GallerySource = 'competition-winners' | 'recent-uploads' | 'member-picks' | 'portrait' | 'landscape'
 
 export interface WelcomeContent {
-  heading: string; body: string; ctaLabel: string; ctaLink: string
+  heading:      string
+  body:         string
+  ctaLabel:     string
+  ctaLink:      string
+  templateId?:  string
+  templateVars?: Record<string, string>
 }
 export interface LargeImageSettings {
   // gallerySource is a GallerySource OR 'club:<galleryId>' for a specific club gallery

@@ -1250,6 +1250,7 @@ export default function NavigationClient({
   initialGalleries = [],
   members = [],
   clubId,
+  clubName = '',
   initialBuiltinVisibility = { about: 'members_only', calendar: 'members_only' },
 }: {
   customPages:                CustomPage[]
@@ -1258,6 +1259,7 @@ export default function NavigationClient({
   initialGalleries?:          AdminGalleryData[]
   members?:                   ClubMember[]
   clubId:                     string
+  clubName?:                  string
   initialBuiltinVisibility?:  BuiltinPageVisibility
 }) {
   const params      = useParams()
@@ -1518,7 +1520,7 @@ export default function NavigationClient({
 
       {/* ── Homepage tab ─────────────────────────────────────────────────── */}
       {activeTab === 'homepage' && (
-        <HomepageEditor initialBlocks={initialHomepageBlocks} galleries={initialGalleries} members={members} />
+        <HomepageEditor initialBlocks={initialHomepageBlocks} galleries={initialGalleries} members={members} clubName={clubName} />
       )}
 
       {/* ── Pages tab ────────────────────────────────────────────────────── */}

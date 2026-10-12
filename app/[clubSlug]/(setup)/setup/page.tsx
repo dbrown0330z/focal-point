@@ -33,5 +33,5 @@ export default async function SetupPage() {
 
   if (!membership || membership.role !== 'admin') redirect('/')
 
-  return <SetupWizard clubSlug={ctx.clubSlug} clubId={ctx.clubId} clubName={ctx.clubName} />
+  return <SetupWizard clubSlug={ctx.clubSlug} clubId={ctx.clubId} clubName={ctx.clubName} adminEmail={user.email ?? ''} />
 }

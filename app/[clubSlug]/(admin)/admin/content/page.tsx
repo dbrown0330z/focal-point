@@ -18,13 +18,14 @@ export default async function ContentPage() {
     admin.from('nav_custom_pages').select('id,title,slug,parent_system,tab_id,page_type,external_url,visibility,status,sort_order,updated_at').eq('club_id', ctx!.clubId).order('sort_order'),
     admin.from('nav_custom_tabs').select('*').eq('club_id', ctx!.clubId).order('sort_order'),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (admin as any).from('club_settings').select('homepage_blocks').eq('club_id', ctx!.clubId).single(),
+    (admin as any).from('club_settings').select('homepage_blocks, club_name').eq('club_id', ctx!.clubId).single(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (admin as any).from('club_settings').select('page_visibility').eq('club_id', ctx!.clubId).maybeSingle(),
   ])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const saved: ContentBlock[] = ((csBlocks as any)?.homepage_blocks as ContentBlock[] | null) ?? DEFAULT_BLOCKS
+  const clubNameForEditor: string = (csBlocks as any)?.club_name ?? ''
   const homepageBlocks: ContentBlock[] = mergeBlocks(saved, DEFAULT_BLOCKS)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -104,6 +105,7 @@ export default async function ContentPage() {
       initialGalleries={galleries}
       members={members}
       clubId={ctx!.clubId}
+      clubName={clubNameForEditor}
       initialBuiltinVisibility={builtinVisibility}
     />
   )

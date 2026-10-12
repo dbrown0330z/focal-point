@@ -43,6 +43,7 @@ import {
   type CompetitionsSettings,
 } from '@/lib/homepage/types'
 import type { AdminGalleryData, ClubMember } from '@/app/[clubSlug]/(admin)/admin/content/galleries/ClubGalleriesTab'
+import { WelcomeTemplatePicker } from '@/components/setup/WelcomeTemplatePicker'
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -312,7 +313,7 @@ function CriteriaSelect({ value, onChange }: { value: string; onChange: (v: stri
 
 // ── Block modal — settings panels per type ─────────────────────────────────────
 
-function WelcomeModalBody({ block, onChange }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void }) {
+function WelcomeModalBody({ block, onChange, clubName }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void; clubName: string }) {
   const c = block.welcomeContent!
   const set = (k: keyof WelcomeContent, v: string) => onChange({ welcomeContent: { ...c, [k]: v } })
   return (
@@ -322,13 +323,15 @@ function WelcomeModalBody({ block, onChange }: { block: ContentBlock; onChange: 
           Logged-in members see a compact "Welcome back" greeting automatically — no separate config needed.
         </Typography>
       </Box>
-      <FieldRow label="Headline">
-        <TextField size="small" fullWidth value={c.heading} onChange={e => set('heading', e.target.value)} sx={inputSx} />
-      </FieldRow>
-      <FieldRow label="Body">
-        <TextField size="small" fullWidth multiline minRows={3} value={c.body} onChange={e => set('body', e.target.value)} sx={inputSx} />
-      </FieldRow>
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+
+      {/* Template picker — sets heading + body; CTA fields stay editable below */}
+      <WelcomeTemplatePicker
+        clubName={clubName}
+        value={c}
+        onChange={updated => onChange({ welcomeContent: { ...c, ...updated } })}
+      />
+
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mt: 1 }}>
         <FieldRow label="CTA label">
           <TextField size="small" fullWidth value={c.ctaLabel} onChange={e => set('ctaLabel', e.target.value)} sx={inputSx} />
         </FieldRow>
@@ -844,7 +847,7 @@ function CompetitionsModalBody({ block, onChange }: { block: ContentBlock; onCha
 // ── Block edit modal ───────────────────────────────────────────────────────────
 
 function BlockEditModal({
-  block, onClose, onCancel, onUpdate, onRemove, galleries, members,
+  block, onClose, onCancel, onUpdate, onRemove, galleries, members, clubName,
 }: {
   block:     ContentBlock | null
   onClose:   () => void
@@ -853,6 +856,7 @@ function BlockEditModal({
   onRemove?: () => void
   galleries: AdminGalleryData[]
   members:   ClubMember[]
+  clubName:  string
 }) {
   if (!block) return null
   const meta = MODAL_META[block.type] ?? { title: block.label ?? block.name, description: '' }
@@ -881,7 +885,7 @@ function BlockEditModal({
           {meta.description}
         </Typography>
 
-        {block.type === 'welcome'           && <WelcomeModalBody          block={block} onChange={onUpdate} />}
+        {block.type === 'welcome'           && <WelcomeModalBody          block={block} onChange={onUpdate} clubName={clubName} />}
         {block.type === 'large-image'      && <LargeImageModalBody       block={block} onChange={onUpdate} galleries={galleries} />}
         {block.type === 'gallery-preview'  && <GalleryPreviewModalBody   block={block} onChange={onUpdate} galleries={galleries} />}
         {block.type === 'club-galleries'   && <ClubGalleriesModalBody    block={block} onChange={onUpdate} galleries={galleries} />}
@@ -1873,7 +1877,7 @@ function LivePreview({ blocks, fullscreen = false, galleries }: { blocks: Conten
 
 // ── Main HomepageEditor ────────────────────────────────────────────────────────
 
-export default function HomepageEditor({ initialBlocks, galleries = [], members = [] }: { initialBlocks?: ContentBlock[]; galleries?: AdminGalleryData[]; members?: ClubMember[] }) {
+export default function HomepageEditor({ initialBlocks, galleries = [], members = [], clubName = '' }: { initialBlocks?: ContentBlock[]; galleries?: AdminGalleryData[]; members?: ClubMember[]; clubName?: string }) {
   const pathname = usePathname()
   const router   = useRouter()
   const clubSlug = pathname?.split('/')[1] ?? ''
@@ -2103,6 +2107,7 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
         onRemove={syncedEditBlock?.type === 'custom-content' ? () => requestDelete(syncedEditBlock.id) : undefined}
         galleries={galleries}
         members={members}
+        clubName={clubName}
       />
 
       {/* Publish dialog */}
