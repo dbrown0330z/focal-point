@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { Logo } from './Logo'
 
 const NAV_ITEMS = [
-  { href: '/',         label: 'Home'     },
+  { href: '/?ref=app', label: 'Home'     },
   { href: '/features', label: 'Features' },
   { href: '/pricing',  label: 'Pricing'  },
   { href: '/about',    label: 'About'    },
