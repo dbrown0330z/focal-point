@@ -18,6 +18,7 @@ import {
   judgeReminder1Day,
   judgeReminderClosingDay,
   judgeCancellationNotification,
+  clubSignupVerification,
 } from './templates'
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
@@ -233,4 +234,16 @@ export async function sendJudgeCancellationNotification(args: {
 }) {
   const { subject, html } = judgeCancellationNotification(args)
   await getResend().emails.send({ from: FROM_ADDRESS, to: args.judgeEmail, subject, html })
+}
+
+// ─── Club signup: email verification ─────────────────────────────────────────
+
+export async function sendClubSignupVerification(args: {
+  contactEmail: string
+  firstName:    string
+  clubName:     string
+  verifyUrl:    string
+}) {
+  const { subject, html } = clubSignupVerification(args)
+  await getResend().emails.send({ from: FROM_ADDRESS, to: args.contactEmail, subject, html })
 }

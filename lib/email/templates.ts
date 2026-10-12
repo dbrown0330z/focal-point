@@ -415,3 +415,31 @@ export function judgeCancellationNotification(args: {
     `),
   }
 }
+
+// ─── Club signup: email verification / welcome ────────────────────────────────
+
+export function clubSignupVerification(args: {
+  firstName:   string
+  clubName:    string
+  verifyUrl:   string
+}): { subject: string; html: string } {
+  return {
+    subject: `Welcome to Focal Point — let's get ${args.clubName} set up`,
+    html: base(`
+      <p>Hi ${args.firstName},</p>
+      <p>We're glad you're here. You're one click away from having a proper digital home for <strong>${args.clubName}</strong> — and your free 60-day trial starts the moment you do.</p>
+      <p>Here's what you're about to unlock:</p>
+      <ul>
+        <li><strong>Online competitions</strong> — run your monthly competitions end-to-end, with a judging portal your judges can access without creating an account</li>
+        <li><strong>Member image library</strong> — members upload their work any time; it's ready to submit when a competition opens</li>
+        <li><strong>Automated results</strong> — scores, standings, and awards published the moment judging closes</li>
+        <li><strong>Club website</strong> — a public-facing home for your club, no web developer required</li>
+        <li><strong>Members, calendar, and more</strong> — everything in one place, nothing to stitch together</li>
+      </ul>
+      <p>The whole setup takes about five minutes. Click the button below to verify your email and begin:</p>
+      <a href="${args.verifyUrl}" class="btn">Begin your club setup →</a>
+      <p style="font-size:13px;color:#737373">This link expires in 24 hours. If you didn't request a Focal Point trial, you can safely ignore this email.</p>
+      <p style="font-size:13px;color:#737373">— The Focal Point team</p>
+    `),
+  }
+}

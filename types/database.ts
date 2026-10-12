@@ -322,37 +322,64 @@ export type Database = {
       }
       clubs: {
         Row: {
+          admin_first_name: string | null
+          admin_last_name: string | null
           approved_at: string | null
           approved_by: string | null
           contact_email: string | null
           created_at: string
           id: string
+          invite_sent_at: string | null
+          location: string | null
           name: string
+          notes: string | null
           plan: string
           slug: string
           status: string
+          submitted_at: string | null
+          verification_expires_at: string | null
+          verification_token: string | null
+          verified_at: string | null
         }
         Insert: {
+          admin_first_name?: string | null
+          admin_last_name?: string | null
           approved_at?: string | null
           approved_by?: string | null
           contact_email?: string | null
           created_at?: string
           id?: string
+          invite_sent_at?: string | null
+          location?: string | null
           name: string
+          notes?: string | null
           plan?: string
           slug: string
           status?: string
+          submitted_at?: string | null
+          verification_expires_at?: string | null
+          verification_token?: string | null
+          verified_at?: string | null
         }
         Update: {
+          admin_first_name?: string | null
+          admin_last_name?: string | null
           approved_at?: string | null
           approved_by?: string | null
           contact_email?: string | null
           created_at?: string
           id?: string
+          invite_sent_at?: string | null
+          location?: string | null
           name?: string
+          notes?: string | null
           plan?: string
           slug?: string
           status?: string
+          submitted_at?: string | null
+          verification_expires_at?: string | null
+          verification_token?: string | null
+          verified_at?: string | null
         }
         Relationships: []
       }

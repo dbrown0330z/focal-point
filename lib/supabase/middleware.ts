@@ -12,7 +12,7 @@ const RESERVED_SEGMENTS = new Set([
   // Global auth callback
   'auth',
   // Focal Point internal
-  'super-admin', 'fp-admin', 'start',
+  'super-admin', 'fp-admin', 'start', 'verify',
   // API + assets
   'api', '_next', 'favicon.ico', 'sitemap.xml', 'robots.txt',
   // Judge portal (token-gated, not club-scoped via slug)
