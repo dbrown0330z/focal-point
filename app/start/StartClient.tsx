@@ -23,6 +23,7 @@ export default function StartClient() {
   const [submitting,   setSubmitting]   = useState(false)
   const [error,        setError]        = useState<string | null>(null)
   const [done,         setDone]         = useState(false)
+  const [honeypot,     setHoneypot]     = useState('')
 
   const preview = slugPreview(clubName)
 
@@ -31,6 +32,7 @@ export default function StartClient() {
     setSubmitting(true)
     setError(null)
     const fd = new FormData()
+    fd.set('website',      honeypot)  // honeypot — bots fill this, humans don't
     fd.set('clubName',     clubName)
     fd.set('location',     location)
     fd.set('firstName',    firstName)
@@ -76,6 +78,17 @@ export default function StartClient() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Honeypot: hidden from real users, bots fill it automatically */}
+      <input
+        type="text"
+        name="website"
+        value={honeypot}
+        onChange={e => setHoneypot(e.target.value)}
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0 }}
+      />
 
       {/* Club name */}
       <div>
