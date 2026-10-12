@@ -36,7 +36,7 @@ function isLikelyBot(clubName: string, firstName: string, lastName: string): boo
   return false
 }
 
-export async function submitClubApplication(formData: FormData): Promise<{ error?: string; ok?: boolean }> {
+export async function submitClubApplication(formData: FormData): Promise<{ error?: string; ok?: boolean; alreadyActive?: boolean }> {
   // ── Honeypot ───────────────────────────────────────────────────────────────
   const trap = (formData.get('website') as string | null) ?? ''
   if (trap.length > 0) return { ok: true }
@@ -61,6 +61,50 @@ export async function submitClubApplication(formData: FormData): Promise<{ error
   }
 
   const admin = createServiceClient()
+
+  // ── Duplicate email check ──────────────────────────────────────────────────
+  const { data: existing } = await admin
+    .from('clubs')
+    .select('id, slug, status, admin_first_name, name, verification_token')
+    .eq('contact_email', contactEmail)
+    .maybeSingle()
+
+  if (existing) {
+    if (existing.status === 'active') {
+      // Already a live club with this email — tell them to sign in
+      return { alreadyActive: true }
+    }
+
+    // Pending (unverified) — resend with a fresh token
+    const verificationToken   = randomUUID()
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+
+    await admin
+      .from('clubs')
+      .update({
+        verification_token:      verificationToken,
+        verification_expires_at: verificationExpires,
+        admin_first_name:        firstName,
+        admin_last_name:         lastName,
+      })
+      .eq('id', existing.id)
+
+    const siteUrl   = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
+    const verifyUrl = `${siteUrl}/verify?token=${verificationToken}`
+
+    try {
+      await sendClubSignupVerification({
+        contactEmail,
+        firstName,
+        clubName: existing.name,
+        verifyUrl,
+      })
+    } catch { /* non-fatal */ }
+
+    return { ok: true }
+  }
+
+  // ── New application ────────────────────────────────────────────────────────
 
   // Ensure slug uniqueness
   let slug = baseSlug
@@ -91,14 +135,12 @@ export async function submitClubApplication(formData: FormData): Promise<{ error
 
   if (error) return { error: error.message }
 
-  const siteUrl  = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
+  const siteUrl   = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
   const verifyUrl = `${siteUrl}/verify?token=${verificationToken}`
 
   try {
     await sendClubSignupVerification({ contactEmail, firstName, clubName, verifyUrl })
-  } catch {
-    // Non-fatal — application is saved; email can be resent from fp-admin
-  }
+  } catch { /* non-fatal — application saved; email can be resent from fp-admin */ }
 
   return { ok: true }
 }

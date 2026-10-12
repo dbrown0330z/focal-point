@@ -23,6 +23,7 @@ export default function StartClient() {
   const [submitting,   setSubmitting]   = useState(false)
   const [error,        setError]        = useState<string | null>(null)
   const [done,         setDone]         = useState(false)
+  const [alreadyActive, setAlreadyActive] = useState(false)
   const [honeypot,     setHoneypot]     = useState('')
 
   const preview = slugPreview(clubName)
@@ -41,6 +42,7 @@ export default function StartClient() {
     const res = await submitClubApplication(fd)
     setSubmitting(false)
     if (res.error) { setError(res.error); return }
+    if (res.alreadyActive) { setAlreadyActive(true); return }
     setDone(true)
   }
 
@@ -63,6 +65,31 @@ export default function StartClient() {
         </p>
         <Link href="/" className="text-sm font-medium" style={{ color: 'var(--action-primary)' }}>
           ← Back to home
+        </Link>
+      </div>
+    )
+  }
+
+
+  if (alreadyActive) {
+    return (
+      <div className="text-center py-12">
+        <div className="inline-flex h-16 w-16 items-center justify-center rounded-full mb-6"
+             style={{ background: 'var(--status-warning-bg)' }}>
+          <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+               style={{ color: 'var(--status-warning)' }}>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
+          Account already exists
+        </h2>
+        <p className="text-base max-w-md mx-auto mb-8" style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          A club is already set up with <strong>{email}</strong>. Sign in to access it.
+        </p>
+        <Link href="/login" className="mkt-btn mkt-btn-amber" style={{ display: 'inline-flex' }}>
+          Sign in →
         </Link>
       </div>
     )
