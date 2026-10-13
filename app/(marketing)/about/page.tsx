@@ -2,7 +2,7 @@ import { IrisApertureLogo } from '@/components/marketing/IrisApertureLogo'
 import { SectionHeader } from '@/components/marketing/SectionHeader'
 import { Reveal } from '@/components/marketing/Reveal'
 import { BigCTA } from '@/components/marketing/BigCTA'
-import { IconSparkle, IconUsers, IconStar, IconPlus } from '@/components/marketing/Icons'
+import { IconSparkle, IconUsers, IconStar } from '@/components/marketing/Icons'
 import { ContactForm } from './ContactForm'
 
 const VALUES = [
@@ -26,16 +26,6 @@ const VALUES = [
   },
 ]
 
-const TEAM = [
-  { name: 'David Brown',     role: 'Founder & Engineer',    palette: ['#2B2218', '#E26A3E', '#E8B14A'] },
-  { name: 'Marguerite Loh',  role: 'Design & UX',           palette: ['#3A1A22', '#C9436F', '#F5D2DB'] },
-  { name: 'David Okafor',    role: 'Community & Clubs',     palette: ['#1B2A20', '#3FA889', '#CBE7DA'] },
-  { name: 'Aiko Pereira',    role: 'Customer Success',      palette: ['#0D2433', '#3F7FB8', '#9DC4E5'] },
-  { name: 'Jonas Henrik',    role: 'Infrastructure',        palette: ['#26143A', '#7A4DAA', '#D8C9EA'] },
-  { name: 'Sara Nakamura',   role: 'Product',               palette: ['#1F1A12', '#806749', '#E5D8B5'] },
-  { name: 'Rafi Abdi',       role: 'Photography & Testing', palette: ['#1E2B27', '#3FA889', '#E8B14A'] },
-  { name: 'Cleo Martins',    role: 'Marketing & Growth',    palette: ['#2B1422', '#AD1457', '#F4D8DD'] },
-]
 
 export default function AboutPage() {
   return (
@@ -62,16 +52,16 @@ export default function AboutPage() {
                   </p>
                   <p style={{ margin: 0 }}>
                     What started as a personal project became a platform when other club admins started asking
-                    for access. We realized the problem wasn&apos;t unique — every camera club in the world was
-                    solving the same problem with the same workarounds.
+                    for access. The problem wasn&apos;t unique — every camera club runs the same workarounds,
+                    just in different spreadsheets.
                   </p>
                   <p style={{ margin: 0 }}>
-                    Today Focal Point is used by clubs across North America, Europe, and Australia.
-                    The product is shaped entirely by the clubs who use it. We listen to every conversation,
-                    take every competition season as a test, and ship improvements fast.
+                    Focal Point is built and run from New Hampshire. It&apos;s a small operation, which means
+                    every conversation with a club actually matters, every piece of feedback lands directly
+                    with the people who can act on it, and nothing gets lost in a ticket queue.
                   </p>
                   <p style={{ margin: 0 }}>
-                    We&apos;re small, independent, and very happy about both of those things.
+                    Small, independent, and happy about both.
                   </p>
                 </div>
               </div>
@@ -122,37 +112,50 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── TEAM ── */}
+      {/* ── WHO WE ARE ── */}
       <section className="mkt-band">
         <div className="mkt-wrap">
-          <SectionHeader
-            kicker="The team"
-            title={<>Small team. <em style={{ color: '#E26A3E' }}>Big opinions about photography.</em></>}
-            lead="Everyone at Focal Point either shoots or has run a camera club. Usually both."
-          />
-          <div className="mkt-grid-4">
-            {TEAM.map((person, i) => (
-              <Reveal key={i} delay={i * 40}>
-                <div className="mkt-card" style={{ padding: 20 }}>
-                  <div style={{
-                    aspectRatio: '1',
-                    borderRadius: 10,
-                    background: `linear-gradient(135deg, ${person.palette.join(', ')})`,
-                    marginBottom: 14,
-                  }} />
-                  <div style={{ fontWeight: 600, fontSize: 15 }}>{person.name}</div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)', letterSpacing: '0.08em', marginTop: 4 }}>{person.role}</div>
+          <Reveal>
+            <div style={{
+              background: 'var(--paper-warm)', border: '1.5px solid var(--rule)',
+              borderRadius: 16, padding: '52px 56px',
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '40px 64px', alignItems: 'center',
+            }}>
+              <div>
+                <div className="mkt-kicker" style={{ marginBottom: 18 }}>
+                  <span className="mkt-kicker-dot" style={{ background: '#E26A3E' }} />
+                  Who&apos;s building this
                 </div>
-              </Reveal>
-            ))}
-            <Reveal delay={TEAM.length * 40}>
-              <div className="mkt-card" style={{ padding: 20, borderStyle: 'dashed', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', minHeight: 180 }}>
-                <div style={{ color: 'var(--muted)', marginBottom: 12 }}><IconPlus /></div>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>Join us</div>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)', letterSpacing: '0.08em', marginTop: 4 }}>We&apos;re hiring</div>
+                <h2 className="mkt-display" style={{ marginBottom: 20 }}>
+                  Small team. <em style={{ color: '#E26A3E' }}>Real photographers.</em>
+                </h2>
+                <div style={{ display: 'grid', gap: 16, color: 'var(--ink-soft)', fontSize: 16 }}>
+                  <p style={{ margin: 0 }}>
+                    Focal Point is built by a small team based in New Hampshire. We shoot,
+                    we&apos;ve run clubs, and we know exactly how much a well-run monthly competition
+                    matters to a membership.
+                  </p>
+                  <p style={{ margin: 0 }}>
+                    Being small means we move fast, stay close to the clubs using the product,
+                    and never lose sight of why we built this in the first place.
+                  </p>
+                </div>
               </div>
-            </Reveal>
-          </div>
+              <div style={{ display: 'grid', gap: 20 }}>
+                {[
+                  { label: 'Based in',   value: 'New Hampshire, USA' },
+                  { label: 'Founded',    value: '2024' },
+                  { label: 'What we do', value: 'Build tools. Run competitions. Make images.' },
+                ].map(({ label, value }) => (
+                  <div key={label} style={{ borderTop: '1px solid var(--rule)', paddingTop: 16 }}>
+                    <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 6 }}>{label}</div>
+                    <div style={{ fontWeight: 600, fontSize: 16 }}>{value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Reveal>
         </div>
       </section>
 
