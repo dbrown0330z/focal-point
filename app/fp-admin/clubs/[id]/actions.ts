@@ -146,3 +146,24 @@ export async function saveNotes(clubId: string, notes: string): Promise<{ error?
   revalidatePath(`/fp-admin/clubs/${clubId}`)
   return {}
 }
+
+export async function deleteClub(clubId: string): Promise<{ error?: string }> {
+  try {
+    await currentUserId() // fp-admin gate is enforced in the page; this confirms auth
+    const admin = createServiceClient()
+
+    // Delete related rows first (cascade may not cover everything depending on FK settings)
+    await Promise.all([
+      (admin as any).from('club_memberships').delete().eq('club_id', clubId),
+      (admin as any).from('club_settings').delete().eq('club_id', clubId),
+    ])
+
+    const { error } = await (admin as any).from('clubs').delete().eq('id', clubId)
+    if (error) return { error: error.message }
+
+    revalidatePath('/fp-admin/clubs')
+    return {}
+  } catch (err: any) {
+    return { error: err.message ?? 'Unexpected error' }
+  }
+}

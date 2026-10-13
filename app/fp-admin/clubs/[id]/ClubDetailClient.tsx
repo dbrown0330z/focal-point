@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { provisionClub, suspendClub, reactivateClub, resendInvite, saveNotes } from './actions'
+import { useRouter } from 'next/navigation'
+import { provisionClub, suspendClub, reactivateClub, resendInvite, saveNotes, deleteClub } from './actions'
 
 interface Club {
   id: string
@@ -11,9 +12,11 @@ interface Club {
 }
 
 export default function ClubDetailClient({ club }: { club: Club }) {
-  const [notes, setNotes]     = useState(club.notes ?? '')
-  const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null)
-  const [isPending, startTransition] = useTransition()
+  const [notes, setNotes]         = useState(club.notes ?? '')
+  const [message, setMessage]     = useState<{ text: string; error: boolean } | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [isPending, startTransition]      = useTransition()
+  const router = useRouter()
 
   function act(action: () => Promise<{ error?: string }>, successMsg: string) {
     startTransition(async () => {
@@ -63,6 +66,47 @@ export default function ClubDetailClient({ club }: { club: Club }) {
               disabled={isPending}
               onClick={() => act(() => reactivateClub(club.id), 'Club reactivated.')}
             />
+          )}
+        </div>
+
+        {/* Delete — always visible, requires confirmation */}
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          {!confirmDelete ? (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              disabled={isPending}
+              className="text-xs text-red-500 hover:text-red-700 underline underline-offset-2 transition-colors disabled:opacity-50"
+            >
+              Delete this club…
+            </button>
+          ) : (
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-red-700 font-medium">Delete permanently?</span>
+              <button
+                onClick={() => {
+                  startTransition(async () => {
+                    const result = await deleteClub(club.id)
+                    if (result.error) {
+                      setMessage({ text: result.error, error: true })
+                      setConfirmDelete(false)
+                    } else {
+                      router.push('/fp-admin/clubs')
+                    }
+                  })
+                }}
+                disabled={isPending}
+                className="px-3 py-1 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {isPending ? 'Deleting…' : 'Yes, delete'}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                disabled={isPending}
+                className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           )}
         </div>
 
