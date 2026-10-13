@@ -31,6 +31,8 @@ export default function LoginForm({
   verifiedParam,
   nextParam,
   clubSlug,
+  clubName,
+  isFpAdmin,
 }: {
   errorParam?: string
   pendingParam?: string
@@ -38,11 +40,23 @@ export default function LoginForm({
   verifiedParam?: string
   nextParam?: string
   clubSlug?: string
+  clubName?: string
+  isFpAdmin?: boolean
 }) {
   const [loading, setLoading] = useState(false)
 
   return (
     <>
+      {isFpAdmin && (
+        <p style={{ marginBottom: '16px', fontSize: '11px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9E9E9E', fontFamily: 'var(--font-nunito, Nunito, system-ui, sans-serif)' }}>
+          Focal Point Admin
+        </p>
+      )}
+      {clubName && (
+        <p style={{ marginBottom: '16px', fontSize: '13px', fontWeight: 600, color: 'var(--action-primary)', fontFamily: 'var(--font-lora, Lora, Georgia, serif)' }}>
+          {clubName}
+        </p>
+      )}
       <h2 style={{
         marginBottom: '24px', fontSize: '20px', fontWeight: 600,
         color: '#E8E8E8', fontFamily: 'var(--font-lora, Lora, Georgia, serif)',

@@ -68,6 +68,7 @@ export default async function ClubLoginPage({
             verifiedParam={verified}
             nextParam={next}
             clubSlug={clubSlug}
+            clubName={clubName}
           />
         </div>
       </div>

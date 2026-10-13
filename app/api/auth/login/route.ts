@@ -38,8 +38,12 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
+  // Preserve fp=1 so errors redirect back to the fp-admin login, not the club login
+  const isFpAdmin = next === '/fp-admin' || next?.startsWith('/fp-admin/')
+  const errorBase = isFpAdmin ? '/login?fp=1' : '/login'
+
   const redirectUrl = error
-    ? new URL(`/login?error=${encodeURIComponent(error.message)}${next ? `&next=${encodeURIComponent(next)}` : ''}`, request.url)
+    ? new URL(`${errorBase}${errorBase.includes('?') ? '&' : '?'}error=${encodeURIComponent(error.message)}${next ? `&next=${encodeURIComponent(next)}` : ''}`, request.url)
     : new URL(next ?? '/', request.url)
 
   const response = NextResponse.redirect(redirectUrl, { status: 303 })
