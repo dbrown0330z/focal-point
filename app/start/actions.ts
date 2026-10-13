@@ -79,9 +79,20 @@ export async function submitClubApplication(formData: FormData): Promise<{ error
     const verificationToken   = randomUUID()
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
 
+    // Re-slug if the club name changed (best-effort; skip on collision)
+    let updatedSlug = existing.slug
+    const newBaseSlug = slugify(clubName)
+    if (newBaseSlug && newBaseSlug !== existing.slug) {
+      const { data: conflict } = await admin.from('clubs').select('id').eq('slug', newBaseSlug).maybeSingle()
+      if (!conflict) updatedSlug = newBaseSlug
+    }
+
     await admin
       .from('clubs')
       .update({
+        name:                    clubName,
+        slug:                    updatedSlug,
+        location:                location,
         verification_token:      verificationToken,
         verification_expires_at: verificationExpires,
         admin_first_name:        firstName,
@@ -97,7 +108,7 @@ export async function submitClubApplication(formData: FormData): Promise<{ error
       await sendClubSignupVerification({
         contactEmail,
         firstName,
-        clubName: existing.name,
+        clubName,
         verifyUrl,
       })
     } catch (e) {
