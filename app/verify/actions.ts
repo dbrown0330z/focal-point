@@ -52,6 +52,14 @@ export async function confirmVerification(token: string) {
     })
     .eq('id', club.id)
 
+  // Grant admin role — the trigger created the profile with role=null
+  if (userId) {
+    await admin
+      .from('profiles')
+      .update({ role: 'admin' })
+      .eq('id', userId)
+  }
+
   if (!userId) redirect(`/${club.slug}/login?verified=1`)
   redirect(`/${club.slug}/create-password?uid=${userId}`)
 }

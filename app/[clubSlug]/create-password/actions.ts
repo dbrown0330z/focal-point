@@ -45,5 +45,5 @@ export async function setInitialPassword(
     redirect(`/${clubSlug}/login?reset=1`)
   }
 
-  redirect(`/${clubSlug}/setup`)
+  redirect('/admin')
 }

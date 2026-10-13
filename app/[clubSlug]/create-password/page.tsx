@@ -33,6 +33,7 @@ export default async function CreatePasswordPage({
       clubSlug={clubSlug}
       uid={uid}
       firstName={club.admin_first_name ?? ''}
+      email={club.contact_email ?? ''}
     />
   )
 }

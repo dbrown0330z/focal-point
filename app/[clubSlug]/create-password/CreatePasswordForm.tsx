@@ -29,10 +29,12 @@ export default function CreatePasswordForm({
   clubSlug,
   uid,
   firstName,
+  email,
 }: {
   clubSlug: string
   uid: string
   firstName: string
+  email: string
 }) {
   const [password,  setPassword]  = useState('')
   const [confirm,   setConfirm]   = useState('')
@@ -96,6 +98,8 @@ export default function CreatePasswordForm({
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 20 }}>
+          {/* Hidden username field so password managers correctly associate the credential */}
+          <input type="email" name="username" autoComplete="username" value={email} readOnly style={{ display: 'none' }} />
           <div>
             <label style={labelStyle}>
               Password
