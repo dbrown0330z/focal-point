@@ -63,15 +63,14 @@ export default function StartPage() {
             {/* Heading — #161412 on #FBF6EC ≈ 16:1 ✓ */}
             {/* Amber italic — #7B5000 on #FBF6EC ≈ 6.5:1 ✓ (also large text) */}
             <h1 style={{
-              fontSize: 'clamp(30px, 4vw, 40px)',
-              fontWeight: 700,
+              fontSize: 'clamp(34px, 4.5vw, 46px)',
+              fontWeight: 400,
               lineHeight: 1.18,
-              letterSpacing: '-0.02em',
+              letterSpacing: '-0.01em',
               color: '#161412',
               marginBottom: 22,
             }}>
-              Built for clubs like yours.{' '}
-              <em style={{ color: '#7B5000', fontStyle: 'italic' }}>Ready when you are.</em>
+              Built for clubs like yours.
             </h1>
 
             {/* Body — #4A4037 on #FBF6EC ≈ 9.1:1 ✓ */}
