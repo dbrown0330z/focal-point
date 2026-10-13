@@ -9,7 +9,7 @@ import { Reveal } from '@/components/marketing/Reveal'
 import { BigCTA } from '@/components/marketing/BigCTA'
 import {
   IconTrophy, IconUsers, IconImage, IconCalendar,
-  IconGavel, IconSparkle, IconStar, IconArrow,
+  IconGavel, IconSparkle, IconStar, IconArrow, IconCheck,
 } from '@/components/marketing/Icons'
 
 export default async function HomePage({
@@ -72,9 +72,9 @@ export default async function HomePage({
               </Link>
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 28, flexWrap: 'wrap' }}>
-              <span className="mkt-chip"><span className="mkt-chip-swatch" style={{ background: '#3FA889' }} />30-day trial</span>
+              <span className="mkt-chip"><span className="mkt-chip-swatch" style={{ background: '#3FA889' }} />60-day free trial</span>
               <span className="mkt-chip"><span className="mkt-chip-swatch" style={{ background: '#3F7FB8' }} />No card required</span>
-              <span className="mkt-chip"><span className="mkt-chip-swatch" style={{ background: '#E26A3E' }} />Cancel anytime</span>
+              <span className="mkt-chip"><span className="mkt-chip-swatch" style={{ background: '#E26A3E' }} />PSA discount available</span>
             </div>
           </div>
           <div className="mkt-hero-art">
@@ -249,6 +249,102 @@ export default async function HomePage({
                 </div>
               </Reveal>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── PRICING TEASER ── */}
+      <section className="mkt-band" style={{ background: 'var(--surface-teal)', padding: '96px 0' }}>
+        <div className="mkt-wrap">
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <div className="mkt-kicker" style={{ justifyContent: 'center', marginBottom: 16 }}>
+              <span className="mkt-kicker-dot" style={{ background: '#3FA889' }} />
+              Simple, transparent pricing
+            </div>
+            <h2 className="mkt-display" style={{ marginBottom: 16 }}>
+              All features. <em style={{ color: '#3FA889' }}>Every plan.</em>
+            </h2>
+            <p className="mkt-lead" style={{ maxWidth: '48ch', margin: '0 auto 8px' }}>
+              No add-ons, no feature gates. Online judging, galleries, email, and everything else
+              comes standard — the only thing that changes is how many members your club needs.
+            </p>
+          </div>
+
+          {/* Tier row */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: 12,
+            maxWidth: 900,
+            margin: '0 auto 32px',
+          }}>
+            {([
+              { name: 'Starter',   price: 149, members: 'Up to 30',  featured: false },
+              { name: 'Club',      price: 279, members: 'Up to 75',  featured: true  },
+              { name: 'Pro',       price: 449, members: 'Up to 150', featured: false },
+              { name: 'Unlimited', price: 699, members: 'Up to 300', featured: false },
+            ] as const).map((tier) => (
+              <Reveal key={tier.name}>
+                <div style={{
+                  background: tier.featured ? 'var(--teal)' : 'var(--paper-warm)',
+                  border: tier.featured ? '2px solid var(--teal)' : '1.5px solid var(--rule)',
+                  borderRadius: 12,
+                  padding: '20px 20px 18px',
+                  color: tier.featured ? 'white' : 'var(--ink)',
+                  position: 'relative',
+                }}>
+                  {tier.featured && (
+                    <div style={{
+                      position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)',
+                      background: 'var(--amber)', color: 'var(--ink)',
+                      fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
+                      textTransform: 'uppercase', padding: '3px 10px', borderRadius: 99,
+                      fontFamily: 'var(--mono)', whiteSpace: 'nowrap',
+                    }}>Most popular</div>
+                  )}
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6, marginBottom: 6 }}>
+                    {tier.name}
+                  </div>
+                  <div style={{ fontFamily: 'var(--serif)', fontSize: 36, lineHeight: 1, fontWeight: 700, marginBottom: 4 }}>
+                    ${tier.price}
+                  </div>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 11, opacity: 0.6, marginBottom: 12 }}>per year</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, opacity: tier.featured ? 1 : 0.85 }}>{tier.members}</div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+
+          {/* Feature bullets */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '8px 32px',
+            maxWidth: 860,
+            margin: '0 auto 40px',
+          }}>
+            {[
+              'Online judging portal included',
+              'Unlimited competitions & categories',
+              'Member image library & galleries',
+              'Automated results & awards',
+              'Club website & public pages',
+              'Events, calendar & email',
+            ].map((f) => (
+              <div key={f} className="mkt-feat-row" style={{ fontSize: 14 }}>
+                <span className="mkt-check"><IconCheck /></span>
+                <span style={{ color: 'var(--ink)' }}>{f}</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            <Link href="/pricing" className="mkt-btn mkt-btn-amber">
+              See full pricing <IconArrow />
+            </Link>
+            <p style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)', margin: 0, letterSpacing: '0.04em' }}>
+              60-day free trial · No credit card required · PSA members save 15%
+            </p>
           </div>
         </div>
       </section>

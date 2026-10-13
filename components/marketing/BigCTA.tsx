@@ -26,7 +26,7 @@ export function BigCTA() {
               <em style={{ color: '#E8B14A' }}>this season.</em>
             </h2>
             <p style={{ color: 'rgba(232,226,211,0.80)', fontSize: 18, marginBottom: 28 }}>
-              Free for 30 days. Bring your whole club. We&apos;ll help you migrate.
+              Free for 60 days, no card required. Bring your whole club. We&apos;ll help you migrate.
             </p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <Link href="/start" className="mkt-btn mkt-btn-amber">
