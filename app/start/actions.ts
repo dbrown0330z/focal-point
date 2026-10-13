@@ -36,7 +36,7 @@ function isLikelyBot(clubName: string, firstName: string, lastName: string): boo
   return false
 }
 
-export async function submitClubApplication(formData: FormData): Promise<{ error?: string; ok?: boolean; alreadyActive?: boolean }> {
+export async function submitClubApplication(formData: FormData): Promise<{ error?: string; ok?: boolean; alreadyActive?: boolean; emailError?: string }> {
   // ── Honeypot ───────────────────────────────────────────────────────────────
   const trap = (formData.get('website') as string | null) ?? ''
   if (trap.length > 0) return { ok: true }
@@ -92,6 +92,7 @@ export async function submitClubApplication(formData: FormData): Promise<{ error
     const siteUrl   = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
     const verifyUrl = `${siteUrl}/verify?token=${verificationToken}`
 
+    let emailError: string | undefined
     try {
       await sendClubSignupVerification({
         contactEmail,
@@ -99,9 +100,12 @@ export async function submitClubApplication(formData: FormData): Promise<{ error
         clubName: existing.name,
         verifyUrl,
       })
-    } catch { /* non-fatal */ }
+    } catch (e) {
+      emailError = e instanceof Error ? e.message : String(e)
+      console.error('[start] resend failed (existing):', emailError)
+    }
 
-    return { ok: true }
+    return { ok: true, emailError }
   }
 
   // ── New application ────────────────────────────────────────────────────────
@@ -138,9 +142,13 @@ export async function submitClubApplication(formData: FormData): Promise<{ error
   const siteUrl   = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
   const verifyUrl = `${siteUrl}/verify?token=${verificationToken}`
 
+  let emailError: string | undefined
   try {
     await sendClubSignupVerification({ contactEmail, firstName, clubName, verifyUrl })
-  } catch { /* non-fatal — application saved; email can be resent from fp-admin */ }
+  } catch (e) {
+    emailError = e instanceof Error ? e.message : String(e)
+    console.error('[start] resend failed (new):', emailError)
+  }
 
-  return { ok: true }
+  return { ok: true, emailError }
 }

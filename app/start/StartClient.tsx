@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { submitClubApplication } from './actions'
+
+const SS_KEY = 'fp_start_success'
 
 function slugPreview(name: string) {
   return name
@@ -14,7 +16,6 @@ function slugPreview(name: string) {
     .slice(0, 40) || null
 }
 
-// All colors verified WCAG AA on #FFFFFF card background
 const inputStyle: React.CSSProperties = {
   display: 'block',
   width: '100%',
@@ -23,8 +24,8 @@ const inputStyle: React.CSSProperties = {
   border: '1px solid rgba(22,20,18,0.18)',
   borderRadius: 8,
   padding: '10px 14px',
-  fontSize: 16,           // large enough for comfortable reading
-  color: '#161412',       // 21:1 on white ✓
+  fontSize: 16,
+  color: '#161412',
   height: 44,
   outline: 'none',
   transition: 'border-color 0.15s',
@@ -32,19 +33,21 @@ const inputStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  fontSize: 15,           // up from 13px
+  fontSize: 15,
   fontWeight: 600,
   marginBottom: 7,
-  color: '#2C2620',       // ~15:1 on white ✓
+  color: '#2C2620',
 }
 
-// Helper / fine-print text: #5C5047 on white = 7.8:1 ✓
 const helperStyle: React.CSSProperties = {
   marginTop: 7,
   fontSize: 13,
   color: '#5C5047',
   lineHeight: 1.5,
 }
+
+type Phase = 'form' | 'success' | 'exists'
+type SuccessData = { firstName: string; email: string; emailError?: string }
 
 export default function StartClient() {
   const [clubName,      setClubName]      = useState('')
@@ -54,11 +57,36 @@ export default function StartClient() {
   const [email,         setEmail]         = useState('')
   const [submitting,    setSubmitting]    = useState(false)
   const [error,         setError]         = useState<string | null>(null)
-  const [done,          setDone]          = useState(false)
-  const [alreadyActive, setAlreadyActive] = useState(false)
+  const [phase,         setPhase]         = useState<Phase>('form')
+  const [successData,   setSuccessData]   = useState<SuccessData>({ firstName: '', email: '' })
   const [honeypot,      setHoneypot]      = useState('')
 
+  // Recover success state if Next.js remounted the component after server action
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem(SS_KEY)
+      if (stored) {
+        const data: SuccessData & { phase: Phase } = JSON.parse(stored)
+        if (data.phase === 'success' || data.phase === 'exists') {
+          setSuccessData({ firstName: data.firstName, email: data.email, emailError: data.emailError })
+          setPhase(data.phase)
+        }
+      }
+    } catch { /* ignore */ }
+  }, [])
+
   const preview = slugPreview(clubName)
+
+  function persist(p: Phase, d: SuccessData) {
+    try { sessionStorage.setItem(SS_KEY, JSON.stringify({ phase: p, ...d })) } catch { /* ignore */ }
+  }
+
+  function reset() {
+    try { sessionStorage.removeItem(SS_KEY) } catch { /* ignore */ }
+    setPhase('form')
+    setSuccessData({ firstName: '', email: '' })
+    setClubName(''); setLocation(''); setFirstName(''); setLastName(''); setEmail('')
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -74,11 +102,21 @@ export default function StartClient() {
     const res = await submitClubApplication(fd)
     setSubmitting(false)
     if (res.error) { setError(res.error); return }
-    if (res.alreadyActive) { setAlreadyActive(true); return }
-    setDone(true)
+    if (res.alreadyActive) {
+      const d = { firstName, email }
+      persist('exists', d)
+      setSuccessData(d)
+      setPhase('exists')
+      return
+    }
+    const d: SuccessData = { firstName, email, emailError: res.emailError }
+    persist('success', d)
+    setSuccessData(d)
+    setPhase('success')
   }
 
-  if (done) {
+  if (phase === 'success') {
+    const { firstName: fn, email: em, emailError } = successData
     return (
       <div style={{ textAlign: 'center', padding: '32px 0' }}>
         <div style={{
@@ -92,19 +130,43 @@ export default function StartClient() {
           </svg>
         </div>
         <h3 style={{ fontSize: 22, fontWeight: 700, color: '#161412', marginBottom: 12 }}>
-          You&apos;re on your way, {firstName}!
+          You&apos;re on your way{fn ? `, ${fn}` : ''}!
         </h3>
-        <p style={{ fontSize: 16, lineHeight: 1.7, color: '#4A4037', maxWidth: '32ch', margin: '0 auto 28px' }}>
-          Check <strong style={{ color: '#161412' }}>{email}</strong> for your confirmation — it should arrive in the next minute or two.
-        </p>
-        <Link href="/about" style={{ fontSize: 15, color: '#1A6948', textDecoration: 'none', fontWeight: 600 }}>
+
+        {emailError ? (
+          <div style={{
+            background: '#FFFBE6', border: '1px solid rgba(166,124,0,0.25)',
+            borderRadius: 8, padding: '14px 18px', marginBottom: 24, textAlign: 'left',
+          }}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: '#6B5000', margin: '0 0 6px' }}>
+              Your club was created, but we had trouble sending the confirmation email.
+            </p>
+            <p style={{ fontSize: 14, color: '#6B5000', margin: 0, lineHeight: 1.6 }}>
+              Please email us at{' '}
+              <a href="mailto:support@focalpointhq.com" style={{ color: '#6B5000', fontWeight: 600 }}>
+                support@focalpointhq.com
+              </a>{' '}
+              and we&apos;ll get you set up manually. Quote the address{em ? <> <strong>{em}</strong></> : ''}.
+            </p>
+            <p style={{ fontSize: 12, color: '#9A7800', margin: '8px 0 0', fontFamily: 'var(--font-roboto-mono, monospace)' }}>
+              Error: {emailError}
+            </p>
+          </div>
+        ) : (
+          <p style={{ fontSize: 16, lineHeight: 1.7, color: '#4A4037', maxWidth: '34ch', margin: '0 auto 24px' }}>
+            Check <strong style={{ color: '#161412' }}>{em}</strong> for your confirmation link — it should arrive in the next minute or two.
+          </p>
+        )}
+
+        <Link href="/about" onClick={reset} style={{ fontSize: 15, color: '#1A6948', textDecoration: 'none', fontWeight: 600 }}>
           ← Back to Focal Point
         </Link>
       </div>
     )
   }
 
-  if (alreadyActive) {
+  if (phase === 'exists') {
+    const { email: em } = successData
     return (
       <div style={{ textAlign: 'center', padding: '32px 0' }}>
         <div style={{
@@ -121,9 +183,9 @@ export default function StartClient() {
           Account already exists
         </h3>
         <p style={{ fontSize: 16, lineHeight: 1.7, color: '#4A4037', maxWidth: '32ch', margin: '0 auto 28px' }}>
-          A club is already set up with <strong style={{ color: '#161412' }}>{email}</strong>. Sign in to access it.
+          A club is already set up with <strong style={{ color: '#161412' }}>{em}</strong>. Sign in to access it.
         </p>
-        <Link href="/login" style={{
+        <Link href="/login" onClick={reset} style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           background: '#E8B14A', color: '#161412',
           padding: '11px 24px', borderRadius: 8,
@@ -149,7 +211,6 @@ export default function StartClient() {
         style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0 }}
       />
 
-      {/* Club name */}
       <div>
         <label style={labelStyle}>
           Club name <span aria-hidden="true" style={{ color: '#C0392B' }}>*</span>
@@ -166,13 +227,11 @@ export default function StartClient() {
         />
         {preview && (
           <p style={{ ...helperStyle, fontFamily: 'var(--font-roboto-mono, monospace)' }}>
-            {/* Preview URL — informational, not required to understand the form */}
             focalpointhq.com/<span style={{ color: '#2C2620', fontWeight: 600 }}>{preview}</span>
           </p>
         )}
       </div>
 
-      {/* Location */}
       <div>
         <label style={labelStyle}>
           Location{' '}
@@ -187,7 +246,6 @@ export default function StartClient() {
         />
       </div>
 
-      {/* Name row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <div>
           <label style={labelStyle}>
@@ -221,7 +279,6 @@ export default function StartClient() {
         </div>
       </div>
 
-      {/* Email */}
       <div>
         <label style={labelStyle}>
           Email address <span aria-hidden="true" style={{ color: '#C0392B' }}>*</span>
@@ -259,7 +316,7 @@ export default function StartClient() {
         style={{
           width: '100%',
           background: submitting ? 'rgba(232,177,74,0.60)' : '#E8B14A',
-          color: '#161412',       // #161412 on #E8B14A ≈ 10:1 ✓
+          color: '#161412',
           border: 'none',
           borderRadius: 8,
           padding: '13px 20px',
@@ -274,7 +331,6 @@ export default function StartClient() {
         {submitting ? 'Starting your trial…' : 'Start free trial'}
       </button>
 
-      {/* #5C5047 on white = 7.8:1 ✓ */}
       <p style={{ textAlign: 'center', fontSize: 14, color: '#5C5047', lineHeight: 1.6, margin: 0 }}>
         60 days free · No credit card · No commitment
       </p>
