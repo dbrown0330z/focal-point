@@ -70,8 +70,8 @@ export default function StartPage() {
               color: '#161412',
               marginBottom: 22,
             }}>
-              Welcome. We&apos;re really glad{' '}
-              <em style={{ color: '#7B5000', fontStyle: 'italic' }}>you&apos;re here.</em>
+              Built for clubs like yours.{' '}
+              <em style={{ color: '#7B5000', fontStyle: 'italic' }}>Ready when you are.</em>
             </h1>
 
             {/* Body — #4A4037 on #FBF6EC ≈ 9.1:1 ✓ */}
@@ -130,18 +130,6 @@ export default function StartPage() {
               ))}
             </div>
 
-            {/* Fine print — #5C5047 on #FBF6EC ≈ 7.8:1 ✓ */}
-            <p style={{
-              marginTop: 52,
-              fontSize: 14,
-              lineHeight: 1.65,
-              color: '#5C5047',
-              borderTop: '1px solid rgba(22,20,18,0.10)',
-              paddingTop: 24,
-            }}>
-              60 days. No payment. No commitment. If it&apos;s not the right fit,
-              walk away — no hard feelings and no invoice.
-            </p>
           </div>
 
           {/* Right — form card */}
@@ -170,6 +158,19 @@ export default function StartPage() {
           </div>
 
         </div>
+
+        {/* Fine print — full width, centred below both columns */}
+        <p style={{
+          marginTop: 48,
+          fontSize: 14,
+          lineHeight: 1.65,
+          color: '#5C5047',
+          textAlign: 'center',
+          borderTop: '1px solid rgba(22,20,18,0.10)',
+          paddingTop: 28,
+        }}>
+          60 days. No payment. No commitment. If it&apos;s not the right fit, walk away — no hard feelings and no invoice.
+        </p>
       </div>
     </div>
   )
