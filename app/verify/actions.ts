@@ -32,6 +32,13 @@ export async function confirmVerification(token: string) {
     redirect('/?verified=error')
   }
 
+  // If user already existed, look them up by email
+  let userId = userData?.user?.id
+  if (!userId) {
+    const { data: { users } } = await admin.auth.admin.listUsers()
+    userId = users.find(u => u.email === club.contact_email)?.id
+  }
+
   await admin
     .from('club_settings')
     .upsert({ club_id: club.id }, { onConflict: 'club_id' })
@@ -45,8 +52,6 @@ export async function confirmVerification(token: string) {
     })
     .eq('id', club.id)
 
-  // Send them to their club login page with a prompt to set a password.
-  // (Admin-generated magic links conflict with Next.js PKCE flow; the
-  // standard password-reset email works reliably and keeps the auth path simple.)
-  redirect(`/${club.slug}/login?verified=1`)
+  if (!userId) redirect(`/${club.slug}/login?verified=1`)
+  redirect(`/${club.slug}/create-password?uid=${userId}`)
 }
