@@ -245,5 +245,6 @@ export async function sendClubSignupVerification(args: {
   verifyUrl:    string
 }) {
   const { subject, html } = clubSignupVerification(args)
-  await getResend().emails.send({ from: FROM_ADDRESS, to: args.contactEmail, subject, html })
+  const { error } = await getResend().emails.send({ from: FROM_ADDRESS, to: args.contactEmail, subject, html })
+  if (error) throw new Error(error.message)
 }
