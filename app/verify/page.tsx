@@ -67,8 +67,8 @@ export default async function VerifyPage({ searchParams }: Props) {
   })
 
   if (linkError || !linkData?.properties?.action_link) {
-    // Fallback: user can sign in manually
-    redirect(`/login?next=/${club.slug}/setup`)
+    // Fallback: send to club login page — they can request a magic link or reset password there
+    redirect(`/${club.slug}/login?verified=1&email=${encodeURIComponent(club.contact_email!)}`)
   }
 
   redirect(linkData.properties.action_link)
