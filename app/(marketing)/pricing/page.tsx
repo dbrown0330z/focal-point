@@ -216,7 +216,7 @@ export default function PricingPage() {
         <div className="mkt-wrap" style={{ maxWidth: 1100, margin: '0 auto' }}>
           <SectionHeader
             title="Every feature. Every plan."
-            lead="No add-ons, no feature gates, no per-judge fees. Every club gets the complete Focal Point platform from day one — the only thing that changes between plans is capacity."
+            lead="No add-ons, no feature gates. Judging is included at every plan — not locked behind a premium tier. The only thing that changes between plans is how many members and images your club needs."
             align="center"
           />
           <div style={{
