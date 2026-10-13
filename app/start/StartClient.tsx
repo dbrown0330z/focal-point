@@ -14,17 +14,40 @@ function slugPreview(name: string) {
     .slice(0, 40) || null
 }
 
+const inputStyle: React.CSSProperties = {
+  display: 'block',
+  width: '100%',
+  boxSizing: 'border-box',
+  background: '#F9F6F0',
+  border: '1px solid rgba(22,20,18,0.16)',
+  borderRadius: 8,
+  padding: '9px 12px',
+  fontSize: 14,
+  color: '#161412',
+  height: 40,
+  outline: 'none',
+  transition: 'border-color 0.15s',
+}
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: 13,
+  fontWeight: 500,
+  marginBottom: 6,
+  color: '#2C2620',
+}
+
 export default function StartClient() {
-  const [clubName,     setClubName]     = useState('')
-  const [location,     setLocation]     = useState('')
-  const [firstName,    setFirstName]    = useState('')
-  const [lastName,     setLastName]     = useState('')
-  const [email,        setEmail]        = useState('')
-  const [submitting,   setSubmitting]   = useState(false)
-  const [error,        setError]        = useState<string | null>(null)
-  const [done,         setDone]         = useState(false)
+  const [clubName,      setClubName]      = useState('')
+  const [location,      setLocation]      = useState('')
+  const [firstName,     setFirstName]     = useState('')
+  const [lastName,      setLastName]      = useState('')
+  const [email,         setEmail]         = useState('')
+  const [submitting,    setSubmitting]    = useState(false)
+  const [error,         setError]         = useState<string | null>(null)
+  const [done,          setDone]          = useState(false)
   const [alreadyActive, setAlreadyActive] = useState(false)
-  const [honeypot,     setHoneypot]     = useState('')
+  const [honeypot,      setHoneypot]      = useState('')
 
   const preview = slugPreview(clubName)
 
@@ -33,7 +56,7 @@ export default function StartClient() {
     setSubmitting(true)
     setError(null)
     const fd = new FormData()
-    fd.set('website',      honeypot)  // honeypot — bots fill this, humans don't
+    fd.set('website',      honeypot)
     fd.set('clubName',     clubName)
     fd.set('location',     location)
     fd.set('firstName',    firstName)
@@ -48,64 +71,64 @@ export default function StartClient() {
 
   if (done) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-flex h-16 w-16 items-center justify-center rounded-full mb-6"
-             style={{ background: 'var(--status-success-bg)' }}>
-          <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-               style={{ color: 'var(--status-success)' }}>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      <div style={{ textAlign: 'center', padding: '32px 0' }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: 56, height: 56, borderRadius: '50%',
+          background: 'rgba(63,168,137,0.12)',
+          marginBottom: 20,
+        }}>
+          <svg width="24" height="24" fill="none" stroke="#3FA889" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 className="text-2xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
-          Application received!
-        </h2>
-        <p className="text-base max-w-md mx-auto mb-8" style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-          Thanks, {firstName}! We&apos;ll review your request and send a setup link to{' '}
-          <strong>{email}</strong> within 1–2 business days.
+        <h3 style={{ fontSize: 20, fontWeight: 700, color: '#161412', marginBottom: 10 }}>
+          You&apos;re on your way, {firstName}!
+        </h3>
+        <p style={{ fontSize: 14, lineHeight: 1.7, color: '#6D655B', maxWidth: '30ch', margin: '0 auto 24px' }}>
+          Check <strong style={{ color: '#161412' }}>{email}</strong> for your confirmation — it should arrive in the next minute or two.
         </p>
-        <Link href="/" className="text-sm font-medium" style={{ color: 'var(--action-primary)' }}>
-          ← Back to home
+        <Link href="/" style={{ fontSize: 13, color: '#E8B14A', textDecoration: 'none', fontWeight: 600 }}>
+          ← Back to focalpointhq.com
         </Link>
       </div>
     )
   }
 
-
   if (alreadyActive) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-flex h-16 w-16 items-center justify-center rounded-full mb-6"
-             style={{ background: 'var(--status-warning-bg)' }}>
-          <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-               style={{ color: 'var(--status-warning)' }}>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" />
+      <div style={{ textAlign: 'center', padding: '32px 0' }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: 56, height: 56, borderRadius: '50%',
+          background: 'rgba(232,177,74,0.12)',
+          marginBottom: 20,
+        }}>
+          <svg width="24" height="24" fill="none" stroke="#E8B14A" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" />
           </svg>
         </div>
-        <h2 className="text-2xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
+        <h3 style={{ fontSize: 20, fontWeight: 700, color: '#161412', marginBottom: 10 }}>
           Account already exists
-        </h2>
-        <p className="text-base max-w-md mx-auto mb-8" style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-          A club is already set up with <strong>{email}</strong>. Sign in to access it.
+        </h3>
+        <p style={{ fontSize: 14, lineHeight: 1.7, color: '#6D655B', maxWidth: '30ch', margin: '0 auto 24px' }}>
+          A club is already set up with <strong style={{ color: '#161412' }}>{email}</strong>. Sign in to access it.
         </p>
-        <Link href="/login" className="mkt-btn mkt-btn-amber" style={{ display: 'inline-flex' }}>
+        <Link href="/login" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          background: '#E8B14A', color: '#161412',
+          padding: '9px 20px', borderRadius: 8,
+          fontSize: 14, fontWeight: 700, textDecoration: 'none',
+        }}>
           Sign in →
         </Link>
       </div>
     )
   }
 
-  const inputCls = "w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-  const inputStyle = {
-    background: 'var(--surface-2)',
-    border: '1px solid var(--border-default)',
-    color: 'var(--text-primary)',
-    height: '38px',
-  } as React.CSSProperties
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {/* Honeypot: hidden from real users, bots fill it automatically */}
+    <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 20 }}>
+      {/* Honeypot */}
       <input
         type="text"
         name="website"
@@ -119,8 +142,8 @@ export default function StartClient() {
 
       {/* Club name */}
       <div>
-        <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
-          Club name <span style={{ color: 'var(--status-error)' }}>*</span>
+        <label style={labelStyle}>
+          Club name <span style={{ color: '#C0392B' }}>*</span>
         </label>
         <input
           type="text"
@@ -128,36 +151,35 @@ export default function StartClient() {
           placeholder="e.g. Six Rivers Photography Club"
           value={clubName}
           onChange={e => setClubName(e.target.value)}
-          className={inputCls}
           style={inputStyle}
         />
         {preview && (
-          <p className="mt-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-            Your site URL: <span style={{ color: 'var(--text-secondary)' }}>focalpointhq.com/<strong>{preview}</strong></span>
+          <p style={{ marginTop: 6, fontSize: 12, color: 'rgba(22,20,18,0.40)', fontFamily: 'var(--font-roboto-mono, monospace)' }}>
+            focalpointhq.com/<span style={{ color: '#6D655B' }}>{preview}</span>
           </p>
         )}
       </div>
 
       {/* Location */}
       <div>
-        <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
-          Location <span className="font-normal text-xs" style={{ color: 'var(--text-tertiary)' }}>(optional)</span>
+        <label style={labelStyle}>
+          Location{' '}
+          <span style={{ fontWeight: 400, fontSize: 12, color: 'rgba(22,20,18,0.40)' }}>(optional)</span>
         </label>
         <input
           type="text"
           placeholder="e.g. Toronto, ON"
           value={location}
           onChange={e => setLocation(e.target.value)}
-          className={inputCls}
           style={inputStyle}
         />
       </div>
 
-      {/* Your name */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Name row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div>
-          <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
-            First name <span style={{ color: 'var(--status-error)' }}>*</span>
+          <label style={labelStyle}>
+            First name <span style={{ color: '#C0392B' }}>*</span>
           </label>
           <input
             type="text"
@@ -165,13 +187,12 @@ export default function StartClient() {
             placeholder="Jane"
             value={firstName}
             onChange={e => setFirstName(e.target.value)}
-            className={inputCls}
             style={inputStyle}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
-            Last name <span style={{ color: 'var(--status-error)' }}>*</span>
+          <label style={labelStyle}>
+            Last name <span style={{ color: '#C0392B' }}>*</span>
           </label>
           <input
             type="text"
@@ -179,7 +200,6 @@ export default function StartClient() {
             placeholder="Smith"
             value={lastName}
             onChange={e => setLastName(e.target.value)}
-            className={inputCls}
             style={inputStyle}
           />
         </div>
@@ -187,26 +207,29 @@ export default function StartClient() {
 
       {/* Email */}
       <div>
-        <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
-          Email address <span style={{ color: 'var(--status-error)' }}>*</span>
+        <label style={labelStyle}>
+          Email address <span style={{ color: '#C0392B' }}>*</span>
         </label>
         <input
           type="email"
           required
-          placeholder="you@example.com"
+          placeholder="you@club.org"
           value={email}
           onChange={e => setEmail(e.target.value)}
-          className={inputCls}
           style={inputStyle}
         />
-        <p className="mt-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-          We&apos;ll send your setup link here.
+        <p style={{ marginTop: 6, fontSize: 12, color: 'rgba(22,20,18,0.40)' }}>
+          Your confirmation link goes here.
         </p>
       </div>
 
       {error && (
-        <p className="rounded-lg px-3 py-2.5 text-sm"
-           style={{ background: 'var(--status-error-bg)', color: 'var(--status-error-text)' }}>
+        <p style={{
+          borderRadius: 8, padding: '10px 14px', fontSize: 13,
+          background: '#FDEEEE', color: '#7A1515',
+          border: '1px solid rgba(211,47,47,0.18)',
+          margin: 0,
+        }}>
           {error}
         </p>
       )}
@@ -214,14 +237,25 @@ export default function StartClient() {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-lg py-2.5 text-sm font-semibold text-white transition-opacity disabled:opacity-60"
-        style={{ background: 'var(--action-primary)', boxShadow: 'var(--action-primary-shadow)' }}
+        style={{
+          width: '100%',
+          background: submitting ? 'rgba(232,177,74,0.55)' : '#E8B14A',
+          color: '#161412',
+          border: 'none',
+          borderRadius: 8,
+          padding: '11px 20px',
+          fontSize: 15,
+          fontWeight: 700,
+          cursor: submitting ? 'not-allowed' : 'pointer',
+          letterSpacing: '-0.01em',
+          transition: 'background 0.15s',
+        }}
       >
-        {submitting ? 'Submitting…' : 'Request access'}
+        {submitting ? 'Starting your trial…' : 'Start my free trial →'}
       </button>
 
-      <p className="text-center text-xs" style={{ color: 'var(--text-tertiary)' }}>
-        No credit card required. We&apos;ll follow up within 1–2 business days.
+      <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(22,20,18,0.35)', lineHeight: 1.6, margin: 0 }}>
+        60 days free · No credit card · No commitment
       </p>
     </form>
   )
