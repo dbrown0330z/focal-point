@@ -28,12 +28,14 @@ export default function LoginForm({
   errorParam,
   pendingParam,
   resetParam,
+  verifiedParam,
   nextParam,
   clubSlug,
 }: {
   errorParam?: string
   pendingParam?: string
   resetParam?: string
+  verifiedParam?: string
   nextParam?: string
   clubSlug?: string
 }) {
@@ -47,6 +49,13 @@ export default function LoginForm({
       }}>
         Sign in
       </h2>
+
+      {verifiedParam && (
+        <div className="mb-4 rounded-lg px-4 py-3 text-sm" style={{ background: 'rgba(26,105,72,0.12)', border: '1px solid rgba(26,105,72,0.35)', color: '#97C459' }}>
+          <strong style={{ display: 'block', marginBottom: 4 }}>Email verified — your club is ready!</strong>
+          Use <strong>Forgot your password?</strong> below to set your password and get started.
+        </div>
+      )}
 
       {resetParam && (
         <div className="mb-4 rounded-lg border border-status-success bg-status-success-bg px-4 py-3 text-sm text-status-success-text">

@@ -45,21 +45,8 @@ export async function confirmVerification(token: string) {
     })
     .eq('id', club.id)
 
-  // ── Generate magic sign-in link → setup wizard ─────────────────────────────
-
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
-
-  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-    type:  'magiclink',
-    email: club.contact_email!,
-    options: {
-      redirectTo: `${siteUrl}/auth/callback?next=/${club.slug}/setup`,
-    },
-  })
-
-  if (linkError || !linkData?.properties?.action_link) {
-    redirect(`/${club.slug}/login?verified=1&email=${encodeURIComponent(club.contact_email!)}`)
-  }
-
-  redirect(linkData.properties.action_link)
+  // Send them to their club login page with a prompt to set a password.
+  // (Admin-generated magic links conflict with Next.js PKCE flow; the
+  // standard password-reset email works reliably and keeps the auth path simple.)
+  redirect(`/${club.slug}/login?verified=1`)
 }

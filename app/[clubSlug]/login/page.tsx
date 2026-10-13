@@ -8,10 +8,10 @@ export default async function ClubLoginPage({
   searchParams,
 }: {
   params: Promise<{ clubSlug: string }>
-  searchParams: Promise<{ error?: string; pending?: string; reset?: string; next?: string }>
+  searchParams: Promise<{ error?: string; pending?: string; reset?: string; verified?: string; next?: string }>
 }) {
   const { clubSlug } = await params
-  const { error, pending, reset, next } = await searchParams
+  const { error, pending, reset, verified, next } = await searchParams
 
   const ctx = await getClubContext()
   const clubId = ctx?.clubId
@@ -65,6 +65,7 @@ export default async function ClubLoginPage({
             errorParam={error}
             pendingParam={pending}
             resetParam={reset}
+            verifiedParam={verified}
             nextParam={next}
             clubSlug={clubSlug}
           />
