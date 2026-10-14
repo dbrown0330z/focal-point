@@ -8,7 +8,7 @@ export async function confirmVerification(token: string) {
 
   const { data: club } = await admin
     .from('clubs')
-    .select('id, slug, contact_email, name, verification_expires_at, verified_at')
+    .select('id, slug, contact_email, name, admin_first_name, admin_last_name, verification_expires_at, verified_at')
     .eq('verification_token', token)
     .maybeSingle()
 
@@ -39,9 +39,10 @@ export async function confirmVerification(token: string) {
     userId = users.find(u => u.email === club.contact_email)?.id
   }
 
+  // Populate club_settings with the club name from the signup form
   await admin
     .from('club_settings')
-    .upsert({ club_id: club.id }, { onConflict: 'club_id' })
+    .upsert({ club_id: club.id, club_name: club.name ?? '' }, { onConflict: 'club_id' })
 
   await admin
     .from('clubs')
@@ -52,11 +53,15 @@ export async function confirmVerification(token: string) {
     })
     .eq('id', club.id)
 
-  // Grant admin role — the trigger created the profile with role=null
+  // Grant admin role and set display name from signup form
   if (userId) {
+    const firstName  = club.admin_first_name ?? ''
+    const lastName   = club.admin_last_name  ?? ''
+    const displayName = [firstName, lastName].filter(Boolean).join(' ') || club.contact_email!
+
     await admin
       .from('profiles')
-      .update({ role: 'admin' })
+      .update({ role: 'admin', display_name: displayName, first_name: firstName, last_name: lastName || null })
       .eq('id', userId)
 
     // Create the club membership so the club homepage doesn't bounce them to login

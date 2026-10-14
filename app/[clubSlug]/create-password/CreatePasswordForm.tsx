@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef } from 'react'
 import { setInitialPassword } from './actions'
 
 const inputStyle: React.CSSProperties = {
@@ -40,6 +40,7 @@ export default function CreatePasswordForm({
   const [confirm,   setConfirm]   = useState('')
   const [error,     setError]     = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const loginFormRef = useRef<HTMLFormElement>(null)
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -49,13 +50,15 @@ export default function CreatePasswordForm({
       return
     }
     if (password !== confirm) {
-      setError('Passwords don\'t match.')
+      setError("Passwords don't match.")
       return
     }
     startTransition(async () => {
       const result = await setInitialPassword(clubSlug, uid, password)
-      if (result?.error) setError(result.error)
-      // On success, the server action redirects — no client action needed
+      if (result?.error) { setError(result.error); return }
+      // Password set — submit the hidden login form to /api/auth/login,
+      // which reliably sets session cookies and redirects to /admin.
+      if (loginFormRef.current) loginFormRef.current.submit()
     })
   }
 
@@ -96,6 +99,13 @@ export default function CreatePasswordForm({
             One last step — create a password to finish setting up your account.
           </p>
         </div>
+
+        {/* Hidden form that POSTs to the login API route after password is set */}
+        <form ref={loginFormRef} action="/api/auth/login" method="POST" style={{ display: 'none' }}>
+          <input type="hidden" name="email"    value={email} />
+          <input type="hidden" name="password" value={password} />
+          <input type="hidden" name="next"     value="/admin" />
+        </form>
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 20 }}>
           {/* Hidden username field so password managers correctly associate the credential */}
