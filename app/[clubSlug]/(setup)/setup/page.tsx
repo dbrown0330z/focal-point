@@ -17,13 +17,12 @@ export default async function SetupPage() {
   const admin = createServiceClient()
   const { data: settings } = await (admin as any)
     .from('club_settings')
-    .select('setup_complete, club_name')
+    .select('setup_complete, club_name, club_location')
     .eq('club_id', ctx.clubId)
     .single()
 
   if (settings?.setup_complete) redirect(`/${ctx.clubSlug}/admin`)
 
-  // Verify this user is an admin of this club
   const { data: membership } = await (admin as any)
     .from('club_memberships')
     .select('role')
@@ -33,5 +32,12 @@ export default async function SetupPage() {
 
   if (!membership || membership.role !== 'admin') redirect('/')
 
-  return <SetupWizard clubSlug={ctx.clubSlug} clubId={ctx.clubId} clubName={ctx.clubName} adminEmail={user.email ?? ''} />
+  return (
+    <SetupWizard
+      clubSlug={ctx.clubSlug}
+      clubId={ctx.clubId}
+      clubName={settings?.club_name || ctx.clubName}
+      clubLocation={settings?.club_location ?? ''}
+    />
+  )
 }

@@ -51,7 +51,6 @@ type SuccessData = { firstName: string; email: string; emailError?: string }
 
 export default function StartClient() {
   const [clubName,      setClubName]      = useState('')
-  const [location,      setLocation]      = useState('')
   const [firstName,     setFirstName]     = useState('')
   const [lastName,      setLastName]      = useState('')
   const [email,         setEmail]         = useState('')
@@ -85,7 +84,7 @@ export default function StartClient() {
     try { sessionStorage.removeItem(SS_KEY) } catch { /* ignore */ }
     setPhase('form')
     setSuccessData({ firstName: '', email: '' })
-    setClubName(''); setLocation(''); setFirstName(''); setLastName(''); setEmail('')
+    setClubName(''); setFirstName(''); setLastName(''); setEmail('')
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -95,7 +94,6 @@ export default function StartClient() {
     const fd = new FormData()
     fd.set('website',      honeypot)
     fd.set('clubName',     clubName)
-    fd.set('location',     location)
     fd.set('firstName',    firstName)
     fd.set('lastName',     lastName)
     fd.set('contactEmail', email)
@@ -232,20 +230,6 @@ export default function StartClient() {
         )}
       </div>
 
-      <div>
-        <label style={labelStyle}>
-          Location{' '}
-          <span style={{ fontWeight: 400, fontSize: 14, color: '#5C5047' }}>(optional)</span>
-        </label>
-        <input
-          type="text"
-          placeholder="e.g. Toronto, ON"
-          value={location}
-          onChange={e => setLocation(e.target.value)}
-          style={inputStyle}
-        />
-      </div>
-
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <div>
           <label style={labelStyle}>
@@ -295,7 +279,7 @@ export default function StartClient() {
           aria-describedby="email-hint"
         />
         <p id="email-hint" style={helperStyle}>
-          Your confirmation link goes here.
+          Your confirmation link goes here. This will be your primary contact email — you can change it anytime.
         </p>
       </div>
 

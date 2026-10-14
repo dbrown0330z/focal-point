@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubSlug } from '@/lib/club-context'
+import { requireClubSlug, requireClubId } from '@/lib/club-context'
 import Link from 'next/link'
 
 function timeAgo(dateStr: string): string {
@@ -17,6 +17,7 @@ function timeAgo(dateStr: string): string {
 
 export default async function AdminDashboardPage() {
   const clubSlug = await requireClubSlug()
+  const clubId   = await requireClubId()
   const supabase = await createClient()
   const admin = createServiceClient()
 
@@ -28,6 +29,7 @@ export default async function AdminDashboardPage() {
     { data: recentMembers },
     { data: recentCompetitions },
     { data: clubSettings },
+    { data: clubRow },
   ] = await Promise.all([
     admin.from('profiles').select('id', { count: 'exact', head: true }).in('membership_status', ['pending', 'approved']),
     admin.from('profiles').select('id', { count: 'exact', head: true }).in('membership_status', ['active', 'complimentary']),
@@ -35,8 +37,19 @@ export default async function AdminDashboardPage() {
     admin.from('submissions').select('id, submitted_at, images(title), profiles!member_id(display_name)').order('submitted_at', { ascending: false }).limit(4),
     admin.from('profiles').select('id, display_name, created_at').order('created_at', { ascending: false }).limit(3),
     admin.from('competitions').select('id, title, created_at').is('deleted_at', null).order('created_at', { ascending: false }).limit(3),
-    admin.from('club_settings').select('membership_terms_reviewed').single(),
+    admin.from('club_settings').select('membership_terms_reviewed').eq('club_id', clubId).single(),
+    admin.from('clubs').select('verified_at').eq('id', clubId).single(),
   ])
+
+  // Trial banner calculation
+  const TRIAL_DAYS = 60
+  let trialDaysLeft: number | null = null
+  let trialEndDate: string | null = null
+  if (clubRow?.verified_at) {
+    const end = new Date(clubRow.verified_at).getTime() + TRIAL_DAYS * 86400000
+    trialDaysLeft = Math.ceil((end - Date.now()) / 86400000)
+    trialEndDate = new Date(end).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
+  }
 
   const termsReviewed = clubSettings?.membership_terms_reviewed ?? true
 
@@ -98,6 +111,53 @@ export default async function AdminDashboardPage() {
         <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Dashboard</h1>
         <p className="mt-1 text-[13px] text-content-secondary">Club overview</p>
       </div>
+
+      {/* Trial banner */}
+      {trialDaysLeft !== null && trialDaysLeft > 0 && (
+        <div className="flex items-start gap-3 rounded-[10px] border border-[--action-primary] bg-[--surface-2] px-5 py-4" style={{ borderColor: 'var(--action-primary)', background: 'rgba(26,111,196,0.06)' }}>
+          <svg className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: 'var(--action-primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold" style={{ color: 'var(--action-primary)' }}>
+              Free trial — {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'} remaining
+            </p>
+            <p className="mt-0.5 text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              Your trial ends on {trialEndDate}. All features are fully available during the trial with no limits.
+            </p>
+          </div>
+          <Link
+            href={`/${clubSlug}/admin/billing`}
+            className="flex-shrink-0 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors"
+            style={{ color: 'var(--action-primary)', border: '1px solid var(--action-primary)', background: 'transparent' }}
+          >
+            Upgrade
+          </Link>
+        </div>
+      )}
+
+      {trialDaysLeft !== null && trialDaysLeft <= 0 && (
+        <div className="flex items-start gap-3 rounded-[10px] border px-5 py-4" style={{ borderColor: 'var(--status-error)', background: 'var(--status-error-bg)' }}>
+          <svg className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: 'var(--status-error)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold" style={{ color: 'var(--status-error-text)' }}>
+              Your trial has ended
+            </p>
+            <p className="mt-0.5 text-[12px] leading-relaxed" style={{ color: 'var(--status-error-text)' }}>
+              Members can no longer access the club site. Upgrade to restore access.
+            </p>
+          </div>
+          <Link
+            href={`/${clubSlug}/admin/billing`}
+            className="flex-shrink-0 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors"
+            style={{ color: 'var(--status-error-text)', border: '1px solid var(--status-error)', background: 'transparent' }}
+          >
+            Upgrade now
+          </Link>
+        </div>
+      )}
 
       {/* Membership terms reminder */}
       {!termsReviewed && (

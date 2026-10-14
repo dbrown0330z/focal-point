@@ -80,7 +80,7 @@ export default async function ClubHomePage({
       .single(),
     admin
       .from('club_settings')
-      .select('club_name, homepage_blocks')
+      .select('club_name, homepage_blocks, setup_complete')
       .eq('club_id', clubId)
       .single(),
     admin
@@ -99,6 +99,56 @@ export default async function ClubHomePage({
 
   // ── Active member: render the club homepage ───────────────────────────────
   if (membership.membership_status === 'active' && membership.role) {
+    const setupComplete = clubSettings?.setup_complete ?? true
+
+    // New club — setup not yet completed. Show placeholder empty state.
+    if (!setupComplete && membership.role === 'admin') {
+      redirect(`/${clubSlug}/setup`)
+    }
+
+    if (!setupComplete) {
+      return (
+        <MemberThemeProvider>
+          <div className="flex min-h-screen flex-col">
+            <MemberNav
+              clubSlug={clubSlug}
+              clubName={clubName}
+              displayName={profile.display_name}
+              email={user.email ?? ''}
+              role={membership.role}
+              avatarUrl={(profile as { avatar_url: string | null }).avatar_url ?? null}
+              customPages={[]}
+              customTabs={[]}
+              pendingCount={0}
+            />
+            <div className="flex flex-1 flex-col items-center justify-center px-4 py-16 text-center">
+              <div className="max-w-lg w-full">
+                <p className="text-sm font-semibold uppercase tracking-widest text-[--text-secondary] mb-4" style={{ letterSpacing: '0.08em' }}>
+                  Coming soon
+                </p>
+                <h1 className="text-3xl font-bold text-[--text-primary] mb-3" style={{ letterSpacing: '-0.02em' }}>
+                  Our club is getting set up
+                </h1>
+                <p className="text-base text-[--text-secondary] mb-12">
+                  Check back soon — we&apos;ll have competitions, news, and more ready for you.
+                </p>
+                {/* Placeholder content blocks */}
+                <div className="grid gap-3">
+                  <div className="h-28 rounded-xl" style={{ background: 'rgba(108,71,212,0.10)' }} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="h-20 rounded-xl" style={{ background: 'rgba(0,151,167,0.10)' }} />
+                    <div className="h-20 rounded-xl" style={{ background: 'rgba(230,81,0,0.10)' }} />
+                  </div>
+                  <div className="h-16 rounded-xl" style={{ background: 'rgba(46,125,50,0.10)' }} />
+                </div>
+              </div>
+            </div>
+            <AppFooter variant="app" />
+          </div>
+        </MemberThemeProvider>
+      )
+    }
+
     const saved: ContentBlock[] = (clubSettings?.homepage_blocks as ContentBlock[] | null) ?? DEFAULT_BLOCKS
     const blocks: ContentBlock[] = mergeBlocks(saved, DEFAULT_BLOCKS)
 

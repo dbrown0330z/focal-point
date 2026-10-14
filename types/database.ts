@@ -224,6 +224,7 @@ export type Database = {
           poy_tiebreaker: string
           season_end_month: number
           season_start_month: number
+          setup_complete: boolean
           timezone: string
           updated_at: string
         }
@@ -262,6 +263,7 @@ export type Database = {
           poy_tiebreaker?: string
           season_end_month?: number
           season_start_month?: number
+          setup_complete?: boolean
           timezone?: string
           updated_at?: string
         }
@@ -300,6 +302,7 @@ export type Database = {
           poy_tiebreaker?: string
           season_end_month?: number
           season_start_month?: number
+          setup_complete?: boolean
           timezone?: string
           updated_at?: string
         }
