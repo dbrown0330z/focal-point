@@ -158,7 +158,7 @@ export async function updateSession(request: NextRequest) {
       .single()
 
     if (!profile?.is_fp_admin) {
-      return NextResponse.redirect(new URL('/', request.url))
+      return NextResponse.redirect(new URL('/login?fp=1', request.url))
     }
   }
 
