@@ -92,7 +92,7 @@ export default async function ClubHomePage({
       .from('posts')
       .select('*', { count: 'exact', head: true })
       .eq('club_id', clubId)
-      .eq('status', 'published'),
+      .not('published_at', 'is', null),
   ])
 
   if (!profile || !membership) redirect(`/${clubSlug}/login`)
