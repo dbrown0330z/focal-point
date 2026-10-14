@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import LoginForm from './LoginForm'
+import FpAdminLoginForm from './FpAdminLoginForm'
 
 export default async function LoginPage({
   searchParams,
@@ -9,8 +10,11 @@ export default async function LoginPage({
 }) {
   const { error, pending, reset, next, fp } = await searchParams
 
-  // fp=1 bypasses club redirect — used by /fp-admin login flow
-  if (!fp) {
+  // fp=1: render the distinct fp-admin login, skip club redirect entirely
+  if (fp) {
+    return <FpAdminLoginForm errorParam={error} nextParam={next ?? '/fp-admin'} />
+  }
+
   // Look up the default club and redirect to the club-specific login
   const admin = createServiceClient()
   const { data: club } = await admin
@@ -29,8 +33,6 @@ export default async function LoginPage({
     redirect(`/${club.slug}/login${qs ? `?${qs}` : ''}`)
   }
 
-  } // end !fp
-
-  // Fallback: no club found, or fp bypass — render form as-is
-  return <LoginForm errorParam={error} pendingParam={pending} resetParam={reset} nextParam={next ?? (fp ? '/fp-admin' : undefined)} isFpAdmin={!!fp} />
+  // Fallback: no club found — render standard form
+  return <LoginForm errorParam={error} pendingParam={pending} resetParam={reset} nextParam={next} />
 }
