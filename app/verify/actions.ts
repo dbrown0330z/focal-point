@@ -58,6 +58,19 @@ export async function confirmVerification(token: string) {
       .from('profiles')
       .update({ role: 'admin' })
       .eq('id', userId)
+
+    // Create the club membership so the club homepage doesn't bounce them to login
+    await admin
+      .from('club_memberships')
+      .upsert(
+        {
+          user_id:           userId,
+          club_id:           club.id,
+          role:              'admin',
+          membership_status: 'active',
+        },
+        { onConflict: 'user_id,club_id' },
+      )
   }
 
   if (!userId) redirect(`/${club.slug}/login?verified=1`)
