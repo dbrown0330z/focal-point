@@ -236,7 +236,7 @@ function SlimRow({ card }: { card: JudgingCard | ComingSoonCard }) {
 const JUDGING_STATUSES = ['judging', 'judging_on_hold', 'results_pending'] as const
 const MAX_CARDS = 4
 
-export default async function DualPanelBlock({ clubSlug }: { clubSlug: string }) {
+export default async function DualPanelBlock({ clubSlug, clubId }: { clubSlug: string; clubId: string }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const userId = user?.id ?? null
@@ -251,6 +251,7 @@ export default async function DualPanelBlock({ clubSlug }: { clubSlug: string })
     supabase
       .from('calendar_events')
       .select('id, title, starts_at, ends_at, all_day, event_type, location')
+      .eq('club_id', clubId)
       .gte('starts_at', nowIso)
       .order('starts_at')
       .limit(15),
@@ -258,6 +259,7 @@ export default async function DualPanelBlock({ clubSlug }: { clubSlug: string })
     supabase
       .from('competitions')
       .select('id, title, short_title, opens_at, closes_at, status')
+      .eq('club_id', clubId)
       .in('status', ['draft', 'open'])
       .or(`opens_at.gte.${nowIso},closes_at.gte.${nowIso}`)
       .order('opens_at', { ascending: true, nullsFirst: false }),
@@ -265,6 +267,7 @@ export default async function DualPanelBlock({ clubSlug }: { clubSlug: string })
     supabase
       .from('competitions')
       .select('id, title, short_title, status, opens_at, closes_at, results_at, submission_limit')
+      .eq('club_id', clubId)
       .in('status', ['open', 'results_published', 'draft', ...JUDGING_STATUSES])
       .limit(30),
   ])

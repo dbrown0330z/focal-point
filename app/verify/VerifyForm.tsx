@@ -28,10 +28,12 @@ const labelStyle: React.CSSProperties = {
 export default function VerifyForm({
   token,
   email,
+  clubName,
   serverError,
 }: {
   token:        string
   email:        string
+  clubName:     string
   serverError?: string
 }) {
   const [password,   setPassword]   = useState('')
@@ -58,6 +60,30 @@ export default function VerifyForm({
         {/* Hidden username for password manager association */}
         <input type="email" name="username" autoComplete="username" value={email} readOnly />
       </form>
+
+      {/* Email confirmed notice */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        background: 'rgba(26,105,72,0.08)',
+        border: '1px solid rgba(26,105,72,0.20)',
+        borderRadius: 8,
+        padding: '10px 14px',
+        marginBottom: 24,
+      }}>
+        <svg width="16" height="16" fill="none" stroke="#1A6948" strokeWidth="2.5" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 600, color: '#1A6948', margin: 0 }}>
+            Email confirmed
+          </p>
+          <p style={{ fontSize: 13, color: '#4A6B5C', margin: 0 }}>
+            {email}
+          </p>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 20 }}>
         {/* Visible username field for password managers (hidden visually) */}
@@ -124,7 +150,7 @@ export default function VerifyForm({
             marginTop: 4,
           }}
         >
-          {submitting ? 'Creating your account…' : 'Create my account →'}
+          {submitting ? 'Creating your account…' : `Create ${clubName} site →`}
         </button>
       </form>
     </>

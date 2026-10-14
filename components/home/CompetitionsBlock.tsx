@@ -145,9 +145,11 @@ const JUDGING_STATUSES = ['judging', 'judging_on_hold', 'results_pending'] as co
 export default async function CompetitionsBlock({
   settings,
   clubSlug,
+  clubId,
 }: {
   settings:  CompetitionsSettings
   clubSlug:  string
+  clubId:    string
 }) {
   const supabaseRaw = await createClient()
   const supabase = supabaseRaw
@@ -160,6 +162,7 @@ export default async function CompetitionsBlock({
   const { data: openCompsRaw } = await supabase
     .from('competitions')
     .select('id, title, short_title, closes_at, submission_limit, competition_categories(id, name)')
+    .eq('club_id', clubId)
     .eq('status', 'open')
     .gt('closes_at', nowIso)
     .order('closes_at', { ascending: true, nullsFirst: false })
@@ -171,11 +174,13 @@ export default async function CompetitionsBlock({
     supabase
       .from('competitions')
       .select('id, title, short_title')
+      .eq('club_id', clubId)
       .in('status', [...JUDGING_STATUSES])
       .order('closes_at', { ascending: false, nullsFirst: false }),
     supabase
       .from('competitions')
       .select('id, title, short_title')
+      .eq('club_id', clubId)
       .eq('status', 'open')
       .lte('closes_at', nowIso)
       .order('closes_at', { ascending: false, nullsFirst: false }),
@@ -250,6 +255,7 @@ export default async function CompetitionsBlock({
   const { data: recentCompRaw } = await supabase
     .from('competitions')
     .select('id, title, short_title, results_at')
+    .eq('club_id', clubId)
     .eq('status', 'results_published')
     .order('results_at', { ascending: false, nullsFirst: false })
     .limit(1)

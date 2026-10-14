@@ -51,7 +51,33 @@ const TZ_GROUPS: { group: string; zones: { value: string; label: string }[] }[] 
   ]},
 ]
 
-const inputCls = 'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white'
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  background: '#292929',
+  border: '1px solid rgba(255,255,255,0.14)',
+  borderRadius: 8,
+  padding: '10px 14px',
+  fontSize: 14,
+  color: '#E8E8E8',
+  outline: 'none',
+  transition: 'border-color 0.15s',
+  boxSizing: 'border-box',
+}
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: 13,
+  fontWeight: 600,
+  marginBottom: 6,
+  color: '#9E9E9E',
+  letterSpacing: '0.02em',
+}
+
+const hintStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: '#737373',
+  marginTop: 4,
+}
 
 export default function SetupWizard({ clubSlug, clubId, clubName: initialClubName, clubLocation }: Props) {
   const [clubName,  setClubName]  = useState(initialClubName)
@@ -79,102 +105,171 @@ export default function SetupWizard({ clubSlug, clubId, clubName: initialClubNam
   }
 
   return (
-    <div className="w-full max-w-md">
-      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-        <div className="p-8 space-y-6">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Club basics</h2>
-            <p className="text-sm text-gray-500 mt-1">A few details — you can update these anytime in your admin area.</p>
-          </div>
-
-          <Field label="Club name">
-            <input
-              type="text"
-              value={clubName}
-              onChange={e => setClubName(e.target.value)}
-              placeholder="e.g. Six Rivers Photography Club"
-              className={inputCls}
-            />
-          </Field>
-
-          <Field
-            label="Club short name"
-            hint="Abbreviation used in emails and tight UI spaces — e.g. SRPC"
-          >
-            <input
-              type="text"
-              value={shortName}
-              onChange={e => setShortName(e.target.value)}
-              placeholder={
-                clubName
-                  .split(' ')
-                  .filter(w => w.length > 2)
-                  .map(w => w[0].toUpperCase())
-                  .join('')
-                  .slice(0, 6) || 'e.g. SRPC'
-              }
-              className={inputCls}
-            />
-          </Field>
-
-          <Field label="Location" hint="City and province/state — e.g. Eureka, CA">
-            <input
-              type="text"
-              value={location}
-              onChange={e => setLocation(e.target.value)}
-              placeholder="e.g. Eureka, CA"
-              className={inputCls}
-            />
-          </Field>
-
-          <Field label="Timezone" hint="Auto-detected from your browser — you can change it">
-            <select value={timezone} onChange={e => setTimezone(e.target.value)} className={inputCls}>
-              {TZ_GROUPS.map(g => (
-                <optgroup key={g.group} label={g.group}>
-                  {g.zones.map(z => (
-                    <option key={z.value} value={z.value}>{z.label}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </Field>
-
-          {error && (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
-            </p>
-          )}
+    <div style={{
+      minHeight: '100vh',
+      background: '#141414',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '32px 24px',
+      fontFamily: 'var(--font-roboto-mono, "Roboto Mono", monospace)',
+    }}>
+      <div style={{ width: '100%', maxWidth: 480 }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#4A90D4', marginBottom: 12 }}>
+            One more step
+          </p>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#E8E8E8', marginBottom: 8, letterSpacing: '-0.01em', margin: '0 0 8px' }}>
+            Club basics
+          </h1>
+          <p style={{ fontSize: 14, color: '#737373', lineHeight: 1.6, margin: 0 }}>
+            A few details to get started — you can update these anytime in your admin area.
+          </p>
         </div>
 
-        <div className="border-t border-gray-100 px-8 py-5 flex flex-col gap-3">
-          <p className="text-xs text-gray-400 text-center mb-1">
-            More settings — competitions, members, homepage — are in your admin area.
-          </p>
-          <button
-            onClick={() => handleNext('admin')}
-            disabled={saving}
-            className="w-full rounded-lg bg-[#1A6FC4] py-2.5 text-sm font-semibold text-white hover:bg-[#155AA3] transition-colors disabled:opacity-50"
-          >
-            {saving ? 'Saving…' : 'Continue to admin dashboard →'}
-          </button>
-          <button
-            onClick={() => handleNext('homepage')}
-            disabled={saving}
-            className="w-full rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
-          >
-            View my club homepage
-          </button>
+        {/* Card */}
+        <div style={{
+          background: '#1E1E1E',
+          border: '1px solid rgba(255,255,255,0.10)',
+          borderRadius: 16,
+          overflow: 'hidden',
+        }}>
+          <div style={{ padding: '28px 28px 24px', display: 'grid', gap: 20 }}>
+
+            <Field label="Club name" labelStyle={labelStyle}>
+              <input
+                type="text"
+                value={clubName}
+                onChange={e => setClubName(e.target.value)}
+                placeholder="e.g. Six Rivers Photography Club"
+                style={inputStyle}
+              />
+            </Field>
+
+            <Field
+              label="Club short name"
+              labelStyle={labelStyle}
+              hint="Abbreviation used in emails and tight UI spaces — e.g. SRPC"
+              hintStyle={hintStyle}
+            >
+              <input
+                type="text"
+                value={shortName}
+                onChange={e => setShortName(e.target.value)}
+                placeholder={
+                  clubName
+                    .split(' ')
+                    .filter(w => w.length > 2)
+                    .map(w => w[0].toUpperCase())
+                    .join('')
+                    .slice(0, 6) || 'e.g. SRPC'
+                }
+                style={inputStyle}
+              />
+            </Field>
+
+            <Field label="Location" labelStyle={labelStyle} hint="City and state/province — e.g. Eureka, CA" hintStyle={hintStyle}>
+              <input
+                type="text"
+                value={location}
+                onChange={e => setLocation(e.target.value)}
+                placeholder="e.g. Eureka, CA"
+                style={inputStyle}
+              />
+            </Field>
+
+            <Field label="Timezone" labelStyle={labelStyle} hint="Auto-detected from your browser" hintStyle={hintStyle}>
+              <select
+                value={timezone}
+                onChange={e => setTimezone(e.target.value)}
+                style={{ ...inputStyle, cursor: 'pointer' }}
+              >
+                {TZ_GROUPS.map(g => (
+                  <optgroup key={g.group} label={g.group}>
+                    {g.zones.map(z => (
+                      <option key={z.value} value={z.value}>{z.label}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </Field>
+
+            {error && (
+              <p style={{
+                borderRadius: 8, padding: '10px 14px', fontSize: 13, margin: 0,
+                background: 'rgba(211,47,47,0.12)', color: '#F09595',
+                border: '1px solid rgba(211,47,47,0.25)',
+              }}>
+                {error}
+              </p>
+            )}
+          </div>
+
+          <div style={{
+            borderTop: '1px solid rgba(255,255,255,0.08)',
+            padding: '20px 28px',
+            display: 'grid',
+            gap: 10,
+          }}>
+            <p style={{ fontSize: 12, color: '#525252', textAlign: 'center', margin: '0 0 4px' }}>
+              Competitions, members, and homepage customisation are in your admin area.
+            </p>
+            <button
+              onClick={() => handleNext('admin')}
+              disabled={saving}
+              style={{
+                width: '100%',
+                background: saving ? 'rgba(74,144,212,0.40)' : '#4A90D4',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: 8,
+                padding: '12px 20px',
+                fontSize: 15,
+                fontWeight: 700,
+                cursor: saving ? 'not-allowed' : 'pointer',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {saving ? 'Saving…' : 'Go to admin dashboard →'}
+            </button>
+            <button
+              onClick={() => handleNext('homepage')}
+              disabled={saving}
+              style={{
+                width: '100%',
+                background: 'transparent',
+                color: '#9E9E9E',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 8,
+                padding: '11px 20px',
+                fontSize: 14,
+                fontWeight: 500,
+                cursor: saving ? 'not-allowed' : 'pointer',
+              }}
+            >
+              View my club homepage
+            </button>
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({
+  label, hint, children, labelStyle, hintStyle,
+}: {
+  label: string
+  hint?: string
+  children: React.ReactNode
+  labelStyle: React.CSSProperties
+  hintStyle?: React.CSSProperties
+}) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      {hint && <p className="text-xs text-gray-400 mb-1.5">{hint}</p>}
+      <label style={labelStyle}>{label}</label>
+      {hint && <p style={{ ...hintStyle, marginBottom: 6 }}>{hint}</p>}
       {children}
     </div>
   )

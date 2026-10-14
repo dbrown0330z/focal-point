@@ -65,28 +65,21 @@ export default async function VerifyPage({ searchParams }: Props) {
       }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 52, height: 52, borderRadius: '50%',
-            background: 'rgba(26,105,72,0.10)',
-            marginBottom: 16,
-          }}>
-            <svg width="22" height="22" fill="none" stroke="#1A6948" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#161412', marginBottom: 8, letterSpacing: '-0.01em' }}>
-            {club.admin_first_name ? `Welcome, ${club.admin_first_name}!` : 'Email confirmed!'}
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#161412', marginBottom: 10, letterSpacing: '-0.01em' }}>
+            {club.admin_first_name ? `Welcome, ${club.admin_first_name}!` : `Welcome to ${club.name}!`}
           </h1>
-          <p style={{ fontSize: 15, lineHeight: 1.6, color: '#4A4037' }}>
-            Create a password to finish setting up{' '}
-            <strong style={{ color: '#161412' }}>{club.name}</strong>.
+          <p style={{ fontSize: 15, lineHeight: 1.6, color: '#4A4037', marginBottom: 4 }}>
+            Create a password to finish setting up your account.
+          </p>
+          <p style={{ fontSize: 13, lineHeight: 1.5, color: '#7A6E65' }}>
+            Next step: fill in a few basic club details and you&apos;re on your way.
           </p>
         </div>
 
         <VerifyForm
           token={token}
           email={club.contact_email ?? ''}
+          clubName={club.name}
           serverError={serverError}
         />
 

@@ -66,7 +66,7 @@ export default async function ClubHomePage({
   // Auth is already verified above via supabase.auth.getUser().
   const admin = createServiceClient()
 
-  const [{ data: membership }, { data: profile }, { data: clubSettings }, { count: pendingCount }] = await Promise.all([
+  const [{ data: membership }, { data: profile }, { data: clubSettings }, { count: pendingCount }, { count: publishedPostsCount }] = await Promise.all([
     admin
       .from('club_memberships')
       .select('role, membership_status')
@@ -88,6 +88,11 @@ export default async function ClubHomePage({
       .select('*', { count: 'exact', head: true })
       .eq('club_id', clubId)
       .eq('membership_status', 'pending'),
+    admin
+      .from('posts')
+      .select('*', { count: 'exact', head: true })
+      .eq('club_id', clubId)
+      .eq('status', 'published'),
   ])
 
   if (!profile || !membership) redirect(`/${clubSlug}/login`)
@@ -100,13 +105,16 @@ export default async function ClubHomePage({
   // ── Active member: render the club homepage ───────────────────────────────
   if (membership.membership_status === 'active' && membership.role) {
     const setupComplete = clubSettings?.setup_complete ?? true
+    // Show coming-soon for clubs that haven't completed setup OR have no published content yet
+    const hasContent = (publishedPostsCount ?? 0) > 0
+    const showComingSoon = !setupComplete || !hasContent
 
-    // New club — setup not yet completed. Show placeholder empty state.
+    // New club — setup not yet completed. Redirect admin to finish setup.
     if (!setupComplete && membership.role === 'admin') {
       redirect(`/${clubSlug}/setup`)
     }
 
-    if (!setupComplete) {
+    if (showComingSoon) {
       return (
         <MemberThemeProvider>
           <div className="flex min-h-screen flex-col">
@@ -124,13 +132,16 @@ export default async function ClubHomePage({
             <div className="flex flex-1 flex-col items-center justify-center px-4 py-16 text-center">
               <div className="max-w-lg w-full">
                 <p className="text-sm font-semibold uppercase tracking-widest text-[--text-secondary] mb-4" style={{ letterSpacing: '0.08em' }}>
-                  Coming soon
+                  Welcome
                 </p>
                 <h1 className="text-3xl font-bold text-[--text-primary] mb-3" style={{ letterSpacing: '-0.02em' }}>
-                  Our club is getting set up
+                  Glad you&apos;re here!
                 </h1>
+                <p className="text-base text-[--text-secondary] mb-4">
+                  We&apos;re working on the homepage and it will be ready soon.
+                </p>
                 <p className="text-base text-[--text-secondary] mb-12">
-                  Check back soon — we&apos;ll have competitions, news, and more ready for you.
+                  In the meantime, feel free to explore the site using the navigation above.
                 </p>
                 {/* Placeholder content blocks */}
                 <div className="grid gap-3">
