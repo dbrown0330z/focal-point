@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubSlug } from '@/lib/club-context'
+import { requireClubSlug, requireClubId } from '@/lib/club-context'
 import { Suspense } from 'react'
 import LibraryClient from './LibraryClient'
 
@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function LibraryPage() {
   const clubSlug = await requireClubSlug()
+  const clubId   = await requireClubId()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
@@ -36,6 +37,7 @@ export default async function LibraryPage() {
   const { data: openCompsRaw } = await supabase
     .from('competitions')
     .select('id, title, opens_at, closes_at, submission_limit, competition_categories(id, name)')
+    .eq('club_id', clubId)
     .eq('status', 'open')
     .is('deleted_at', null)
     .is('archived_at', null)

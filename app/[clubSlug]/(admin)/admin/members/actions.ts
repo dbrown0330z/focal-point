@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getClubContext } from '@/lib/club-context'
+import { getClubContext, requireClubId } from '@/lib/club-context'
 import { sendMemberApproved, sendMemberRejected, sendMemberSuspended, sendMemberBanned, sendMemberEmailChanged } from '@/lib/email/send'
 import type { Database } from '@/types/database'
 
@@ -63,9 +63,10 @@ export async function approveMember(memberId: string) {
   // Send approval email with link to the onboarding wizard
   try {
     const service = createServiceClient()
+    const clubId = await requireClubId()
     const [{ data: profile }, { data: clubSettings }, { data: { user } }] = await Promise.all([
       service.from('profiles').select('first_name, display_name').eq('id', memberId).single(),
-      service.from('club_settings').select('club_name').single(),
+      service.from('club_settings').select('club_name').eq('club_id', clubId).single(),
       service.auth.admin.getUserById(memberId),
     ])
 
@@ -88,9 +89,10 @@ export async function rejectMember(memberId: string, reason: string) {
   // Send rejection email before deleting the record
   try {
     const service = createServiceClient()
+    const clubId = await requireClubId()
     const [{ data: profile }, { data: clubSettings }, { data: { user } }] = await Promise.all([
       service.from('profiles').select('first_name, display_name').eq('id', memberId).single(),
-      service.from('club_settings').select('club_name').single(),
+      service.from('club_settings').select('club_name').eq('club_id', clubId).single(),
       service.auth.admin.getUserById(memberId),
     ])
 
@@ -115,9 +117,10 @@ export async function suspendMember(memberId: string, reason: string) {
   // Send notification to member
   try {
     const service = createServiceClient()
+    const clubId = await requireClubId()
     const [{ data: profile }, { data: clubSettings }, { data: { user } }] = await Promise.all([
       service.from('profiles').select('first_name, display_name').eq('id', memberId).single(),
-      service.from('club_settings').select('club_name').single(),
+      service.from('club_settings').select('club_name').eq('club_id', clubId).single(),
       service.auth.admin.getUserById(memberId),
     ])
     const email      = user?.email
@@ -139,9 +142,10 @@ export async function banMember(memberId: string) {
   // Send termination notification to member
   try {
     const service = createServiceClient()
+    const clubId = await requireClubId()
     const [{ data: profile }, { data: clubSettings }, { data: { user } }] = await Promise.all([
       service.from('profiles').select('first_name, display_name').eq('id', memberId).single(),
-      service.from('club_settings').select('club_name').single(),
+      service.from('club_settings').select('club_name').eq('club_id', clubId).single(),
       service.auth.admin.getUserById(memberId),
     ])
     const email      = user?.email
@@ -303,10 +307,11 @@ export async function setMemberSkillLevel(memberId: string, className: string | 
 
 export async function setMemberClassesEnabled(enabled: boolean): Promise<{ error?: string }> {
   const supabase = createServiceClient()
+  const clubId = await requireClubId()
   const { error } = await supabase
     .from('club_settings')
     .update({ member_classes_enabled: enabled })
-    .neq('id', '00000000-0000-0000-0000-000000000000')
+    .eq('club_id', clubId)
   if (error) return { error: error.message }
   revalidatePath('/admin/members')
   return {}
@@ -314,16 +319,18 @@ export async function setMemberClassesEnabled(enabled: boolean): Promise<{ error
 
 export async function addMemberClass(name: string): Promise<{ error?: string; id?: string }> {
   const supabase = createServiceClient()
+  const clubId = await requireClubId()
   const { data: existing } = await supabase
     .from('member_classes')
     .select('sort_order')
+    .eq('club_id', clubId)
     .order('sort_order', { ascending: false })
     .limit(1)
     .single()
   const sort_order = (existing?.sort_order ?? -1) + 1
   const { data, error } = await supabase
     .from('member_classes')
-    .insert({ name: name.trim(), sort_order })
+    .insert({ name: name.trim(), sort_order, club_id: clubId })
     .select('id')
     .single()
   if (error) return { error: error.message }
@@ -333,19 +340,20 @@ export async function addMemberClass(name: string): Promise<{ error?: string; id
 
 export async function seedDefaultMemberClasses(): Promise<{ error?: string; classes?: { id: string; name: string }[] }> {
   const supabase = createServiceClient()
+  const clubId = await requireClubId()
   const defaults = ['Class A', 'Class B', 'Class C']
   // Fetch existing names so we only insert the ones that are missing
-  const { data: existing } = await supabase.from('member_classes').select('name')
+  const { data: existing } = await supabase.from('member_classes').select('name').eq('club_id', clubId)
   const existingNames = new Set((existing ?? []).map(r => r.name))
   const toInsert = defaults
     .filter(name => !existingNames.has(name))
-    .map((name, i) => ({ name, sort_order: (existing?.length ?? 0) + i }))
+    .map((name, i) => ({ name, sort_order: (existing?.length ?? 0) + i, club_id: clubId }))
   if (toInsert.length > 0) {
     const { error } = await supabase.from('member_classes').insert(toInsert)
     if (error) return { error: error.message }
   }
   // Return the full up-to-date list
-  const { data: all } = await supabase.from('member_classes').select('id, name').order('sort_order')
+  const { data: all } = await supabase.from('member_classes').select('id, name').eq('club_id', clubId).order('sort_order')
   revalidatePath('/admin/members')
   return { classes: all ?? [] }
 }
@@ -386,9 +394,10 @@ export async function updateMemberEmail(memberId: string, newEmail: string): Pro
   // Send notification to both old and new addresses (non-fatal)
   if (oldEmail) {
     try {
+      const clubId = await requireClubId()
       const [{ data: profile }, { data: clubSettings }] = await Promise.all([
         supabase.from('profiles').select('first_name, display_name').eq('id', memberId).single(),
-        supabase.from('club_settings').select('club_name').single(),
+        supabase.from('club_settings').select('club_name').eq('club_id', clubId).single(),
       ])
       const firstName = profile?.first_name || profile?.display_name || 'there'
       const clubName  = clubSettings?.club_name ?? 'the club'
@@ -424,6 +433,7 @@ export async function saveEnrollmentSettings(settings: {
   notifyAllAdmins: boolean
 }): Promise<{ error?: string }> {
   const supabase = createServiceClient()
+  const clubId = await requireClubId()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const patch: any = {
     approval_mode:               settings.approvalMode,
@@ -436,7 +446,7 @@ export async function saveEnrollmentSettings(settings: {
   const { error } = await supabase
     .from('club_settings')
     .update(patch)
-    .neq('id', '00000000-0000-0000-0000-000000000000')
+    .eq('club_id', clubId)
   if (error) return { error: error.message }
   revalidatePath('/admin/members')
   return {}

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubSlug } from '@/lib/club-context'
+import { requireClubSlug, requireClubId } from '@/lib/club-context'
 import CalendarClient from './CalendarClient'
 import type { CalendarEvent } from './actions'
 
@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function CalendarPage() {
   const clubSlug = await requireClubSlug()
+  const clubId   = await requireClubId()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
@@ -24,19 +25,23 @@ export default async function CalendarPage() {
     admin
       .from('calendar_events')
       .select('id, title, description, location, starts_at, ends_at, all_day, event_type, created_by')
+      .eq('club_id', clubId)
       .order('starts_at', { ascending: true }),
     admin
       .from('meeting_locations')
       .select('name, address')
+      .eq('club_id', clubId)
       .order('sort_order')
       .order('created_at'),
     admin
       .from('club_settings')
       .select('timezone')
+      .eq('club_id', clubId)
       .single(),
     admin
       .from('competitions')
       .select('id, title, short_title, opens_at, closes_at, results_at')
+      .eq('club_id', clubId)
       .in('status', ['open', 'judging', 'results_pending', 'results_published'])
       .is('archived_at', null)
       .is('deleted_at', null),

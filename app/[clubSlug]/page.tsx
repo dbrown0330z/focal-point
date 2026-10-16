@@ -195,6 +195,7 @@ export default async function ClubHomePage({
           <WelcomeHeader
             firstName={(profile as { first_name: string | null }).first_name || profile.display_name.split(' ')[0]}
             userId={user.id}
+            clubId={clubId}
           />
           <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-10">
             <HomepageRenderer blocks={blocks} clubName={clubName} clubId={clubId} clubSlug={clubSlug} />

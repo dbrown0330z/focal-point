@@ -21,25 +21,32 @@ export default async function AdminDashboardPage() {
   const supabase = await createClient()
   const admin = createServiceClient()
 
+  // Phase 1: counts, competitions, settings (all club-scoped)
   const [
     { count: pendingCount },
     { count: memberCount },
     { data: activeCompetitions },
-    { data: recentSubmissions },
-    { data: recentMembers },
     { data: recentCompetitions },
     { data: clubSettings },
     { data: clubRow },
+    { data: recentMemberships },
   ] = await Promise.all([
-    admin.from('profiles').select('id', { count: 'exact', head: true }).in('membership_status', ['pending', 'approved']),
-    admin.from('profiles').select('id', { count: 'exact', head: true }).in('membership_status', ['active', 'complimentary']),
-    admin.from('competitions').select('id, title, status, closes_at').in('status', ['open', 'judging']).is('deleted_at', null).order('created_at', { ascending: false }),
-    admin.from('submissions').select('id, submitted_at, images(title), profiles!member_id(display_name)').order('submitted_at', { ascending: false }).limit(4),
-    admin.from('profiles').select('id, display_name, created_at').order('created_at', { ascending: false }).limit(3),
-    admin.from('competitions').select('id, title, created_at').is('deleted_at', null).order('created_at', { ascending: false }).limit(3),
+    admin.from('club_memberships').select('id', { count: 'exact', head: true }).eq('club_id', clubId).in('membership_status', ['pending', 'approved']),
+    admin.from('club_memberships').select('id', { count: 'exact', head: true }).eq('club_id', clubId).in('membership_status', ['active', 'complimentary']),
+    admin.from('competitions').select('id, title, status, closes_at').eq('club_id', clubId).in('status', ['open', 'judging']).is('deleted_at', null).order('created_at', { ascending: false }),
+    admin.from('competitions').select('id, title, created_at').eq('club_id', clubId).is('deleted_at', null).order('created_at', { ascending: false }).limit(3),
     admin.from('club_settings').select('membership_terms_reviewed').eq('club_id', clubId).single(),
     admin.from('clubs').select('verified_at').eq('id', clubId).single(),
+    admin.from('club_memberships').select('user_id, created_at, profiles!inner(display_name)').eq('club_id', clubId).order('created_at', { ascending: false }).limit(3),
   ])
+
+  // Phase 2: scope submissions to this club's competitions
+  const allClubCompIds = (activeCompetitions ?? []).map(c => c.id)
+    .concat((recentCompetitions ?? []).map(c => c.id))
+  const uniqueCompIds = [...new Set(allClubCompIds)]
+  const { data: recentSubmissions } = uniqueCompIds.length > 0
+    ? await admin.from('submissions').select('id, submitted_at, images(title), profiles!member_id(display_name)').in('competition_id', uniqueCompIds).order('submitted_at', { ascending: false }).limit(4)
+    : { data: [] }
 
   // Trial banner calculation
   const TRIAL_DAYS = 60
@@ -68,11 +75,12 @@ export default async function AdminDashboardPage() {
       href:   `/${clubSlug}/admin/competitions`,
     })
   }
-  for (const m of recentMembers ?? []) {
+  for (const m of recentMemberships ?? []) {
+    const prof = m.profiles as { display_name: string } | null
     activity.push({
       time:   timeAgo(m.created_at),
       label:  'Member registered',
-      detail: `${m.display_name} joined`,
+      detail: `${prof?.display_name ?? 'Someone'} joined`,
       dot:    'var(--status-success)',
       href:   `/${clubSlug}/admin/members`,
     })

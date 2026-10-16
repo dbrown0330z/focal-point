@@ -8,10 +8,11 @@ const PATH = '/admin/club-defaults'
 
 export async function saveMemberClassesEnabled(enabled: boolean): Promise<{ error?: string }> {
   const supabase = createServiceClient()
+  const clubId = await requireClubId()
   const { error } = await supabase
     .from('club_settings')
     .update({ member_classes_enabled: enabled, updated_at: new Date().toISOString() })
-    .neq('id', '00000000-0000-0000-0000-000000000000')
+    .eq('club_id', clubId)
   if (error) return { error: error.message }
   revalidatePath(PATH)
   return {}
@@ -45,7 +46,7 @@ export async function saveClubSettings(data: {
   const { error } = await supabase
     .from('club_settings')
     .update({ ...data, updated_at: new Date().toISOString() })
-    .neq('id', '00000000-0000-0000-0000-000000000000')
+    .eq('club_id', clubId)
   if (error) return { error: error.message }
 
   // Keep clubs.name in sync — middleware reads this for the browser tab title
@@ -59,10 +60,11 @@ export async function saveClubSettings(data: {
 
 export async function updateDefaultLocation(id: string | null): Promise<{ error?: string }> {
   const supabase = createServiceClient()
+  const clubId = await requireClubId()
   const { error } = await supabase
     .from('club_settings')
     .update({ default_meeting_location_id: id })
-    .neq('id', '00000000-0000-0000-0000-000000000000')
+    .eq('club_id', clubId)
   if (error) return { error: error.message }
   revalidatePath(PATH)
   return {}
@@ -83,10 +85,11 @@ export async function uploadClubLogo(formData: FormData): Promise<{ error?: stri
 
   const { data: { publicUrl } } = supabase.storage.from('club-assets').getPublicUrl(path)
 
+  const clubId = await requireClubId()
   await supabase
     .from('club_settings')
     .update({ logo_path: publicUrl })
-    .neq('id', '00000000-0000-0000-0000-000000000000')
+    .eq('club_id', clubId)
 
   revalidatePath(PATH)
   return { url: publicUrl }
@@ -94,9 +97,10 @@ export async function uploadClubLogo(formData: FormData): Promise<{ error?: stri
 
 export async function addMeetingLocation(name: string, address: string | null): Promise<{ error?: string; id?: string }> {
   const supabase = createServiceClient()
+  const clubId = await requireClubId()
   const { data, error } = await supabase
     .from('meeting_locations')
-    .insert({ name: name.trim(), address: address?.trim() || null })
+    .insert({ name: name.trim(), address: address?.trim() || null, club_id: clubId })
     .select('id')
     .single()
   if (error) return { error: error.message }
@@ -125,9 +129,10 @@ export async function deleteMeetingLocation(id: string): Promise<{ error?: strin
 
 export async function addMemberClass(name: string, description: string): Promise<{ error?: string; id?: string }> {
   const supabase = createServiceClient()
+  const clubId = await requireClubId()
   const { data, error } = await supabase
     .from('member_classes')
-    .insert({ name: name.trim(), description: description.trim() || null })
+    .insert({ name: name.trim(), description: description.trim() || null, club_id: clubId })
     .select('id')
     .single()
   if (error) return { error: error.message }
@@ -156,16 +161,18 @@ export async function updateMemberClass(id: string, name: string, description: s
 
 export async function addCompetitionDefaultCategory(name: string): Promise<{ error?: string; id?: string }> {
   const supabase = createServiceClient()
+  const clubId = await requireClubId()
   const { data: existing } = await supabase
     .from('competition_default_categories')
     .select('sort_order')
+    .eq('club_id', clubId)
     .order('sort_order', { ascending: false })
     .limit(1)
     .single()
   const sort_order = (existing?.sort_order ?? -1) + 1
   const { data, error } = await supabase
     .from('competition_default_categories')
-    .insert({ name: name.trim(), sort_order })
+    .insert({ name: name.trim(), sort_order, club_id: clubId })
     .select('id')
     .single()
   if (error) return { error: error.message }
@@ -209,10 +216,11 @@ export async function savePoySettings(data: {
   poy_eligibility_min_dur:   string
 }): Promise<{ error?: string }> {
   const supabase = createServiceClient()
+  const clubId = await requireClubId()
   const { error } = await supabase
     .from('club_settings')
     .update({ ...data, updated_at: new Date().toISOString() })
-    .neq('id', '00000000-0000-0000-0000-000000000000')
+    .eq('club_id', clubId)
   if (error) return { error: error.message }
   revalidatePath('/admin/competitions/recognition')
   revalidatePath('/', 'layout') // standings page reads this config
@@ -244,10 +252,11 @@ export async function saveCompetitionDefaults(data: {
   results_visibility_delay_hours: number
 }): Promise<{ error?: string }> {
   const supabase = createServiceClient()
+  const clubId = await requireClubId()
   const { error } = await supabase
     .from('competition_defaults')
     .update({ ...data, updated_at: new Date().toISOString() })
-    .neq('id', '00000000-0000-0000-0000-000000000000')
+    .eq('club_id', clubId)
   if (error) return { error: error.message }
   revalidatePath('/admin/competitions/competition-defaults')
   return {}
@@ -255,10 +264,11 @@ export async function saveCompetitionDefaults(data: {
 
 export async function createDefaultMemberClasses(): Promise<{ error?: string; classes?: { id: string; name: string }[] }> {
   const supabase = createServiceClient()
+  const clubId = await requireClubId()
   const defaults = [
-    { name: 'Class A', sort_order: 0 },
-    { name: 'Class B', sort_order: 1 },
-    { name: 'Class C', sort_order: 2 },
+    { name: 'Class A', sort_order: 0, club_id: clubId },
+    { name: 'Class B', sort_order: 1, club_id: clubId },
+    { name: 'Class C', sort_order: 2, club_id: clubId },
   ]
   const { data, error } = await supabase
     .from('member_classes')
@@ -274,13 +284,14 @@ export async function createDefaultMemberClasses(): Promise<{ error?: string; cl
 /** Mark the default template as reviewed/accepted without editing. */
 export async function acceptDefaultTerms(): Promise<{ error?: string }> {
   const supabase = createServiceClient()
+  const clubId = await requireClubId()
   const { error } = await supabase
     .from('club_settings')
     .update({
       membership_terms_reviewed:   true,
       membership_terms_updated_at: new Date().toISOString(),
     })
-    .neq('id', '00000000-0000-0000-0000-000000000000')
+    .eq('club_id', clubId)
   if (error) return { error: error.message }
   revalidatePath(PATH)
   return {}
@@ -289,6 +300,7 @@ export async function acceptDefaultTerms(): Promise<{ error?: string }> {
 /** Save edited default template content (also marks as reviewed). */
 export async function saveTermsContent(content: string): Promise<{ error?: string }> {
   const supabase = createServiceClient()
+  const clubId = await requireClubId()
   const { error } = await supabase
     .from('club_settings')
     .update({
@@ -296,7 +308,7 @@ export async function saveTermsContent(content: string): Promise<{ error?: strin
       membership_terms_reviewed:   true,
       membership_terms_updated_at: new Date().toISOString(),
     })
-    .neq('id', '00000000-0000-0000-0000-000000000000')
+    .eq('club_id', clubId)
   if (error) return { error: error.message }
   revalidatePath(PATH)
   revalidatePath('/terms')
@@ -330,6 +342,7 @@ export async function uploadTermsFile(
     .from('club-assets')
     .getPublicUrl(storagePath)
 
+  const clubId = await requireClubId()
   const { error } = await supabase
     .from('club_settings')
     .update({
@@ -339,7 +352,7 @@ export async function uploadTermsFile(
       membership_terms_reviewed:   true,
       membership_terms_updated_at: new Date().toISOString(),
     })
-    .neq('id', '00000000-0000-0000-0000-000000000000')
+    .eq('club_id', clubId)
   if (error) return { error: error.message }
 
   revalidatePath(PATH)
@@ -350,6 +363,7 @@ export async function uploadTermsFile(
 /** Remove the custom document and revert to the default template. */
 export async function removeTermsFile(): Promise<{ error?: string }> {
   const supabase = createServiceClient()
+  const clubId = await requireClubId()
   const { error } = await supabase
     .from('club_settings')
     .update({
@@ -359,7 +373,7 @@ export async function removeTermsFile(): Promise<{ error?: string }> {
       membership_terms_reviewed:   false,   // re-prompt admin to review default
       membership_terms_updated_at: new Date().toISOString(),
     })
-    .neq('id', '00000000-0000-0000-0000-000000000000')
+    .eq('club_id', clubId)
   if (error) return { error: error.message }
   revalidatePath(PATH)
   revalidatePath('/terms')

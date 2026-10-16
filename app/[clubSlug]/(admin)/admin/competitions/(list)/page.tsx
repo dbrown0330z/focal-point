@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubSlug } from '@/lib/club-context'
+import { requireClubSlug, requireClubId } from '@/lib/club-context'
 import CompetitionsListClient from './CompetitionsListClient'
 import { defaultConfig, type CompetitionConfig } from '@/types/competition'
 
@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function AdminCompetitionsPage() {
   const clubSlug = await requireClubSlug()
+  const clubId   = await requireClubId()
   const supabase = createServiceClient()
 
   const [
@@ -20,25 +21,31 @@ export default async function AdminCompetitionsPage() {
     supabase
       .from('competitions')
       .select('id, title, status, opens_at, closes_at, judging_at, template_id, archived_at')
+      .eq('club_id', clubId)
       .is('deleted_at', null)
       .order('opens_at', { ascending: false, nullsFirst: false }),
     supabase
       .from('competition_templates')
       .select('id, name, config')
+      .eq('club_id', clubId)
       .order('name', { ascending: true }),
     supabase
       .from('meeting_locations')
       .select('id, name, address')
+      .eq('club_id', clubId)
       .order('sort_order', { ascending: true }),
     supabase
       .from('judge_tokens')
-      .select('competition_id, judge_name'),
+      .select('competition_id, judge_name')
+      .in('competition_id', supabase.from('competitions').select('id').eq('club_id', clubId)),
     supabase
       .from('submissions')
-      .select('competition_id'),
+      .select('competition_id')
+      .in('competition_id', supabase.from('competitions').select('id').eq('club_id', clubId)),
     supabase
       .from('judge_directory')
       .select('id, name, email')
+      .eq('club_id', clubId)
       .order('name', { ascending: true }),
   ])
 
@@ -52,14 +59,17 @@ export default async function AdminCompetitionsPage() {
     supabase
       .from('competition_default_categories')
       .select('name')
+      .eq('club_id', clubId)
       .order('sort_order', { ascending: true }),
     supabase
       .from('competition_defaults')
       .select('*')
-      .single(),
+      .eq('club_id', clubId)
+      .maybeSingle(),
     supabase
       .from('club_settings')
       .select('season_start_month')
+      .eq('club_id', clubId)
       .single(),
   ])
 

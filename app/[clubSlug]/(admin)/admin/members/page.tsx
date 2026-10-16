@@ -1,14 +1,35 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubId } from '@/lib/club-context'
 import MembersClient from './MembersClient'
 
 export default async function MembersPage() {
   const supabase = await createClient()
   const admin    = createServiceClient()
+  const clubId   = await requireClubId()
 
   const thisYear      = new Date().getFullYear()
   const yearStart     = `${thisYear}-01-01`
   const nextYearStart = `${thisYear + 1}-01-01`
+
+  // Get this club's member user IDs first, then scope all queries
+  const { data: clubMemberships } = await admin
+    .from('club_memberships')
+    .select('user_id')
+    .eq('club_id', clubId)
+  const clubMemberIds = (clubMemberships ?? []).map(m => m.user_id)
+  const memberIdFilter = clubMemberIds.length > 0 ? clubMemberIds : ['00000000-0000-0000-0000-000000000000']
+
+  // Get this club's competition IDs to scope submissions/scores
+  const { data: clubComps } = await admin
+    .from('competitions')
+    .select('id, submission_limit, opens_at, status')
+    .eq('club_id', clubId)
+  const clubCompIds = (clubComps ?? []).map(c => c.id)
+  const compIdFilter = clubCompIds.length > 0 ? clubCompIds : ['00000000-0000-0000-0000-000000000000']
+  const competitionsThisYear = (clubComps ?? []).filter(c =>
+    c.status !== 'draft' && c.opens_at && c.opens_at >= yearStart && c.opens_at < nextYearStart
+  )
 
   const [
     { data: profiles },
@@ -18,34 +39,24 @@ export default async function MembersPage() {
     { data: clubSettings },
     { data: { users } },
     { data: memberClasses },
-    // Competitions that opened this year (for "X of Y" engagement counts)
-    { data: competitionsThisYear },
-    // All scores — aggregated per submission then per member for stat cards
+    // Scores for avg / highest / lowest per member
     { data: allScores },
   ] = await Promise.all([
     supabase
       .from('profiles')
       .select('id, first_name, last_name, display_name, member_number, membership_status, membership_class, role, created_at, bio, camera_brands, shooting_interests, experience_level, avatar_url, location, phone, perm_competition_manager, perm_event_manager, perm_comms_manager, pref_competition_reminders, pref_results_notifications, pref_club_newsletter, pref_public_profile, pref_show_scores_publicly, pref_show_in_directory')
+      .in('id', memberIdFilter)
       .order('member_number', { ascending: true }),
-    admin.from('submissions').select('member_id'),
-    // submissions uses submitted_at, not created_at
-    admin.from('submissions').select('member_id, competition_id').gte('submitted_at', yearStart).lt('submitted_at', nextYearStart),
-    // Category breakdown for the donut chart (all-time)
-    admin.from('submissions').select('member_id, competition_categories(name)'),
+    admin.from('submissions').select('member_id').in('competition_id', compIdFilter),
+    admin.from('submissions').select('member_id, competition_id').in('competition_id', compIdFilter).gte('submitted_at', yearStart).lt('submitted_at', nextYearStart),
+    admin.from('submissions').select('member_id, competition_categories(name)').in('competition_id', compIdFilter),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (admin.from('club_settings') as any).select('member_classes_enabled, approval_mode, notify_new_application, notify_member_activates, notify_payment_link_expires, notify_membership_expires, notify_all_admins').single(),
+    (admin.from('club_settings') as any).select('member_classes_enabled, approval_mode, notify_new_application, notify_member_activates, notify_payment_link_expires, notify_membership_expires, notify_all_admins').eq('club_id', clubId).single(),
     admin.auth.admin.listUsers({ perPage: 1000 }),
-    admin.from('member_classes').select('id, name').order('sort_order').order('created_at'),
-    // Competitions with submissions open this year
-    admin.from('competitions')
-      .select('id, submission_limit')
-      .neq('status', 'draft')
-      .not('opens_at', 'is', null)
-      .gte('opens_at', yearStart)
-      .lt('opens_at', nextYearStart),
-    // Scores for avg / highest / lowest per member
-    // Each row = one judge's score for one submission; aggregate by submission first
-    admin.from('scores').select('score, submission_id, submissions!inner(member_id)'),
+    admin.from('member_classes').select('id, name').eq('club_id', clubId).order('sort_order').order('created_at'),
+    admin.from('scores').select('score, submission_id, submissions!inner(member_id)').in('submission_id',
+      admin.from('submissions').select('id').in('competition_id', compIdFilter)
+    ),
   ])
 
   const emailById:     Record<string, string>      = {}

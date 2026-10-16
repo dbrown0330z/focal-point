@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubSlug } from '@/lib/club-context'
+import { requireClubSlug, requireClubId } from '@/lib/club-context'
 import { sendJudgeInvitation } from '@/lib/email/send'
 
 function fmtDateSimple(iso: string | null): string {
@@ -68,6 +68,7 @@ export default async function CompetitionDetailPage({
 }) {
   const { id } = await params
   const clubSlug        = await requireClubSlug()
+  const clubId          = await requireClubId()
   const supabase        = await createClient()
   const admin = createServiceClient()
 
@@ -101,6 +102,7 @@ export default async function CompetitionDetailPage({
     admin
       .from('competitions')
       .select('results_location_venue')
+      .eq('club_id', clubId)
       .not('results_location_venue', 'is', null),
   ])
 
@@ -152,7 +154,7 @@ export default async function CompetitionDetailPage({
       ;(competition as { status: string }).status = 'judging'
       // Send judge invitation if not already sent
       if (!judgeToken.invitation_sent_at && process.env.RESEND_API_KEY) {
-        const { data: club } = await admin.from('club_settings').select('club_name').single()
+        const { data: club } = await admin.from('club_settings').select('club_name').eq('club_id', clubId).single()
         try {
           await sendJudgeInvitation({
             judgeEmail:      judgeToken.judge_email,

@@ -1,14 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubId } from '@/lib/club-context'
 import ClubDefaultsClient from './ClubDefaultsClient'
 
 export default async function ClubDefaultsPage() {
   const supabase = await createClient()
   const admin = createServiceClient()
+  const clubId = await requireClubId()
 
   const [{ data: settingsRow }, { data: locations }] = await Promise.all([
-    admin.from('club_settings').select('*').single(),
-    admin.from('meeting_locations').select('id, name, address').order('sort_order').order('created_at'),
+    admin.from('club_settings').select('*').eq('club_id', clubId).single(),
+    admin.from('meeting_locations').select('id, name, address').eq('club_id', clubId).order('sort_order').order('created_at'),
   ])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

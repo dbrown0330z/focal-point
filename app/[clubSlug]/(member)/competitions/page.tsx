@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubId } from '@/lib/club-context'
 import CompetitionsClient from './CompetitionsClient'
 
 export const dynamic = 'force-dynamic'
@@ -8,6 +9,7 @@ export default async function CompetitionsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
+  const clubId = await requireClubId()
 
   const nowIso = new Date().toISOString()
 
@@ -16,6 +18,7 @@ export default async function CompetitionsPage() {
   const { data: currentRaw } = await supabase
     .from('competitions')
     .select('id, title, short_title, status, opens_at, closes_at, results_at, submission_limit, competition_categories(id, name), judge_tokens(judge_name)')
+    .eq('club_id', clubId)
     .in('status', ['open', 'judging', 'judging_on_hold', 'results_pending'])
     .is('archived_at', null)
     .is('deleted_at', null)

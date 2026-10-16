@@ -136,9 +136,11 @@ export default async function WelcomeHeader({
   firstName,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   userId,
+  clubId,
 }: {
   firstName: string
   userId:    string
+  clubId:    string
 }) {
   const supabase = await createClient()
 
@@ -146,6 +148,7 @@ export default async function WelcomeHeader({
   const { data: clubSettings } = await supabase
     .from('club_settings')
     .select('timezone')
+    .eq('club_id', clubId)
     .single()
   const tz: string = clubSettings?.timezone || 'UTC'
   const now         = new Date()
