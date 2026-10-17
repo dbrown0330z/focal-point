@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import MuiSelect  from '@mui/material/Select'
 import MenuItem   from '@mui/material/MenuItem'
 import { skillLabel } from '@/lib/profile-options'
+import TrophyIllustration from '@/components/illustrations/TrophyIllustration'
 import { avatarGradient, avatarInitials } from '@/lib/avatar'
 import type {
   PoyEntry,
@@ -593,10 +594,11 @@ function PoyLeaderboard({
 
   if (!hasCompetitions) {
     return (
-      <EmptyCard>
-        No scored competitions this season yet.
-        Standings will appear once competition results are published.
-      </EmptyCard>
+      <div className="flex flex-col items-center py-20 text-center">
+        <TrophyIllustration size={120} />
+        <p className="mt-5 text-[17px] font-semibold" style={{ color: 'var(--text-primary)' }}>No standings yet this season.</p>
+        <p className="mt-1 text-[14px]" style={{ color: 'var(--text-secondary)' }}>Standings will appear once competition results are published.</p>
+      </div>
     )
   }
 
