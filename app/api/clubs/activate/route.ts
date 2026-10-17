@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
 
   await admin
     .from('profiles')
-    .update({ role: 'admin', display_name: displayName, first_name: firstName, last_name: lastName || null })
+    .update({ role: 'admin', membership_status: 'active', display_name: displayName, first_name: firstName, last_name: lastName || null })
     .eq('id', userId)
 
   await admin

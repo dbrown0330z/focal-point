@@ -61,7 +61,7 @@ export async function confirmVerification(token: string) {
 
     await admin
       .from('profiles')
-      .update({ role: 'admin', display_name: displayName, first_name: firstName, last_name: lastName || null })
+      .update({ role: 'admin', membership_status: 'active', display_name: displayName, first_name: firstName, last_name: lastName || null })
       .eq('id', userId)
 
     // Create the club membership so the club homepage doesn't bounce them to login
