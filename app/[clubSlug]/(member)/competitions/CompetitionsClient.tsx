@@ -6,6 +6,7 @@ import Link from 'next/link'
 import SubmitModal from './SubmitModal'
 import { withdrawFromCompetition, changeCategoryAction, editImageTitleAction } from './actions'
 import { Lightbox, type LightboxImage } from '@/components/ui/Lightbox'
+import TrophyIllustration from '@/components/illustrations/TrophyIllustration'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1348,10 +1349,10 @@ function UpcomingCompetitionsBlock({ competitions }: { competitions: UpcomingCom
 
 function NoCompetition() {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center" style={{ color: 'var(--text-tertiary)' }}>
-      <IconTrophy />
-      <p className="mt-4 text-lg font-semibold" style={{ color: 'var(--text-secondary)' }}>No competitions open right now.</p>
-      <p className="mt-1 text-sm">Keep your camera ready — the next one is coming.</p>
+    <div className="flex flex-col items-center py-20 text-center">
+      <TrophyIllustration size={120} />
+      <p className="mt-5 text-[17px] font-semibold" style={{ color: 'var(--text-primary)' }}>No competitions open right now.</p>
+      <p className="mt-1 text-[14px]" style={{ color: 'var(--text-secondary)' }}>Keep your camera ready — the next one is coming soon.</p>
     </div>
   )
 }

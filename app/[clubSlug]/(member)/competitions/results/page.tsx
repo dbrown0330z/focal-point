@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireClubSlug, requireClubId } from '@/lib/club-context'
+import TrophyIllustration from '@/components/illustrations/TrophyIllustration'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,15 +98,8 @@ export default async function CompetitionResultsIndexPage({
 
       {withCounts.length === 0 ? (
         <div className="flex flex-col items-center py-20 text-center">
-          <div
-            className="mb-5 flex h-16 w-16 items-center justify-center rounded-full"
-            style={{ background: 'var(--surface-1)' }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-8 w-8" style={{ color: 'var(--text-tertiary)' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-            </svg>
-          </div>
-          <p className="text-[17px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <TrophyIllustration size={120} />
+          <p className="mt-5 text-[17px] font-semibold" style={{ color: 'var(--text-primary)' }}>
             No results published for {selectedYear} yet
           </p>
           <p className="mt-1 text-[14px]" style={{ color: 'var(--text-secondary)' }}>
