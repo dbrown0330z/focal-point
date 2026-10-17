@@ -8,6 +8,7 @@ import GuestWelcomeBlock from '@/components/home/GuestWelcomeBlock'
 import MemberThemeProvider from '@/components/layout/MemberThemeProvider'
 import HomepageRenderer from '@/components/home/HomepageRenderer'
 import WelcomeHeader from '@/components/home/WelcomeHeader'
+import HomepageComingSoon from '@/components/home/HomepageComingSoon'
 import { DEFAULT_BLOCKS, mergeBlocks, type ContentBlock } from '@/lib/homepage/types'
 import { logout } from '@/app/(auth)/actions'
 import { AppFooter } from '@/components/layout/AppFooter'
@@ -129,30 +130,8 @@ export default async function ClubHomePage({
               customTabs={[]}
               pendingCount={0}
             />
-            <div className="flex flex-1 flex-col items-center justify-center px-4 py-16 text-center">
-              <div className="max-w-lg w-full">
-                <p className="text-sm font-semibold uppercase tracking-widest text-[--text-secondary] mb-4" style={{ letterSpacing: '0.08em' }}>
-                  Welcome
-                </p>
-                <h1 className="text-3xl font-bold text-[--text-primary] mb-3" style={{ letterSpacing: '-0.02em' }}>
-                  Glad you&apos;re here!
-                </h1>
-                <p className="text-base text-[--text-secondary] mb-4">
-                  We&apos;re working on the homepage and it will be ready soon.
-                </p>
-                <p className="text-base text-[--text-secondary] mb-12">
-                  In the meantime, feel free to explore the site using the navigation above.
-                </p>
-                {/* Placeholder content blocks */}
-                <div className="grid gap-3">
-                  <div className="h-28 rounded-xl" style={{ background: 'rgba(108,71,212,0.10)' }} />
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="h-20 rounded-xl" style={{ background: 'rgba(0,151,167,0.10)' }} />
-                    <div className="h-20 rounded-xl" style={{ background: 'rgba(230,81,0,0.10)' }} />
-                  </div>
-                  <div className="h-16 rounded-xl" style={{ background: 'rgba(46,125,50,0.10)' }} />
-                </div>
-              </div>
+            <div className="flex flex-1 flex-col items-start">
+              <HomepageComingSoon clubName={clubName} clubSlug={clubSlug} />
             </div>
             <AppFooter variant="app" />
           </div>
