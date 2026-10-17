@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getClubContext } from '@/lib/club-context'
+import { getClubContext, requireClubId } from '@/lib/club-context'
 
 export async function createPost(formData: FormData) {
   const supabase = await createClient()
@@ -16,9 +16,11 @@ export async function createPost(formData: FormData) {
   const title     = (formData.get('title') as string).trim()
   const body      = (formData.get('body')  as string).trim()
   const publish   = formData.get('publish') === '1'
+  const clubId    = await requireClubId()
 
   const { error } = await admin.from('posts').insert({
     author_id:    user.id,
+    club_id:      clubId,
     title,
     body,
     published_at: publish ? new Date().toISOString() : null,

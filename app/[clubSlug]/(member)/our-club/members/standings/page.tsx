@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubSlug } from '@/lib/club-context'
+import { requireClubSlug, requireClubId } from '@/lib/club-context'
 import { redirect } from 'next/navigation'
 import StandingsClient from './StandingsClient'
 import type { AwardTier } from '@/types/competition'
@@ -117,6 +117,7 @@ export default async function StandingsPage({
   searchParams: Promise<{ season?: string; tab?: string }>
 }) {
   const clubSlug = await requireClubSlug()
+  const clubId   = await requireClubId()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
@@ -128,6 +129,7 @@ export default async function StandingsPage({
   const { data: settingsRaw } = await admin
     .from('club_settings')
     .select('season_start_month, poy_categories_factor, poy_separate_per_category, poy_branch_a_counting, poy_branch_a_top_n, poy_branch_a_exclude_n, poy_b1_counting, poy_b1_top_n, poy_b1_exclude_n, poy_b2_counting, poy_b2_top_n, poy_b2_exclude_n, poy_tiebreaker, poy_eligibility, poy_eligibility_min_dur')
+    .eq('club_id', clubId)
     .single()
 
   const startMonth: number = settingsRaw?.season_start_month ?? 9
@@ -183,6 +185,7 @@ export default async function StandingsPage({
   const { data: compsRaw } = await admin
     .from('competitions')
     .select('id, title, awards_enabled, award_types, closes_at')
+    .eq('club_id', clubId)
     .in('status', ['results_published', 'closed'])
     .is('deleted_at', null)
     .gte('closes_at', season.start)

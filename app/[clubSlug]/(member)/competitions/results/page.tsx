@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubSlug } from '@/lib/club-context'
+import { requireClubSlug, requireClubId } from '@/lib/club-context'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,11 +16,13 @@ export default async function CompetitionResultsIndexPage({
 }) {
   const { year } = await searchParams
   const clubSlug  = await requireClubSlug()
+  const clubId    = await requireClubId()
   const admin     = createServiceClient()
 
   const { data: compsRaw } = await admin
     .from('competitions')
     .select('id, title, status, closes_at, judge_tokens(judge_name)')
+    .eq('club_id', clubId)
     .in('status', ['results_pending', 'results_published', 'closed'])
     .is('deleted_at', null)
     .order('closes_at', { ascending: false })

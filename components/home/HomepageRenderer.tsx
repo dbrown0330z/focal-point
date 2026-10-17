@@ -780,11 +780,13 @@ export default async function HomepageRenderer({
       supabase
         .from('calendar_events')
         .select('id, title, starts_at, ends_at, all_day, event_type, location')
+        .eq('club_id', clubId)
         .gte('starts_at', nowIso)
         .order('starts_at'),
       supabase
         .from('competitions')
         .select('id, title, short_title, opens_at, closes_at, status')
+        .eq('club_id', clubId)
         .in('status', ['draft', 'open'])
         .or(`opens_at.gte.${nowIso},closes_at.gte.${nowIso}`)
         .order('opens_at', { ascending: true, nullsFirst: false }),

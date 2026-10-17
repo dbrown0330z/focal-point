@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getResend } from '@/lib/email/client'
+import { requireClubId } from '@/lib/club-context'
 
 export type SendResult =
   | { ok: true;  recipientCount: number }
@@ -56,9 +57,11 @@ export async function sendNotification(args: {
   if (emailList.length === 0) return { ok: false, error: 'No email addresses found for recipients' }
 
   // ── Get club settings for from address ───────────────────────────────────────
+  const clubId = await requireClubId()
   const { data: settings } = await supabase
     .from('club_settings')
     .select('club_name, from_email')
+    .eq('club_id', clubId)
     .single()
 
   const clubName  = settings?.club_name  ?? 'Your Camera Club'

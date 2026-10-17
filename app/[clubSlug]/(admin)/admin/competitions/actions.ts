@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { headers, cookies } from 'next/headers'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubSlug } from '@/lib/club-context'
+import { requireClubSlug, requireClubId } from '@/lib/club-context'
 import { sendJudgeInvitation, sendMemberCancellationNotification, sendJudgeCancellationNotification } from '@/lib/email/send'
 import type { Database } from '@/types/database'
 import type { CompetitionConfig, CompetitionSchedule, CompetitionType } from '@/types/competition'
@@ -33,10 +33,12 @@ async function getOrigin(): Promise<string> {
 
 export async function createCompetition(formData: FormData) {
   const supabase = createServiceClient()
+  const clubId   = await requireClubId()
 
   const { data: competition, error } = await supabase
     .from('competitions')
     .insert({
+      club_id:          clubId,
       title:            formData.get('title') as string,
       submission_limit: Number(formData.get('submission_limit')),
       opens_at:         (formData.get('opens_at') as string) || null,
@@ -251,7 +253,8 @@ export async function addJudge(competitionId: string, formData: FormData) {
     .eq('id', competitionId)
     .single()
 
-  const { data: club } = await supabase.from('club_settings').select('club_name').single()
+  const _clubId = await requireClubId()
+  const { data: club } = await supabase.from('club_settings').select('club_name').eq('club_id', _clubId).single()
 
   if (comp && process.env.RESEND_API_KEY) {
     const origin = await getOrigin()
@@ -329,7 +332,8 @@ export async function addJudgeFromMember(competitionId: string, memberId: string
     .eq('id', competitionId)
     .single()
 
-  const { data: club } = await supabase.from('club_settings').select('club_name').single()
+  const _clubId = await requireClubId()
+  const { data: club } = await supabase.from('club_settings').select('club_name').eq('club_id', _clubId).single()
 
   if (comp && process.env.RESEND_API_KEY) {
     const origin = await getOrigin()
@@ -374,11 +378,13 @@ export async function createCompetitionFromSchedule(args: {
   status?:         CompetitionStatus
 }) {
   const supabase = createServiceClient()
+  const clubId   = await requireClubId()
   const { config, schedule, status = 'draft' } = args
 
   const { data: competition, error } = await supabase
     .from('competitions')
     .insert({
+      club_id:           clubId,
       title:             schedule.instanceName,
       short_title:       schedule.calendarTitle?.trim() || null,
       submission_limit:  config.maxEntriesPerMember,
@@ -470,7 +476,8 @@ export async function updateCompetitionFromSchedule(id: string, args: {
       .eq('id', id)
       .single()
 
-    const { data: club } = await supabase.from('club_settings').select('club_name').single()
+    const _clubId = await requireClubId()
+  const { data: club } = await supabase.from('club_settings').select('club_name').eq('club_id', _clubId).single()
     const origin = await getOrigin()
 
     for (const memberId of selectedJudgeIds) {
@@ -549,7 +556,8 @@ export async function updateCompetitionFromSchedule(id: string, args: {
       .eq('id', id)
       .single()
 
-    const { data: club } = await supabase.from('club_settings').select('club_name').single()
+    const _clubId = await requireClubId()
+  const { data: club } = await supabase.from('club_settings').select('club_name').eq('club_id', _clubId).single()
     const origin = await getOrigin()
 
     const { data: jt } = await supabase
@@ -609,7 +617,8 @@ export async function deleteCompetition(id: string) {
     .eq('id', id)
     .single()
 
-  const { data: club } = await supabase.from('club_settings').select('club_name').single()
+  const _clubId = await requireClubId()
+  const { data: club } = await supabase.from('club_settings').select('club_name').eq('club_id', _clubId).single()
 
   if (judges?.length && comp && process.env.RESEND_API_KEY) {
     for (const judge of judges) {
@@ -649,7 +658,8 @@ export async function cancelCompetition(id: string, reason: string) {
     .eq('id', id)
     .single()
 
-  const { data: club } = await supabase.from('club_settings').select('club_name').single()
+  const _clubId = await requireClubId()
+  const { data: club } = await supabase.from('club_settings').select('club_name').eq('club_id', _clubId).single()
 
   // Notify members who submitted
   if (comp && process.env.RESEND_API_KEY) {

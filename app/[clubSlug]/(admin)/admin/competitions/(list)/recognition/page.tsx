@@ -1,14 +1,17 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubId } from '@/lib/club-context'
 import RecognitionClient from './RecognitionClient'
 
 export const dynamic = 'force-dynamic'
 
 export default async function RecognitionPage() {
   const admin = createServiceClient()
+  const clubId = await requireClubId()
 
   const { data: s } = await admin
     .from('club_settings')
     .select('poy_categories_factor, poy_separate_per_category, poy_branch_a_counting, poy_branch_a_top_n, poy_branch_a_exclude_n, poy_b1_counting, poy_b1_top_n, poy_b1_exclude_n, poy_b2_counting, poy_b2_top_n, poy_b2_exclude_n, poy_tiebreaker, poy_eligibility, poy_eligibility_min_dur')
+    .eq('club_id', clubId)
     .single()
 
   // scoreMax will be read from competition_defaults table once it exists.

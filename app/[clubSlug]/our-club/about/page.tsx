@@ -51,7 +51,7 @@ export default async function AboutPage() {
       ? (admin.from('pages').select('id, content').eq('slug', 'about').eq('club_id', clubId).maybeSingle() as unknown as Promise<{ data: { id: string; content: string | null } | null }>)
       : Promise.resolve({ data: null }),
     clubId
-      ? admin.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'member')
+      ? admin.from('club_memberships').select('id', { count: 'exact', head: true }).eq('club_id', clubId).eq('membership_status', 'active')
       : Promise.resolve({ count: null }),
   ] as const)
 

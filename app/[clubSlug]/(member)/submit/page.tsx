@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubSlug } from '@/lib/club-context'
+import { requireClubSlug, requireClubId } from '@/lib/club-context'
 import SubmitClient, { type CompetitionForSubmit, type LibraryImageForSubmit } from './SubmitClient'
 
 export default async function SubmitPage({
@@ -11,6 +11,7 @@ export default async function SubmitPage({
 }) {
   const { competition: initialCompId, category: initialCatId } = await searchParams
   const clubSlug = await requireClubSlug()
+  const clubId   = await requireClubId()
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -24,6 +25,7 @@ export default async function SubmitPage({
       id, title, closes_at, submission_limit,
       competition_categories!competition_categories_competition_id_fkey(id, name)
     `)
+    .eq('club_id', clubId)
     .eq('status', 'open')
     .is('deleted_at', null)
     .order('closes_at', { ascending: true, nullsFirst: false })

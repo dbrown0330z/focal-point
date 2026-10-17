@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubId } from '@/lib/club-context'
 
 export type CalendarEventType = 'competition' | 'regular_meeting' | 'board_meeting' | 'field_trip' | 'other' | 'submission_open' | 'submission_closed'
 
@@ -31,8 +32,10 @@ export async function createEvent(data: {
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
   if (!user) return { error: 'Not authenticated' }
+  const clubId = await requireClubId()
 
   const { error } = await admin.from('calendar_events').insert({
+    club_id:     clubId,
     title:       data.title,
     description: data.description || null,
     location:    data.location    || null,

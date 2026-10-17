@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubSlug } from '@/lib/club-context'
+import { requireClubSlug, requireClubId } from '@/lib/club-context'
 import TemplatesClient from './TemplatesClient'
 import type { CompetitionConfig } from '@/types/competition'
 
@@ -7,16 +7,19 @@ export const dynamic = 'force-dynamic'
 
 export default async function CompetitionTemplatesPage() {
   const clubSlug = await requireClubSlug()
+  const clubId   = await requireClubId()
   const supabase = createServiceClient()
 
   const [{ data: templates }, { data: usageRows }] = await Promise.all([
     supabase
       .from('competition_templates')
       .select('id, name, config, created_at, updated_at')
+      .eq('club_id', clubId)
       .order('created_at', { ascending: false }),
     supabase
       .from('competitions')
       .select('template_id')
+      .eq('club_id', clubId)
       .not('template_id', 'is', null),
   ])
 
@@ -38,6 +41,7 @@ export default async function CompetitionTemplatesPage() {
   const { data: categoryRows } = await supabase
     .from('competition_default_categories')
     .select('name')
+    .eq('club_id', clubId)
     .order('sort_order', { ascending: true })
 
   const clubCategories = categoryRows?.map(r => r.name) ?? ['Open', 'Nature', 'Monochrome']

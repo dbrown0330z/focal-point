@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubSlug } from '@/lib/club-context'
+import { requireClubSlug, requireClubId } from '@/lib/club-context'
 import {
   Box,
   Button,
@@ -31,11 +31,13 @@ const COL_CELL = {
 
 export default async function AdminPostsPage() {
   const clubSlug = await requireClubSlug()
+  const clubId   = await requireClubId()
   const admin = createServiceClient()
 
   const { data: posts } = await admin
     .from('posts')
     .select('id, title, published_at, created_at')
+    .eq('club_id', clubId)
     .order('created_at', { ascending: false })
 
   return (
