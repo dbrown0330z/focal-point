@@ -14,8 +14,6 @@ export default async function AdminCompetitionsPage() {
     { data: competitions },
     { data: templates },
     { data: locations },
-    { data: judgeTokens },
-    { data: submissionRows },
     { data: judgeDirectory },
   ] = await Promise.all([
     supabase
@@ -35,19 +33,26 @@ export default async function AdminCompetitionsPage() {
       .eq('club_id', clubId)
       .order('sort_order', { ascending: true }),
     supabase
-      .from('judge_tokens')
-      .select('competition_id, judge_name')
-      .in('competition_id', supabase.from('competitions').select('id').eq('club_id', clubId)),
-    supabase
-      .from('submissions')
-      .select('competition_id')
-      .in('competition_id', supabase.from('competitions').select('id').eq('club_id', clubId)),
-    supabase
       .from('judge_directory')
       .select('id, name, email')
       .eq('club_id', clubId)
       .order('name', { ascending: true }),
   ])
+
+  const competitionIds = (competitions ?? []).map(c => c.id)
+
+  const [{ data: judgeTokens }, { data: submissionRows }] = competitionIds.length > 0
+    ? await Promise.all([
+        supabase
+          .from('judge_tokens')
+          .select('competition_id, judge_name')
+          .in('competition_id', competitionIds),
+        supabase
+          .from('submissions')
+          .select('competition_id')
+          .in('competition_id', competitionIds),
+      ])
+    : [{ data: [] }, { data: [] }]
 
   const templateRows = (templates ?? []).map(t => ({
     id:     t.id,
