@@ -37,10 +37,17 @@ export default async function AdminDashboardPage() {
     admin.from('competitions').select('id, title, created_at').eq('club_id', clubId).is('deleted_at', null).order('created_at', { ascending: false }).limit(3),
     admin.from('club_settings').select('membership_terms_reviewed').eq('club_id', clubId).single(),
     admin.from('clubs').select('verified_at').eq('id', clubId).single(),
-    admin.from('club_memberships').select('user_id, created_at, profiles!inner(display_name)').eq('club_id', clubId).order('created_at', { ascending: false }).limit(3),
+    admin.from('club_memberships').select('user_id, created_at').eq('club_id', clubId).order('created_at', { ascending: false }).limit(3),
   ])
 
-  // Phase 2: scope submissions to this club's competitions
+  // Phase 2: look up display names for recent memberships
+  const recentMemberIds = (recentMemberships ?? []).map(m => m.user_id)
+  const { data: recentProfiles } = recentMemberIds.length > 0
+    ? await admin.from('profiles').select('id, display_name').in('id', recentMemberIds)
+    : { data: [] }
+  const profileNameById = Object.fromEntries((recentProfiles ?? []).map(p => [p.id, p.display_name]))
+
+  // Phase 3: scope submissions to this club's competitions
   const allClubCompIds = (activeCompetitions ?? []).map(c => c.id)
     .concat((recentCompetitions ?? []).map(c => c.id))
   const uniqueCompIds = [...new Set(allClubCompIds)]
@@ -76,11 +83,11 @@ export default async function AdminDashboardPage() {
     })
   }
   for (const m of recentMemberships ?? []) {
-    const prof = m.profiles as { display_name: string } | null
+    const displayName = profileNameById[m.user_id] ?? 'Someone'
     activity.push({
       time:   timeAgo(m.created_at),
       label:  'Member registered',
-      detail: `${prof?.display_name ?? 'Someone'} joined`,
+      detail: `${displayName} joined`,
       dot:    'var(--status-success)',
       href:   `/${clubSlug}/admin/members`,
     })
