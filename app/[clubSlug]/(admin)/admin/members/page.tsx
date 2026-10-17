@@ -31,6 +31,13 @@ export default async function MembersPage() {
     c.status !== 'draft' && c.opens_at && c.opens_at >= yearStart && c.opens_at < nextYearStart
   )
 
+  // Fetch submission IDs for this club's competitions — needed to scope scores query
+  const { data: subIdRows } = await admin
+    .from('submissions')
+    .select('id')
+    .in('competition_id', compIdFilter)
+  const submissionIdFilter = subIdRows?.map(r => r.id) ?? []
+
   const [
     { data: profiles },
     { data: submissions },
@@ -54,9 +61,9 @@ export default async function MembersPage() {
     (admin.from('club_settings') as any).select('member_classes_enabled, approval_mode, notify_new_application, notify_member_activates, notify_payment_link_expires, notify_membership_expires, notify_all_admins').eq('club_id', clubId).single(),
     admin.auth.admin.listUsers({ perPage: 1000 }),
     admin.from('member_classes').select('id, name').eq('club_id', clubId).order('sort_order').order('created_at'),
-    admin.from('scores').select('score, submission_id, submissions!inner(member_id)').in('submission_id',
-      admin.from('submissions').select('id').in('competition_id', compIdFilter)
-    ),
+    submissionIdFilter.length > 0
+      ? admin.from('scores').select('score, submission_id, submissions!inner(member_id)').in('submission_id', submissionIdFilter)
+      : Promise.resolve({ data: [] }),
   ])
 
   const emailById:     Record<string, string>      = {}
