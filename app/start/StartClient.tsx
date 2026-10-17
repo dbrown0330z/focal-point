@@ -170,18 +170,18 @@ export default function StartClient() {
         <div style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           width: 60, height: 60, borderRadius: '50%',
-          background: 'rgba(123,80,0,0.10)',
+          background: 'rgba(26,105,72,0.10)',
           marginBottom: 20,
         }}>
-          <svg width="26" height="26" fill="none" stroke="#7B5000" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" />
+          <svg width="26" height="26" fill="none" stroke="#1A6948" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
         <h3 style={{ fontSize: 22, fontWeight: 700, color: '#161412', marginBottom: 12 }}>
-          Account already exists
+          Good news — you&apos;re already set up!
         </h3>
-        <p style={{ fontSize: 16, lineHeight: 1.7, color: '#4A4037', maxWidth: '32ch', margin: '0 auto 28px' }}>
-          A club is already set up with <strong style={{ color: '#161412' }}>{em}</strong>. Sign in to access it.
+        <p style={{ fontSize: 16, lineHeight: 1.7, color: '#4A4037', maxWidth: '34ch', margin: '0 auto 28px' }}>
+          A Focal Point site is already registered to <strong style={{ color: '#161412' }}>{em}</strong>. Sign in to access it, or check your inbox for a setup link if you haven&apos;t finished yet.
         </p>
         <Link href="/login" onClick={reset} style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -191,6 +191,15 @@ export default function StartClient() {
         }}>
           Sign in →
         </Link>
+        <p style={{ marginTop: 20, fontSize: 14, color: '#5C5047' }}>
+          <button
+            type="button"
+            onClick={reset}
+            style={{ background: 'none', border: 'none', padding: 0, color: '#5C5047', fontSize: 14, cursor: 'pointer', textDecoration: 'underline' }}
+          >
+            Start over with a different email
+          </button>
+        </p>
       </div>
     )
   }
