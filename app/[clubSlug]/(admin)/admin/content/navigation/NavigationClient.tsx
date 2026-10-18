@@ -63,13 +63,14 @@ type SysItem = {
   href:      string
   editHref?: string
   dynamic?:  boolean
+  visKey?:   'about' | 'calendar'
   children?: SysItem[]
   parentKey?: ParentSystem
 }
 
 const SYSTEM_NAV: SysItem[] = [
   { label: 'Home',     href: '/',         dynamic: true },
-  { label: 'Calendar', href: '/calendar', dynamic: true },
+  { label: 'Calendar', href: '/calendar', dynamic: true, visKey: 'calendar' },
   {
     label: 'Images', href: '/library', dynamic: true, parentKey: 'images',
     children: [
@@ -88,7 +89,7 @@ const SYSTEM_NAV: SysItem[] = [
   {
     label: 'Our Club', href: '/our-club', dynamic: true, parentKey: 'our-club',
     children: [
-      { label: 'About our club',   href: '/our-club/about',     editHref: '/admin/content/about' },
+      { label: 'About our club',   href: '/our-club/about',     editHref: '/admin/content/about', visKey: 'about' },
       { label: 'Member directory', href: '/our-club/members',   dynamic: true },
       { label: 'Resources',        href: '/our-club/resources', dynamic: true },
       { label: 'Club galleries',   href: '/our-club/galleries', dynamic: true },
@@ -256,17 +257,36 @@ function ChevronIcon({ open }: { open: boolean }) {
 
 // ── Navigation tab: system sub-item row ───────────────────────────────────────
 
-function SysSubRow({ item }: { item: SysItem }) {
+function SysSubRow({
+  item,
+  builtinVisibility,
+  onChangeVisibility,
+}: {
+  item: SysItem
+  builtinVisibility?: BuiltinPageVisibility
+  onChangeVisibility?: (key: 'about' | 'calendar', value: BuiltinVisibility) => void
+}) {
   return (
     <div className="flex items-center gap-3 py-2 pl-10 pr-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
       <span className="flex-1 text-[13px]" style={{ color: 'var(--text-secondary)' }}>{item.label}</span>
-      {item.dynamic ? (
+      {item.visKey && builtinVisibility && onChangeVisibility ? (
+        <select
+          value={builtinVisibility[item.visKey]}
+          onChange={e => onChangeVisibility(item.visKey!, e.target.value as BuiltinVisibility)}
+          className="rounded-[6px] px-2 py-1 text-[12px]"
+          style={{ border: 'var(--input-border)', background: 'var(--surface-2)', color: 'var(--text-primary)', cursor: 'pointer' }}
+        >
+          <option value="members_only">Members only</option>
+          <option value="public">Members + public</option>
+        </select>
+      ) : item.dynamic ? (
         <span className="text-[11px] italic" style={{ color: 'var(--text-tertiary)' }}>Auto-generated</span>
-      ) : item.editHref ? (
+      ) : null}
+      {item.editHref && (
         <Link href={item.editHref} className="text-[11px] font-medium hover:underline" style={{ color: 'var(--action-primary)' }}>
           Edit content →
         </Link>
-      ) : null}
+      )}
       <BuiltinChip />
     </div>
   )
@@ -375,12 +395,16 @@ function SysNavRow({
   onDeletePage,
   onEditPage,
   pending,
+  builtinVisibility,
+  onChangeVisibility,
 }: {
-  item:           SysItem
-  customSubPages: CustomPage[]
-  onDeletePage:   (id: string) => void
-  onEditPage:     (page: CustomPage) => void
-  pending:        boolean
+  item:               SysItem
+  customSubPages:     CustomPage[]
+  onDeletePage:       (id: string) => void
+  onEditPage:         (page: CustomPage) => void
+  pending:            boolean
+  builtinVisibility?: BuiltinPageVisibility
+  onChangeVisibility?: (key: 'about' | 'calendar', value: BuiltinVisibility) => void
 }) {
   const [open, setOpen] = useState(false)
   const [localCustom, setLocalCustom] = useState<CustomPage[]>(customSubPages)
@@ -424,13 +448,32 @@ function SysNavRow({
           )}
         </span>
         <div className="flex items-center gap-2.5 flex-shrink-0">
+          {item.visKey && builtinVisibility && onChangeVisibility && (
+            <select
+              value={builtinVisibility[item.visKey]}
+              onChange={e => onChangeVisibility(item.visKey!, e.target.value as BuiltinVisibility)}
+              onClick={e => e.stopPropagation()}
+              className="rounded-[6px] px-2 py-1 text-[12px]"
+              style={{ border: 'var(--input-border)', background: 'var(--surface-2)', color: 'var(--text-primary)', cursor: 'pointer' }}
+            >
+              <option value="members_only">Members only</option>
+              <option value="public">Members + public</option>
+            </select>
+          )}
           <BuiltinChip />
         </div>
       </div>
 
       {open && (
         <div>
-          {item.children?.map(child => <SysSubRow key={child.href} item={child} />)}
+          {item.children?.map(child => (
+            <SysSubRow
+              key={child.href}
+              item={child}
+              builtinVisibility={builtinVisibility}
+              onChangeVisibility={onChangeVisibility}
+            />
+          ))}
           {localCustom.map((page, idx) => (
             <CustomSubRow
               key={page.id} page={page} onDelete={onDeletePage} onEdit={onEditPage} pending={pending}
@@ -830,6 +873,211 @@ function AddPanel({
         )}
       </div>
     </div>
+  )
+}
+
+// ── New Page dialog (with nav section picker) ─────────────────────────────────
+
+function NewPageDialogFull({
+  open,
+  tabs,
+  pages,
+  clubId,
+  onPageCreated,
+  onClose,
+}: {
+  open:          boolean
+  tabs:          CustomTab[]
+  pages:         CustomPage[]
+  clubId:        string
+  onPageCreated: (page: CustomPage) => void
+  onClose:       () => void
+}) {
+  const sysTabOptions = (['images', 'competitions', 'our-club'] as ParentSystem[]).map(key => ({
+    value: key, label: SLOT_LABEL[key],
+    total: (SYS_CHILD_COUNTS[key] ?? 0) + pages.filter(p => p.parent_system === key).length,
+  }))
+  const customTabOptions = tabs.map(t => ({
+    value: t.id, label: t.name,
+    total: pages.filter(p => p.tab_id === t.id).length,
+  }))
+  const allOptions = [...sysTabOptions, ...customTabOptions]
+
+  const defaultSection = allOptions.find(o => o.total < NAV_MAX_SLOTS)?.value ?? allOptions[0]?.value ?? ''
+
+  const [section, setSection] = useState(defaultSection)
+  const [title,   setTitle]   = useState('')
+  const [type,    setType]    = useState<PageType>('rich_text')
+  const [url,     setUrl]     = useState('https://')
+  const [vis,     setVis]     = useState<Visibility>('all_members')
+  const [saving,  setSaving]  = useState(false)
+  const [err,     setErr]     = useState<string | null>(null)
+
+  useEffect(() => {
+    if (open) {
+      setSection(allOptions.find(o => o.total < NAV_MAX_SLOTS)?.value ?? allOptions[0]?.value ?? '')
+      setTitle(''); setType('rich_text'); setUrl('https://'); setVis('all_members'); setErr(null)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  async function handleCreate() {
+    if (!title.trim() || !section) return
+    setSaving(true); setErr(null)
+    const supabase  = createClient()
+    const isSystem  = (['images', 'competitions', 'our-club'] as string[]).includes(section)
+    const { data, error } = await supabase.from('nav_custom_pages').insert({
+      club_id:      clubId,
+      title:        title.trim(),
+      slug:         slugify(title),
+      page_type:    type,
+      visibility:   vis,
+      status:       vis === 'hidden' ? 'draft' : 'published',
+      external_url: type === 'external_link' ? url : null,
+      sort_order:   pages.filter(p => isSystem ? p.parent_system === section : p.tab_id === section).length,
+      ...(isSystem ? { parent_system: section, tab_id: null } : { parent_system: null, tab_id: section }),
+    }).select().single()
+    setSaving(false)
+    if (error) { setErr(error.message); return }
+    onPageCreated(data as CustomPage)
+    onClose()
+  }
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>New page</DialogTitle>
+      <DialogContent sx={{ pt: '16px !important', display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        {err && <p className="text-[12px] m-0" style={{ color: 'var(--status-error)' }}>{err}</p>}
+
+        <FormControl size="small" fullWidth>
+          <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Section</FormLabel>
+          <Select value={section} onChange={e => setSection(e.target.value)} sx={{ fontSize: 13 }}>
+            {allOptions.map(o => (
+              <MenuItem key={o.value} value={o.value} disabled={o.total >= NAV_MAX_SLOTS} sx={{ fontSize: 13 }}>
+                {o.label}{o.total >= NAV_MAX_SLOTS ? ' (full)' : ''}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <TextField label="Page title" size="small" fullWidth autoFocus
+          slotProps={{ htmlInput: { maxLength: 40 } }}
+          value={title} onChange={e => setTitle(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && title.trim() && !saving && handleCreate()} />
+
+        <FormControl>
+          <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Page type</FormLabel>
+          <RadioGroup value={type} onChange={e => setType(e.target.value as PageType)}>
+            <FormControlLabel value="rich_text" control={<Radio size="small" />}
+              label={<span><strong style={{ fontSize: 13 }}>Rich text</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— formatted content</span></span>}
+              sx={{ alignItems: 'center', mb: 0.5 }} />
+            <FormControlLabel value="document_link" control={<Radio size="small" />}
+              label={<span><strong style={{ fontSize: 13 }}>Document link</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— links to a file in Resources</span></span>}
+              sx={{ alignItems: 'center', mb: 0.5 }} />
+            <FormControlLabel value="external_link" control={<Radio size="small" />}
+              label={<span><strong style={{ fontSize: 13 }}>External link</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— opens in a new tab</span></span>}
+              sx={{ alignItems: 'center' }} />
+          </RadioGroup>
+        </FormControl>
+
+        {type === 'external_link' && (
+          <TextField label="URL" size="small" fullWidth value={url}
+            onChange={e => setUrl(e.target.value)} placeholder="https://example.com" />
+        )}
+
+        <FormControl size="small" fullWidth>
+          <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Visibility</FormLabel>
+          <Select value={vis} onChange={e => setVis(e.target.value as Visibility)} sx={{ fontSize: 13 }}>
+            <MenuItem value="all_members"  sx={{ fontSize: 13 }}>Members + public</MenuItem>
+            <MenuItem value="members_only" sx={{ fontSize: 13 }}>Members only</MenuItem>
+            <MenuItem value="hidden"       sx={{ fontSize: 13 }}>Hidden — do not show in navigation</MenuItem>
+          </Select>
+        </FormControl>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2.5 }}>
+        <Button variant="outlined" color="secondary" onClick={onClose}>Cancel</Button>
+        <Button variant="contained" disabled={!title.trim() || !section || saving} onClick={handleCreate}>
+          {saving ? 'Creating…' : 'Create page'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
+// ── New Tab dialog ────────────────────────────────────────────────────────────
+
+function NewTabDialog({
+  open,
+  tabs,
+  clubId,
+  onTabCreated,
+  onClose,
+}: {
+  open:         boolean
+  tabs:         CustomTab[]
+  clubId:       string
+  onTabCreated: (tab: CustomTab) => void
+  onClose:      () => void
+}) {
+  const [tabName, setTabName] = useState('')
+  const [saving,  setSaving]  = useState(false)
+  const [err,     setErr]     = useState<string | null>(null)
+  const atMax = tabs.length >= MAX_CUSTOM_TABS
+
+  useEffect(() => {
+    if (open) { setTabName(''); setErr(null) }
+  }, [open])
+
+  async function handleCreate() {
+    if (!tabName.trim() || atMax) return
+    setSaving(true); setErr(null)
+    const supabase = createClient()
+    const { data, error } = await supabase.from('nav_custom_tabs').insert({
+      club_id:    clubId,
+      name:       tabName.trim(),
+      slug:       slugify(tabName),
+      sort_order: tabs.length,
+    }).select().single()
+    setSaving(false)
+    if (error) { setErr(error.message); return }
+    onTabCreated(data as CustomTab)
+    onClose()
+  }
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>New tab</DialogTitle>
+      <DialogContent sx={{ pt: '16px !important', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {err && <p className="text-[12px] m-0" style={{ color: 'var(--status-error)' }}>{err}</p>}
+        {atMax ? (
+          <p className="text-[13px] m-0" style={{ color: 'var(--text-secondary)' }}>
+            Maximum of {MAX_CUSTOM_TABS} custom tabs reached. Add pages to an existing tab instead.
+          </p>
+        ) : (
+          <>
+            <TextField
+              label="Tab name" size="small" fullWidth autoFocus
+              slotProps={{ htmlInput: { maxLength: 20 } }}
+              value={tabName}
+              onChange={e => setTabName(e.target.value.slice(0, 20))}
+              helperText={`${tabName.length}/20 — shown in the main navigation bar`}
+              onKeyDown={e => e.key === 'Enter' && tabName.trim() && !saving && handleCreate()}
+            />
+            <p className="text-[12px] m-0" style={{ color: 'var(--text-secondary)' }}>
+              The tab appears immediately in the navigation tree. It won&apos;t be visible to members until you add at least one published page to it. Drag to reorder tabs.
+            </p>
+          </>
+        )}
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2.5 }}>
+        <Button variant="outlined" color="secondary" onClick={onClose}>{atMax ? 'Close' : 'Cancel'}</Button>
+        {!atMax && (
+          <Button variant="contained" disabled={!tabName.trim() || saving} onClick={handleCreate}>
+            {saving ? 'Creating…' : 'Create tab'}
+          </Button>
+        )}
+      </DialogActions>
+    </Dialog>
   )
 }
 
@@ -1300,14 +1548,10 @@ export default function NavigationClient({
   const [customPageContent, setCustomPageContent] = useState('')
   const [customPageLoading, setCustomPageLoading] = useState(false)
 
-  // ── Navigation tab inline add panel ──────────────────────────────────────
-  const [addPanelOpen,   setAddPanelOpen]   = useState(false)
-  const [newTabSuccessId, setNewTabSuccessId] = useState<string | null>(null)
-
-  // ── Pages tab post-creation prompt ────────────────────────────────────────
-  const [newPageOpen,     setNewPageOpen]     = useState(false)
-  const [pagesTabNewPage, setPagesTabNewPage] = useState<CustomPage | null>(null)
-  const [placePageFor,    setPlacePageFor]    = useState<CustomPage | null>(null)
+  // ── New page / new tab dialogs ───────────────────────────────────────────
+  const [newPageDialogOpen, setNewPageDialogOpen] = useState(false)
+  const [newTabDialogOpen,  setNewTabDialogOpen]  = useState(false)
+  const [newTabSuccessId,   setNewTabSuccessId]   = useState<string | null>(null)
 
   async function openAboutEditor() {
     setAboutDialogOpen(true)
@@ -1345,52 +1589,11 @@ export default function NavigationClient({
       .eq('club_id', clubId)
   }
 
-  // Creates a new page from Pages tab — orphaned draft
-  function savePagesTabPage(title: string, type: PageType, url: string, vis: Visibility) {
-    const slug = slugify(title)
-    setNewPageOpen(false)
-    setErr(null)
-    startTrans(async () => {
-      const supabase = createClient()
-      const { data, error } = await supabase.from('nav_custom_pages').insert({
-        club_id:      clubId,
-        title:        title.trim(),
-        slug,
-        page_type:    type,
-        visibility:   vis,
-        status:       'draft',
-        external_url: type === 'external_link' ? url : null,
-        sort_order:   pages.length,
-      }).select().single()
-      if (error) { setErr(error.message); return }
-      setPages(prev => [...prev, data as CustomPage])
-      setPagesTabNewPage(data as CustomPage)
-    })
-  }
-
-  function savePageNavPlacement(parent: ParentSystem | string, page: CustomPage) {
-    setPlacePageFor(null)
-    setPagesTabNewPage(null)
-    setErr(null)
-    startTrans(async () => {
-      const supabase = createClient()
-      const isSystem = (['images', 'competitions', 'our-club'] as string[]).includes(parent)
-      await supabase.from('nav_custom_pages').update({
-        ...(isSystem ? { parent_system: parent, tab_id: null } : { parent_system: null, tab_id: parent }),
-      }).eq('id', page.id)
-      setPages(prev => prev.map(p => p.id === page.id
-        ? { ...p, ...(isSystem ? { parent_system: parent as ParentSystem, tab_id: null } : { parent_system: null, tab_id: parent }) }
-        : p
-      ))
-    })
-  }
-
   function deletePage(id: string) {
     startTrans(async () => {
       const supabase = createClient()
       await supabase.from('nav_custom_pages').delete().eq('id', id)
       setPages(prev => prev.filter(p => p.id !== id))
-      if (pagesTabNewPage?.id === id) setPagesTabNewPage(null)
     })
   }
 
@@ -1435,139 +1638,62 @@ export default function NavigationClient({
         ))}
       </Tabs>
 
-      {/* ── Pages tab (nav tree + built-in pages) ───────────────────────── */}
+      {/* ── Pages tab ────────────────────────────────────────────────────── */}
       {activeTab === 'navigation' && (
         <div>
-          {/* Post-creation prompt */}
-          {pagesTabNewPage && (
-            <div className="mb-4 rounded-[8px] px-4 py-3 flex items-center gap-3"
-              style={{ background: 'var(--surface-1)', border: '1px solid var(--border-default)' }}>
-              <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--action-primary)' }}>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span className="flex-1 text-[13px]" style={{ color: 'var(--text-primary)' }}>
-                <strong>&ldquo;{pagesTabNewPage.title}&rdquo;</strong> created as a draft. Add it to your navigation below.
-              </span>
-              <Button
-                variant="outlined"
-                color="secondary"
-                size="small"
-                sx={{ textTransform: 'none', fontSize: 12, flexShrink: 0 }}
-                onClick={() => setPlacePageFor(pagesTabNewPage)}
-              >
-                Add to navigation →
-              </Button>
-              <button
-                onClick={() => setPagesTabNewPage(null)}
-                className="flex-shrink-0 text-[12px] hover:underline"
-                style={{ color: 'var(--text-tertiary)' }}
-              >
-                Not yet
-              </button>
-            </div>
-          )}
+          {/* Action row */}
+          <div className="mb-4 flex items-center justify-end gap-2">
+            <Button
+              variant="outlined"
+              color="secondary"
+              size="small"
+              startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
+              onClick={() => setNewTabDialogOpen(true)}
+            >
+              New tab
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
+              onClick={() => setNewPageDialogOpen(true)}
+            >
+              New page
+            </Button>
+          </div>
 
-          <div className="flex gap-8 items-start">
-            <div className="flex-1 min-w-0">
-
-              {/* Custom pages nav tree */}
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
-                  Custom navigation
-                </p>
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
-                  onClick={() => { setNewPageOpen(true); setNewTabSuccessId(null) }}
-                >
-                  New page
-                </Button>
-              </div>
-
-              <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
-                {SYSTEM_NAV.map(item => (
-                  <SysNavRow
-                    key={item.href}
-                    item={item}
-                    customSubPages={item.parentKey ? pagesFor(item.parentKey) : []}
-                    onDeletePage={deletePage}
-                    onEditPage={openCustomPageEditor}
-                    pending={pending}
-                  />
-                ))}
-                {tabs.map((tab, tabIdx) => (
-                  <CustomTabRow
-                    key={tab.id}
-                    tab={tab}
-                    customSubPages={pagesFor(tab.id)}
-                    onDeletePage={deletePage}
-                    onEditPage={openCustomPageEditor}
-                    onDeleteTab={deleteTab}
-                    pending={pending}
-                    onDragStart={() => onTabDragStart(tabIdx)}
-                    onDragOver={e => onTabDragOver(e, tabIdx)}
-                    onDrop={() => onTabDrop(tabIdx)}
-                    onDragEnd={onTabDragEnd}
-                    isDragOver={tabDragOverIdx === tabIdx}
-                    successMessage={newTabSuccessId === tab.id
-                      ? `"${tab.name}" created — add pages to it using the button below`
-                      : undefined}
-                  />
-                ))}
-              </div>
-
-              {/* Add tab inline panel */}
-              <div className="mt-3">
-                {!addPanelOpen ? (
-                  <button
-                    onClick={() => { setAddPanelOpen(true); setNewTabSuccessId(null) }}
-                    className="flex items-center gap-2 rounded-[8px] border px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-surface-1"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add custom tab
-                  </button>
-                ) : (
-                  <AddPanel
-                    tabs={tabs}
-                    pages={pages}
-                    clubId={clubId}
-                    onPageCreated={page => {
-                      setPages(prev => [...prev, page])
-                      setAddPanelOpen(false)
-                    }}
-                    onTabCreated={tab => {
-                      setTabs(prev => [...prev, tab])
-                      setNewTabSuccessId(tab.id)
-                      setAddPanelOpen(false)
-                    }}
-                    onClose={() => setAddPanelOpen(false)}
-                  />
-                )}
-              </div>
-
-              {/* Built-in pages */}
-              <div className="mt-8">
-                <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
-                  Built-in pages
-                </p>
-                <BuiltinPagesTable
-                  builtinVisibility={builtinVisibility}
-                  onChangeVisibility={changeBuiltinVisibility}
-                  onEditAbout={openAboutEditor}
-                  onGoHomepageBuilder={() => setActiveTab('homepage')}
-                />
-              </div>
-
-            </div>
-
-            {/* Mobile preview */}
-            <div className="w-56 flex-shrink-0 hidden lg:block">
-              <MobileNavPreview tabs={tabs} />
-            </div>
+          <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
+            {SYSTEM_NAV.map(item => (
+              <SysNavRow
+                key={item.href}
+                item={item}
+                customSubPages={item.parentKey ? pagesFor(item.parentKey) : []}
+                onDeletePage={deletePage}
+                onEditPage={openCustomPageEditor}
+                pending={pending}
+                builtinVisibility={builtinVisibility}
+                onChangeVisibility={changeBuiltinVisibility}
+              />
+            ))}
+            {tabs.map((tab, tabIdx) => (
+              <CustomTabRow
+                key={tab.id}
+                tab={tab}
+                customSubPages={pagesFor(tab.id)}
+                onDeletePage={deletePage}
+                onEditPage={openCustomPageEditor}
+                onDeleteTab={deleteTab}
+                pending={pending}
+                onDragStart={() => onTabDragStart(tabIdx)}
+                onDragOver={e => onTabDragOver(e, tabIdx)}
+                onDrop={() => onTabDrop(tabIdx)}
+                onDragEnd={onTabDragEnd}
+                isDragOver={tabDragOverIdx === tabIdx}
+                successMessage={newTabSuccessId === tab.id
+                  ? `"${tab.name}" added — click to expand and add pages to it`
+                  : undefined}
+              />
+            ))}
           </div>
         </div>
       )}
@@ -1584,24 +1710,22 @@ export default function NavigationClient({
 
       {/* ── Dialogs ─────────────────────────────────────────────────────── */}
 
-      {/* New page (Pages tab flow) */}
-      <NewPageDialog
-        open={newPageOpen}
-        onClose={() => setNewPageOpen(false)}
-        onSave={savePagesTabPage}
-        pending={pending}
+      <NewPageDialogFull
+        open={newPageDialogOpen}
+        tabs={tabs}
+        pages={pages}
+        clubId={clubId}
+        onPageCreated={page => setPages(prev => [...prev, page])}
+        onClose={() => setNewPageDialogOpen(false)}
       />
 
-      {/* Place orphaned page in nav (after Pages tab post-creation prompt) */}
-      {placePageFor && (
-        <PlacePageDialog
-          page={placePageFor}
-          tabs={tabs}
-          onClose={() => setPlacePageFor(null)}
-          onSave={parent => savePageNavPlacement(parent, placePageFor)}
-          pending={pending}
-        />
-      )}
+      <NewTabDialog
+        open={newTabDialogOpen}
+        tabs={tabs}
+        clubId={clubId}
+        onTabCreated={tab => { setTabs(prev => [...prev, tab]); setNewTabSuccessId(tab.id) }}
+        onClose={() => setNewTabDialogOpen(false)}
+      />
 
       {/* About page inline editor */}
       <Dialog open={aboutDialogOpen} onClose={() => setAboutDialogOpen(false)} fullScreen>
