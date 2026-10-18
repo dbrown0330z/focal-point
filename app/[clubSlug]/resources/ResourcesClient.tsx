@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { ResourceCategory, Resource, ResourceCategoryLayout, ResourceSourceType } from './types'
+import ResourcesIllustration from '@/components/illustrations/ResourcesIllustration'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -780,12 +781,12 @@ export default function ResourcesClient({
 
           {/* Empty state */}
           {filtered.length === 0 && resources.length === 0 && (
-            <div className="rounded-xl border border-border-default bg-surface-1 px-6 py-14 text-center">
-              <svg className="mx-auto mb-3 h-8 w-8 text-content-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-              </svg>
-              <p className="text-sm font-medium text-content-primary">Nothing here yet</p>
-              <p className="mt-1 text-sm text-content-secondary">Check back soon — resources will appear here once an admin publishes them.</p>
+            <div className="flex flex-col items-center py-20 text-center">
+              <ResourcesIllustration size={160} />
+              <p className="mt-5 text-[17px] font-semibold" style={{ color: 'var(--text-primary)' }}>Nothing here yet.</p>
+              <p className="mt-1 text-[14px]" style={{ color: 'var(--text-secondary)' }}>
+                Club documents, lessons, and links will appear here once an admin publishes them.
+              </p>
             </div>
           )}
 
