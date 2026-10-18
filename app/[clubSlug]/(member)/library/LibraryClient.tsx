@@ -263,8 +263,8 @@ export default function LibraryClient({
           <img
             src="/no-images-library.svg"
             alt=""
-            width={510}
-            className="-mb-4 opacity-70 dark:invert"
+            width={420}
+            className="opacity-70 dark:invert"
           />
           <p className="text-[22px] font-bold tracking-[-0.01em]" style={{ fontFamily: 'var(--font-lora)', color: 'var(--text-secondary)' }}>
             Every great library starts with one photo

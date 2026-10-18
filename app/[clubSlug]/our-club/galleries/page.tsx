@@ -73,7 +73,7 @@ export default async function ClubGalleriesPage() {
 
       {galleries.length === 0 ? (
         <div className="flex flex-col items-center py-16 text-center">
-          <GalleryIllustration width={380} />
+          <GalleryIllustration width={420} />
           <p className="mt-4 text-[22px] font-bold tracking-[-0.01em]"
             style={{ fontFamily: 'var(--font-lora)', color: 'var(--text-secondary)' }}>
             No club galleries yet.

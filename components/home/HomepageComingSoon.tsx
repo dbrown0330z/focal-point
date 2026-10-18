@@ -10,17 +10,6 @@ export default function HomepageComingSoon({
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-14">
       {/* Text content */}
-      <p style={{
-        fontSize: 11,
-        fontWeight: 600,
-        textTransform: 'uppercase',
-        letterSpacing: '0.1em',
-        color: 'var(--text-secondary)',
-        marginBottom: 16,
-      }}>
-        Welcome
-      </p>
-
       <h1 style={{
         fontFamily:    'var(--font-lora, Georgia, serif)',
         fontSize:      32,

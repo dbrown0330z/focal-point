@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="480" height="280" viewBox="0 0 480 280" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="195" viewBox="0 0 480 195" role="img">
   <title>No images in library</title>
   <desc>Hand-drawn empty picture frames hanging on a wall — used on the empty My Library page</desc>
 
@@ -61,10 +61,5 @@
       <circle cx="166" cy="-57" r="2.5" stroke-width="1.2" opacity="0.5"/>
     </g>
 
-    <!-- Dust mote dots on floor -->
-    <circle cx="-168" cy="84" r="1.5" fill="var(--ink)" stroke="none" opacity="0.18"/>
-    <circle cx="-80" cy="85" r="1.2" fill="var(--ink)" stroke="none" opacity="0.18"/>
-    <circle cx="30" cy="84" r="1.5" fill="var(--ink)" stroke="none" opacity="0.18"/>
-    <circle cx="158" cy="85" r="1.2" fill="var(--ink)" stroke="none" opacity="0.18"/>
   </g>
 </svg>

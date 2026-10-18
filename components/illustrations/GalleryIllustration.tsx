@@ -1,11 +1,11 @@
 export default function GalleryIllustration({ width = 400 }: { width?: number }) {
-  const height = Math.round(width * (280 / 480))
+  const height = Math.round(width * (195 / 480))
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width={width}
       height={height}
-      viewBox="0 0 480 280"
+      viewBox="0 0 480 195"
       aria-hidden="true"
     >
       <style>{`
@@ -61,11 +61,6 @@ export default function GalleryIllustration({ width = 400 }: { width?: number })
           <circle cx="166" cy="-57" r="2.5" strokeWidth="1.2" opacity="0.5"/>
         </g>
 
-        {/* Dust mote dots */}
-        <circle cx="-168" cy="84" r="1.5" fill="var(--ink)" stroke="none" opacity="0.18"/>
-        <circle cx="-80" cy="85" r="1.2" fill="var(--ink)" stroke="none" opacity="0.18"/>
-        <circle cx="30" cy="84" r="1.5" fill="var(--ink)" stroke="none" opacity="0.18"/>
-        <circle cx="158" cy="85" r="1.2" fill="var(--ink)" stroke="none" opacity="0.18"/>
       </g>
     </svg>
   )

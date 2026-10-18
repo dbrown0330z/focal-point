@@ -751,7 +751,13 @@ export default function GalleriesClient({
           </p>
           {!hasImages ? (
             <p className="mt-3 text-[13px] italic" style={{ color: 'var(--text-tertiary)' }}>
-              Add some images to your library first before creating a gallery.
+              <a
+                href={`/${clubSlug}/library/upload`}
+                style={{ color: 'var(--action-primary)', textDecoration: 'underline', cursor: 'pointer' }}
+              >
+                Add some images to your library first
+              </a>
+              {' '}before creating a gallery.
             </p>
           ) : (
             <Button
