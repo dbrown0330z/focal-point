@@ -405,29 +405,73 @@ export default function ResourceFormClient({
 
           {showLinkDetails && !urlLoading && (
             <>
-              {/* Preview card */}
-              <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, overflow: 'hidden' }}>
-                {form.thumbnailUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={form.thumbnailUrl} alt=""
-                    style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }}
-                  />
-                )}
-                <Box sx={{ px: 2, py: 1.5 }}>
-                  <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 0.25 }}>
-                    {form.title || 'Untitled'}
-                  </Typography>
-                  {form.description && (
-                    <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: 0.5 }}>
-                      {form.description}
-                    </Typography>
+              {/* Preview — mirrors the exact VideoCard / LinkCard from the member view */}
+              <Box>
+                <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1 }}>
+                  Preview
+                </Typography>
+                <Box sx={{ maxWidth: 320 }}>
+                  {form.isVideo ? (
+                    /* VideoCard */
+                    <div style={{ display: 'flex', flexDirection: 'column', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-default)', background: 'var(--surface-1)', width: '100%' }}>
+                      <div style={{ position: 'relative', aspectRatio: '16/9', background: 'var(--surface-0)', overflow: 'hidden' }}>
+                        {form.thumbnailUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={form.thumbnailUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'var(--text-tertiary)' }}>
+                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ padding: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 4 }}>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', flex: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                            {form.title || 'Untitled'}
+                          </span>
+                          {/* Always show NEW badge on new resources */}
+                          {!existing && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 9999, padding: '2px 8px', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--status-success)', background: 'rgba(46,125,50,0.10)', whiteSpace: 'nowrap' }}>
+                              New
+                            </span>
+                          )}
+                        </div>
+                        {form.description && (
+                          <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>
+                            {form.description}
+                          </p>
+                        )}
+                        <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-tertiary)' }}>
+                          {form.videoProvider === 'youtube' ? 'YouTube' : 'Vimeo'}
+                          {form.title && ' · '}
+                          {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short' })}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    /* LinkCard */
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderRadius: 12, border: '1px solid var(--border-default)', background: 'var(--surface-1)', padding: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', flex: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {form.title || 'Untitled'}
+                        </span>
+                        {!existing && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 9999, padding: '2px 8px', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--status-success)', background: 'rgba(46,125,50,0.10)', whiteSpace: 'nowrap' }}>
+                            New
+                          </span>
+                        )}
+                      </div>
+                      {form.description && (
+                        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {form.description}
+                        </p>
+                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-tertiary)' }}>
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                        <span>{form.urlHost || 'External link'}</span>
+                      </div>
+                    </div>
                   )}
-                  <Typography sx={{ fontSize: 11, color: 'text.disabled' }}>
-                    {form.isVideo
-                      ? (form.videoProvider === 'youtube' ? 'YouTube' : 'Vimeo')
-                      : form.urlHost}
-                  </Typography>
                 </Box>
               </Box>
 
