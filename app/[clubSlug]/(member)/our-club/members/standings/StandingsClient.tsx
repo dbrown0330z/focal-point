@@ -856,23 +856,25 @@ export default function StandingsClient({
         <SeasonSelector options={seasonOptions} current={seasonYear} tabParam={tab} />
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-border-subtle">
-        {TABS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`px-4 py-2.5 transition-colors border-b-2 -mb-px uppercase tracking-wide ${
-              tab === key
-                ? 'border-action-primary text-action-primary font-bold'
-                : 'border-transparent text-content-secondary font-medium hover:text-content-primary'
-            }`}
-            style={{ fontSize: 14 }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {/* Tabs — only render the bar when there are multiple tabs to switch between */}
+      {TABS.length > 1 && (
+        <div className="flex items-center gap-1 border-b border-border-subtle">
+          {TABS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`px-4 py-2.5 transition-colors border-b-2 -mb-px uppercase tracking-wide ${
+                tab === key
+                  ? 'border-action-primary text-action-primary font-bold'
+                  : 'border-transparent text-content-secondary font-medium hover:text-content-primary'
+              }`}
+              style={{ fontSize: 14 }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ── POY tab ──────────────────────────────────────────────────── */}
       {tab === 'poy' && (
