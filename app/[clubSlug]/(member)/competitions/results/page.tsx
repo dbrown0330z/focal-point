@@ -11,10 +11,10 @@ function fmtDate(iso: string | null, opts?: Intl.DateTimeFormatOptions): string 
   return new Date(iso).toLocaleDateString(undefined, opts ?? { month: 'long', year: 'numeric' })
 }
 
-function currentSeasonStartYear(startMonth: number): number {
-  const today = new Date()
-  const m = today.getMonth() + 1
-  const y = today.getFullYear()
+function currentSeasonStartYear(startMonth: number, date?: Date): number {
+  const d = date ?? new Date()
+  const m = d.getMonth() + 1
+  const y = d.getFullYear()
   return m >= startMonth ? y : y - 1
 }
 
@@ -48,11 +48,25 @@ export default async function CompetitionResultsIndexPage({
   const requestedYear = season ? parseInt(season, 10) : NaN
   const seasonYear    = !isNaN(requestedYear) ? requestedYear : currentYear
 
-  // Offer current + 5 previous seasons
-  const seasonOptions = Array.from({ length: 6 }, (_, i) => {
-    const y = currentYear - i
-    return { year: y, label: `${y}–${y + 1}`, isCurrent: i === 0 }
-  })
+  // Cap the season list at the season containing the club's oldest competition
+  const { data: oldestComp } = await admin
+    .from('competitions')
+    .select('closes_at')
+    .eq('club_id', clubId)
+    .is('deleted_at', null)
+    .not('closes_at', 'is', null)
+    .order('closes_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  const earliestSeasonYear = oldestComp?.closes_at
+    ? currentSeasonStartYear(startMonth, new Date(oldestComp.closes_at))
+    : currentYear
+
+  const seasonOptions = []
+  for (let y = currentYear; y >= earliestSeasonYear; y--) {
+    seasonOptions.push({ year: y, label: `${y}–${y + 1}`, isCurrent: y === currentYear })
+  }
 
   const { start, end, label: seasonLabel } = seasonBounds(startMonth, seasonYear)
 
