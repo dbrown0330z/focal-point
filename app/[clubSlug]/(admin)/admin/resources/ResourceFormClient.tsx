@@ -19,7 +19,6 @@ import {
   TextField,
   Typography,
   CircularProgress,
-  Chip,
 } from '@mui/material'
 import {
   UploadFile,
@@ -278,9 +277,7 @@ export default function ResourceFormClient({
   const canPin = form.isPinned || pinnedCount < 3
 
   return (
-    <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start' }}>
-      {/* Main form */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
         {saveError && (
           <Alert severity="error" onClose={() => setSaveError(null)}>{saveError}</Alert>
@@ -403,11 +400,9 @@ export default function ResourceFormClient({
                   },
                 }}
               />
-              {ogLoading && (
-                <Typography sx={{ mt: 0.75, fontSize: 12, color: 'text.secondary' }}>
-                  Fetching page info…
-                </Typography>
-              )}
+              <Typography sx={{ mt: 0.75, fontSize: 12, color: 'text.secondary' }}>
+                {ogLoading ? 'Fetching page info…' : 'Title and description will be filled in automatically when you leave this field.'}
+              </Typography>
             </Box>
           )}
 
@@ -423,17 +418,20 @@ export default function ResourceFormClient({
                 onChange={e => set('url', e.target.value)}
                 onBlur={handleVideoUrlBlur}
               />
-              {videoMeta && (
-                <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+              {videoMeta ? (
+                <Box sx={{ mt: 0.75, display: 'flex', alignItems: 'center', gap: 1 }}>
                   <CheckCircle sx={{ fontSize: 16, color: 'success.main' }} />
-                  <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{videoMeta}</Typography>
+                  <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>{videoMeta}</Typography>
                 </Box>
-              )}
-              {videoMetaError && (
-                <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+              ) : videoMetaError ? (
+                <Box sx={{ mt: 0.75, display: 'flex', alignItems: 'center', gap: 1 }}>
                   <ErrorIcon sx={{ fontSize: 16, color: 'error.main' }} />
-                  <Typography sx={{ fontSize: 13, color: 'error.main' }}>{videoMetaError}</Typography>
+                  <Typography sx={{ fontSize: 12, color: 'error.main' }}>{videoMetaError}</Typography>
                 </Box>
+              ) : (
+                <Typography sx={{ mt: 0.75, fontSize: 12, color: 'text.secondary' }}>
+                  Title will be filled in automatically when you leave this field.
+                </Typography>
               )}
             </Box>
           )}
@@ -542,9 +540,9 @@ export default function ResourceFormClient({
             sx={{ gap: 1.5 }}
           >
             {([
-              { value: 'public',  label: 'Public',         sub: 'Anyone can see' },
-              { value: 'members', label: 'Members',         sub: 'Logged-in members only' },
-              { value: 'board',   label: 'Board',           sub: 'Board members only' },
+              { value: 'public',  label: 'Public',      sub: 'Anyone can see' },
+              { value: 'members', label: 'Members',      sub: 'Logged-in members only' },
+              { value: 'board',   label: 'Admin only',  sub: 'Visible to admins only' },
             ] as const).map(({ value, label, sub }) => (
               <FormControlLabel
                 key={value}
@@ -653,7 +651,7 @@ export default function ResourceFormClient({
         </Paper>
 
         {/* Footer actions */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 2 }}>
           <Button
             variant="outlined"
             color="secondary"
@@ -690,44 +688,6 @@ export default function ResourceFormClient({
             </Button>
           </Box>
         </Box>
-      </Box>
-
-      {/* Right sidebar summary */}
-      <Box sx={{ width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Paper variant="outlined" sx={{ p: 2 }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>
-            Summary
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-            <SummaryRow label="Type" value={form.sourceType === 'file' ? 'File upload' : form.sourceType === 'video' ? 'Video' : 'Link'} />
-            <SummaryRow label="Visibility" value={form.visibility} />
-            <SummaryRow
-              label="Status"
-              value={
-                existing?.status === 'published' ? (
-                  <Chip label="Published" size="small" sx={{ bgcolor: 'success.light', color: 'success.contrastText', fontSize: 11 }} />
-                ) : (
-                  <Chip label="Draft" size="small" sx={{ bgcolor: 'background.default', color: 'text.secondary', fontSize: 11 }} />
-                )
-              }
-            />
-            {form.isPinned && <SummaryRow label="Pinned" value="Yes" />}
-            {form.reviewOn && <SummaryRow label="Review on" value={form.reviewOn} />}
-            {existing && <SummaryRow label="Views" value={String(existing.view_count)} />}
-          </Box>
-        </Paper>
-      </Box>
-    </Box>
-  )
-}
-
-function SummaryRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>{label}</Typography>
-      {typeof value === 'string' ? (
-        <Typography sx={{ fontSize: 12, fontWeight: 500, textTransform: 'capitalize' }}>{value}</Typography>
-      ) : value}
     </Box>
   )
 }

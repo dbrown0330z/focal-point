@@ -586,8 +586,8 @@ function ResourceRow({
       {/* Visibility */}
       <Box sx={{ ...COL_CELL, display: 'flex', alignItems: 'center', gap: 0.5 }}>
         <VisibilityIcon vis={resource.visibility} />
-        <Typography sx={{ fontSize: 12, color: 'text.secondary', textTransform: 'capitalize' }}>
-          {resource.visibility}
+        <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
+          {resource.visibility === 'board' ? 'Admin only' : resource.visibility === 'public' ? 'Public' : 'Members'}
         </Typography>
       </Box>
 
