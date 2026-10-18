@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getClubContext, requireClubId } from '@/lib/club-context'
+import { getClubContext, requireClubId, requireClubSlug } from '@/lib/club-context'
 import { sendMemberApproved, sendMemberRejected, sendMemberSuspended, sendMemberBanned, sendMemberEmailChanged } from '@/lib/email/send'
 import type { Database } from '@/types/database'
 
@@ -430,7 +430,7 @@ export async function saveEnrollmentSettings(settings: {
   notifyMemberActivates: boolean
   notifyPaymentLinkExpires: boolean
   notifyMembershipExpires: boolean
-  notifyAllAdmins: boolean
+  notifyRecipients: 'all' | 'owner' | 'none'
 }): Promise<{ error?: string }> {
   const supabase = createServiceClient()
   const clubId = await requireClubId()
@@ -441,7 +441,7 @@ export async function saveEnrollmentSettings(settings: {
     notify_member_activates:     settings.notifyMemberActivates,
     notify_payment_link_expires: settings.notifyPaymentLinkExpires,
     notify_membership_expires:   settings.notifyMembershipExpires,
-    notify_all_admins:           settings.notifyAllAdmins,
+    notify_recipients:           settings.notifyRecipients,
   }
   const { error } = await supabase
     .from('club_settings')
@@ -450,6 +450,59 @@ export async function saveEnrollmentSettings(settings: {
   if (error) return { error: error.message }
   revalidatePath('/admin/members')
   return {}
+}
+
+export async function importMembers(
+  rows: { email: string; firstName: string; lastName: string }[],
+): Promise<{ invited: number; skipped: number; errors: string[] }> {
+  const supabase = createServiceClient()
+  const clubSlug = await requireClubSlug()
+  const clubId   = await requireClubId()
+
+  const { data: club } = await supabase
+    .from('clubs')
+    .select('name')
+    .eq('id', clubId)
+    .single()
+  const clubName = (club as { name: string } | null)?.name ?? 'your club'
+
+  let invited = 0
+  let skipped = 0
+  const errors: string[] = []
+
+  for (const row of rows) {
+    const email = row.email.trim().toLowerCase()
+    if (!email) continue
+
+    // Check if already a member
+    const { data: existing } = await supabase.auth.admin.listUsers()
+    const alreadyExists = existing?.users?.some(u => u.email?.toLowerCase() === email)
+    if (alreadyExists) {
+      skipped++
+      continue
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.auth.admin as any).inviteUserByEmail(email, {
+      data: {
+        first_name: row.firstName,
+        last_name:  row.lastName,
+        club_id:    clubId,
+        club_slug:  clubSlug,
+        club_name:  clubName,
+      },
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpoint.club'}/${clubSlug}/onboarding/profile`,
+    })
+
+    if (error) {
+      errors.push(`${email}: ${error.message}`)
+    } else {
+      invited++
+    }
+  }
+
+  revalidatePath(`/${clubSlug}/admin/members`)
+  return { invited, skipped, errors }
 }
 
 export async function setMemberPreference(

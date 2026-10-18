@@ -58,7 +58,7 @@ export default async function MembersPage() {
     admin.from('submissions').select('member_id, competition_id').in('competition_id', compIdFilter).gte('submitted_at', yearStart).lt('submitted_at', nextYearStart),
     admin.from('submissions').select('member_id, competition_categories(name)').in('competition_id', compIdFilter),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (admin.from('club_settings') as any).select('member_classes_enabled, approval_mode, notify_new_application, notify_member_activates, notify_payment_link_expires, notify_membership_expires, notify_all_admins').eq('club_id', clubId).single(),
+    (admin.from('club_settings') as any).select('member_classes_enabled, approval_mode, notify_new_application, notify_member_activates, notify_payment_link_expires, notify_membership_expires, notify_recipients').eq('club_id', clubId).single(),
     admin.auth.admin.listUsers({ perPage: 1000 }),
     admin.from('member_classes').select('id, name').eq('club_id', clubId).order('sort_order').order('created_at'),
     submissionIdFilter.length > 0
@@ -163,7 +163,7 @@ export default async function MembersPage() {
     notifyMemberActivates:    cs?.notify_member_activates    ?? true,
     notifyPaymentLinkExpires: cs?.notify_payment_link_expires ?? true,
     notifyMembershipExpires:  cs?.notify_membership_expires  ?? true,
-    notifyAllAdmins:          cs?.notify_all_admins          ?? true,
+    notifyRecipients:         (cs?.notify_recipients ?? 'all') as 'all' | 'owner' | 'none',
   }
 
   return (

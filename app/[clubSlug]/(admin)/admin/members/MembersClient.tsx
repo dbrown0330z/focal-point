@@ -42,6 +42,7 @@ import {
 } from '@mui/material'
 import type { Database } from '@/types/database'
 import { TrashBtn } from '@/components/ui/TrashBtn'
+import ImportMembersModal from './ImportMembersModal'
 import { skillLabel } from '@/lib/profile-options'
 import {
   setMemberStatus,
@@ -1213,7 +1214,7 @@ interface EnrollmentSettings {
   notifyMemberActivates: boolean
   notifyPaymentLinkExpires: boolean
   notifyMembershipExpires: boolean
-  notifyAllAdmins: boolean
+  notifyRecipients: 'all' | 'owner' | 'none'
 }
 
 function EnrollmentTab({ initial }: { initial: EnrollmentSettings }) {
@@ -1242,54 +1243,44 @@ function EnrollmentTab({ initial }: { initial: EnrollmentSettings }) {
   }
 
   const isEmailVerification = settings.approvalMode === 'email_verification'
+  const notificationsDisabled = settings.notifyRecipients === 'none'
 
-  // Notification rows — new application is not applicable in email-verification mode
-  const notificationRows: { key: keyof EnrollmentSettings; label: string; desc: string; disabled?: boolean; disabledNote?: string }[] = [
+  const signupOptions = [
     {
-      key: 'notifyNewApplication',
-      label: 'New application submitted',
-      desc: 'Receive a notification when someone submits a membership application.',
-      disabled: isEmailVerification,
-      disabledNote: 'Not applicable — members self-activate without admin review.',
+      value: 'email_verification' as const,
+      label: 'Email confirmation',
+      desc: 'Members are activated automatically after confirming their email. No admin review needed.',
     },
     {
-      key: 'notifyMemberActivates',
-      label: 'Member activates',
-      desc: 'Receive a notification when a member completes onboarding and becomes active.',
+      value: 'admin_approval' as const,
+      label: 'Admin approval',
+      desc: 'Applications are held in a pending state until an admin approves or rejects.',
     },
-    {
-      key: 'notifyPaymentLinkExpires',
-      label: 'Payment link expires',
-      desc: 'Receive a notification when a payment link expires without being used.',
-    },
-    {
-      key: 'notifyMembershipExpires',
-      label: 'Membership expires',
-      desc: "Receive a notification when a member's membership reaches its expiry date.",
-    },
+  ]
+
+  const recipientOptions = [
+    { value: 'all'   as const, label: 'All admins' },
+    { value: 'owner' as const, label: 'Club owner only' },
+    { value: 'none'  as const, label: 'No notifications' },
+  ]
+
+  const notificationRows: { key: 'notifyMemberActivates' | 'notifyPaymentLinkExpires' | 'notifyMembershipExpires' | 'notifyNewApplication'; label: string; disabled?: boolean }[] = [
+    { key: 'notifyMemberActivates',     label: 'Member completes onboarding and becomes active.' },
+    { key: 'notifyPaymentLinkExpires',  label: 'A payment link expires without being used.' },
+    { key: 'notifyMembershipExpires',   label: "A member's membership reaches its expiry date." },
+    { key: 'notifyNewApplication',      label: 'Someone submits a membership application.', disabled: isEmailVerification },
   ]
 
   return (
     <Box sx={{ maxWidth: 600 }}>
 
-      {/* New member approval */}
+      {/* How new members join */}
       <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px', mb: 2.5 }}>
         <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary', mb: 2 }}>
-          New member approval
+          How new members join
         </Typography>
         <Stack spacing={1.25}>
-          {([
-            {
-              value: 'admin_approval',
-              label: 'Admin approval required',
-              desc: 'New applications are held in a pending state until an admin approves or rejects.',
-            },
-            {
-              value: 'email_verification',
-              label: 'Email verification only',
-              desc: 'Members are automatically activated after verifying their email address. No admin review needed.',
-            },
-          ] as const).map(opt => (
+          {signupOptions.map(opt => (
             <Box
               key={opt.value}
               onClick={() => update({ approvalMode: opt.value })}
@@ -1302,7 +1293,7 @@ function EnrollmentTab({ initial }: { initial: EnrollmentSettings }) {
             >
               <RadioCircle selected={settings.approvalMode === opt.value} />
               <Box>
-                <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}>{opt.label}</Typography>
+                <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}>{opt.label}</Typography>
                 <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.25 }}>{opt.desc}</Typography>
               </Box>
             </Box>
@@ -1312,80 +1303,60 @@ function EnrollmentTab({ initial }: { initial: EnrollmentSettings }) {
 
       {/* Admin notifications */}
       <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px', mb: 2.5 }}>
-        <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+        <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary', mb: 2 }}>
           Admin notifications
         </Typography>
-        <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 2 }}>
-          Choose which events trigger a notification to admins.
-        </Typography>
 
-        <Stack spacing={1}>
-          {notificationRows.map(({ key, label, desc, disabled, disabledNote }) => (
+        {/* Who receives them */}
+        <Box sx={{ display: 'flex', gap: 1, mb: 2.5 }}>
+          {recipientOptions.map(opt => (
             <Box
-              key={key}
-              onClick={() => !disabled && update({ [key]: !(settings[key] as boolean) })}
+              key={opt.value}
+              onClick={() => update({ notifyRecipients: opt.value })}
               sx={{
-                display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, py: 1.25,
-                bgcolor: 'rgba(0,0,0,0.025)', borderRadius: 1.25,
-                cursor: disabled ? 'default' : 'pointer',
-                opacity: disabled ? 0.45 : 1,
-                transition: 'opacity 0.2s',
-                '&:hover': !disabled ? { bgcolor: 'rgba(0,0,0,0.04)' } : {},
+                flex: 1, textAlign: 'center', py: 1.25, px: 1,
+                border: '1.5px solid',
+                borderColor: settings.notifyRecipients === opt.value ? 'primary.main' : 'divider',
+                bgcolor: settings.notifyRecipients === opt.value ? 'rgba(30,77,140,0.05)' : 'transparent',
+                borderRadius: 1.5, cursor: 'pointer', transition: 'all 0.15s',
+                '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(30,77,140,0.04)' },
               }}
             >
-              <Switch
-                size="small"
-                checked={!disabled && (settings[key] as boolean)}
-                disabled={disabled}
-                onChange={e => { e.stopPropagation(); if (!disabled) update({ [key]: e.target.checked }) }}
-                onClick={e => e.stopPropagation()}
-              />
-              <Box sx={{ flex: 1 }}>
-                <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}>{label}</Typography>
-                <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.125 }}>
-                  {disabled && disabledNote ? disabledNote : desc}
-                </Typography>
-              </Box>
+              <Typography sx={{ fontSize: 13, fontWeight: settings.notifyRecipients === opt.value ? 600 : 400, color: settings.notifyRecipients === opt.value ? 'primary.main' : 'text.primary' }}>
+                {opt.label}
+              </Typography>
             </Box>
           ))}
-        </Stack>
+        </Box>
 
-        <Divider sx={{ my: 2 }} />
-
-        <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', mb: 0.5 }}>Send notifications to</Typography>
-        <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 1.75 }}>
-          Choose who receives admin notification emails.
+        {/* Notify when */}
+        <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.25 }}>
+          Notify when:
         </Typography>
-        <Stack spacing={1.25}>
-          {([
-            {
-              value: 'all',
-              label: 'All admins',
-              desc: 'Every member with an admin role will receive notification emails.',
-            },
-            {
-              value: 'owner',
-              label: 'Club owner only',
-              desc: 'Only the account designated as club owner in Club Settings receives notifications.',
-            },
-          ] as const).map(opt => {
-            const selected = opt.value === 'all' ? settings.notifyAllAdmins : !settings.notifyAllAdmins
+        <Stack spacing={0.75}>
+          {notificationRows.map(({ key, label, disabled }) => {
+            const isDisabled = notificationsDisabled || disabled
             return (
               <Box
-                key={opt.value}
-                onClick={() => update({ notifyAllAdmins: opt.value === 'all' })}
+                key={key}
+                onClick={() => !isDisabled && update({ [key]: !(settings[key] as boolean) })}
                 sx={{
-                  display: 'flex', alignItems: 'flex-start', gap: 1.5, p: '14px 16px',
-                  bgcolor: selected ? 'rgba(30,77,140,0.05)' : 'rgba(0,0,0,0.03)',
-                  borderRadius: 1.5, cursor: 'pointer', transition: 'background 0.15s',
-                  '&:hover': { bgcolor: selected ? 'rgba(30,77,140,0.08)' : 'rgba(0,0,0,0.05)' },
+                  display: 'flex', alignItems: 'center', gap: 1.25, px: 1.25, py: 1,
+                  bgcolor: 'rgba(0,0,0,0.02)', borderRadius: 1.25,
+                  cursor: isDisabled ? 'default' : 'pointer',
+                  opacity: isDisabled ? 0.4 : 1,
+                  transition: 'opacity 0.2s',
+                  '&:hover': !isDisabled ? { bgcolor: 'rgba(0,0,0,0.04)' } : {},
                 }}
               >
-                <RadioCircle selected={selected} />
-                <Box>
-                  <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}>{opt.label}</Typography>
-                  <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.25 }}>{opt.desc}</Typography>
-                </Box>
+                <Switch
+                  size="small"
+                  checked={!isDisabled && (settings[key] as boolean)}
+                  disabled={isDisabled}
+                  onChange={e => { e.stopPropagation(); if (!isDisabled) update({ [key]: e.target.checked }) }}
+                  onClick={e => e.stopPropagation()}
+                />
+                <Typography sx={{ fontSize: 13, color: 'text.primary', lineHeight: 1.4 }}>{label}</Typography>
               </Box>
             )
           })}
@@ -1418,7 +1389,7 @@ function EnrollmentTab({ initial }: { initial: EnrollmentSettings }) {
         </Typography>
       </Box>
 
-      {/* Save — sticky so it's always visible while scrolling */}
+      {/* Save */}
       <Box sx={{
         position: 'sticky', bottom: 0, zIndex: 10,
         bgcolor: 'background.default',
@@ -1924,8 +1895,10 @@ export default function MembersClient({
     notifyMemberActivates: true,
     notifyPaymentLinkExpires: true,
     notifyMembershipExpires: true,
-    notifyAllAdmins: true,
+    notifyRecipients: 'all',
   }
+
+  const [importOpen, setImportOpen] = useState(false)
 
   return (
     <>
@@ -1991,6 +1964,19 @@ export default function MembersClient({
                 variant="outlined"
                 color="secondary"
                 size="small"
+                onClick={() => setImportOpen(true)}
+                startIcon={
+                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l4-4m0 0l4 4m-4-4v12" />
+                  </svg>
+                }
+              >
+                Import members
+              </Button>
+              <Button
+                variant="outlined"
+                color="secondary"
+                size="small"
                 onClick={handleExport}
                 startIcon={
                   <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2000,6 +1986,12 @@ export default function MembersClient({
               >
                 Export CSV
               </Button>
+              {importOpen && (
+                <ImportMembersModal
+                  clubSlug={clubSlug}
+                  onClose={() => setImportOpen(false)}
+                />
+              )}
             </Box>
           </Box>
 
