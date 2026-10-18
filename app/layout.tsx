@@ -9,24 +9,29 @@ const lora = Lora({
   weight: ['400', '500', '700'],
   style: ['normal', 'italic'],
   variable: '--font-lora',
+  display: 'swap',
 })
 
 const nunito = Nunito({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
+  style: ['normal'],
   variable: '--font-nunito',
+  display: 'swap',
 })
 
 const robotoMono = Roboto_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '700'],
   variable: '--font-roboto-mono',
+  display: 'swap',
 })
 
 const inter = Inter({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-inter',
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
