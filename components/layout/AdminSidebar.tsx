@@ -71,7 +71,7 @@ const navItems = [
   },
 ]
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ clubSlug }: { clubSlug: string }) {
   const pathname = usePathname()
 
   function isActive(href: string, exact?: boolean) {
@@ -84,7 +84,7 @@ export default function AdminSidebar() {
       {/* Back to site */}
       <div className="px-3 pt-3 pb-2">
         <Link
-          href="/"
+          href={`/${clubSlug}`}
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-admin-nav-muted hover:bg-white/10 hover:text-admin-nav-text transition-colors"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
