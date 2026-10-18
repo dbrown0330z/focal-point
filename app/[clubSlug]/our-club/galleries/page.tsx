@@ -74,10 +74,11 @@ export default async function ClubGalleriesPage() {
       {galleries.length === 0 ? (
         <div className="flex flex-col items-center py-16 text-center">
           <GalleryIllustration width={380} />
-          <p className="mt-5 text-[17px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <p className="mt-4 text-[22px] font-bold tracking-[-0.01em]"
+            style={{ fontFamily: 'var(--font-lora)', color: 'var(--text-secondary)' }}>
             No club galleries yet.
           </p>
-          <p className="mt-1 max-w-sm text-[14px]" style={{ color: 'var(--text-secondary)' }}>
+          <p className="mt-2 max-w-sm text-[15px]" style={{ color: 'var(--text-secondary)' }}>
             Club galleries are curated by admins and shared here. Check back soon for collections showcasing work from members across the club.
           </p>
         </div>

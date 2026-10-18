@@ -16,9 +16,6 @@ export default function GalleryIllustration({ width = 400 }: { width?: number })
         .gi-sk { stroke: var(--ink); fill: none; stroke-linecap: round; stroke-linejoin: round; }
       `}</style>
       <g transform="translate(234, 148)" className="gi-root gi-sk">
-        {/* Wall / floor line */}
-        <line x1="-210" y1="80" x2="222" y2="80" strokeWidth="1.4" opacity="0.3"/>
-        <line x1="-210" y1="82" x2="222" y2="82" strokeWidth="0.6" opacity="0.12"/>
 
         {/* Frame 1: large landscape, left */}
         <g transform="rotate(-2, -120, 0)">

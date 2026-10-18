@@ -742,10 +742,11 @@ export default function GalleriesClient({
       {galleries.length === 0 && (
         <div className="flex flex-col items-center justify-center pb-16 pt-4 text-center">
           <GalleryIllustration width={420} />
-          <p className="mt-5 text-[17px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <p className="mt-4 text-[22px] font-bold tracking-[-0.01em]"
+            style={{ fontFamily: 'var(--font-lora)', color: 'var(--text-secondary)' }}>
             You haven&apos;t created any galleries yet.
           </p>
-          <p className="mt-1 max-w-sm text-[14px]" style={{ color: 'var(--text-secondary)' }}>
+          <p className="mt-2 max-w-sm text-[15px]" style={{ color: 'var(--text-secondary)' }}>
             Create up to 3 galleries and share your work within the club or publicly for the world to appreciate.
           </p>
           {!hasImages ? (

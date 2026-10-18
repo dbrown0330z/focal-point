@@ -206,6 +206,8 @@ export default async function StandingsPage({
     ? competitions.reduce((latest, c) => c.closes_at > latest ? c.closes_at : latest, competitions[0].closes_at)
     : null
   const awardsConfigured = competitions.some(c => c.awards_enabled)
+  // POY tab only shows once an admin has explicitly saved POY settings
+  const poyConfigured = settingsRaw !== null && settingsRaw.poy_categories_factor !== null
 
   // ── Defaults ─────────────────────────────────────────────────────────────────
   let poyStandings:           PoyEntry[]                     = []
@@ -463,11 +465,12 @@ export default async function StandingsPage({
       poyStandingsByCategory={poyStandingsByCategory}
       categoryNames={categoryNames}
       lastUpdatedAt={lastUpdatedAt}
+      poyConfigured={poyConfigured}
       benchmarkConfigured={false}
       awardsConfigured={awardsConfigured}
       awardLeaderboard={awardLeaderboard}
       recentAwards={recentAwards}
-      initialTab={(params.tab === 'benchmark' || params.tab === 'awards') ? params.tab : 'poy'}
+      initialTab={(params.tab === 'benchmark' || params.tab === 'awards') ? params.tab : (poyConfigured ? 'poy' : (awardsConfigured ? 'awards' : 'poy'))}
     />
   )
 }

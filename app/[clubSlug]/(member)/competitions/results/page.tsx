@@ -99,10 +99,11 @@ export default async function CompetitionResultsIndexPage({
       {withCounts.length === 0 ? (
         <div className="flex flex-col items-center py-20 text-center">
           <TrophyIllustration size={120} />
-          <p className="mt-5 text-[17px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <p className="mt-4 text-[22px] font-bold tracking-[-0.01em]"
+            style={{ fontFamily: 'var(--font-lora)', color: 'var(--text-secondary)' }}>
             No results published for {selectedYear} yet
           </p>
-          <p className="mt-1 text-[14px]" style={{ color: 'var(--text-secondary)' }}>
+          <p className="mt-2 text-[15px]" style={{ color: 'var(--text-secondary)' }}>
             Results will appear here once a competition has been judged and published.
           </p>
         </div>

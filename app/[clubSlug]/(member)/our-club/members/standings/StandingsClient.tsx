@@ -596,8 +596,9 @@ function PoyLeaderboard({
     return (
       <div className="flex flex-col items-center py-20 text-center">
         <TrophyIllustration size={120} />
-        <p className="mt-5 text-[17px] font-semibold" style={{ color: 'var(--text-primary)' }}>No standings yet this season.</p>
-        <p className="mt-1 text-[14px]" style={{ color: 'var(--text-secondary)' }}>Standings will appear once competition results are published.</p>
+        <p className="mt-4 text-[22px] font-bold tracking-[-0.01em]"
+          style={{ fontFamily: 'var(--font-lora)', color: 'var(--text-secondary)' }}>No standings yet this season.</p>
+        <p className="mt-2 text-[15px]" style={{ color: 'var(--text-secondary)' }}>Standings will appear once competition results are published.</p>
       </div>
     )
   }
@@ -793,6 +794,7 @@ export default function StandingsClient({
   poyStandingsByCategory,
   categoryNames,
   lastUpdatedAt,
+  poyConfigured,
   benchmarkConfigured,
   awardsConfigured,
   awardLeaderboard,
@@ -809,6 +811,7 @@ export default function StandingsClient({
   poyStandingsByCategory:    Record<string, PoyEntry[]>
   categoryNames:             string[]
   lastUpdatedAt:             string | null
+  poyConfigured:             boolean
   benchmarkConfigured:       boolean
   awardsConfigured:          boolean
   awardLeaderboard:          AwardLeaderboardEntry[]
@@ -829,9 +832,9 @@ export default function StandingsClient({
   const currentUserAwards = awardLeaderboard.find(e => e.isCurrentUser) ?? null
 
   const TABS: { key: Tab; label: string }[] = [
-    { key: 'poy', label: 'Photographer of the Year' },
-    ...(benchmarkConfigured ? [{ key: 'benchmark' as Tab, label: 'Benchmark' }] : []),
-    ...(awardsConfigured    ? [{ key: 'awards'    as Tab, label: 'Awards'    }] : []),
+    ...(poyConfigured       ? [{ key: 'poy'       as Tab, label: 'Photographer of the Year' }] : []),
+    ...(benchmarkConfigured ? [{ key: 'benchmark' as Tab, label: 'Benchmark'                }] : []),
+    ...(awardsConfigured    ? [{ key: 'awards'    as Tab, label: 'Awards'                   }] : []),
   ]
 
   return (

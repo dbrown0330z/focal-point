@@ -17,10 +17,6 @@
   </style>
 
   <g transform="translate(234, 148)" class="sk">
-    <!-- Wall / floor line -->
-    <line x1="-210" y1="80" x2="222" y2="80" stroke-width="1.4" opacity="0.3"/>
-    <line x1="-210" y1="82" x2="222" y2="82" stroke-width="0.6" opacity="0.12"/>
-
     <!-- Frame 1: large landscape, left, tilted slightly left -->
     <g transform="rotate(-2, -120, 0)">
       <rect x="-188" y="-52" width="88" height="66" rx="3" stroke-width="2"/>
