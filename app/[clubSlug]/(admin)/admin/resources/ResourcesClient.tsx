@@ -45,6 +45,7 @@ import {
   unpinResource,
 } from './actions'
 import ManageCategoriesDialog from './ManageCategoriesDialog'
+import ResourceFormClient from './ResourceFormClient'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -239,8 +240,9 @@ export default function ResourcesClient({
     if (typeof window === 'undefined') return {}
     try { return JSON.parse(localStorage.getItem('resources-collapsed') ?? '{}') } catch { return {} }
   })
-  const [catDialogOpen, setCatDialogOpen] = useState(false)
-  const [attentionOnly, setAttentionOnly] = useState(false)
+  const [catDialogOpen,  setCatDialogOpen]  = useState(false)
+  const [addModalOpen,   setAddModalOpen]   = useState(false)
+  const [attentionOnly,  setAttentionOnly]  = useState(false)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -315,9 +317,8 @@ export default function ResourcesClient({
           </Button>
           <Button
             variant="contained"
-            component={Link}
-            href={`/${clubSlug}/admin/resources/new`}
             startIcon={<Add />}
+            onClick={() => setAddModalOpen(true)}
           >
             Add resource
           </Button>
@@ -474,9 +475,16 @@ export default function ResourcesClient({
               {isOpen && (
                 <>
                   {items.length === 0 ? (
-                    <Box sx={{ px: 3, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-                      <Typography sx={{ fontSize: 13, color: 'text.disabled', fontStyle: 'italic' }}>
-                        No resources yet
+                    <Box sx={{ px: 3, py: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Typography sx={{ fontSize: 13, color: 'text.disabled' }}>
+                        Empty
+                      </Typography>
+                      <Typography
+                        component="button"
+                        onClick={() => setAddModalOpen(true)}
+                        sx={{ fontSize: 13, color: 'primary.main', cursor: 'pointer', background: 'none', border: 'none', p: 0, '&:hover': { textDecoration: 'underline' } }}
+                      >
+                        Add resource
                       </Typography>
                     </Box>
                   ) : (
@@ -501,6 +509,19 @@ export default function ResourcesClient({
       </Box>
 
       {/* Column headers (hidden row for accessibility) */}
+
+      {/* Add resource modal */}
+      <Dialog open={addModalOpen} onClose={() => setAddModalOpen(false)} fullWidth maxWidth="lg" scroll="paper">
+        <DialogTitle sx={{ fontSize: 18, fontWeight: 600, pb: 1 }}>Add resource</DialogTitle>
+        <DialogContent sx={{ pt: '8px !important' }}>
+          <ResourceFormClient
+            categories={categories}
+            pinnedCount={pinnedCount}
+            clubSlug={clubSlug}
+            onClose={() => { setAddModalOpen(false); handleRefresh() }}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Manage categories dialog */}
       <ManageCategoriesDialog

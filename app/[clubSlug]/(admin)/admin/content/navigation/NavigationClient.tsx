@@ -19,7 +19,7 @@ import HomepageEditor from './HomepageEditor'
 import type { ContentBlock } from '@/lib/homepage/types'
 import AboutPageEditor from '../about/AboutPageEditor'
 import CustomPageEditorComponent from './[pageId]/CustomPageEditor'
-import ClubGalleriesTab, { type AdminGalleryData, type ClubMember } from '../galleries/ClubGalleriesTab'
+import { type AdminGalleryData, type ClubMember } from '../galleries/ClubGalleriesTab'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -28,7 +28,7 @@ type Visibility        = 'all_members' | 'members_only' | 'hidden'
 type BuiltinVisibility = 'members_only' | 'public'
 type PageStatus        = 'draft' | 'published'
 type ParentSystem      = 'calendar' | 'images' | 'competitions' | 'our-club'
-type MainTab           = 'navigation' | 'homepage' | 'galleries'
+type MainTab           = 'navigation' | 'homepage'
 
 export type BuiltinPageVisibility = {
   about:    BuiltinVisibility
@@ -1616,7 +1616,6 @@ export default function NavigationClient({
   const MAIN_TABS = [
     { key: 'homepage'   as MainTab, label: 'Homepage' },
     { key: 'navigation' as MainTab, label: 'Pages' },
-    { key: 'galleries'  as MainTab, label: 'Club galleries' },
   ]
 
   return (
@@ -1701,11 +1700,6 @@ export default function NavigationClient({
       {/* ── Homepage tab ─────────────────────────────────────────────────── */}
       {activeTab === 'homepage' && (
         <HomepageEditor initialBlocks={initialHomepageBlocks} galleries={initialGalleries} members={members} clubName={clubName} />
-      )}
-
-      {/* ── Club galleries tab ─────────────────────────────────────────── */}
-      {activeTab === 'galleries' && (
-        <ClubGalleriesTab galleries={initialGalleries} members={members} clubSlug={clubSlug} />
       )}
 
       {/* ── Dialogs ─────────────────────────────────────────────────────── */}
