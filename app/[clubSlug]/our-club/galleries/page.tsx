@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getClubContext } from '@/lib/club-context'
 import { Box, Typography } from '@mui/material'
 import ClubGalleryCard from './ClubGalleryCard'
+import GalleryIllustration from '@/components/illustrations/GalleryIllustration'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,9 +72,15 @@ export default async function ClubGalleriesPage() {
       </Box>
 
       {galleries.length === 0 ? (
-        <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
-          <Typography>No galleries published yet.</Typography>
-        </Box>
+        <div className="flex flex-col items-center py-16 text-center">
+          <GalleryIllustration width={380} />
+          <p className="mt-5 text-[17px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+            No club galleries yet.
+          </p>
+          <p className="mt-1 max-w-sm text-[14px]" style={{ color: 'var(--text-secondary)' }}>
+            Club galleries are curated by admins and shared here. Check back soon for collections showcasing work from members across the club.
+          </p>
+        </div>
       ) : (
         <div style={{
           display:             'grid',

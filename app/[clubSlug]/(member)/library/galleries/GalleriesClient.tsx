@@ -10,6 +10,7 @@ import {
 import AddIcon from '@mui/icons-material/Add'
 import type { GalleryData } from './page'
 import { createGallery, deleteGallery, updateGalleryMeta } from './actions'
+import GalleryIllustration from '@/components/illustrations/GalleryIllustration'
 
 const GALLERY_LIMIT = 3
 
@@ -740,27 +741,26 @@ export default function GalleriesClient({
       {/* Empty state */}
       {galleries.length === 0 && (
         <div className="flex flex-col items-center justify-center pb-16 pt-4 text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/no-images-library.svg" alt="" width={510} className="-mb-4 opacity-70 dark:invert" />
-          <p className="text-[22px] font-bold tracking-[-0.01em]"
-            style={{ fontFamily: 'var(--font-lora)', color: 'var(--text-secondary)' }}>
-            Every photographer has a story to tell
+          <GalleryIllustration width={420} />
+          <p className="mt-5 text-[17px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+            You haven&apos;t created any galleries yet.
           </p>
-          <p className="mt-2 text-[15px]" style={{ color: 'var(--text-secondary)' }}>
-            Your gallery is where you tell yours — curate your best work and share it with the world.
+          <p className="mt-1 max-w-sm text-[14px]" style={{ color: 'var(--text-secondary)' }}>
+            Create up to 3 galleries and share your work within the club or publicly for the world to appreciate.
           </p>
-          <Tooltip title={!hasImages ? "You can create a gallery once you've uploaded your first image" : ''}>
-            <span>
-              <Button
-                variant="contained"
-                onClick={() => setCreateOpen(true)}
-                disabled={!hasImages}
-                sx={{ mt: 4 }}
-              >
-                + Create your first gallery
-              </Button>
-            </span>
-          </Tooltip>
+          {!hasImages ? (
+            <p className="mt-3 text-[13px] italic" style={{ color: 'var(--text-tertiary)' }}>
+              Add some images to your library first before creating a gallery.
+            </p>
+          ) : (
+            <Button
+              variant="contained"
+              onClick={() => setCreateOpen(true)}
+              sx={{ mt: 3 }}
+            >
+              Create gallery
+            </Button>
+          )}
         </div>
       )}
 
