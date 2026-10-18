@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import ResourcesIllustration from '@/components/illustrations/ResourcesIllustration'
 export type DocumentRow = {
   id:          string
   title:       string
@@ -79,12 +80,12 @@ export default function DocumentsClient({
       </div>
 
       {documents.length === 0 ? (
-        <div className="rounded-xl border border-border-default bg-surface-1 px-6 py-14 text-center">
-          <svg className="mx-auto mb-3 h-8 w-8 text-content-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <p className="text-sm font-medium text-content-primary">No documents yet</p>
-          <p className="mt-1 text-sm text-content-secondary">Club documents will appear here once an admin uploads them.</p>
+        <div className="flex flex-col items-center py-20 text-center">
+          <ResourcesIllustration size={160} />
+          <p className="mt-5 text-[17px] font-semibold" style={{ color: 'var(--text-primary)' }}>No documents yet.</p>
+          <p className="mt-1 text-[14px]" style={{ color: 'var(--text-secondary)' }}>
+            Club documents, guides, and links will appear here once an admin adds them.
+          </p>
         </div>
       ) : (
         <>
