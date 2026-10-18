@@ -1249,12 +1249,12 @@ function EnrollmentTab({ initial }: { initial: EnrollmentSettings }) {
     {
       value: 'email_verification' as const,
       label: 'Email confirmation',
-      desc: 'Members are activated automatically after confirming their email. No admin review needed.',
+      desc: 'Members sign up on the website or are invited by admins. Either way, they confirm their account via an emailed link and are automatically activated — no admin review needed.',
     },
     {
       value: 'admin_approval' as const,
       label: 'Admin approval',
-      desc: 'Applications are held in a pending state until an admin approves or rejects.',
+      desc: 'Website signups are held in a pending queue until an admin approves or rejects them. Members invited via bulk import always confirm by email and bypass this queue.',
     },
   ]
 
@@ -1377,16 +1377,75 @@ function EnrollmentTab({ initial }: { initial: EnrollmentSettings }) {
       </Box>
 
       {/* Membership dues — coming soon */}
-      <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px', mb: 3, opacity: 0.65 }}>
+      <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: '20px 22px', mb: 3, opacity: 0.55, pointerEvents: 'none', userSelect: 'none' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
           <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary' }}>
             Membership dues
           </Typography>
-          <Chip label="Coming soon" size="small" sx={{ fontSize: 11, height: 20, bgcolor: '#D8DDE7', color: '#3E5066' }} />
+          <Chip label="Requires Stripe" size="small" sx={{ fontSize: 11, height: 20, bgcolor: '#D8DDE7', color: '#3E5066' }} />
         </Box>
-        <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-          Configure annual dues amounts and renewal periods. Requires Stripe integration.
+        <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 2.5 }}>
+          Configure annual dues, discounts, and renewal settings. Requires Stripe integration.
         </Typography>
+
+        {/* Annual dues */}
+        <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1 }}>
+          Annual dues
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, mb: 2.5 }}>
+          <Box sx={{ flex: 1 }}>
+            <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: 0.5 }}>Standard member</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', border: '1px solid', borderColor: 'divider', borderRadius: 1.25, px: 1.5, py: 1, bgcolor: 'rgba(0,0,0,0.02)' }}>
+              <Typography sx={{ fontSize: 13, color: 'text.secondary', mr: 0.75 }}>$</Typography>
+              <Typography sx={{ fontSize: 13, color: 'text.disabled' }}>—</Typography>
+            </Box>
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: 0.5 }}>Renewal date</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', border: '1px solid', borderColor: 'divider', borderRadius: 1.25, px: 1.5, py: 1, bgcolor: 'rgba(0,0,0,0.02)' }}>
+              <Typography sx={{ fontSize: 13, color: 'text.disabled' }}>Jan 1 each year</Typography>
+            </Box>
+          </Box>
+        </Box>
+
+        {/* Discounts */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Discount categories
+          </Typography>
+          <Typography sx={{ fontSize: 12, color: 'primary.main', cursor: 'pointer' }}>+ Add category</Typography>
+        </Box>
+        <Stack spacing={0.75} sx={{ mb: 2.5 }}>
+          {[
+            { label: 'PSA / CAPA Member', amount: '—' },
+            { label: 'Senior (65+)', amount: '—' },
+            { label: 'Youth (under 18)', amount: '—' },
+            { label: 'Student', amount: '—' },
+          ].map(({ label, amount }) => (
+            <Box key={label} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.25, py: 0.875, bgcolor: 'rgba(0,0,0,0.02)', borderRadius: 1.25 }}>
+              <Typography sx={{ fontSize: 13, color: 'text.primary', flex: 1 }}>{label}</Typography>
+              <Typography sx={{ fontSize: 13, color: 'text.secondary', mr: 1 }}>-${amount}</Typography>
+              <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>×</Typography>
+            </Box>
+          ))}
+        </Stack>
+
+        {/* Additional settings */}
+        <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1 }}>
+          Additional settings
+        </Typography>
+        <Stack spacing={0.75}>
+          {[
+            'Pro-rate dues for mid-year joiners',
+            'Exempt honorary / lifetime members',
+            'Grace period before membership lapses (days)',
+          ].map(label => (
+            <Box key={label} sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 1.25, py: 1, bgcolor: 'rgba(0,0,0,0.02)', borderRadius: 1.25 }}>
+              <Switch size="small" disabled checked={false} />
+              <Typography sx={{ fontSize: 13, color: 'text.primary' }}>{label}</Typography>
+            </Box>
+          ))}
+        </Stack>
       </Box>
 
       {/* Save */}
