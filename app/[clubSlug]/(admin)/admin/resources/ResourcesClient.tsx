@@ -240,9 +240,15 @@ export default function ResourcesClient({
     if (typeof window === 'undefined') return {}
     try { return JSON.parse(localStorage.getItem('resources-collapsed') ?? '{}') } catch { return {} }
   })
-  const [catDialogOpen,  setCatDialogOpen]  = useState(false)
-  const [addModalOpen,   setAddModalOpen]   = useState(false)
-  const [attentionOnly,  setAttentionOnly]  = useState(false)
+  const [catDialogOpen,      setCatDialogOpen]      = useState(false)
+  const [addModalOpen,       setAddModalOpen]       = useState(false)
+  const [addModalCategoryId, setAddModalCategoryId] = useState<string | null>(null)
+  const [attentionOnly,      setAttentionOnly]      = useState(false)
+
+  function openAddModal(categoryId?: string) {
+    setAddModalCategoryId(categoryId ?? null)
+    setAddModalOpen(true)
+  }
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -318,7 +324,7 @@ export default function ResourcesClient({
           <Button
             variant="contained"
             startIcon={<Add />}
-            onClick={() => setAddModalOpen(true)}
+            onClick={() => openAddModal()}
           >
             Add resource
           </Button>
@@ -430,18 +436,14 @@ export default function ResourcesClient({
 
         {/* Category groups */}
         {categories.filter(c => !c.is_system).map(cat => {
-          const items   = filtered.filter(r => r.category_id === cat.id)
-          const isOpen  = !collapsed[cat.id]
-          const layoutLabel = cat.layout === 'auto' ? 'Auto' :
-            cat.layout === 'list'           ? 'List' :
-            cat.layout === 'video_grid'     ? 'Video grid' :
-            cat.layout === 'link_cards'     ? 'Link cards' : 'Featured cards'
+          const items  = filtered.filter(r => r.category_id === cat.id)
+          const isOpen = !collapsed[cat.id]
 
           return (
             <Box key={cat.id}>
               <Box
                 sx={{
-                  display: 'grid', gridTemplateColumns: '1fr auto',
+                  display: 'flex', alignItems: 'center', gap: 1,
                   px: 2, py: 1,
                   bgcolor: 'background.default',
                   borderBottom: '1px solid', borderColor: 'divider',
@@ -451,37 +453,32 @@ export default function ResourcesClient({
                 }}
                 onClick={() => toggleCollapse(cat.id)}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  {isOpen ? (
-                    <KeyboardArrowDown sx={{ fontSize: 16, color: 'text.secondary' }} />
-                  ) : (
-                    <KeyboardArrowRight sx={{ fontSize: 16, color: 'text.secondary' }} />
-                  )}
-                  <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {cat.name}
-                  </Typography>
-                  <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>
-                    {items.length} {items.length === 1 ? 'item' : 'items'}
-                  </Typography>
-                  {!cat.is_visible && (
-                    <Chip label="Hidden" size="small" sx={{ fontSize: 10 }} />
-                  )}
-                </Box>
-                <Typography sx={{ fontSize: 12, color: 'text.disabled', alignSelf: 'center' }}>
-                  Shown as: {layoutLabel}
+                {isOpen ? (
+                  <KeyboardArrowDown sx={{ fontSize: 16, color: 'text.secondary', flexShrink: 0 }} />
+                ) : (
+                  <KeyboardArrowRight sx={{ fontSize: 16, color: 'text.secondary', flexShrink: 0 }} />
+                )}
+                <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {cat.name}
                 </Typography>
+                <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>
+                  {items.length} {items.length === 1 ? 'item' : 'items'}
+                </Typography>
+                {!cat.is_visible && (
+                  <Chip label="Hidden" size="small" sx={{ fontSize: 10 }} />
+                )}
               </Box>
 
               {isOpen && (
                 <>
                   {items.length === 0 ? (
-                    <Box sx={{ px: 3, py: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Typography sx={{ fontSize: 13, color: 'text.disabled' }}>
+                    <Box sx={{ pl: 5, pr: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                      <Typography sx={{ fontSize: 13, color: 'text.disabled', fontStyle: 'italic' }}>
                         Empty
                       </Typography>
                       <Typography
                         component="button"
-                        onClick={() => setAddModalOpen(true)}
+                        onClick={e => { e.stopPropagation(); openAddModal(cat.id) }}
                         sx={{ fontSize: 13, color: 'primary.main', cursor: 'pointer', background: 'none', border: 'none', p: 0, '&:hover': { textDecoration: 'underline' } }}
                       >
                         Add resource
@@ -518,7 +515,8 @@ export default function ResourcesClient({
             categories={categories}
             pinnedCount={pinnedCount}
             clubSlug={clubSlug}
-            onClose={() => { setAddModalOpen(false); handleRefresh() }}
+            initialCategoryId={addModalCategoryId ?? undefined}
+            onClose={() => { setAddModalOpen(false); setAddModalCategoryId(null); handleRefresh() }}
           />
         </DialogContent>
       </Dialog>

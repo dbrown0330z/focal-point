@@ -84,13 +84,15 @@ export default function ResourceFormClient({
   existing,
   pinnedCount,
   clubSlug,
+  initialCategoryId,
   onClose,
 }: {
-  categories:  ResourceCategory[]
-  existing?:   Resource
-  pinnedCount: number
-  clubSlug:    string
-  onClose?:    () => void
+  categories:         ResourceCategory[]
+  existing?:          Resource
+  pinnedCount:        number
+  clubSlug:           string
+  initialCategoryId?: string
+  onClose?:           () => void
 }) {
   const router = useRouter()
 
@@ -98,7 +100,7 @@ export default function ResourceFormClient({
     sourceType:    (existing?.source_type as SourceType) ?? 'file',
     title:         existing?.title         ?? '',
     description:   existing?.description   ?? '',
-    categoryId:    existing?.category_id   ?? '',
+    categoryId:    existing?.category_id   ?? initialCategoryId ?? '',
     author:        existing?.author        ?? '',
     visibility:    (existing?.visibility as Visibility) ?? 'members',
     isPinned:      existing?.is_pinned     ?? false,
