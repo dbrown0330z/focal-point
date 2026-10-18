@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireClubSlug, requireClubId } from '@/lib/club-context'
 import TrophyIllustration from '@/components/illustrations/TrophyIllustration'
+import SeasonPicker from './SeasonPicker'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,15 +11,50 @@ function fmtDate(iso: string | null, opts?: Intl.DateTimeFormatOptions): string 
   return new Date(iso).toLocaleDateString(undefined, opts ?? { month: 'long', year: 'numeric' })
 }
 
+function currentSeasonStartYear(startMonth: number): number {
+  const today = new Date()
+  const m = today.getMonth() + 1
+  const y = today.getFullYear()
+  return m >= startMonth ? y : y - 1
+}
+
+function seasonBounds(startMonth: number, startYear: number) {
+  return {
+    start: new Date(startYear,     startMonth - 1, 1).toISOString(),
+    end:   new Date(startYear + 1, startMonth - 1, 1).toISOString(),
+    label: `${startYear}–${startYear + 1}`,
+  }
+}
+
 export default async function CompetitionResultsIndexPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string }>
+  searchParams: Promise<{ season?: string }>
 }) {
-  const { year } = await searchParams
-  const clubSlug  = await requireClubSlug()
-  const clubId    = await requireClubId()
-  const admin     = createServiceClient()
+  const { season } = await searchParams
+  const clubSlug = await requireClubSlug()
+  const clubId   = await requireClubId()
+  const admin    = createServiceClient()
+
+  // Load season_start_month from club_settings
+  const { data: settingsRaw } = await admin
+    .from('club_settings')
+    .select('season_start_month')
+    .eq('club_id', clubId)
+    .single()
+  const startMonth: number = (settingsRaw as { season_start_month: number | null } | null)?.season_start_month ?? 9
+
+  const currentYear   = currentSeasonStartYear(startMonth)
+  const requestedYear = season ? parseInt(season, 10) : NaN
+  const seasonYear    = !isNaN(requestedYear) ? requestedYear : currentYear
+
+  // Offer current + 5 previous seasons
+  const seasonOptions = Array.from({ length: 6 }, (_, i) => {
+    const y = currentYear - i
+    return { year: y, label: `${y}–${y + 1}`, isCurrent: i === 0 }
+  })
+
+  const { start, end, label: seasonLabel } = seasonBounds(startMonth, seasonYear)
 
   const { data: compsRaw } = await admin
     .from('competitions')
@@ -26,29 +62,16 @@ export default async function CompetitionResultsIndexPage({
     .eq('club_id', clubId)
     .in('status', ['results_pending', 'results_published', 'closed'])
     .is('deleted_at', null)
+    .gte('closes_at', start)
+    .lt('closes_at', end)
     .order('closes_at', { ascending: false })
 
   type JudgeToken = { judge_name: string }
   type CompRow = { id: string; title: string; status: string; closes_at: string | null; judge_tokens: JudgeToken[] | null }
   const allComps: CompRow[] = (compsRaw as CompRow[] | null) ?? []
 
-  // Derive available years from closes_at
-  const allYears = [
-    ...new Set(
-      allComps
-        .map(c => (c.closes_at ? new Date(c.closes_at).getFullYear() : null))
-        .filter((y): y is number => y !== null),
-    ),
-  ].sort((a, b) => b - a)
-
-  const selectedYear = year ? parseInt(year, 10) : (allYears[0] ?? new Date().getFullYear())
-
-  const filtered = allComps.filter(
-    c => c.closes_at && new Date(c.closes_at).getFullYear() === selectedYear,
-  )
-
   const withCounts = await Promise.all(
-    filtered.map(async comp => {
+    allComps.map(async comp => {
       const { count } = await admin
         .from('submissions')
         .select('id', { count: 'exact', head: true })
@@ -63,7 +86,7 @@ export default async function CompetitionResultsIndexPage({
   return (
     <div style={{ paddingBottom: 64 }}>
       {/* Header row */}
-      <div className="mb-8 flex flex-wrap items-baseline justify-between gap-3">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <h1
           className="text-[28px] font-bold leading-tight tracking-[-0.02em]"
           style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
@@ -71,29 +94,8 @@ export default async function CompetitionResultsIndexPage({
           Competition Results
         </h1>
 
-        {/* Year selector */}
-        {allYears.length > 1 && (
-          <div className="flex items-center gap-1.5">
-            {allYears.map(y => (
-              <Link
-                key={y}
-                href={`/${clubSlug}/competitions/results?year=${y}`}
-                className="rounded-full px-3 py-1 text-sm font-medium transition-colors"
-                style={
-                  y === selectedYear
-                    ? { background: 'var(--action-primary)', color: '#fff' }
-                    : {
-                        background: 'var(--surface-1)',
-                        color: 'var(--text-secondary)',
-                        border: '1px solid var(--border-default)',
-                      }
-                }
-              >
-                {y}
-              </Link>
-            ))}
-          </div>
-        )}
+        {/* Season selector */}
+        <SeasonPicker options={seasonOptions} current={seasonYear} clubSlug={clubSlug} />
       </div>
 
       {withCounts.length === 0 ? (
@@ -101,7 +103,7 @@ export default async function CompetitionResultsIndexPage({
           <TrophyIllustration size={120} />
           <p className="mt-4 text-[22px] font-bold tracking-[-0.01em]"
             style={{ fontFamily: 'var(--font-lora)', color: 'var(--text-secondary)' }}>
-            No results published for {selectedYear} yet
+            No results yet this season.
           </p>
           <p className="mt-2 text-[15px]" style={{ color: 'var(--text-secondary)' }}>
             Results will appear here once a competition has been judged and published.
