@@ -28,7 +28,7 @@ type Visibility        = 'all_members' | 'members_only' | 'hidden'
 type BuiltinVisibility = 'members_only' | 'public'
 type PageStatus        = 'draft' | 'published'
 type ParentSystem      = 'calendar' | 'images' | 'competitions' | 'our-club'
-type MainTab           = 'navigation' | 'homepage' | 'pages' | 'galleries'
+type MainTab           = 'navigation' | 'homepage' | 'galleries'
 
 export type BuiltinPageVisibility = {
   about:    BuiltinVisibility
@@ -90,7 +90,7 @@ const SYSTEM_NAV: SysItem[] = [
     children: [
       { label: 'About our club',   href: '/our-club/about',     editHref: '/admin/content/about' },
       { label: 'Member directory', href: '/our-club/members',   dynamic: true },
-      { label: 'Documents',        href: '/our-club/documents', dynamic: true },
+      { label: 'Resources',        href: '/our-club/resources', dynamic: true },
       { label: 'Club galleries',   href: '/our-club/galleries', dynamic: true },
     ],
   },
@@ -130,7 +130,8 @@ const BUILTIN_PAGES: BuiltinPageRow[] = [
   { title: 'Standings',            url: '/competitions/standings',  menuLocation: 'Competitions',      visKey: null,       fixedVis: 'Members only',     editAction: null        },
   { title: 'About our club',       url: '/our-club/about',          menuLocation: 'Our Club',          visKey: 'about',    fixedVis: null,               editAction: 'about'     },
   { title: 'Member directory',     url: '/our-club/members',        menuLocation: 'Our Club',          visKey: null,       fixedVis: 'Members only',     editAction: null        },
-  { title: 'Documents',            url: '/our-club/documents',      menuLocation: 'Our Club',          visKey: null,       fixedVis: 'Members only',     editAction: null        },
+  { title: 'Resources',            url: '/our-club/resources',      menuLocation: 'Our Club',          visKey: null,       fixedVis: 'Members only',     editAction: null        },
+  { title: 'Club galleries',       url: '/our-club/galleries',      menuLocation: 'Our Club',          visKey: null,       fixedVis: 'Members only',     editAction: null        },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -317,7 +318,7 @@ function CustomSubRow({
 
         {page.page_type === 'rich_text' && (
           <button onClick={() => onEdit(page)} className="flex-shrink-0 text-[12px] font-medium hover:underline" style={{ color: 'var(--action-primary)' }}>
-            Edit
+            Edit content →
           </button>
         )}
 
@@ -971,21 +972,17 @@ function BuiltinPagesTable({
 
               {/* Edit action */}
               {row.editAction === 'about' ? (
-                <Tooltip title="Edit page content">
-                  <button onClick={onEditAbout}
-                    className="flex items-center justify-center rounded p-1 transition-colors hover:bg-surface-1"
-                    style={{ color: 'var(--text-tertiary)' }}>
-                    <PencilIcon />
-                  </button>
-                </Tooltip>
+                <button onClick={onEditAbout}
+                  className="text-[12px] font-medium hover:underline text-left"
+                  style={{ color: 'var(--action-primary)' }}>
+                  Edit content →
+                </button>
               ) : row.editAction === 'homepage' ? (
-                <Tooltip title="Edit homepage blocks">
-                  <button onClick={onGoHomepageBuilder}
-                    className="flex items-center justify-center rounded p-1 transition-colors hover:bg-surface-1"
-                    style={{ color: 'var(--text-tertiary)' }}>
-                    <PencilIcon />
-                  </button>
-                </Tooltip>
+                <button onClick={onGoHomepageBuilder}
+                  className="text-[12px] font-medium hover:underline text-left"
+                  style={{ color: 'var(--action-primary)' }}>
+                  Edit content →
+                </button>
               ) : (
                 <span />
               )}
@@ -1083,15 +1080,13 @@ function PagesTable({
               {page.updated_at ? timeAgo(page.updated_at) : '—'}
             </span>
 
-            {/* Edit icon — only for rich_text pages */}
+            {/* Edit link — only for rich_text pages */}
             {page.page_type === 'rich_text' ? (
-              <Tooltip title="Edit page content">
-                <button onClick={() => onEditPage(page)}
-                  className="flex items-center justify-center rounded p-1 transition-colors hover:bg-surface-1"
-                  style={{ color: 'var(--text-tertiary)' }}>
-                  <PencilIcon />
-                </button>
-              </Tooltip>
+              <button onClick={() => onEditPage(page)}
+                className="text-[12px] font-medium hover:underline text-left"
+                style={{ color: 'var(--action-primary)' }}>
+                Edit content →
+              </button>
             ) : <span />}
 
             {/* Delete icon */}
@@ -1417,16 +1412,15 @@ export default function NavigationClient({
 
   const MAIN_TABS = [
     { key: 'homepage'   as MainTab, label: 'Homepage' },
-    { key: 'pages'      as MainTab, label: 'Pages' },
-    { key: 'navigation' as MainTab, label: 'Navigation' },
+    { key: 'navigation' as MainTab, label: 'Pages' },
     { key: 'galleries'  as MainTab, label: 'Club galleries' },
   ]
 
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Navigation &amp; Pages</h1>
-        <p className="mt-1 text-[13px] text-content-secondary">Manage site structure and custom pages.</p>
+        <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Content &amp; Pages</h1>
+        <p className="mt-1 text-[13px] text-content-secondary">Manage pages, navigation, and site content.</p>
       </div>
 
       {err && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setErr(null)}>{err}</Alert>}
@@ -1441,90 +1435,8 @@ export default function NavigationClient({
         ))}
       </Tabs>
 
-      {/* ── Navigation tab ──────────────────────────────────────────────── */}
+      {/* ── Pages tab (nav tree + built-in pages) ───────────────────────── */}
       {activeTab === 'navigation' && (
-        <div className="flex gap-8 items-start">
-          <div className="flex-1 min-w-0">
-            {/* Nav tree */}
-            <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
-              {SYSTEM_NAV.map(item => (
-                <SysNavRow
-                  key={item.href}
-                  item={item}
-                  customSubPages={item.parentKey ? pagesFor(item.parentKey) : []}
-                  onDeletePage={deletePage}
-                  onEditPage={openCustomPageEditor}
-                  pending={pending}
-                />
-              ))}
-              {tabs.map((tab, tabIdx) => (
-                <CustomTabRow
-                  key={tab.id}
-                  tab={tab}
-                  customSubPages={pagesFor(tab.id)}
-                  onDeletePage={deletePage}
-                  onEditPage={openCustomPageEditor}
-                  onDeleteTab={deleteTab}
-                  pending={pending}
-                  onDragStart={() => onTabDragStart(tabIdx)}
-                  onDragOver={e => onTabDragOver(e, tabIdx)}
-                  onDrop={() => onTabDrop(tabIdx)}
-                  onDragEnd={onTabDragEnd}
-                  isDragOver={tabDragOverIdx === tabIdx}
-                  successMessage={newTabSuccessId === tab.id
-                    ? `"${tab.name}" created — add pages to it using the button below`
-                    : undefined}
-                />
-              ))}
-            </div>
-
-            {/* Single add button / inline panel */}
-            <div className="mt-4">
-              {!addPanelOpen ? (
-                <button
-                  onClick={() => { setAddPanelOpen(true); setNewTabSuccessId(null) }}
-                  className="flex items-center gap-2 rounded-[8px] border px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-surface-1"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add page or tab
-                </button>
-              ) : (
-                <AddPanel
-                  tabs={tabs}
-                  pages={pages}
-                  clubId={clubId}
-                  onPageCreated={page => {
-                    setPages(prev => [...prev, page])
-                    setAddPanelOpen(false)
-                  }}
-                  onTabCreated={tab => {
-                    setTabs(prev => [...prev, tab])
-                    setNewTabSuccessId(tab.id)
-                    setAddPanelOpen(false)
-                  }}
-                  onClose={() => setAddPanelOpen(false)}
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Mobile preview */}
-          <div className="w-56 flex-shrink-0 hidden lg:block">
-            <MobileNavPreview tabs={tabs} />
-          </div>
-        </div>
-      )}
-
-      {/* ── Homepage tab ─────────────────────────────────────────────────── */}
-      {activeTab === 'homepage' && (
-        <HomepageEditor initialBlocks={initialHomepageBlocks} galleries={initialGalleries} members={members} clubName={clubName} />
-      )}
-
-      {/* ── Pages tab ────────────────────────────────────────────────────── */}
-      {activeTab === 'pages' && (
         <div>
           {/* Post-creation prompt */}
           {pagesTabNewPage && (
@@ -1534,7 +1446,7 @@ export default function NavigationClient({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               <span className="flex-1 text-[13px]" style={{ color: 'var(--text-primary)' }}>
-                <strong>&ldquo;{pagesTabNewPage.title}&rdquo;</strong> created as a draft. Want to add it to your navigation?
+                <strong>&ldquo;{pagesTabNewPage.title}&rdquo;</strong> created as a draft. Add it to your navigation below.
               </span>
               <Button
                 variant="outlined"
@@ -1555,38 +1467,114 @@ export default function NavigationClient({
             </div>
           )}
 
-          <BuiltinPagesTable
-            builtinVisibility={builtinVisibility}
-            onChangeVisibility={changeBuiltinVisibility}
-            onEditAbout={openAboutEditor}
-            onGoHomepageBuilder={() => setActiveTab('homepage')}
-          />
-          <div className="mb-4 flex items-center justify-between">
-            <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
-              Custom pages
-            </p>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
-              onClick={() => setNewPageOpen(true)}
-            >
-              New page
-            </Button>
+          <div className="flex gap-8 items-start">
+            <div className="flex-1 min-w-0">
+
+              {/* Custom pages nav tree */}
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                  Custom navigation
+                </p>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
+                  onClick={() => { setNewPageOpen(true); setNewTabSuccessId(null) }}
+                >
+                  New page
+                </Button>
+              </div>
+
+              <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
+                {SYSTEM_NAV.map(item => (
+                  <SysNavRow
+                    key={item.href}
+                    item={item}
+                    customSubPages={item.parentKey ? pagesFor(item.parentKey) : []}
+                    onDeletePage={deletePage}
+                    onEditPage={openCustomPageEditor}
+                    pending={pending}
+                  />
+                ))}
+                {tabs.map((tab, tabIdx) => (
+                  <CustomTabRow
+                    key={tab.id}
+                    tab={tab}
+                    customSubPages={pagesFor(tab.id)}
+                    onDeletePage={deletePage}
+                    onEditPage={openCustomPageEditor}
+                    onDeleteTab={deleteTab}
+                    pending={pending}
+                    onDragStart={() => onTabDragStart(tabIdx)}
+                    onDragOver={e => onTabDragOver(e, tabIdx)}
+                    onDrop={() => onTabDrop(tabIdx)}
+                    onDragEnd={onTabDragEnd}
+                    isDragOver={tabDragOverIdx === tabIdx}
+                    successMessage={newTabSuccessId === tab.id
+                      ? `"${tab.name}" created — add pages to it using the button below`
+                      : undefined}
+                  />
+                ))}
+              </div>
+
+              {/* Add tab inline panel */}
+              <div className="mt-3">
+                {!addPanelOpen ? (
+                  <button
+                    onClick={() => { setAddPanelOpen(true); setNewTabSuccessId(null) }}
+                    className="flex items-center gap-2 rounded-[8px] border px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-surface-1"
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add custom tab
+                  </button>
+                ) : (
+                  <AddPanel
+                    tabs={tabs}
+                    pages={pages}
+                    clubId={clubId}
+                    onPageCreated={page => {
+                      setPages(prev => [...prev, page])
+                      setAddPanelOpen(false)
+                    }}
+                    onTabCreated={tab => {
+                      setTabs(prev => [...prev, tab])
+                      setNewTabSuccessId(tab.id)
+                      setAddPanelOpen(false)
+                    }}
+                    onClose={() => setAddPanelOpen(false)}
+                  />
+                )}
+              </div>
+
+              {/* Built-in pages */}
+              <div className="mt-8">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                  Built-in pages
+                </p>
+                <BuiltinPagesTable
+                  builtinVisibility={builtinVisibility}
+                  onChangeVisibility={changeBuiltinVisibility}
+                  onEditAbout={openAboutEditor}
+                  onGoHomepageBuilder={() => setActiveTab('homepage')}
+                />
+              </div>
+
+            </div>
+
+            {/* Mobile preview */}
+            <div className="w-56 flex-shrink-0 hidden lg:block">
+              <MobileNavPreview tabs={tabs} />
+            </div>
           </div>
-          <PagesTable
-            pages={pages}
-            tabs={tabs}
-            onEditPage={openCustomPageEditor}
-            onDeletePage={deletePage}
-            onGoToNavigation={() => {
-              setPagesTabNewPage(null)
-              setActiveTab('navigation')
-              setAddPanelOpen(true)
-            }}
-            pending={pending}
-          />
         </div>
+      )}
+
+      {/* ── Homepage tab ─────────────────────────────────────────────────── */}
+      {activeTab === 'homepage' && (
+        <HomepageEditor initialBlocks={initialHomepageBlocks} galleries={initialGalleries} members={members} clubName={clubName} />
       )}
 
       {/* ── Club galleries tab ─────────────────────────────────────────── */}
