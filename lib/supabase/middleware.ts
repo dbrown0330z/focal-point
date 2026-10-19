@@ -31,7 +31,7 @@ const RESERVED_SEGMENTS = new Set([
 
 // ─── Club slug resolution ─────────────────────────────────────────────────────
 
-type ClubRow = { id: string; name: string; slug: string; status: string } | null
+type ClubRow = { id: string; name: string; slug: string; status: string; is_published: boolean } | null
 
 async function resolveClub(
   supabase: ReturnType<typeof createServerClient>,
@@ -39,7 +39,7 @@ async function resolveClub(
 ): Promise<ClubRow> {
   const { data } = await supabase
     .from('clubs')
-    .select('id, name, slug, status')
+    .select('id, name, slug, status, is_published')
     .eq('slug', slug)
     .maybeSingle()
   return data as ClubRow
@@ -110,6 +110,18 @@ export async function updateSession(request: NextRequest) {
       // Derive the path segment after the club slug for route classification.
       const innerPath = '/' + segments.slice(1).join('/')
 
+      const isAdminRoute  = innerPath.startsWith('/admin')
+      const isLoginRoute  = innerPath === '/login' || innerPath.startsWith('/login/')
+      const isComingSoon  = innerPath === '/coming-soon'
+
+      // Draft mode: only admins (and the login/coming-soon pages) may access
+      // while the site is unpublished. Everyone else sees the coming-soon page.
+      if (!club.is_published && !isAdminRoute && !isLoginRoute && !isComingSoon) {
+        const dest = new URL(request.url)
+        dest.pathname = `/${firstSeg}/coming-soon`
+        return NextResponse.redirect(dest)
+      }
+
       const isMemberRoute =
         // Homepage is public — guests see the landing view, members see their feed
         innerPath.startsWith('/library')               ||
@@ -120,8 +132,6 @@ export async function updateSession(request: NextRequest) {
         innerPath.startsWith('/our-club/documents')    ||
         innerPath.startsWith('/submit')                ||
         innerPath.startsWith('/p/')
-
-      const isAdminRoute = innerPath.startsWith('/admin')
 
       if (isMemberRoute || isAdminRoute) {
         if (!user) {

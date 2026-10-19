@@ -331,8 +331,10 @@ export type Database = {
           approved_by: string | null
           contact_email: string | null
           created_at: string
+          dues_mode: string | null
           id: string
           invite_sent_at: string | null
+          is_published: boolean
           location: string | null
           name: string
           notes: string | null
@@ -351,8 +353,10 @@ export type Database = {
           approved_by?: string | null
           contact_email?: string | null
           created_at?: string
+          dues_mode?: string | null
           id?: string
           invite_sent_at?: string | null
+          is_published?: boolean
           location?: string | null
           name: string
           notes?: string | null
@@ -371,8 +375,10 @@ export type Database = {
           approved_by?: string | null
           contact_email?: string | null
           created_at?: string
+          dues_mode?: string | null
           id?: string
           invite_sent_at?: string | null
+          is_published?: boolean
           location?: string | null
           name?: string
           notes?: string | null
