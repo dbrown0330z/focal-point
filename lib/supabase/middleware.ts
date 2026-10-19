@@ -117,6 +117,13 @@ export async function updateSession(request: NextRequest) {
       // Draft mode: only admins (and the login/coming-soon pages) may access
       // while the site is unpublished. Everyone else sees the coming-soon page.
       if (!club.is_published && !isAdminRoute && !isLoginRoute && !isComingSoon) {
+        // Authenticated users hitting the club root go straight to the admin panel
+        // (avoids post-login loop: callback → / → coming-soon → login → repeat)
+        if (user && innerPath === '/') {
+          const dest = new URL(request.url)
+          dest.pathname = `/${firstSeg}/admin`
+          return NextResponse.redirect(dest)
+        }
         const dest = new URL(request.url)
         dest.pathname = `/${firstSeg}/coming-soon`
         return NextResponse.redirect(dest)
