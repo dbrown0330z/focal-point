@@ -4,9 +4,10 @@ import { useState, useRef, useEffect, useTransition, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Box, Button, Dialog, DialogTitle, DialogContent, DialogActions,
-  Typography, CircularProgress, Alert, TextField,
+  Paper, Typography, CircularProgress, Alert, TextField,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
+import CollectionsIcon from '@mui/icons-material/Collections'
 import {
   createAdminGallery,
   updateAdminGalleryMeta,
@@ -728,30 +729,29 @@ export default function ClubGalleriesTab({
 
   return (
     <Box>
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 4 }}>
-        <Box>
-          <Typography variant="body2" color="text.secondary">
-            Dynamic galleries curated from competition submissions and published to members or the public.
-          </Typography>
+      {/* Header — only show "New gallery" button when galleries exist */}
+      {galleries.length > 0 && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+          <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
+            New gallery
+          </Button>
         </Box>
-        <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
-          New gallery
-        </Button>
-      </Box>
+      )}
 
       {/* Gallery grid */}
       {galleries.length === 0 ? (
-        <Box sx={{
-          textAlign: 'center', py: 8,
-          border: '1px dashed var(--border-default)',
-          borderRadius: 3, mb: 3,
-        }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>No galleries yet.</Typography>
-          <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
+        <Paper variant="outlined" sx={{ py: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
+          <CollectionsIcon sx={{ fontSize: 40, color: 'text.disabled' }} />
+          <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary' }}>
+            No galleries yet
+          </Typography>
+          <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+            Create a gallery to curate and publish competition images.
+          </Typography>
+          <Button variant="contained" sx={{ mt: 0.5 }} startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
             Create first gallery
           </Button>
-        </Box>
+        </Paper>
       ) : (
         <div style={{
           display: 'grid',

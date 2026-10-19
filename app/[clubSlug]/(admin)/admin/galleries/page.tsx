@@ -72,7 +72,7 @@ export default async function GalleriesPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Galleries</h1>
-        <p className="mt-1 text-[13px] text-content-secondary">Manage club galleries visible to members.</p>
+        <p className="mt-1 text-[13px] text-content-secondary">Dynamic galleries curated from competition submissions and published to members or the public.</p>
       </div>
       <ClubGalleriesTab galleries={galleries} members={members} clubSlug={ctx!.clubSlug} />
     </div>
