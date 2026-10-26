@@ -2,10 +2,11 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 import { getClubContext } from '@/lib/club-context'
-import SetupWizard from './SetupWizard'
 
 export const dynamic = 'force-dynamic'
 
+// Skip the setup wizard — mark setup complete and go straight to admin.
+// Short name, timezone, and other basics are configurable in Admin → Club Basics.
 export default async function SetupPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -15,13 +16,6 @@ export default async function SetupPage() {
   if (!ctx) redirect('/')
 
   const admin = createServiceClient()
-  const { data: settings } = await (admin as any)
-    .from('club_settings')
-    .select('setup_complete, club_name, club_location')
-    .eq('club_id', ctx.clubId)
-    .single()
-
-  if (settings?.setup_complete) redirect(`/${ctx.clubSlug}/admin`)
 
   const { data: membership } = await (admin as any)
     .from('club_memberships')
@@ -32,12 +26,10 @@ export default async function SetupPage() {
 
   if (!membership || membership.role !== 'admin') redirect('/')
 
-  return (
-    <SetupWizard
-      clubSlug={ctx.clubSlug}
-      clubId={ctx.clubId}
-      clubName={settings?.club_name || ctx.clubName}
-      clubLocation={settings?.club_location ?? ''}
-    />
-  )
+  await (admin as any)
+    .from('club_settings')
+    .update({ setup_complete: true })
+    .eq('club_id', ctx.clubId)
+
+  redirect(`/${ctx.clubSlug}/admin`)
 }
