@@ -5,6 +5,7 @@ import { requireClubId } from '@/lib/club-context'
 import MemberNav from '@/components/layout/MemberNav'
 import MemberThemeProvider from '@/components/layout/MemberThemeProvider'
 import { AppFooter } from '@/components/layout/AppFooter'
+import DraftPreviewBanner from '@/components/layout/DraftPreviewBanner'
 
 export default async function MemberLayout({
   children,
@@ -28,6 +29,7 @@ export default async function MemberLayout({
     { data: membership },
     { data: profile },
     { data: clubSettings },
+    { data: club },
     { data: customPages },
     { data: customTabs },
     { count: pendingCount },
@@ -47,6 +49,11 @@ export default async function MemberLayout({
       .from('club_settings')
       .select('club_name')
       .eq('club_id', clubId)
+      .single(),
+    admin
+      .from('clubs')
+      .select('is_published')
+      .eq('id', clubId)
       .single(),
     admin
       .from('nav_custom_pages')
@@ -85,6 +92,9 @@ export default async function MemberLayout({
           customTabs={customTabs ?? []}
           pendingCount={pendingCount ?? 0}
         />
+        {!club?.is_published && membership?.role === 'admin' && (
+          <DraftPreviewBanner clubSlug={clubSlug} />
+        )}
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
           {children}
         </main>

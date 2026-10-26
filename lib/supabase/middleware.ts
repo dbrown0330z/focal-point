@@ -114,19 +114,15 @@ export async function updateSession(request: NextRequest) {
       const isLoginRoute  = innerPath === '/login' || innerPath.startsWith('/login/')
       const isComingSoon  = innerPath === '/coming-soon'
 
-      // Draft mode: only admins (and the login/coming-soon pages) may access
-      // while the site is unpublished. Everyone else sees the coming-soon page.
+      // Draft mode: unauthenticated visitors see the coming-soon page.
+      // Authenticated users (the admin previewing their own site) pass through —
+      // the member layout renders a "not live yet" banner for them.
       if (!club.is_published && !isAdminRoute && !isLoginRoute && !isComingSoon) {
-        // Authenticated users hitting the club root go straight to the admin panel
-        // (avoids post-login loop: callback → / → coming-soon → login → repeat)
-        if (user && innerPath === '/') {
+        if (!user) {
           const dest = new URL(request.url)
-          dest.pathname = `/${firstSeg}/admin`
+          dest.pathname = `/${firstSeg}/coming-soon`
           return NextResponse.redirect(dest)
         }
-        const dest = new URL(request.url)
-        dest.pathname = `/${firstSeg}/coming-soon`
-        return NextResponse.redirect(dest)
       }
 
       const isMemberRoute =
