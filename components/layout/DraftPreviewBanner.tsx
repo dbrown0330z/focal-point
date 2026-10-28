@@ -85,8 +85,11 @@ export default function DraftPreviewBanner({ clubSlug }: { clubSlug: string }) {
             Only you can view it right now.
           </p>
           <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            Everything on this page is customisable in your admin area. Make a change there, then
-            come back here and refresh to see it reflected.
+            Use your{' '}
+            <Link href={`/${clubSlug}/admin`} style={{ color: 'var(--action-primary)', textDecoration: 'underline' }}>
+              admin area
+            </Link>{' '}
+            to set up your homepage, schedule competitions, and manage content. Changes you make there will appear here.
           </p>
         </div>
 

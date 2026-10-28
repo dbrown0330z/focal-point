@@ -11,19 +11,18 @@ export default function ResourcesIllustration({ size = 160 }: { size?: number })
       aria-hidden="true"
     >
       <style>{`
-        .ri-root { --ink: #1a1a1a; }
-        @media (prefers-color-scheme: dark) { .ri-root { --ink: #e8e8e8; } }
-        .ri-sk  { stroke: var(--ink); fill: none; stroke-linecap: round; stroke-linejoin: round; }
-        .ri-sk2 { stroke: var(--ink); fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0.5; }
-        .ri-skd { stroke: var(--ink); fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 4,4; opacity: 0.35; }
-        .ri-hatch { stroke: var(--ink); fill: none; stroke-linecap: round; opacity: 0.12; }
-        .ri-fi { fill: var(--ink); stroke: none; }
+        .ri-root {  }
+        .ri-sk  { stroke: var(--text-primary, #1a1a1a); fill: none; stroke-linecap: round; stroke-linejoin: round; }
+        .ri-sk2 { stroke: var(--text-primary, #1a1a1a); fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0.5; }
+        .ri-skd { stroke: var(--text-primary, #1a1a1a); fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 4,4; opacity: 0.35; }
+        .ri-hatch { stroke: var(--text-primary, #1a1a1a); fill: none; stroke-linecap: round; opacity: 0.12; }
+        .ri-fi { fill: var(--text-primary, #1a1a1a); stroke: none; }
       `}</style>
       <g className="ri-root">
         {/* Folder back panel */}
         <path
           d="M32,72 L32,196 Q33,200 37,201 L283,201 Q287,200 288,196 L288,88 Q287,84 283,83 L148,83 Q144,82 141,78 L130,68 Q127,64 123,63 L37,63 Q33,64 32,68 Z"
-          className="ri-sk" strokeWidth="2" fill="var(--ink)" opacity="0.05"
+          className="ri-sk" strokeWidth="2" fill="var(--text-primary, #1a1a1a)" opacity="0.05"
         />
         <path
           d="M32,72 L32,196 Q33,200 37,201 L283,201 Q287,200 288,196 L288,88 Q287,84 283,83 L148,83 Q144,82 141,78 L130,68 Q127,64 123,63 L37,63 Q33,64 32,68 Z"

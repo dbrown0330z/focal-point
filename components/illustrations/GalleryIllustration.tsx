@@ -9,11 +9,8 @@ export default function GalleryIllustration({ width = 400 }: { width?: number })
       aria-hidden="true"
     >
       <style>{`
-        .gi-root { --ink: #1a1a1a; --ink-light: rgba(26,26,26,0.25); }
-        @media (prefers-color-scheme: dark) {
-          .gi-root { --ink: #e8e8e8; --ink-light: rgba(232,232,232,0.25); }
-        }
-        .gi-sk { stroke: var(--ink); fill: none; stroke-linecap: round; stroke-linejoin: round; }
+        .gi-root { --ink-light: color-mix(in srgb, var(--text-primary, #1a1a1a) 25%, transparent); }
+        .gi-sk { stroke: var(--text-primary, #1a1a1a); fill: none; stroke-linecap: round; stroke-linejoin: round; }
       `}</style>
       <g transform="translate(234, 148)" className="gi-root gi-sk">
 
