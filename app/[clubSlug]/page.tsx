@@ -9,6 +9,7 @@ import MemberThemeProvider from '@/components/layout/MemberThemeProvider'
 import HomepageRenderer from '@/components/home/HomepageRenderer'
 import WelcomeHeader from '@/components/home/WelcomeHeader'
 import HomepageComingSoon from '@/components/home/HomepageComingSoon'
+import DraftPreviewBanner from '@/components/layout/DraftPreviewBanner'
 import { DEFAULT_BLOCKS, mergeBlocks, type ContentBlock } from '@/lib/homepage/types'
 import { logout } from '@/app/(auth)/actions'
 import { AppFooter } from '@/components/layout/AppFooter'
@@ -67,7 +68,7 @@ export default async function ClubHomePage({
   // Auth is already verified above via supabase.auth.getUser().
   const admin = createServiceClient()
 
-  const [{ data: membership }, { data: profile }, { data: clubSettings }, { count: pendingCount }, { count: publishedPostsCount }] = await Promise.all([
+  const [{ data: membership }, { data: profile }, { data: clubSettings }, { data: club }, { count: pendingCount }, { count: publishedPostsCount }] = await Promise.all([
     admin
       .from('club_memberships')
       .select('role, membership_status')
@@ -83,6 +84,11 @@ export default async function ClubHomePage({
       .from('club_settings')
       .select('club_name, homepage_blocks, setup_complete')
       .eq('club_id', clubId)
+      .single(),
+    admin
+      .from('clubs')
+      .select('is_published')
+      .eq('id', clubId)
       .single(),
     admin
       .from('club_memberships')
@@ -115,6 +121,8 @@ export default async function ClubHomePage({
       redirect(`/${clubSlug}/setup`)
     }
 
+    const isDraft = !club?.is_published && membership.role === 'admin'
+
     if (showComingSoon) {
       return (
         <MemberThemeProvider>
@@ -130,6 +138,7 @@ export default async function ClubHomePage({
               customTabs={[]}
               pendingCount={0}
             />
+            {isDraft && <DraftPreviewBanner clubSlug={clubSlug} />}
             <div className="flex flex-1 flex-col items-start">
               <HomepageComingSoon clubName={clubName} clubSlug={clubSlug} />
             </div>
@@ -171,6 +180,7 @@ export default async function ClubHomePage({
             customTabs={customTabs ?? []}
             pendingCount={pendingCount ?? 0}
           />
+          {isDraft && <DraftPreviewBanner clubSlug={clubSlug} />}
           <WelcomeHeader
             firstName={(profile as { first_name: string | null }).first_name || profile.display_name.split(' ')[0]}
             userId={user.id}
