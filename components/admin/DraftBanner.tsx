@@ -146,9 +146,17 @@ export default function DraftBanner({
     })
   }
 
+  // Admin is always light — hardcode light-mode palette to avoid OS dark mode bleed
+  const W_BG   = '#FFFBE6'
+  const W_TEXT = '#6B5000'   // 4.7:1 on #FFFBE6 ✓
+  const W_DOT  = '#A67C00'
+  const S_BG   = '#EDFAF0'
+  const S_TEXT = '#174A1A'   // 5.4:1 on #EDFAF0 ✓
+  const S_DOT  = '#2E7D32'
+
   return (
     <div style={{
-      background: allDone ? 'var(--status-success-bg)' : 'var(--status-warning-bg)',
+      background: allDone ? S_BG : W_BG,
       borderBottom: `1px solid ${allDone ? 'rgba(46,125,50,0.20)' : 'rgba(166,124,0,0.20)'}`,
       fontFamily: 'var(--font-primary)',
     }}>
@@ -160,11 +168,11 @@ export default function DraftBanner({
         {/* Status dot */}
         <span style={{
           width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-          background: allDone ? 'var(--status-success)' : 'var(--status-warning)',
+          background: allDone ? S_DOT : W_DOT,
         }} />
 
         {/* Text */}
-        <span style={{ fontSize: 14, color: allDone ? 'var(--status-success-text)' : 'var(--status-warning-text)', flex: 1 }}>
+        <span style={{ fontSize: 14, color: allDone ? S_TEXT : W_TEXT, flex: 1 }}>
           {allDone
             ? 'Your site is ready to go live — members can\'t access it yet.'
             : `Your site is in draft mode — ${remaining} item${remaining !== 1 ? 's' : ''} to complete before publishing.`}
@@ -178,7 +186,7 @@ export default function DraftBanner({
             style={{
               display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none',
               cursor: 'pointer', fontSize: 14, fontWeight: 600,
-              color: 'var(--status-warning-text)', padding: '2px 4px',
+              color: W_TEXT, padding: '2px 4px',
             }}
           >
             What&rsquo;s needed <ChevronDown open={expanded} />
@@ -192,8 +200,8 @@ export default function DraftBanner({
           disabled={!allDone || publishing}
           style={{
             padding: '7px 16px', borderRadius: 6, fontSize: 14, fontWeight: 600,
-            background: allDone ? 'var(--status-success)' : 'rgba(0,0,0,0.12)',
-            color: allDone ? 'white' : 'var(--text-disabled)',
+            background: allDone ? S_DOT : 'rgba(0,0,0,0.10)',
+            color: allDone ? 'white' : '#A0A0A0',
             border: 'none', cursor: allDone ? 'pointer' : 'default',
             opacity: publishing ? 0.7 : 1, flexShrink: 0,
           }}
@@ -264,7 +272,7 @@ function ChecklistItem({
       {/* Icon */}
       <span style={{
         marginTop: 1, flexShrink: 0,
-        color: done ? 'var(--status-success)' : 'var(--text-disabled)',
+        color: done ? '#2E7D32' : '#A0A0A0',
       }}>
         {done ? <CheckIcon /> : <CircleIcon />}
       </span>
@@ -272,11 +280,11 @@ function ChecklistItem({
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: done ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none' }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: done ? '#696969' : '#1A1A1A', textDecoration: done ? 'line-through' : 'none' }}>
             {label}
           </span>
         </div>
-        {!done && <p style={{ margin: '0 0 8px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{sub}</p>}
+        {!done && <p style={{ margin: '0 0 8px', fontSize: 14, color: '#696969', lineHeight: 1.5 }}>{sub}</p>}
         {action}
       </div>
     </div>
