@@ -8,14 +8,20 @@ export default async function DuesPaymentPage() {
 
   const [{ data: club }, { data: settings }] = await Promise.all([
     admin.from('clubs').select('dues_mode').eq('id', clubId).single(),
-    admin.from('club_settings').select('dues_annual_standard, dues_renewal_month, dues_prorate, dues_exempt_honorary, dues_grace_period_days, dues_discount_categories, dues_onetimefees_enabled, dues_application_fee, dues_join_fee').eq('club_id', clubId).single(),
+    admin.from('club_settings').select('dues_offline_method, dues_cheque_payable_to, dues_cheque_mail_to, dues_annual_standard, dues_renewal_month, dues_prorate, dues_exempt_honorary, dues_grace_period_days, dues_discount_categories, dues_onetimefees_enabled, dues_application_fee, dues_join_fee').eq('club_id', clubId).single(),
   ])
+
+  const rawMode   = club?.dues_mode as 'stripe' | 'paypal' | 'offline' | null | undefined ?? null
+  const rawMethod = settings?.dues_offline_method as 'cheque' | 'digital-transfer' | 'cash' | null | undefined ?? null
 
   return (
     <DuesPaymentClient
-      initialDuesMode={(club?.dues_mode as 'stripe' | 'paypal' | 'offline' | null) ?? null}
+      initialDuesMode={rawMode}
+      initialOfflineMethod={rawMethod}
+      initialChequePayableTo={settings?.dues_cheque_payable_to ?? null}
+      initialChequeMail={settings?.dues_cheque_mail_to ?? null}
       initialAnnualStandard={settings?.dues_annual_standard ?? null}
-      initialRenewalMonth={settings?.dues_renewal_month ?? 1}
+      initialRenewalMonth={settings?.dues_renewal_month ?? null}
       initialProrate={settings?.dues_prorate ?? false}
       initialExemptHonorary={settings?.dues_exempt_honorary ?? false}
       initialGracePeriodDays={settings?.dues_grace_period_days ?? null}

@@ -8,8 +8,11 @@ export type DiscountCategory = { label: string; amount: number | null }
 
 export type DuesConfigPayload = {
   duesMode:            'stripe' | 'paypal' | 'offline' | null
+  offlineMethod:       'cheque' | 'digital-transfer' | 'cash' | null
+  chequePayableTo:     string | null
+  chequeMail:          string | null
   annualStandard:      number | null
-  renewalMonth:        number
+  renewalMonth:        number | null
   prorate:             boolean
   exemptHonorary:      boolean
   gracePeriodDays:     number | null
@@ -24,7 +27,6 @@ export async function saveDuesConfig(payload: DuesConfigPayload): Promise<{ erro
   const clubSlug = await requireClubSlug()
   const admin    = createServiceClient()
 
-  // Save dues_mode to clubs
   if (payload.duesMode !== null) {
     const { error } = await admin
       .from('clubs')
@@ -33,10 +35,12 @@ export async function saveDuesConfig(payload: DuesConfigPayload): Promise<{ erro
     if (error) return { error: error.message }
   }
 
-  // Save all other dues config to club_settings
   const { error } = await admin
     .from('club_settings')
     .update({
+      dues_offline_method:       payload.offlineMethod,
+      dues_cheque_payable_to:    payload.chequePayableTo,
+      dues_cheque_mail_to:       payload.chequeMail,
       dues_annual_standard:      payload.annualStandard,
       dues_renewal_month:        payload.renewalMonth,
       dues_prorate:              payload.prorate,

@@ -195,10 +195,13 @@ export type Database = {
           club_name: string
           dues_annual_standard: number | null
           dues_application_fee: number | null
+          dues_cheque_mail_to: string | null
+          dues_cheque_payable_to: string | null
           dues_discount_categories: Json | null
           dues_exempt_honorary: boolean
           dues_grace_period_days: number | null
           dues_join_fee: number | null
+          dues_offline_method: string | null
           dues_onetimefees_enabled: boolean
           dues_prorate: boolean
           dues_renewal_month: number | null
@@ -243,10 +246,13 @@ export type Database = {
           club_name?: string
           dues_annual_standard?: number | null
           dues_application_fee?: number | null
+          dues_cheque_mail_to?: string | null
+          dues_cheque_payable_to?: string | null
           dues_discount_categories?: Json | null
           dues_exempt_honorary?: boolean
           dues_grace_period_days?: number | null
           dues_join_fee?: number | null
+          dues_offline_method?: string | null
           dues_onetimefees_enabled?: boolean
           dues_prorate?: boolean
           dues_renewal_month?: number | null
@@ -291,10 +297,13 @@ export type Database = {
           club_name?: string
           dues_annual_standard?: number | null
           dues_application_fee?: number | null
+          dues_cheque_mail_to?: string | null
+          dues_cheque_payable_to?: string | null
           dues_discount_categories?: Json | null
           dues_exempt_honorary?: boolean
           dues_grace_period_days?: number | null
           dues_join_fee?: number | null
+          dues_offline_method?: string | null
           dues_onetimefees_enabled?: boolean
           dues_prorate?: boolean
           dues_renewal_month?: number | null
