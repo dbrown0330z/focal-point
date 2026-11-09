@@ -6,24 +6,24 @@ import './marketing.css'
 
 const bitter = Bitter({
   subsets:  ['latin'],
-  weight:   ['400', '500', '700'],
   style:    ['normal', 'italic'],
   variable: '--font-bitter',
+  display:  'swap',
 })
 const dmSans = DM_Sans({
   subsets:  ['latin'],
-  weight:   ['400', '500', '600', '700'],
   variable: '--font-dm-sans',
+  display:  'swap',
 })
 const dmMono = DM_Mono({
   subsets:  ['latin'],
-  weight:   ['400', '500'],
   variable: '--font-dm-mono',
+  display:  'swap',
 })
 const spaceGrotesk = Space_Grotesk({
   subsets:  ['latin'],
-  weight:   ['500', '600', '700'],
   variable: '--font-space-grotesk',
+  display:  'swap',
 })
 
 export default function MarketingLayout({ children }: { children: ReactNode }) {
