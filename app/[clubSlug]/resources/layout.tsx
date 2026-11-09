@@ -5,6 +5,7 @@ import Link from 'next/link'
 import MemberNav from '@/components/layout/MemberNav'
 import MemberThemeProvider from '@/components/layout/MemberThemeProvider'
 import { AppFooter } from '@/components/layout/AppFooter'
+import DraftPreviewBanner from '@/components/layout/DraftPreviewBanner'
 
 export default async function ResourcesLayout({
   children,
@@ -24,6 +25,7 @@ export default async function ResourcesLayout({
     { data: membership },
     { data: profile },
     { data: clubSettings },
+    { data: club },
   ] = await Promise.all([
     user && clubId
       ? admin.from('club_memberships').select('role, membership_status').eq('user_id', user.id).eq('club_id', clubId).maybeSingle()
@@ -34,11 +36,16 @@ export default async function ResourcesLayout({
     clubId
       ? admin.from('club_settings').select('club_name').eq('club_id', clubId).single()
       : Promise.resolve({ data: null }),
+    clubId
+      ? admin.from('clubs').select('is_published').eq('id', clubId).single()
+      : Promise.resolve({ data: null }),
   ])
 
-  const clubName   = (clubSettings as { club_name?: string } | null)?.club_name ?? 'Our Camera Club'
-  const isActive   = ['active', 'complimentary'].includes((membership as { membership_status?: string } | null)?.membership_status ?? '')
-  const role       = (membership as { role?: string | null } | null)?.role ?? null
+  const clubName  = (clubSettings as { club_name?: string } | null)?.club_name ?? 'Our Camera Club'
+  const memberRow = membership as { membership_status?: string; role?: string | null } | null
+  const isActive  = ['active', 'complimentary'].includes(memberRow?.membership_status ?? '')
+  const role      = memberRow?.role ?? null
+  const isDraft   = !(club as { is_published?: boolean } | null)?.is_published
 
   if (user && isActive) {
     return (
@@ -52,6 +59,7 @@ export default async function ResourcesLayout({
             role={role}
             avatarUrl={(profile as { avatar_url?: string | null } | null)?.avatar_url ?? null}
           />
+          {isDraft && role === 'admin' && <DraftPreviewBanner clubSlug={clubSlug} />}
           <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
             {children}
           </main>

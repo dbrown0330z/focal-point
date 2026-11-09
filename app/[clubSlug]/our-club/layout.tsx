@@ -5,6 +5,7 @@ import Link from 'next/link'
 import MemberNav from '@/components/layout/MemberNav'
 import MemberThemeProvider from '@/components/layout/MemberThemeProvider'
 import { AppFooter } from '@/components/layout/AppFooter'
+import DraftPreviewBanner from '@/components/layout/DraftPreviewBanner'
 
 export default async function OurClubLayout({
   children,
@@ -21,7 +22,7 @@ export default async function OurClubLayout({
   const { data: { user } } = await supabase.auth.getUser()
   const admin = createServiceClient()
 
-  const [{ data: membership }, { data: profile }, { data: clubSettings }] = await Promise.all([
+  const [{ data: membership }, { data: profile }, { data: clubSettings }, { data: club }] = await Promise.all([
     user && clubId
       ? admin
           .from('club_memberships')
@@ -36,10 +37,15 @@ export default async function OurClubLayout({
     clubId
       ? admin.from('club_settings').select('club_name').eq('club_id', clubId).single()
       : Promise.resolve({ data: null }),
+    clubId
+      ? admin.from('clubs').select('is_published').eq('id', clubId).single()
+      : Promise.resolve({ data: null }),
   ])
 
   const clubName       = (clubSettings as { club_name?: string } | null)?.club_name ?? 'Our Camera Club'
-  const isActiveMember = (membership as { membership_status?: string } | null)?.membership_status === 'active'
+  const memberRow      = membership as { membership_status?: string; role?: string | null } | null
+  const isActiveMember = memberRow?.membership_status === 'active'
+  const isDraft        = !(club as { is_published?: boolean } | null)?.is_published
 
   // Logged-in active member — full MemberNav
   if (user && isActiveMember) {
@@ -51,9 +57,10 @@ export default async function OurClubLayout({
             clubName={clubName}
             displayName={(profile as { display_name?: string } | null)?.display_name ?? ''}
             email={user.email ?? ''}
-            role={(membership as { role?: string | null } | null)?.role ?? null}
+            role={memberRow?.role ?? null}
             avatarUrl={(profile as { avatar_url?: string | null } | null)?.avatar_url ?? null}
           />
+          {isDraft && memberRow?.role === 'admin' && <DraftPreviewBanner clubSlug={clubSlug} />}
           <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
             {children}
           </main>
