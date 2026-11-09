@@ -15,10 +15,10 @@ export default function AdminShell({
   banner?:  React.ReactNode
   footer?:  React.ReactNode
 }) {
-  const { theme } = useAdminTheme()
+  useAdminTheme()
   return (
     <UnsavedChangesProvider>
-      <div className={`admin-context${theme === 'dark' ? ' admin-dark' : ''} flex h-screen overflow-hidden bg-surface-0`}>
+      <div className="admin-context flex h-screen overflow-hidden bg-surface-0">
         <AdminSidebar clubSlug={clubSlug} />
         <div className="flex flex-1 flex-col overflow-hidden">
           {banner}
