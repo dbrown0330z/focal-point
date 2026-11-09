@@ -42,7 +42,7 @@ export default function DraftBanner({ checklist: initial }: { checklist: DraftCh
   }
 
   return (
-    <div style={{ background: palette.bg, borderBottom: `1px solid ${palette.border}`, fontFamily: 'var(--font-primary)' }}>
+    <div style={{ background: palette.bg, borderBottom: `1px solid ${palette.border}`, boxShadow: '0 2px 6px rgba(0,0,0,0.08)', fontFamily: 'var(--font-primary)' }}>
       {/* ── Summary bar ── */}
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: palette.dot }} />

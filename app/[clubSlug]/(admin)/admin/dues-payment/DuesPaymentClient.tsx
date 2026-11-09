@@ -79,7 +79,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 function SubSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <Box>
-      <Divider sx={{ my: 2 }} />
+      <Divider sx={{ mt: 3, mb: 2 }} />
       <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1.5 }}>
         {label}
       </Typography>
@@ -159,6 +159,7 @@ export default function DuesPaymentClient({
   })
 
   // Discount categories
+  const [discountCategoriesEnabled, setDiscountCategoriesEnabled] = useState(initialDiscountCategories.length > 0)
   const [discountCategories,  setDiscountCategories]  = useState<DiscountCategory[]>(initialDiscountCategories)
   const [newCatLabel,         setNewCatLabel]         = useState('')
   const [newCatAmount,        setNewCatAmount]        = useState('')
@@ -398,52 +399,59 @@ export default function DuesPaymentClient({
           </Typography>
         </SubSection>
 
-        <SubSection label="Discount categories">
-          <Stack spacing={0.75} sx={{ mb: 1.5 }}>
-            {discountCategories.map(({ label, amount }, i) => (
-              <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.25, py: 0.875, bgcolor: 'rgba(0,0,0,0.02)', borderRadius: 1.25 }}>
-                <Typography sx={{ fontSize: 13, color: 'text.primary', flex: 1 }}>{label}</Typography>
-                <Typography sx={{ fontSize: 13, color: 'text.secondary', mr: 0.5 }}>
-                  {amount != null ? `-$${amount}` : 'no discount'}
-                </Typography>
-                <IconButton size="small" onClick={() => removeCategory(i)} sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </IconButton>
-              </Box>
-            ))}
-          </Stack>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
-            <Box sx={{ flex: 2 }}>
-              <FieldLabel>Category name</FieldLabel>
-              <TextField
-                size="small" fullWidth
-                value={newCatLabel}
-                onChange={e => setNewCatLabel(e.target.value)}
-                placeholder="e.g. Senior (65+)"
-                onKeyDown={e => e.key === 'Enter' && addCategory()}
-              />
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <FieldLabel>Discount ($)</FieldLabel>
-              <TextField
-                size="small" fullWidth
-                value={newCatAmount}
-                onChange={e => setNewCatAmount(e.target.value)}
-                placeholder="e.g. 20"
-                slotProps={{ input: { inputMode: 'decimal' } }}
-                onKeyDown={e => e.key === 'Enter' && addCategory()}
-              />
-            </Box>
-            <Button variant="outlined" color="secondary" size="small" onClick={addCategory} sx={{ mb: '1px' }}>
-              Add
-            </Button>
-          </Box>
-        </SubSection>
-
         <SubSection label="Additional settings">
           <Stack spacing={0.75}>
+            {/* Discount categories toggle — first */}
+            <ToggleRow
+              label="Discount categories (seniors, students, etc.)"
+              checked={discountCategoriesEnabled}
+              onChange={v => { mark(setDiscountCategoriesEnabled)(v); if (!v) markFn(setDiscountCategories)([]) }}
+            />
+            {discountCategoriesEnabled && (
+              <Box sx={{ pl: 1.5, pt: 0.5 }}>
+                <Stack spacing={0.75} sx={{ mb: 1.5 }}>
+                  {discountCategories.map(({ label, amount }, i) => (
+                    <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.25, py: 0.875, bgcolor: 'rgba(0,0,0,0.02)', borderRadius: 1.25 }}>
+                      <Typography sx={{ fontSize: 13, color: 'text.primary', flex: 1 }}>{label}</Typography>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary', mr: 0.5 }}>
+                        {amount != null ? `-$${amount}` : 'no discount'}
+                      </Typography>
+                      <IconButton size="small" onClick={() => removeCategory(i)} sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                      </IconButton>
+                    </Box>
+                  ))}
+                </Stack>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
+                  <Box sx={{ flex: 2 }}>
+                    <FieldLabel>Category name</FieldLabel>
+                    <TextField
+                      size="small" fullWidth
+                      value={newCatLabel}
+                      onChange={e => setNewCatLabel(e.target.value)}
+                      placeholder="e.g. Senior (65+)"
+                      onKeyDown={e => e.key === 'Enter' && addCategory()}
+                    />
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <FieldLabel>Discount ($)</FieldLabel>
+                    <TextField
+                      size="small" fullWidth
+                      value={newCatAmount}
+                      onChange={e => setNewCatAmount(e.target.value)}
+                      placeholder="e.g. 20"
+                      slotProps={{ input: { inputMode: 'decimal' } }}
+                      onKeyDown={e => e.key === 'Enter' && addCategory()}
+                    />
+                  </Box>
+                  <Button variant="outlined" color="secondary" size="small" onClick={addCategory} sx={{ mb: '1px' }}>
+                    Add
+                  </Button>
+                </Box>
+              </Box>
+            )}
             <ToggleRow label="Pro-rate dues for mid-year joiners"  checked={prorate}       onChange={mark(setProrate)} />
             <ToggleRow label="Exempt honorary / lifetime members"  checked={exemptHonorary} onChange={mark(setExemptHonorary)} />
           </Stack>
