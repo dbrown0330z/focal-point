@@ -21,7 +21,7 @@ function ChevronDown({ open }: { open: boolean }) {
 }
 
 // Light-mode palette — hardcoded to avoid OS dark-mode bleed into admin
-const W = { bg: '#FFFBE6', text: '#6B5000', dot: '#A67C00', border: 'rgba(166,124,0,0.20)' }
+const W = { bg: '#FFF0C0', text: '#6B4000', dot: '#C47A00', border: 'rgba(196,122,0,0.25)' }
 const S = { bg: '#EDFAF0', text: '#174A1A', dot: '#2E7D32', border: 'rgba(46,125,50,0.20)' }
 
 export default function DraftBanner({ checklist: initial }: { checklist: DraftChecklist }) {
@@ -84,8 +84,9 @@ export default function DraftBanner({ checklist: initial }: { checklist: DraftCh
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px 16px' }}>
           <div style={{ height: 1, background: 'rgba(0,0,0,0.08)', marginBottom: 12 }} />
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={W.dot} strokeWidth="2" strokeLinecap="round" style={{ marginTop: 3, flexShrink: 0 }}>
-              <circle cx="12" cy="12" r="9" />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={W.dot} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: 3, flexShrink: 0 }}>
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
             </svg>
             <div>
               <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: '#1A1A1A' }}>

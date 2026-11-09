@@ -193,6 +193,15 @@ export type Database = {
           club_id: string | null
           club_location: string | null
           club_name: string
+          dues_annual_standard: number | null
+          dues_application_fee: number | null
+          dues_discount_categories: Json | null
+          dues_exempt_honorary: boolean
+          dues_grace_period_days: number | null
+          dues_join_fee: number | null
+          dues_onetimefees_enabled: boolean
+          dues_prorate: boolean
+          dues_renewal_month: number | null
           club_short_name: string | null
           contact_email: string | null
           default_meeting_location_id: string | null
@@ -232,6 +241,15 @@ export type Database = {
           club_id?: string | null
           club_location?: string | null
           club_name?: string
+          dues_annual_standard?: number | null
+          dues_application_fee?: number | null
+          dues_discount_categories?: Json | null
+          dues_exempt_honorary?: boolean
+          dues_grace_period_days?: number | null
+          dues_join_fee?: number | null
+          dues_onetimefees_enabled?: boolean
+          dues_prorate?: boolean
+          dues_renewal_month?: number | null
           club_short_name?: string | null
           contact_email?: string | null
           default_meeting_location_id?: string | null
@@ -271,6 +289,15 @@ export type Database = {
           club_id?: string | null
           club_location?: string | null
           club_name?: string
+          dues_annual_standard?: number | null
+          dues_application_fee?: number | null
+          dues_discount_categories?: Json | null
+          dues_exempt_honorary?: boolean
+          dues_grace_period_days?: number | null
+          dues_join_fee?: number | null
+          dues_onetimefees_enabled?: boolean
+          dues_prorate?: boolean
+          dues_renewal_month?: number | null
           club_short_name?: string | null
           contact_email?: string | null
           default_meeting_location_id?: string | null
