@@ -14,8 +14,7 @@ const lora = Lora({
 
 const nunito = Nunito({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  style: ['normal'],
+  // No weight array — use variable font (single file, all weights)
   variable: '--font-nunito',
   display: 'swap',
 })
