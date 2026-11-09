@@ -100,7 +100,7 @@ export default function DraftPreviewBanner({ clubSlug }: { clubSlug: string }) {
               display: 'inline-flex', alignItems: 'center',
               padding: '7px 14px', borderRadius: 6,
               background: 'var(--status-warning-text)',
-              color: 'white', fontSize: 14, fontWeight: 600,
+              color: 'var(--status-warning-bg)', fontSize: 14, fontWeight: 600,
               textDecoration: 'none', whiteSpace: 'nowrap',
             }}
           >
