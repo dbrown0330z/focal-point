@@ -1,35 +1,11 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { publishSite, saveDuesMode } from '@/app/[clubSlug]/(admin)/admin/draft/actions'
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type DuesMode = 'stripe' | 'paypal' | 'offline'
+import { publishSite } from '@/app/[clubSlug]/(admin)/admin/draft/actions'
 
 export type DraftChecklist = {
-  clubBasicsOk: boolean   // club_settings has name + description
-  duesModeOk:   boolean   // clubs.dues_mode is non-null
-  currentDuesMode: DuesMode | null
-  clubSlug: string
-}
-
-// ── Small icons ───────────────────────────────────────────────────────────────
-
-function CheckIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  )
-}
-
-function CircleIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <circle cx="12" cy="12" r="9" />
-    </svg>
-  )
+  duesModeOk: boolean
+  clubSlug:   string
 }
 
 function ChevronDown({ open }: { open: boolean }) {
@@ -44,163 +20,56 @@ function ChevronDown({ open }: { open: boolean }) {
   )
 }
 
-// ── Dues mode picker (inline, three buttons) ──────────────────────────────────
+// Light-mode palette — hardcoded to avoid OS dark-mode bleed into admin
+const W = { bg: '#FFFBE6', text: '#6B5000', dot: '#A67C00', border: 'rgba(166,124,0,0.20)' }
+const S = { bg: '#EDFAF0', text: '#174A1A', dot: '#2E7D32', border: 'rgba(46,125,50,0.20)' }
 
-const DUES_OPTIONS: { value: DuesMode; label: string; sub: string }[] = [
-  { value: 'stripe',  label: 'Online — card',    sub: 'Stripe (credit / debit)' },
-  { value: 'paypal',  label: 'Online — PayPal',  sub: 'PayPal checkout' },
-  { value: 'offline', label: 'Cash or cheque',   sub: 'No online payment needed' },
-]
-
-function DuesPicker({
-  current,
-  onSaved,
-}: {
-  current: DuesMode | null
-  onSaved: (mode: DuesMode) => void
-}) {
-  const [selected, setSelected] = useState<DuesMode | null>(current)
-  const [pending,  start]       = useTransition()
-  const [error,    setError]    = useState<string | null>(null)
-
-  async function handleSave() {
-    if (!selected) return
-    setError(null)
-    start(async () => {
-      const result = await saveDuesMode(selected)
-      if (result.error) { setError(result.error); return }
-      onSaved(selected)
-    })
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {DUES_OPTIONS.map(opt => (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => setSelected(opt.value)}
-            style={{
-              flex: '1 1 140px',
-              border: `1.5px solid ${selected === opt.value ? 'var(--action-primary)' : 'var(--border-default)'}`,
-              borderRadius: 8,
-              background: selected === opt.value ? 'rgba(26,111,196,0.06)' : 'transparent',
-              padding: '10px 12px',
-              cursor: 'pointer',
-              textAlign: 'left',
-            }}
-          >
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{opt.label}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{opt.sub}</div>
-          </button>
-        ))}
-      </div>
-
-      {error && <p style={{ margin: 0, fontSize: 12, color: 'var(--status-error)' }}>⚠ {error}</p>}
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={!selected || pending}
-          style={{
-            padding: '7px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600,
-            background: selected ? 'var(--action-primary)' : 'var(--border-default)',
-            color: 'white', border: 'none', cursor: selected ? 'pointer' : 'default',
-            opacity: pending ? 0.7 : 1,
-          }}
-        >
-          {pending ? 'Saving…' : 'Save'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ── Main banner ───────────────────────────────────────────────────────────────
-
-export default function DraftBanner({
-  checklist: initial,
-}: {
-  checklist: DraftChecklist
-}) {
+export default function DraftBanner({ checklist: initial }: { checklist: DraftChecklist }) {
   const [checklist, setChecklist] = useState(initial)
-  const [expanded,  setExpanded]  = useState(!initial.clubBasicsOk || !initial.duesModeOk)
+  const [expanded,  setExpanded]  = useState(!initial.duesModeOk)
   const [publishing, start]       = useTransition()
   const [publishError, setPublishError] = useState<string | null>(null)
 
-  const allDone    = checklist.clubBasicsOk && checklist.duesModeOk
-  const remaining  = [!checklist.clubBasicsOk, !checklist.duesModeOk].filter(Boolean).length
-
-  function handleDuesSaved(mode: DuesMode) {
-    setChecklist(prev => ({ ...prev, duesModeOk: true, currentDuesMode: mode }))
-  }
+  const allDone = checklist.duesModeOk
+  const palette = allDone ? S : W
 
   async function handlePublish() {
     setPublishError(null)
     start(async () => {
       const result = await publishSite()
       if (result.error) setPublishError(result.error)
-      // On success the layout re-renders (revalidatePath) and banner disappears
     })
   }
 
-  // Admin is always light — hardcode light-mode palette to avoid OS dark mode bleed
-  const W_BG   = '#FFFBE6'
-  const W_TEXT = '#6B5000'   // 4.7:1 on #FFFBE6 ✓
-  const W_DOT  = '#A67C00'
-  const S_BG   = '#EDFAF0'
-  const S_TEXT = '#174A1A'   // 5.4:1 on #EDFAF0 ✓
-  const S_DOT  = '#2E7D32'
-
   return (
-    <div style={{
-      background: allDone ? S_BG : W_BG,
-      borderBottom: `1px solid ${allDone ? 'rgba(46,125,50,0.20)' : 'rgba(166,124,0,0.20)'}`,
-      fontFamily: 'var(--font-primary)',
-    }}>
-      {/* ── Summary bar ────────────────────────────────────────────────────── */}
-      <div style={{
-        maxWidth: 1200, margin: '0 auto', padding: '10px 24px',
-        display: 'flex', alignItems: 'center', gap: 12,
-      }}>
-        {/* Status dot */}
-        <span style={{
-          width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-          background: allDone ? S_DOT : W_DOT,
-        }} />
+    <div style={{ background: palette.bg, borderBottom: `1px solid ${palette.border}`, fontFamily: 'var(--font-primary)' }}>
+      {/* ── Summary bar ── */}
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: palette.dot }} />
 
-        {/* Text */}
-        <span style={{ fontSize: 14, color: allDone ? S_TEXT : W_TEXT, flex: 1 }}>
+        <span style={{ fontSize: 14, color: palette.text, flex: 1 }}>
           {allDone
             ? 'Your site is ready to go live — members can\'t access it yet.'
-            : `Your site is in draft mode — ${remaining} item${remaining !== 1 ? 's' : ''} to complete before publishing.`}
+            : 'Your site is in draft mode — complete 1 step before publishing.'}
         </span>
 
-        {/* Expand toggle (when not all done) */}
         {!allDone && (
           <button
             type="button"
             onClick={() => setExpanded(e => !e)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none',
-              cursor: 'pointer', fontSize: 14, fontWeight: 600,
-              color: W_TEXT, padding: '2px 4px',
-            }}
+            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: W.text, padding: '2px 4px' }}
           >
             What&rsquo;s needed <ChevronDown open={expanded} />
           </button>
         )}
 
-        {/* Publish button */}
         <button
           type="button"
           onClick={handlePublish}
           disabled={!allDone || publishing}
           style={{
             padding: '7px 16px', borderRadius: 6, fontSize: 14, fontWeight: 600,
-            background: allDone ? S_DOT : 'rgba(0,0,0,0.10)',
+            background: allDone ? S.dot : 'rgba(0,0,0,0.10)',
             color: allDone ? 'white' : '#A0A0A0',
             border: 'none', cursor: allDone ? 'pointer' : 'default',
             opacity: publishing ? 0.7 : 1, flexShrink: 0,
@@ -210,83 +79,32 @@ export default function DraftBanner({
         </button>
       </div>
 
-      {/* ── Expanded checklist ──────────────────────────────────────────────── */}
-      {expanded && (
-        <div style={{
-          maxWidth: 1200, margin: '0 auto',
-          padding: '0 24px 16px',
-          display: 'flex', flexDirection: 'column', gap: 12,
-        }}>
-          <div style={{ height: 1, background: 'rgba(0,0,0,0.08)', marginBottom: 4 }} />
-
-          {/* Item 1: Club basics */}
-          <ChecklistItem
-            done={checklist.clubBasicsOk}
-            label="Club name & description"
-            sub="Add your club's name and a short description so members know they're in the right place."
-            action={!checklist.clubBasicsOk ? (
+      {/* ── Expanded detail ── */}
+      {expanded && !allDone && (
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px 16px' }}>
+          <div style={{ height: 1, background: 'rgba(0,0,0,0.08)', marginBottom: 12 }} />
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={W.dot} strokeWidth="2" strokeLinecap="round" style={{ marginTop: 3, flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="9" />
+            </svg>
+            <div>
+              <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: '#1A1A1A' }}>
+                Dues &amp; Payment
+              </p>
+              <p style={{ margin: '0 0 8px', fontSize: 14, color: '#696969', lineHeight: 1.5 }}>
+                Members need to know what they&rsquo;re paying and how to pay before they join.
+              </p>
               <a
-                href={`/${checklist.clubSlug}/admin/club-defaults`}
-                style={{ fontSize: 12, fontWeight: 600, color: 'var(--action-primary)', textDecoration: 'none' }}
+                href={`/${checklist.clubSlug}/admin/dues-payment`}
+                style={{ fontSize: 14, fontWeight: 600, color: '#1A6FC4', textDecoration: 'none' }}
               >
-                Set up Club Basics →
+                Set up Dues &amp; Payment →
               </a>
-            ) : null}
-          />
-
-          {/* Item 2: Dues */}
-          <ChecklistItem
-            done={checklist.duesModeOk}
-            label="How you collect dues"
-            sub="Members need to know how to pay before they join. You can change this any time."
-            action={!checklist.duesModeOk ? (
-              <DuesPicker current={checklist.currentDuesMode} onSaved={handleDuesSaved} />
-            ) : (
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                {DUES_OPTIONS.find(o => o.value === checklist.currentDuesMode)?.label}
-              </span>
-            )}
-          />
-
-          {publishError && (
-            <p style={{ margin: 0, fontSize: 12, color: 'var(--status-error)' }}>⚠ {publishError}</p>
-          )}
+            </div>
+          </div>
+          {publishError && <p style={{ margin: '12px 0 0', fontSize: 13, color: '#D32F2F' }}>⚠ {publishError}</p>}
         </div>
       )}
-    </div>
-  )
-}
-
-// ── Checklist item ────────────────────────────────────────────────────────────
-
-function ChecklistItem({
-  done, label, sub, action,
-}: {
-  done:    boolean
-  label:   string
-  sub:     string
-  action?: React.ReactNode
-}) {
-  return (
-    <div style={{ display: 'flex', gap: 12 }}>
-      {/* Icon */}
-      <span style={{
-        marginTop: 1, flexShrink: 0,
-        color: done ? '#2E7D32' : '#A0A0A0',
-      }}>
-        {done ? <CheckIcon /> : <CircleIcon />}
-      </span>
-
-      {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: done ? '#696969' : '#1A1A1A', textDecoration: done ? 'line-through' : 'none' }}>
-            {label}
-          </span>
-        </div>
-        {!done && <p style={{ margin: '0 0 8px', fontSize: 14, color: '#696969', lineHeight: 1.5 }}>{sub}</p>}
-        {action}
-      </div>
     </div>
   )
 }
