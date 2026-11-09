@@ -239,8 +239,7 @@ export default function DuesPaymentClient({
               value={annualStandard}
               onChange={e => setAnnualStandard(e.target.value)}
               placeholder="0.00"
-              slotProps={{ input: { startAdornment: <Typography sx={{ mr: 0.5, color: 'text.secondary', fontSize: 13 }}>$</Typography> } }}
-              inputProps={{ inputMode: 'decimal' }}
+              slotProps={{ input: { startAdornment: <Typography sx={{ mr: 0.5, color: 'text.secondary', fontSize: 13 }}>$</Typography>, inputMode: 'decimal' } }}
             />
           </Box>
           <Box sx={{ flex: 1 }}>
@@ -251,7 +250,7 @@ export default function DuesPaymentClient({
               value={gracePeriodDays}
               onChange={e => setGracePeriodDays(e.target.value)}
               placeholder="e.g. 30"
-              inputProps={{ inputMode: 'numeric' }}
+              slotProps={{ input: { inputMode: 'numeric' } }}
             />
           </Box>
         </Box>
@@ -295,7 +294,7 @@ export default function DuesPaymentClient({
               value={newCatAmount}
               onChange={e => setNewCatAmount(e.target.value)}
               placeholder="e.g. 20"
-              inputProps={{ inputMode: 'decimal' }}
+              slotProps={{ input: { inputMode: 'decimal' } }}
               onKeyDown={e => e.key === 'Enter' && addCategory()}
             />
           </Box>
@@ -360,8 +359,7 @@ export default function DuesPaymentClient({
                   value={applicationFee}
                   onChange={e => setApplicationFee(e.target.value)}
                   placeholder="0.00"
-                  slotProps={{ input: { startAdornment: <Typography sx={{ mr: 0.5, color: 'text.secondary', fontSize: 13 }}>$</Typography> } }}
-                  inputProps={{ inputMode: 'decimal' }}
+                  slotProps={{ input: { startAdornment: <Typography sx={{ mr: 0.5, color: 'text.secondary', fontSize: 13 }}>$</Typography>, inputMode: 'decimal' } }}
                 />
               </Box>
               <Box sx={{ flex: 1 }}>
@@ -371,8 +369,7 @@ export default function DuesPaymentClient({
                   value={joinFee}
                   onChange={e => setJoinFee(e.target.value)}
                   placeholder="0.00"
-                  slotProps={{ input: { startAdornment: <Typography sx={{ mr: 0.5, color: 'text.secondary', fontSize: 13 }}>$</Typography> } }}
-                  inputProps={{ inputMode: 'decimal' }}
+                  slotProps={{ input: { startAdornment: <Typography sx={{ mr: 0.5, color: 'text.secondary', fontSize: 13 }}>$</Typography>, inputMode: 'decimal' } }}
                 />
               </Box>
             </Box>
