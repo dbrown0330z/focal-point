@@ -8,11 +8,7 @@ export default async function DuesPaymentPage() {
 
   const [{ data: club }, { data: settings }] = await Promise.all([
     admin.from('clubs').select('dues_mode').eq('id', clubId).single(),
-    admin.from('club_settings').select(
-      'dues_annual_standard, dues_renewal_month, dues_prorate, dues_exempt_honorary,' +
-      'dues_grace_period_days, dues_discount_categories,' +
-      'dues_onetimefees_enabled, dues_application_fee, dues_join_fee'
-    ).eq('club_id', clubId).single(),
+    admin.from('club_settings').select('dues_annual_standard, dues_renewal_month, dues_prorate, dues_exempt_honorary, dues_grace_period_days, dues_discount_categories, dues_onetimefees_enabled, dues_application_fee, dues_join_fee').eq('club_id', clubId).single(),
   ])
 
   return (
