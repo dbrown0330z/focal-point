@@ -1,40 +1,24 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
-
-type AdminTheme = 'light' | 'dark'
+import { createContext, useContext } from 'react'
 
 type AdminThemeContextValue = {
-  theme: AdminTheme
+  theme: 'light'
   toggle: () => void
 }
 
-const AdminThemeContext = createContext<AdminThemeContextValue | null>(null)
+const AdminThemeContext = createContext<AdminThemeContextValue>({
+  theme: 'light',
+  toggle: () => {},
+})
 
 export function useAdminTheme() {
-  const ctx = useContext(AdminThemeContext)
-  if (!ctx) throw new Error('useAdminTheme must be used within AdminThemeProvider')
-  return ctx
+  return useContext(AdminThemeContext)
 }
 
 export function AdminThemeContextProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<AdminTheme>('light')
-
-  useEffect(() => {
-    const stored = localStorage.getItem('admin-theme') as AdminTheme | null
-    if (stored === 'dark' || stored === 'light') setTheme(stored)
-  }, [])
-
-  function toggle() {
-    setTheme(prev => {
-      const next = prev === 'dark' ? 'light' : 'dark'
-      localStorage.setItem('admin-theme', next)
-      return next
-    })
-  }
-
   return (
-    <AdminThemeContext.Provider value={{ theme, toggle }}>
+    <AdminThemeContext.Provider value={{ theme: 'light', toggle: () => {} }}>
       {children}
     </AdminThemeContext.Provider>
   )

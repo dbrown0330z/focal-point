@@ -9,8 +9,8 @@ export default function DraftPreviewBanner({ clubSlug }: { clubSlug: string }) {
   if (collapsed) {
     return (
       <div style={{
-        background: 'rgba(26,111,196,0.08)',
-        borderBottom: '1px solid rgba(26,111,196,0.18)',
+        background: 'var(--status-warning-bg)',
+        borderBottom: '1px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
         padding: '8px 24px',
         display: 'flex',
         alignItems: 'center',
@@ -18,14 +18,14 @@ export default function DraftPreviewBanner({ clubSlug }: { clubSlug: string }) {
         justifyContent: 'center',
       }}>
         <EyeIcon />
-        <span style={{ fontSize: 13, color: 'var(--action-primary)', fontWeight: 500 }}>
-          Admin preview mode — members can&rsquo;t see this yet.
+        <span style={{ fontSize: 14, color: 'var(--status-warning-text)', fontWeight: 500 }}>
+          Admin preview — members can&rsquo;t see this yet.
         </span>
         <button
           onClick={() => setCollapsed(false)}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            fontSize: 12, color: 'var(--action-primary)', fontWeight: 600,
+            fontSize: 14, color: 'var(--status-warning-text)', fontWeight: 600,
             padding: '2px 8px', borderRadius: 4,
             textDecoration: 'underline',
           }}
@@ -34,7 +34,7 @@ export default function DraftPreviewBanner({ clubSlug }: { clubSlug: string }) {
         </button>
         <Link
           href={`/${clubSlug}/admin`}
-          style={{ fontSize: 12, fontWeight: 600, color: 'var(--action-primary)', marginLeft: 4 }}
+          style={{ fontSize: 14, fontWeight: 600, color: 'var(--status-warning-text)', marginLeft: 4 }}
         >
           Go to Admin →
         </Link>
@@ -44,13 +44,13 @@ export default function DraftPreviewBanner({ clubSlug }: { clubSlug: string }) {
 
   return (
     <div style={{
-      background: 'rgba(26,111,196,0.06)',
-      borderBottom: '1px solid rgba(26,111,196,0.16)',
+      background: 'var(--status-warning-bg)',
+      borderBottom: '1px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
     }}>
       <div style={{
         maxWidth: 1200,
         margin: '0 auto',
-        padding: '16px 24px',
+        padding: '14px 24px',
         display: 'flex',
         gap: 16,
         alignItems: 'flex-start',
@@ -60,7 +60,7 @@ export default function DraftPreviewBanner({ clubSlug }: { clubSlug: string }) {
           flexShrink: 0,
           width: 36, height: 36,
           borderRadius: '50%',
-          background: 'rgba(26,111,196,0.12)',
+          background: 'color-mix(in srgb, var(--status-warning) 15%, transparent)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           marginTop: 1,
         }}>
@@ -70,23 +70,22 @@ export default function DraftPreviewBanner({ clubSlug }: { clubSlug: string }) {
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--action-primary)' }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--status-warning-text)' }}>
               Admin preview
             </span>
             <span style={{
-              fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase',
-              color: 'var(--action-primary)', opacity: 0.7,
+              fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+              color: 'var(--status-warning-text)', opacity: 0.75,
             }}>
               Not published
             </span>
           </div>
-          <p style={{ margin: '0 0 6px', fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.6 }}>
-            <strong>This is exactly what your members will see</strong> when they sign in — once you publish.
-            Only you can view it right now.
+          <p style={{ margin: '0 0 4px', fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.6 }}>
+            <strong>This is exactly what your members will see</strong> when they sign in — once you publish. Only you can view it right now.
           </p>
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             Use your{' '}
-            <Link href={`/${clubSlug}/admin`} style={{ color: 'var(--action-primary)', textDecoration: 'underline' }}>
+            <Link href={`/${clubSlug}/admin`} style={{ color: 'var(--status-warning-text)', textDecoration: 'underline', fontWeight: 600 }}>
               admin area
             </Link>{' '}
             to set up your homepage, schedule competitions, and manage content. Changes you make there will appear here.
@@ -100,8 +99,8 @@ export default function DraftPreviewBanner({ clubSlug }: { clubSlug: string }) {
             style={{
               display: 'inline-flex', alignItems: 'center',
               padding: '7px 14px', borderRadius: 6,
-              background: 'var(--action-primary)',
-              color: 'white', fontSize: 13, fontWeight: 600,
+              background: 'var(--status-warning-text)',
+              color: 'white', fontSize: 14, fontWeight: 600,
               textDecoration: 'none', whiteSpace: 'nowrap',
             }}
           >
@@ -112,7 +111,7 @@ export default function DraftPreviewBanner({ clubSlug }: { clubSlug: string }) {
             aria-label="Collapse preview banner"
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--text-tertiary)', padding: '6px',
+              color: 'var(--status-warning-text)', opacity: 0.6, padding: '6px',
               borderRadius: 4, lineHeight: 1,
               display: 'flex', alignItems: 'center',
             }}
@@ -127,7 +126,7 @@ export default function DraftPreviewBanner({ clubSlug }: { clubSlug: string }) {
 
 function EyeIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--action-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--status-warning-text)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
       <circle cx="12" cy="12" r="3" />
     </svg>

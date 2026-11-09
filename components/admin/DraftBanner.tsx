@@ -164,7 +164,7 @@ export default function DraftBanner({
         }} />
 
         {/* Text */}
-        <span style={{ fontSize: 13, color: allDone ? 'var(--status-success-text)' : 'var(--status-warning-text)', flex: 1 }}>
+        <span style={{ fontSize: 14, color: allDone ? 'var(--status-success-text)' : 'var(--status-warning-text)', flex: 1 }}>
           {allDone
             ? 'Your site is ready to go live — members can\'t access it yet.'
             : `Your site is in draft mode — ${remaining} item${remaining !== 1 ? 's' : ''} to complete before publishing.`}
@@ -177,7 +177,7 @@ export default function DraftBanner({
             onClick={() => setExpanded(e => !e)}
             style={{
               display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none',
-              cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', fontSize: 14, fontWeight: 600,
               color: 'var(--status-warning-text)', padding: '2px 4px',
             }}
           >
@@ -191,8 +191,8 @@ export default function DraftBanner({
           onClick={handlePublish}
           disabled={!allDone || publishing}
           style={{
-            padding: '6px 14px', borderRadius: 6, fontSize: 13, fontWeight: 600,
-            background: allDone ? 'var(--status-success)' : 'var(--border-default)',
+            padding: '7px 16px', borderRadius: 6, fontSize: 14, fontWeight: 600,
+            background: allDone ? 'var(--status-success)' : 'rgba(0,0,0,0.12)',
             color: allDone ? 'white' : 'var(--text-disabled)',
             border: 'none', cursor: allDone ? 'pointer' : 'default',
             opacity: publishing ? 0.7 : 1, flexShrink: 0,
@@ -272,11 +272,11 @@ function ChecklistItem({
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: done ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none' }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: done ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none' }}>
             {label}
           </span>
         </div>
-        {!done && <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{sub}</p>}
+        {!done && <p style={{ margin: '0 0 8px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{sub}</p>}
         {action}
       </div>
     </div>

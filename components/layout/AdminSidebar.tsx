@@ -94,7 +94,8 @@ export default function AdminSidebar({ clubSlug }: { clubSlug: string }) {
   const base     = `/${clubSlug}`
   const pathname = usePathname()
   const { navigate } = useUnsavedChanges()
-  const { theme, toggle } = useAdminTheme()
+  // theme is always 'light' — admin is locked to light mode
+  useAdminTheme()
 
   function isActive(path: string, exact?: boolean) {
     const href = `${base}${path}`
@@ -109,16 +110,16 @@ export default function AdminSidebar({ clubSlug }: { clubSlug: string }) {
         <span className="block text-[17px] font-bold leading-tight tracking-[-0.01em] text-admin-nav-text">Admin</span>
       </div>
 
-      {/* Back to site */}
-      <div className="px-2 pb-2">
+      {/* Back to member site */}
+      <div className="px-3 pb-3">
         <button
           onClick={() => navigate(base)}
-          className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] text-admin-nav-muted hover:bg-white/10 hover:text-admin-nav-text transition-colors"
+          className="flex w-full items-center gap-2 rounded-md border border-white/20 bg-white/10 px-3 py-2 text-[13px] font-medium text-admin-nav-text hover:bg-white/20 transition-colors"
         >
-          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Back to site
+          Back to member site
         </button>
       </div>
 
@@ -160,23 +161,6 @@ export default function AdminSidebar({ clubSlug }: { clubSlug: string }) {
           </svg>
           Help
         </a>
-
-        {/* Theme toggle */}
-        <button
-          onClick={toggle}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-admin-nav-muted hover:bg-white/10 hover:text-admin-nav-text transition-colors"
-        >
-          {theme === 'dark' ? (
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          ) : (
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
-          )}
-          {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-        </button>
 
         <form action={logout}>
           <button
