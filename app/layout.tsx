@@ -4,9 +4,10 @@ import ThemeProvider from '@/components/layout/ThemeProvider'
 import { Providers } from '@/src/app/providers'
 import './globals.css'
 
+// All fonts loaded as variable fonts (no weight array) to satisfy
+// Next.js 16's "exactly one query entry" constraint in the font resolver.
 const lora = Lora({
   subsets: ['latin'],
-  weight: ['400', '500', '700'],
   style: ['normal', 'italic'],
   variable: '--font-lora',
   display: 'swap',
@@ -14,21 +15,18 @@ const lora = Lora({
 
 const nunito = Nunito({
   subsets: ['latin'],
-  // No weight array — use variable font (single file, all weights)
   variable: '--font-nunito',
   display: 'swap',
 })
 
 const robotoMono = Roboto_Mono({
   subsets: ['latin'],
-  weight: ['400', '500', '700'],
   variable: '--font-roboto-mono',
   display: 'swap',
 })
 
 const inter = Inter({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
   variable: '--font-inter',
   display: 'swap',
 })
