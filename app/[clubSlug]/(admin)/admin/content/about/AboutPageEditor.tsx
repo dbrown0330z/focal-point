@@ -244,10 +244,8 @@ export default function AboutPageEditor({
   const [panelSaving, setPanelSaving] = useState(false)
   const [panelSaveError, setPanelSaveError] = useState<string | null>(null)
 
-  // Preview theme (defaults to admin theme, toggleable independently)
-  const [previewTheme, setPreviewTheme] = useState<'light' | 'dark'>(
-    adminTheme === 'dark' ? 'dark' : 'light'
-  )
+  // Preview theme (toggleable independently; admin is always light)
+  const [previewTheme, setPreviewTheme] = useState<'light' | 'dark'>('light')
 
   // Toolbar dropdowns
   const [styleAnchor, setStyleAnchor] = useState<HTMLElement | null>(null)

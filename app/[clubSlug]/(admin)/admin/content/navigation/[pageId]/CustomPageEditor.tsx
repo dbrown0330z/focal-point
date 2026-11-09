@@ -185,9 +185,7 @@ export default function CustomPageEditor({
   const editorRef      = useRef<HTMLDivElement>(null)
   const imageRef       = useRef<HTMLInputElement>(null)
   const savedRangeRef  = useRef<Range | null>(null)
-  const [previewTheme, setPreviewTheme] = useState<'light' | 'dark'>(
-    adminTheme === 'dark' ? 'dark' : 'light'
-  )
+  const [previewTheme, setPreviewTheme] = useState<'light' | 'dark'>('light')
 
   // ── Toolbar state ───────────────────────────────────────────────────────────
   const [styleAnchor, setStyleAnchor] = useState<HTMLElement | null>(null)
