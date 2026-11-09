@@ -353,13 +353,13 @@ export default function DuesPaymentClient({
           <Select
             size="small"
             displayEmpty
-            value={renewalMonth ?? ''}
-            onChange={e => mark(setRenewalMonth)(e.target.value === '' ? null : Number(e.target.value))}
+            value={renewalMonth != null ? String(renewalMonth) : ''}
+            onChange={e => { const v = e.target.value as string; mark(setRenewalMonth)(v === '' ? null : Number(v)) }}
             sx={{ fontSize: 13, minWidth: 200 }}
           >
             <MenuItem value="" disabled sx={{ fontSize: 13, color: 'text.hint' }}>Select…</MenuItem>
             {MONTHS.map((m, i) => (
-              <MenuItem key={m} value={i + 1} sx={{ fontSize: 13 }}>{m}</MenuItem>
+              <MenuItem key={m} value={String(i + 1)} sx={{ fontSize: 13 }}>{m}</MenuItem>
             ))}
           </Select>
         </SubSection>
