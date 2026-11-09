@@ -2,7 +2,9 @@
 
 import { useState, useTransition } from 'react'
 import {
+  Alert,
   Box,
+  Button,
   Chip,
   IconButton,
   Stack,
@@ -132,9 +134,8 @@ export default function DuesPaymentClient({
   const [applicationFee,      setApplicationFee]      = useState(initialApplicationFee?.toString() ?? '')
   const [joinFee,             setJoinFee]             = useState(initialJoinFee?.toString() ?? '')
 
-  const [saving, startSave]  = useTransition()
-  const [saved,  setSaved]   = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saving, startSave]       = useTransition()
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
 
   // Discount categories editing
   const [newCatLabel,  setNewCatLabel]  = useState('')
@@ -152,8 +153,7 @@ export default function DuesPaymentClient({
   }
 
   function handleSave() {
-    setSaved(false)
-    setSaveError(null)
+    setSaveStatus('idle')
     startSave(async () => {
       const result = await saveDuesConfig({
         duesMode,
@@ -167,8 +167,7 @@ export default function DuesPaymentClient({
         applicationFee:     applicationFee     ? parseFloat(applicationFee)     : null,
         joinFee:            joinFee            ? parseFloat(joinFee)            : null,
       })
-      if (result.error) setSaveError(result.error)
-      else setSaved(true)
+      setSaveStatus(result.error ? 'error' : 'saved')
     })
   }
 
@@ -377,29 +376,29 @@ export default function DuesPaymentClient({
         )}
       </Card>
 
-      {/* ── Save ───────────────────────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
-        <Box
-          component="button"
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          sx={{
-            px: 3, py: '9px', borderRadius: 1.5, bgcolor: 'primary.main',
-            color: '#fff', fontSize: 14, fontWeight: 600, border: 'none',
-            cursor: saving ? 'default' : 'pointer',
-            opacity: saving ? 0.7 : 1,
-            '&:hover': { bgcolor: '#163A6B' },
-          }}
-        >
-          {saving ? 'Saving…' : 'Save'}
+      {/* ── Fixed save bar ─────────────────────────────────────────────────── */}
+      <Box sx={{
+        position: 'fixed',
+        bottom: 0,
+        left: 224,
+        right: 0,
+        px: 8,
+        py: 2,
+        bgcolor: 'background.default',
+        borderTop: '1px solid',
+        borderColor: 'divider',
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+      }}>
+        <Box sx={{ mx: 'auto', width: '100%', maxWidth: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+          <Button variant="contained" size="small" disabled={saving} onClick={handleSave} sx={{ fontSize: '18px' }}>
+            {saving ? 'Saving…' : 'Save changes'}
+          </Button>
+          {saveStatus === 'saved' && <Alert severity="success" sx={{ py: 0, px: 1.5 }}>Settings saved</Alert>}
+          {saveStatus === 'error'  && <Alert severity="error"   sx={{ py: 0, px: 1.5 }}>Save failed — please try again</Alert>}
         </Box>
-        {saved && !saving && (
-          <Typography sx={{ fontSize: 13, color: 'success.main' }}>Saved</Typography>
-        )}
-        {saveError && (
-          <Typography sx={{ fontSize: 13, color: 'error.main' }}>{saveError}</Typography>
-        )}
       </Box>
 
     </Box>
