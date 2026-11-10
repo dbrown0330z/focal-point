@@ -5,7 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { requireClubId, requireClubSlug } from '@/lib/club-context'
 
 export type DiscountCategory = { label: string; amount: number | null }
-export type ManualMethod = 'cheque' | 'etransfer' | 'paypal-link' | 'venmo' | 'zelle'
+export type ManualMethod = 'cheque' | 'etransfer' | 'paypal-link' | 'venmo' | 'zelle' | 'cashapp'
 
 export type DuesConfigPayload = {
   enabledMethods:   ManualMethod[]
@@ -15,6 +15,7 @@ export type DuesConfigPayload = {
   paypalLink:       string | null
   venmoHandle:      string | null
   zelleContact:     string | null
+  cashappHandle:    string | null
   annualStandard:   number | null
   renewalMonth:     number | null
   prorate:          boolean
@@ -48,6 +49,7 @@ export async function saveDuesConfig(payload: DuesConfigPayload): Promise<{ erro
       dues_etransfer_email:   payload.etransferEmail,
       dues_paypal_link:       payload.paypalLink,
       dues_venmo_handle:      payload.venmoHandle,
+      dues_cashapp_handle:    payload.cashappHandle,
       dues_zelle_contact:     payload.zelleContact,
       dues_annual_standard:   payload.annualStandard,
       dues_renewal_month:     payload.renewalMonth,

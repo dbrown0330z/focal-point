@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect, useRef } from 'react'
 import {
   Alert,
   Box,
@@ -19,6 +19,7 @@ import {
   Typography,
 } from '@mui/material'
 import { saveDuesConfig, type DiscountCategory, type ManualMethod } from './actions'
+import { useUnsavedChanges } from '@/components/admin/UnsavedChangesProvider'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -60,6 +61,14 @@ const MANUAL_METHODS: MethodDef[] = [
     description: 'Members open the Venmo app, search for your handle, and send payment. A Venmo account is required.',
     fieldLabel:  'Your Venmo handle',
     placeholder: '@yourclubname',
+  },
+  {
+    value:       'cashapp',
+    label:       'Cash App',
+    region:      'US',
+    description: 'Members open Cash App and send payment to your $Cashtag. A Cash App account is required.',
+    fieldLabel:  'Your $Cashtag',
+    placeholder: '$yourclubname',
   },
   {
     value:       'zelle',
@@ -133,11 +142,12 @@ type PreviewProps = {
   etransferEmail:  string
   paypalLink:      string
   venmoHandle:     string
+  cashappHandle:   string
   zelleContact:    string
   annualStandard:  string
 }
 
-function MemberPreview({ enabledMethods, chequePayableTo, chequeMail, etransferEmail, paypalLink, venmoHandle, zelleContact, annualStandard }: PreviewProps) {
+function MemberPreview({ enabledMethods, chequePayableTo, chequeMail, etransferEmail, paypalLink, venmoHandle, cashappHandle, zelleContact, annualStandard }: PreviewProps) {
   const hasAny = enabledMethods.length > 0
 
   const methodDetails: Record<ManualMethod, { label: string; instruction: string; extra?: string }> = {
@@ -152,6 +162,12 @@ function MemberPreview({ enabledMethods, chequePayableTo, chequeMail, etransferE
       instruction: venmoHandle
         ? `Open the Venmo app and search for ${venmoHandle}. A Venmo account is required.`
         : 'Open the Venmo app and search for your club handle. A Venmo account is required.',
+    },
+    'cashapp': {
+      label:       'Cash App',
+      instruction: cashappHandle
+        ? `Open Cash App and send payment to ${cashappHandle}. A Cash App account is required.`
+        : 'Open Cash App and send payment to the club $Cashtag. A Cash App account is required.',
     },
     'zelle': {
       label:       'Zelle',
@@ -236,6 +252,7 @@ type Props = {
   initialEtransferEmail:     string | null
   initialPaypalLink:         string | null
   initialVenmoHandle:        string | null
+  initialCashappHandle:      string | null
   initialZelleContact:       string | null
   initialAnnualStandard:     number | null
   initialRenewalMonth:       number | null
@@ -257,6 +274,7 @@ export default function DuesPaymentClient({
   initialEtransferEmail,
   initialPaypalLink,
   initialVenmoHandle,
+  initialCashappHandle,
   initialZelleContact,
   initialAnnualStandard,
   initialRenewalMonth,
@@ -269,6 +287,7 @@ export default function DuesPaymentClient({
   initialJoinFee,
 }: Props) {
   const [activeTab, setActiveTab] = useState(0)
+  const { isDirty, markDirty, markClean, registerSave } = useUnsavedChanges()
 
   // Payment methods (multi-select)
   const [enabledMethods,  setEnabledMethods]  = useState<ManualMethod[]>(initialEnabledMethods)
@@ -277,6 +296,7 @@ export default function DuesPaymentClient({
   const [etransferEmail,  setEtransferEmail]  = useState(initialEtransferEmail ?? '')
   const [paypalLink,      setPaypalLink]      = useState(initialPaypalLink ?? '')
   const [venmoHandle,     setVenmoHandle]     = useState(initialVenmoHandle ?? '')
+  const [cashappHandle,   setCashappHandle]   = useState(initialCashappHandle ?? '')
   const [zelleContact,    setZelleContact]    = useState(initialZelleContact ?? '')
 
   // Dues amounts
@@ -305,24 +325,36 @@ export default function DuesPaymentClient({
   const [applicationFee,     setApplicationFee]     = useState(initialApplicationFee?.toString() ?? '')
   const [joinFee,            setJoinFee]            = useState(initialJoinFee?.toString() ?? '')
 
-  // Dirty tracking
-  const [isDirty, setIsDirty] = useState(false)
-
   function mark<T>(setter: (v: T) => void): (v: T) => void {
-    return (v: T) => { setter(v); setIsDirty(true) }
+    return (v: T) => { setter(v); markDirty() }
   }
   function markFn<T>(setter: React.Dispatch<React.SetStateAction<T>>): React.Dispatch<React.SetStateAction<T>> {
-    return (v) => { setter(v); setIsDirty(true) }
+    return (v) => { setter(v); markDirty() }
   }
 
   function toggleMethod(method: ManualMethod, checked: boolean) {
-    setIsDirty(true)
+    markDirty()
     setEnabledMethods(prev => checked ? [...prev, method] : prev.filter(m => m !== method))
   }
 
+  // Validation: each selected method must have its required field filled
+  const methodFieldMap: Partial<Record<ManualMethod, string>> = {
+    'paypal-link': paypalLink,
+    'venmo':       venmoHandle,
+    'cashapp':     cashappHandle,
+    'zelle':       zelleContact,
+    'etransfer':   etransferEmail,
+    'cheque':      chequePayableTo,
+  }
+  const missingFields = enabledMethods.filter(m => !(methodFieldMap[m] ?? '').trim())
+  const hasValidationErrors = missingFields.length > 0
+
   // Save
-  const [saving, startSave]       = useTransition()
+  const [saving, startSave]         = useTransition()
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const handleSaveRef = useRef(handleSave)
+  useEffect(() => { handleSaveRef.current = handleSave })
+  useEffect(() => { registerSave(() => handleSaveRef.current()) }, [registerSave])
 
   function getGracePeriodDays(): number | null {
     if (gracePeriodMode === 'none') return null
@@ -341,6 +373,7 @@ export default function DuesPaymentClient({
         etransferEmail:   enabledMethods.includes('etransfer')   ? etransferEmail || null : null,
         paypalLink:       enabledMethods.includes('paypal-link') ? paypalLink || null : null,
         venmoHandle:      enabledMethods.includes('venmo')       ? venmoHandle || null : null,
+        cashappHandle:    enabledMethods.includes('cashapp')     ? cashappHandle || null : null,
         zelleContact:     enabledMethods.includes('zelle')       ? zelleContact || null : null,
         annualStandard:   annualStandard ? parseFloat(annualStandard) : null,
         renewalMonth,
@@ -353,7 +386,7 @@ export default function DuesPaymentClient({
         joinFee:            joinFee ? parseFloat(joinFee) : null,
       })
       setSaveStatus(result.error ? 'error' : 'saved')
-      if (!result.error) setIsDirty(false)
+      if (!result.error) markClean()
     })
   }
 
@@ -372,18 +405,23 @@ export default function DuesPaymentClient({
     <Box sx={{ pb: '80px' }}>
 
       {/* ── Page header ────────────────────────────────────────────────────── */}
-      <Typography sx={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: 'text.primary', mb: 3 }}>
-        Dues &amp; Payments
-      </Typography>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h1" sx={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.015em', color: 'text.primary' }}>
+          Dues &amp; Payments
+        </Typography>
+        <Typography sx={{ mt: 0.5, fontSize: 13, color: 'text.secondary' }}>
+          Configure membership fees and how members pay.
+        </Typography>
+      </Box>
 
       {/* ── Tabs ──────────────────────────────────────────────────────────── */}
       <Tabs
         value={activeTab}
         onChange={(_, v) => setActiveTab(v)}
-        sx={{ mb: 3, borderBottom: '1px solid', borderColor: 'divider' }}
+        sx={{ mb: 4, borderBottom: '1px solid', borderColor: 'divider' }}
       >
-        <Tab label="Member Dues" sx={{ fontSize: 13, textTransform: 'none', fontWeight: 500, minHeight: 40 }} />
-        <Tab label="Payment Methods" sx={{ fontSize: 13, textTransform: 'none', fontWeight: 500, minHeight: 40 }} />
+        <Tab label="Member Dues" sx={{ textTransform: 'none' }} />
+        <Tab label="Payment Methods" sx={{ textTransform: 'none' }} />
       </Tabs>
 
       {/* ══════════════════════════════════════════════════════════════════════
@@ -617,16 +655,18 @@ export default function DuesPaymentClient({
                           <TextField
                             size="small" fullWidth
                             value={
-                              method.value === 'etransfer'   ? etransferEmail :
-                              method.value === 'zelle'       ? zelleContact :
-                              method.value === 'venmo'       ? venmoHandle :
+                              method.value === 'etransfer' ? etransferEmail :
+                              method.value === 'zelle'     ? zelleContact :
+                              method.value === 'venmo'     ? venmoHandle :
+                              method.value === 'cashapp'   ? cashappHandle :
                               paypalLink
                             }
                             onChange={e => {
-                              if (method.value === 'etransfer')        mark(setEtransferEmail)(e.target.value)
-                              else if (method.value === 'zelle')       mark(setZelleContact)(e.target.value)
-                              else if (method.value === 'venmo')       mark(setVenmoHandle)(e.target.value)
-                              else                                     mark(setPaypalLink)(e.target.value)
+                              if (method.value === 'etransfer')      mark(setEtransferEmail)(e.target.value)
+                              else if (method.value === 'zelle')     mark(setZelleContact)(e.target.value)
+                              else if (method.value === 'venmo')     mark(setVenmoHandle)(e.target.value)
+                              else if (method.value === 'cashapp')   mark(setCashappHandle)(e.target.value)
+                              else                                   mark(setPaypalLink)(e.target.value)
                             }}
                             placeholder={method.placeholder}
                           />
@@ -691,6 +731,7 @@ export default function DuesPaymentClient({
               etransferEmail={etransferEmail}
               paypalLink={paypalLink}
               venmoHandle={venmoHandle}
+              cashappHandle={cashappHandle}
               zelleContact={zelleContact}
               annualStandard={annualStandard}
             />
@@ -708,10 +749,13 @@ export default function DuesPaymentClient({
         display: 'flex', alignItems: 'center', gap: 2,
       }}>
         <Box sx={{ mx: 'auto', width: '100%', maxWidth: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-          <Button variant="contained" size="small" disabled={!isDirty || saving} onClick={handleSave} sx={{ fontSize: '18px' }}>
+          <Button variant="contained" size="small" disabled={!isDirty || saving || hasValidationErrors} onClick={handleSave} sx={{ fontSize: '18px' }}>
             {saving ? 'Saving…' : 'Save changes'}
           </Button>
-          {saveStatus === 'saved' && <Alert severity="success" sx={{ py: 0, px: 1.5 }}>Settings saved</Alert>}
+          {hasValidationErrors && isDirty && (
+            <Alert severity="warning" sx={{ py: 0, px: 1.5 }}>Fill in the required field for each selected payment method</Alert>
+          )}
+          {saveStatus === 'saved' && !isDirty && <Alert severity="success" sx={{ py: 0, px: 1.5 }}>Settings saved</Alert>}
           {saveStatus === 'error'  && <Alert severity="error"   sx={{ py: 0, px: 1.5 }}>Save failed — please try again</Alert>}
         </Box>
       </Box>
