@@ -49,7 +49,7 @@ const MANUAL_METHODS: MethodDef[] = [
     value:       'paypal-link',
     label:       'PayPal',
     region:      'Worldwide',
-    description: 'Members pay via their PayPal account using your PayPal.me link.',
+    description: 'Members visit your PayPal.me link in a browser or the PayPal app to send payment. A PayPal account is required.',
     fieldLabel:  'Your PayPal.me link or username',
     placeholder: 'paypal.me/yourclub',
   },
@@ -57,7 +57,7 @@ const MANUAL_METHODS: MethodDef[] = [
     value:       'venmo',
     label:       'Venmo',
     region:      'US',
-    description: 'Members pay via the Venmo app to your Venmo handle.',
+    description: 'Members open the Venmo app, search for your handle, and send payment. A Venmo account is required.',
     fieldLabel:  'Your Venmo handle',
     placeholder: '@yourclubname',
   },
@@ -65,15 +65,15 @@ const MANUAL_METHODS: MethodDef[] = [
     value:       'zelle',
     label:       'Zelle',
     region:      'US',
-    description: 'Members send from their bank app to your email or phone number.',
+    description: 'Members open their bank app, find Zelle, and send payment to your email or phone. No separate account needed — built into most US banks.',
     fieldLabel:  'Email or phone number',
     placeholder: 'treasurer@yourclub.com',
   },
   {
     value:       'cheque',
-    label:       'Cheque',
+    label:       'Check',
     region:      'All',
-    description: 'Members mail a cheque to your club.',
+    description: 'Members write a check and mail it to your club. No account required.',
     fieldLabel:  '',
     placeholder: '',
   },
@@ -81,7 +81,7 @@ const MANUAL_METHODS: MethodDef[] = [
     value:       'etransfer',
     label:       'Interac e-Transfer',
     region:      'Canada',
-    description: 'Members send from their bank app to your email address.',
+    description: 'Members log into their online banking and send an e-Transfer to your email. No separate account needed — available through all major Canadian banks.',
     fieldLabel:  'Email to receive transfers',
     placeholder: 'treasurer@yourclub.ca',
   },
@@ -107,7 +107,7 @@ function SubSection({ label, children }: { label: string; children: React.ReactN
   return (
     <Box>
       <Divider sx={{ mt: 3, mb: 2 }} />
-      <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1.5 }}>
+      <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#26374C', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1.5 }}>
         {label}
       </Typography>
       {children}
@@ -140,12 +140,38 @@ type PreviewProps = {
 function MemberPreview({ enabledMethods, chequePayableTo, chequeMail, etransferEmail, paypalLink, venmoHandle, zelleContact, annualStandard }: PreviewProps) {
   const hasAny = enabledMethods.length > 0
 
-  const methodDetails: Record<ManualMethod, { label: string; detail: string }> = {
-    'paypal-link': { label: 'PayPal',              detail: paypalLink || 'paypal.me/yourclub' },
-    'venmo':       { label: 'Venmo',               detail: venmoHandle || '@yourclubname' },
-    'zelle':       { label: 'Zelle',               detail: zelleContact || 'your email or phone' },
-    'cheque':      { label: 'Cheque',              detail: chequePayableTo ? `Payable to: ${chequePayableTo}` : 'Payable to: your club name' },
-    'etransfer':   { label: 'Interac e-Transfer',  detail: etransferEmail || 'your email address' },
+  const methodDetails: Record<ManualMethod, { label: string; instruction: string; extra?: string }> = {
+    'paypal-link': {
+      label:       'PayPal',
+      instruction: paypalLink
+        ? `Visit ${paypalLink} in a browser or the PayPal app. A PayPal account is required.`
+        : 'Visit your PayPal.me link in a browser or the PayPal app. A PayPal account is required.',
+    },
+    'venmo': {
+      label:       'Venmo',
+      instruction: venmoHandle
+        ? `Open the Venmo app and search for ${venmoHandle}. A Venmo account is required.`
+        : 'Open the Venmo app and search for your club handle. A Venmo account is required.',
+    },
+    'zelle': {
+      label:       'Zelle',
+      instruction: zelleContact
+        ? `Open your bank app, find Zelle, and send payment to ${zelleContact}.`
+        : 'Open your bank app, find Zelle, and send payment to the club email or phone number.',
+    },
+    'cheque': {
+      label:       'Check',
+      instruction: chequePayableTo
+        ? `Write a check payable to "${chequePayableTo}" and mail it to:`
+        : 'Write a check payable to the club and mail it to:',
+      extra: chequeMail || undefined,
+    },
+    'etransfer': {
+      label:       'Interac e-Transfer',
+      instruction: etransferEmail
+        ? `Log in to your online banking and send an Interac e-Transfer to ${etransferEmail}.`
+        : 'Log in to your online banking and send an Interac e-Transfer to the club email address.',
+    },
   }
 
   return (
@@ -179,15 +205,13 @@ function MemberPreview({ enabledMethods, chequePayableTo, chequeMail, etransferE
             )}
             <Stack spacing={1.5}>
               {enabledMethods.map(m => {
-                const { label, detail } = methodDetails[m]
+                const { label, instruction, extra } = methodDetails[m]
                 return (
                   <Box key={m}>
                     <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary' }}>{label}</Typography>
-                    <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.25 }}>{detail}</Typography>
-                    {m === 'cheque' && chequeMail && (
-                      <Typography sx={{ fontSize: 12, color: 'text.secondary', whiteSpace: 'pre-line' }}>
-                        Mail to: {chequeMail}
-                      </Typography>
+                    <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.25, lineHeight: 1.5 }}>{instruction}</Typography>
+                    {extra && (
+                      <Typography sx={{ fontSize: 12, color: 'text.secondary', whiteSpace: 'pre-line', mt: 0.25 }}>{extra}</Typography>
                     )}
                   </Box>
                 )
@@ -346,6 +370,11 @@ export default function DuesPaymentClient({
 
   return (
     <Box sx={{ pb: '80px' }}>
+
+      {/* ── Page header ────────────────────────────────────────────────────── */}
+      <Typography sx={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: 'text.primary', mb: 3 }}>
+        Dues &amp; Payments
+      </Typography>
 
       {/* ── Tabs ──────────────────────────────────────────────────────────── */}
       <Tabs
@@ -606,13 +635,13 @@ export default function DuesPaymentClient({
                       {enabled && method.value === 'cheque' && (
                         <Box sx={{ mt: 1, px: 0.5, display: 'flex', gap: 2 }}>
                           <Box sx={{ flex: 1 }}>
-                            <FieldLabel>Cheque payable to</FieldLabel>
+                            <FieldLabel>Check payable to</FieldLabel>
                             <TextField size="small" fullWidth value={chequePayableTo}
                               onChange={e => mark(setChequePayableTo)(e.target.value)}
                               placeholder="e.g. Riverside Camera Club" />
                           </Box>
                           <Box sx={{ flex: 1 }}>
-                            <FieldLabel>Mail cheques to</FieldLabel>
+                            <FieldLabel>Mail checks to</FieldLabel>
                             <TextField size="small" fullWidth value={chequeMail}
                               onChange={e => mark(setChequeMail)(e.target.value)}
                               placeholder="123 Main St, City, Province"
