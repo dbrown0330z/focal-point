@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireClubId } from '@/lib/club-context'
 import DuesPaymentClient from './DuesPaymentClient'
+import type { ManualMethod } from './actions'
 
 export default async function DuesPaymentPage() {
   const clubId = await requireClubId()
@@ -8,18 +9,18 @@ export default async function DuesPaymentPage() {
 
   const [{ data: club }, { data: settings }] = await Promise.all([
     admin.from('clubs').select('dues_mode').eq('id', clubId).single(),
-    admin.from('club_settings').select('dues_offline_method, dues_cheque_payable_to, dues_cheque_mail_to, dues_annual_standard, dues_renewal_month, dues_prorate, dues_exempt_honorary, dues_grace_period_days, dues_discount_categories, dues_onetimefees_enabled, dues_application_fee, dues_join_fee').eq('club_id', clubId).single(),
+    admin.from('club_settings').select('dues_manual_methods, dues_cheque_payable_to, dues_cheque_mail_to, dues_etransfer_email, dues_paypal_link, dues_venmo_handle, dues_zelle_contact, dues_annual_standard, dues_renewal_month, dues_prorate, dues_exempt_honorary, dues_grace_period_days, dues_discount_categories, dues_onetimefees_enabled, dues_application_fee, dues_join_fee').eq('club_id', clubId).single(),
   ])
-
-  const rawMode   = club?.dues_mode as 'stripe' | 'paypal' | 'offline' | null | undefined ?? null
-  const rawMethod = settings?.dues_offline_method as 'cheque' | 'digital-transfer' | 'cash' | null | undefined ?? null
 
   return (
     <DuesPaymentClient
-      initialDuesMode={rawMode}
-      initialOfflineMethod={rawMethod}
+      initialEnabledMethods={(settings?.dues_manual_methods ?? []) as ManualMethod[]}
       initialChequePayableTo={settings?.dues_cheque_payable_to ?? null}
       initialChequeMail={settings?.dues_cheque_mail_to ?? null}
+      initialEtransferEmail={settings?.dues_etransfer_email ?? null}
+      initialPaypalLink={settings?.dues_paypal_link ?? null}
+      initialVenmoHandle={settings?.dues_venmo_handle ?? null}
+      initialZelleContact={settings?.dues_zelle_contact ?? null}
       initialAnnualStandard={settings?.dues_annual_standard ?? null}
       initialRenewalMonth={settings?.dues_renewal_month ?? null}
       initialProrate={settings?.dues_prorate ?? false}

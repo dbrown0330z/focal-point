@@ -6,6 +6,7 @@ import {
   Box,
   Button,
   Chip,
+  Checkbox,
   Divider,
   IconButton,
   MenuItem,
@@ -15,12 +16,11 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { saveDuesConfig, type DiscountCategory } from './actions'
+import { saveDuesConfig, type DiscountCategory, type ManualMethod } from './actions'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 type GracePeriodMode = 'none' | '7' | '30' | 'custom'
-type PaymentMethod   = 'cheque' | 'digital-transfer' | 'cash' | 'stripe' | 'paypal'
 
 function daysToMode(days: number | null): GracePeriodMode {
   if (!days) return 'none'
@@ -29,17 +29,61 @@ function daysToMode(days: number | null): GracePeriodMode {
   return 'custom'
 }
 
-function modeToPaymentMethod(
-  duesMode: 'stripe' | 'paypal' | 'offline' | null,
-  offlineMethod: 'cheque' | 'digital-transfer' | 'cash' | null,
-): PaymentMethod | null {
-  if (duesMode === 'stripe') return 'stripe'
-  if (duesMode === 'paypal') return 'paypal'
-  if (duesMode === 'offline' && offlineMethod) return offlineMethod
-  return null
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+
+// ─── Payment method definitions ───────────────────────────────────────────────
+
+type MethodDef = {
+  value:       ManualMethod
+  label:       string
+  region:      string
+  description: string
+  fieldLabel:  string
+  placeholder: string
 }
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const MANUAL_METHODS: MethodDef[] = [
+  {
+    value:       'etransfer',
+    label:       'Interac e-Transfer',
+    region:      'Canada',
+    description: 'Members send from their bank app to your email address.',
+    fieldLabel:  'Email to receive transfers',
+    placeholder: 'treasurer@yourclub.ca',
+  },
+  {
+    value:       'zelle',
+    label:       'Zelle',
+    region:      'US',
+    description: 'Members send from their bank app to your email or phone number.',
+    fieldLabel:  'Email or phone number',
+    placeholder: 'treasurer@yourclub.com',
+  },
+  {
+    value:       'venmo',
+    label:       'Venmo',
+    region:      'US',
+    description: 'Members pay via the Venmo app to your Venmo handle.',
+    fieldLabel:  'Your Venmo handle',
+    placeholder: '@yourclubname',
+  },
+  {
+    value:       'paypal-link',
+    label:       'PayPal',
+    region:      'Worldwide',
+    description: 'Members pay via their PayPal account using your PayPal.me link.',
+    fieldLabel:  'Your PayPal.me link or username',
+    placeholder: 'paypal.me/yourclub',
+  },
+  {
+    value:       'cheque',
+    label:       'Cheque',
+    region:      'All',
+    description: 'Members mail a cheque to your club.',
+    fieldLabel:  '',
+    placeholder: '',
+  },
+]
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -97,23 +141,16 @@ function ToggleRow({ label, checked, onChange }: { label: string; checked: boole
   )
 }
 
-// ─── Payment method options ───────────────────────────────────────────────────
-
-const PAYMENT_OPTIONS: { value: PaymentMethod; label: string; sub: string }[] = [
-  { value: 'cheque',           label: 'Cheque',           sub: 'Members mail a cheque to your club' },
-  { value: 'digital-transfer', label: 'Digital transfer', sub: 'Venmo, Zelle, PayPal, Interac e-Transfer' },
-  { value: 'cash',             label: 'Cash',             sub: 'Collected in person at meetings' },
-  { value: 'stripe',           label: 'Stripe',           sub: 'Online card payments — coming soon' },
-  { value: 'paypal',           label: 'PayPal',           sub: 'Online card payments — coming soon' },
-]
-
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 type Props = {
-  initialDuesMode:           'stripe' | 'paypal' | 'offline' | null
-  initialOfflineMethod:      'cheque' | 'digital-transfer' | 'cash' | null
+  initialEnabledMethods:     ManualMethod[]
   initialChequePayableTo:    string | null
   initialChequeMail:         string | null
+  initialEtransferEmail:     string | null
+  initialPaypalLink:         string | null
+  initialVenmoHandle:        string | null
+  initialZelleContact:       string | null
   initialAnnualStandard:     number | null
   initialRenewalMonth:       number | null
   initialProrate:            boolean
@@ -128,10 +165,13 @@ type Props = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function DuesPaymentClient({
-  initialDuesMode,
-  initialOfflineMethod,
+  initialEnabledMethods,
   initialChequePayableTo,
   initialChequeMail,
+  initialEtransferEmail,
+  initialPaypalLink,
+  initialVenmoHandle,
+  initialZelleContact,
   initialAnnualStandard,
   initialRenewalMonth,
   initialProrate,
@@ -142,14 +182,18 @@ export default function DuesPaymentClient({
   initialApplicationFee,
   initialJoinFee,
 }: Props) {
-  // Payment method
-  const [paymentMethod,    setPaymentMethod]    = useState<PaymentMethod | null>(() => modeToPaymentMethod(initialDuesMode, initialOfflineMethod))
-  const [chequePayableTo,  setChequePayableTo]  = useState(initialChequePayableTo ?? '')
-  const [chequeMail,       setChequeMail]       = useState(initialChequeMail ?? '')
+  // Payment methods (multi-select)
+  const [enabledMethods,  setEnabledMethods]  = useState<ManualMethod[]>(initialEnabledMethods)
+  const [chequePayableTo, setChequePayableTo] = useState(initialChequePayableTo ?? '')
+  const [chequeMail,      setChequeMail]      = useState(initialChequeMail ?? '')
+  const [etransferEmail,  setEtransferEmail]  = useState(initialEtransferEmail ?? '')
+  const [paypalLink,      setPaypalLink]      = useState(initialPaypalLink ?? '')
+  const [venmoHandle,     setVenmoHandle]     = useState(initialVenmoHandle ?? '')
+  const [zelleContact,    setZelleContact]    = useState(initialZelleContact ?? '')
 
   // Dues amounts
-  const [annualStandard,   setAnnualStandard]   = useState(initialAnnualStandard?.toString() ?? '')
-  const [renewalMonth,     setRenewalMonth]     = useState<number | null>(initialRenewalMonth ?? null)
+  const [annualStandard, setAnnualStandard] = useState(initialAnnualStandard?.toString() ?? '')
+  const [renewalMonth,   setRenewalMonth]   = useState<number | null>(initialRenewalMonth ?? null)
 
   // Grace period
   const [gracePeriodMode,   setGracePeriodMode]   = useState<GracePeriodMode>(() => daysToMode(initialGracePeriodDays))
@@ -165,8 +209,8 @@ export default function DuesPaymentClient({
   const [newCatAmount,        setNewCatAmount]        = useState('')
 
   // Additional settings
-  const [prorate,            setProrate]           = useState(initialProrate)
-  const [exemptHonorary,     setExemptHonorary]    = useState(initialExemptHonorary)
+  const [prorate,         setProrate]        = useState(initialProrate)
+  const [exemptHonorary,  setExemptHonorary] = useState(initialExemptHonorary)
 
   // One-time fees
   const [onetimefeesEnabled, setOnetimefeesEnabled] = useState(initialOnetimefeesEnabled)
@@ -183,6 +227,13 @@ export default function DuesPaymentClient({
     return (v) => { setter(v); setIsDirty(true) }
   }
 
+  function toggleMethod(method: ManualMethod, checked: boolean) {
+    setIsDirty(true)
+    setEnabledMethods(prev =>
+      checked ? [...prev, method] : prev.filter(m => m !== method)
+    )
+  }
+
   // Save
   const [saving, startSave]       = useTransition()
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
@@ -194,29 +245,18 @@ export default function DuesPaymentClient({
     return gracePeriodCustom ? parseInt(gracePeriodCustom, 10) : null
   }
 
-  function getDuesMode(): 'stripe' | 'paypal' | 'offline' | null {
-    if (paymentMethod === 'stripe') return 'stripe'
-    if (paymentMethod === 'paypal') return 'paypal'
-    if (paymentMethod)              return 'offline'
-    return null
-  }
-
-  function getOfflineMethod(): 'cheque' | 'digital-transfer' | 'cash' | null {
-    if (paymentMethod === 'cheque' || paymentMethod === 'digital-transfer' || paymentMethod === 'cash') {
-      return paymentMethod
-    }
-    return null
-  }
-
   function handleSave() {
     setSaveStatus('idle')
     startSave(async () => {
       const result = await saveDuesConfig({
-        duesMode:           getDuesMode(),
-        offlineMethod:      getOfflineMethod(),
-        chequePayableTo:    paymentMethod === 'cheque' ? chequePayableTo || null : null,
-        chequeMail:         paymentMethod === 'cheque' ? chequeMail || null : null,
-        annualStandard:     annualStandard ? parseFloat(annualStandard) : null,
+        enabledMethods,
+        chequePayableTo:  enabledMethods.includes('cheque')      ? chequePayableTo || null : null,
+        chequeMail:       enabledMethods.includes('cheque')      ? chequeMail || null : null,
+        etransferEmail:   enabledMethods.includes('etransfer')   ? etransferEmail || null : null,
+        paypalLink:       enabledMethods.includes('paypal-link') ? paypalLink || null : null,
+        venmoHandle:      enabledMethods.includes('venmo')       ? venmoHandle || null : null,
+        zelleContact:     enabledMethods.includes('zelle')       ? zelleContact || null : null,
+        annualStandard:   annualStandard ? parseFloat(annualStandard) : null,
         renewalMonth,
         prorate,
         exemptHonorary,
@@ -242,7 +282,7 @@ export default function DuesPaymentClient({
     markFn(setDiscountCategories)(prev => prev.filter((_, i) => i !== index))
   }
 
-  const noPaymentMethod = paymentMethod === null
+  const noPaymentMethod = enabledMethods.length === 0
 
   return (
     <Box sx={{ pb: '80px', maxWidth: 640 }}>
@@ -252,90 +292,143 @@ export default function DuesPaymentClient({
 
       <Card>
         <CardHeader title="How will members pay?" />
-        <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 2 }}>
-          Choose how members pay their dues. You can change this at any time.
+        <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 2.5 }}>
+          Select all the methods you accept. Members will see payment instructions for each when joining or renewing. You confirm payments manually in the Members section.
         </Typography>
 
-        <Box sx={{ display: 'flex', gap: 1.25, flexWrap: 'wrap' }}>
-          {PAYMENT_OPTIONS.map(({ value, label, sub }) => {
-            const active = paymentMethod === value
-            const comingSoon = value === 'stripe' || value === 'paypal'
+        {/* Manual methods */}
+        <Stack spacing={1.5}>
+          {MANUAL_METHODS.map(method => {
+            const enabled = enabledMethods.includes(method.value)
             return (
-              <Box
-                key={value}
-                onClick={() => { mark(setPaymentMethod)(value) }}
-                sx={{
-                  px: 2, py: 1.25, borderRadius: 1.5, border: '1.5px solid',
-                  borderColor: active ? 'primary.main' : 'divider',
-                  bgcolor: active ? 'rgba(30,77,140,0.05)' : 'transparent',
-                  cursor: 'pointer',
-                  minWidth: 140,
-                  opacity: comingSoon ? 0.65 : 1,
-                  '&:hover': { borderColor: comingSoon ? 'divider' : 'primary.main' },
-                }}
-              >
-                <Typography sx={{ fontSize: 13, fontWeight: active ? 600 : 400, color: active ? 'primary.main' : 'text.primary' }}>
-                  {label}
-                </Typography>
-                <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.25, lineHeight: 1.4 }}>{sub}</Typography>
+              <Box key={method.value}>
+                <Box
+                  sx={{
+                    display: 'flex', alignItems: 'flex-start', gap: 1.25,
+                    px: 1.5, pt: 1.25, pb: enabled ? 0.75 : 1.25,
+                    border: '1.5px solid',
+                    borderColor: enabled ? 'primary.main' : 'divider',
+                    bgcolor: enabled ? 'rgba(30,77,140,0.04)' : 'transparent',
+                    borderRadius: 1.5,
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => toggleMethod(method.value, !enabled)}
+                >
+                  <Checkbox
+                    checked={enabled}
+                    size="small"
+                    onChange={e => { e.stopPropagation(); toggleMethod(method.value, e.target.checked) }}
+                    sx={{ p: 0, mt: '1px', flexShrink: 0 }}
+                  />
+                  <Box sx={{ flex: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography sx={{ fontSize: 13, fontWeight: 600, color: enabled ? 'primary.main' : 'text.primary' }}>
+                        {method.label}
+                      </Typography>
+                      <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{method.region}</Typography>
+                    </Box>
+                    <Typography sx={{ fontSize: 12, color: 'text.secondary', lineHeight: 1.4, mt: 0.25 }}>
+                      {method.description}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Config field(s) for this method when enabled */}
+                {enabled && method.value !== 'cheque' && (
+                  <Box sx={{ mt: 1, px: 0.5 }}>
+                    <FieldLabel>{method.fieldLabel}</FieldLabel>
+                    <TextField
+                      size="small"
+                      fullWidth
+                      value={
+                        method.value === 'etransfer'   ? etransferEmail :
+                        method.value === 'zelle'       ? zelleContact :
+                        method.value === 'venmo'       ? venmoHandle :
+                        paypalLink
+                      }
+                      onChange={e => {
+                        if (method.value === 'etransfer')   mark(setEtransferEmail)(e.target.value)
+                        else if (method.value === 'zelle')  mark(setZelleContact)(e.target.value)
+                        else if (method.value === 'venmo')  mark(setVenmoHandle)(e.target.value)
+                        else                                mark(setPaypalLink)(e.target.value)
+                      }}
+                      placeholder={method.placeholder}
+                      sx={{ bgcolor: 'background.paper' }}
+                    />
+                  </Box>
+                )}
+                {enabled && method.value === 'cheque' && (
+                  <Box sx={{ mt: 1, px: 0.5, display: 'flex', gap: 2 }}>
+                    <Box sx={{ flex: 1 }}>
+                      <FieldLabel>Cheque payable to</FieldLabel>
+                      <TextField
+                        size="small" fullWidth
+                        value={chequePayableTo}
+                        onChange={e => mark(setChequePayableTo)(e.target.value)}
+                        placeholder="e.g. Riverside Camera Club"
+                        sx={{ bgcolor: 'background.paper' }}
+                      />
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <FieldLabel>Mail cheques to</FieldLabel>
+                      <TextField
+                        size="small" fullWidth
+                        value={chequeMail}
+                        onChange={e => mark(setChequeMail)(e.target.value)}
+                        placeholder="123 Main St, City, Province"
+                        multiline minRows={2}
+                        sx={{ bgcolor: 'background.paper' }}
+                      />
+                    </Box>
+                  </Box>
+                )}
               </Box>
             )
           })}
-        </Box>
+        </Stack>
 
-        {/* Cheque details */}
-        {paymentMethod === 'cheque' && (
-          <Box sx={{ mt: 2.5 }}>
-            <Divider sx={{ mb: 2 }} />
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Box sx={{ flex: 1 }}>
-                <FieldLabel>Cheque payable to</FieldLabel>
-                <TextField
-                  size="small" fullWidth
-                  value={chequePayableTo}
-                  onChange={e => mark(setChequePayableTo)(e.target.value)}
-                  placeholder="e.g. Riverside Camera Club"
-                />
+        {/* Coming soon: integrated gateways */}
+        <SubSection label="Online payments — coming soon">
+          <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 1.5 }}>
+            Accept card payments directly on this site with automatic confirmation. No manual tracking needed.
+          </Typography>
+          <Stack spacing={1}>
+            {[
+              { label: 'Stripe',          sub: 'All major credit and debit cards' },
+              { label: 'PayPal Checkout', sub: 'PayPal, Venmo (US), credit cards' },
+            ].map(({ label, sub }) => (
+              <Box
+                key={label}
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 1.5,
+                  px: 1.5, py: 1.25, border: '1.5px solid', borderColor: 'divider',
+                  borderRadius: 1.5, opacity: 0.6,
+                }}
+              >
+                <Checkbox checked={false} size="small" disabled sx={{ p: 0, flexShrink: 0 }} />
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.disabled' }}>{label}</Typography>
+                  <Typography sx={{ fontSize: 12, color: 'text.disabled', mt: 0.25 }}>{sub}</Typography>
+                </Box>
+                <Chip label="Coming soon" size="small" sx={{ fontSize: 11, height: 20, bgcolor: '#D8DDE7', color: '#3E5066' }} />
               </Box>
-              <Box sx={{ flex: 1 }}>
-                <FieldLabel>Mail to (address)</FieldLabel>
-                <TextField
-                  size="small" fullWidth
-                  value={chequeMail}
-                  onChange={e => mark(setChequeMail)(e.target.value)}
-                  placeholder="123 Main St, City, Province"
-                  multiline
-                  minRows={2}
-                />
-              </Box>
-            </Box>
-          </Box>
-        )}
-
-        {/* Digital transfer note */}
-        {paymentMethod === 'digital-transfer' && (
-          <Box sx={{ mt: 2, px: 2, py: 1.5, bgcolor: 'rgba(0,0,0,0.03)', borderRadius: 1.5 }}>
-            <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-              Members will see a prompt to contact the club treasurer for payment details. You can add payment instructions to your homepage or club info page.
-            </Typography>
-          </Box>
-        )}
+            ))}
+          </Stack>
+        </SubSection>
       </Card>
 
       {/* ── Membership dues ─────────────────────────────────────────────────── */}
       <PageSection>Membership dues</PageSection>
 
       <Card>
-        <CardHeader title="Annual dues" chip="Requires payment gateway" />
+        <CardHeader title="Annual dues" />
 
-        {/* Warning when no payment method is selected */}
         {noPaymentMethod && (
           <Alert severity="warning" sx={{ mb: 2, py: 0.5, fontSize: 13 }}>
-            Select a payment collection method above before setting dues amounts — members need to know how to pay.
+            Select at least one payment method above — members need to know how to pay before they can join.
           </Alert>
         )}
 
-        {/* Dues amounts */}
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Box sx={{ flex: 1 }}>
             <FieldLabel>Standard member ($/year)</FieldLabel>
@@ -452,7 +545,7 @@ export default function DuesPaymentClient({
                 </Box>
               </Box>
             )}
-            <ToggleRow label="Pro-rate dues for mid-year joiners"  checked={prorate}       onChange={mark(setProrate)} />
+            <ToggleRow label="Pro-rate dues for mid-year joiners"  checked={prorate}        onChange={mark(setProrate)} />
             <ToggleRow label="Exempt honorary / lifetime members"  checked={exemptHonorary} onChange={mark(setExemptHonorary)} />
           </Stack>
         </SubSection>
@@ -464,12 +557,9 @@ export default function DuesPaymentClient({
       <Card>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary' }}>
-                Application &amp; join fees
-              </Typography>
-              <Chip label="Requires payment gateway" size="small" sx={{ fontSize: 11, height: 20, bgcolor: '#D8DDE7', color: '#3E5066' }} />
-            </Box>
+            <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary' }}>
+              Application &amp; join fees
+            </Typography>
             <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.5 }}>
               Optional one-time fees charged when a new member joins.
             </Typography>

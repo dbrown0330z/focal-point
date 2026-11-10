@@ -205,6 +205,11 @@ export type Database = {
           dues_onetimefees_enabled: boolean
           dues_prorate: boolean
           dues_renewal_month: number | null
+          dues_manual_methods: string[] | null
+          dues_etransfer_email: string | null
+          dues_paypal_link: string | null
+          dues_venmo_handle: string | null
+          dues_zelle_contact: string | null
           club_short_name: string | null
           contact_email: string | null
           default_meeting_location_id: string | null
@@ -256,6 +261,11 @@ export type Database = {
           dues_onetimefees_enabled?: boolean
           dues_prorate?: boolean
           dues_renewal_month?: number | null
+          dues_manual_methods?: string[] | null
+          dues_etransfer_email?: string | null
+          dues_paypal_link?: string | null
+          dues_venmo_handle?: string | null
+          dues_zelle_contact?: string | null
           club_short_name?: string | null
           contact_email?: string | null
           default_meeting_location_id?: string | null
@@ -307,6 +317,11 @@ export type Database = {
           dues_onetimefees_enabled?: boolean
           dues_prorate?: boolean
           dues_renewal_month?: number | null
+          dues_manual_methods?: string[] | null
+          dues_etransfer_email?: string | null
+          dues_paypal_link?: string | null
+          dues_venmo_handle?: string | null
+          dues_zelle_contact?: string | null
           club_short_name?: string | null
           contact_email?: string | null
           default_meeting_location_id?: string | null
