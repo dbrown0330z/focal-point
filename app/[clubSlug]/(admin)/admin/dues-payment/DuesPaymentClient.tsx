@@ -431,7 +431,7 @@ export default function DuesPaymentClient({
         <Box sx={{ maxWidth: 640 }}>
           <Card>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-              <Typography sx={{ fontSize: 15, fontWeight: 600 }}>Annual dues</Typography>
+              <Typography sx={{ fontSize: 15, fontWeight: 600, color: '#131F2E' }}>Annual dues</Typography>
             </Box>
 
             {enabledMethods.length === 0 && (
@@ -564,7 +564,7 @@ export default function DuesPaymentClient({
           <Card>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box>
-                <Typography sx={{ fontSize: 15, fontWeight: 600 }}>Application &amp; join fees</Typography>
+                <Typography sx={{ fontSize: 15, fontWeight: 600, color: '#131F2E' }}>Application &amp; join fees</Typography>
                 <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.5 }}>
                   Optional one-time fees charged when a new member joins.
                 </Typography>
@@ -609,7 +609,7 @@ export default function DuesPaymentClient({
           {/* ── Left: method selection ──────────────────────────────────── */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Card sx={{ mb: 2 }}>
-              <Typography sx={{ fontSize: 15, fontWeight: 600, mb: 0.5 }}>Members pay you directly</Typography>
+              <Typography sx={{ fontSize: 15, fontWeight: 600, mb: 0.5, color: '#131F2E' }}>Members pay you directly</Typography>
               <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 2.5 }}>
                 Members send payment using their own bank or app. You confirm receipt and activate their membership manually in the Members section.
               </Typography>
