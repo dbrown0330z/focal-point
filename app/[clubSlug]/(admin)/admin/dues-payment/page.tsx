@@ -1,10 +1,10 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubId } from '@/lib/club-context'
+import { requireClubId, requireClubSlug } from '@/lib/club-context'
 import DuesPaymentClient from './DuesPaymentClient'
 import type { ManualMethod } from './actions'
 
 export default async function DuesPaymentPage() {
-  const clubId = await requireClubId()
+  const [clubId, clubSlug] = await Promise.all([requireClubId(), requireClubSlug()])
   const admin  = createServiceClient()
 
   const [{ data: club }, { data: settings }] = await Promise.all([
@@ -14,6 +14,7 @@ export default async function DuesPaymentPage() {
 
   return (
     <DuesPaymentClient
+      clubSlug={clubSlug}
       initialEnabledMethods={(settings?.dues_manual_methods ?? []) as ManualMethod[]}
       initialChequePayableTo={settings?.dues_cheque_payable_to ?? null}
       initialChequeMail={settings?.dues_cheque_mail_to ?? null}

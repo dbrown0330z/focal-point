@@ -246,6 +246,7 @@ function MemberPreview({ enabledMethods, chequePayableTo, chequeMail, etransferE
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 type Props = {
+  clubSlug:                  string
   initialEnabledMethods:     ManualMethod[]
   initialChequePayableTo:    string | null
   initialChequeMail:         string | null
@@ -268,6 +269,7 @@ type Props = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function DuesPaymentClient({
+  clubSlug,
   initialEnabledMethods,
   initialChequePayableTo,
   initialChequeMail,
@@ -409,6 +411,26 @@ export default function DuesPaymentClient({
         </Typography>
         <Typography sx={{ mt: 0.5, fontSize: 13, color: 'text.secondary' }}>
           Configure membership fees and how members pay.
+        </Typography>
+      </Box>
+
+      {/* ── Join/Renew page link ──────────────────────────────────────────── */}
+      <Box sx={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        px: 2, py: 1.25, mb: 3,
+        bgcolor: 'background.paper',
+        border: '1px solid', borderColor: 'divider',
+        borderRadius: 1.5,
+      }}>
+        <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+          The <strong>Join / Renew</strong> member page shows an intro text block above the payment instructions.
+        </Typography>
+        <Typography
+          component="a"
+          href={`/${clubSlug}/admin/content/join`}
+          sx={{ fontSize: 13, color: 'primary.main', whiteSpace: 'nowrap', ml: 2, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+        >
+          Edit page content →
         </Typography>
       </Box>
 
