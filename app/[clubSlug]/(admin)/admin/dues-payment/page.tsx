@@ -7,9 +7,10 @@ export default async function DuesPaymentPage() {
   const [clubId, clubSlug] = await Promise.all([requireClubId(), requireClubSlug()])
   const admin  = createServiceClient()
 
-  const [{ data: club }, { data: settings }] = await Promise.all([
+  const [{ data: club }, { data: settings }, { data: clubBase }] = await Promise.all([
     admin.from('clubs').select('dues_mode').eq('id', clubId).single(),
-    admin.from('club_settings').select('dues_manual_methods, dues_cheque_payable_to, dues_cheque_mail_to, dues_etransfer_email, dues_paypal_link, dues_venmo_handle, dues_cashapp_handle, dues_zelle_contact, dues_annual_standard, dues_prorate, dues_exempt_honorary, dues_grace_period_days, dues_discount_categories, dues_onetimefees_enabled, dues_application_fee, dues_join_fee, season_start_month').eq('club_id', clubId).single(),
+    admin.from('club_settings').select('dues_manual_methods, dues_cheque_payable_to, dues_cheque_mail_to, dues_etransfer_email, dues_paypal_link, dues_venmo_handle, dues_cashapp_handle, dues_zelle_contact, dues_annual_standard, dues_prorate, dues_exempt_honorary, dues_grace_period_days, dues_discount_categories, dues_onetimefees_enabled, dues_application_fee, dues_join_fee').eq('club_id', clubId).single(),
+    admin.from('club_settings').select('season_start_month').eq('club_id', clubId).single(),
   ])
 
   return (
@@ -24,7 +25,7 @@ export default async function DuesPaymentPage() {
       initialCashappHandle={settings?.dues_cashapp_handle ?? null}
       initialZelleContact={settings?.dues_zelle_contact ?? null}
       initialAnnualStandard={settings?.dues_annual_standard ?? null}
-      seasonStartMonth={settings?.season_start_month ?? null}
+      seasonStartMonth={clubBase?.season_start_month ?? null}
       initialProrate={settings?.dues_prorate ?? false}
       initialExemptHonorary={settings?.dues_exempt_honorary ?? false}
       initialGracePeriodDays={settings?.dues_grace_period_days ?? null}
