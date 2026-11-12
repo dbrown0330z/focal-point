@@ -285,7 +285,7 @@ function SysSubRow({
         <span className="text-[11px] italic" style={{ color: 'var(--text-tertiary)' }}>Auto-generated</span>
       ) : null}
       {item.editHref && (
-        <Link href={item.editHref} className="text-[11px] font-medium hover:underline" style={{ color: 'var(--action-primary)' }}>
+        <Link href={`/${clubSlug}${item.editHref}`} className="text-[11px] font-medium hover:underline" style={{ color: 'var(--action-primary)' }}>
           Edit content →
         </Link>
       )}
@@ -408,6 +408,8 @@ function SysNavRow({
   builtinVisibility?: BuiltinPageVisibility
   onChangeVisibility?: (key: 'about' | 'calendar', value: BuiltinVisibility) => void
 }) {
+  const params     = useParams()
+  const clubSlug   = typeof params.clubSlug === 'string' ? params.clubSlug : ''
   const [open, setOpen] = useState(false)
   const [localCustom, setLocalCustom] = useState<CustomPage[]>(customSubPages)
   const dragIdx = useRef<number | null>(null)
