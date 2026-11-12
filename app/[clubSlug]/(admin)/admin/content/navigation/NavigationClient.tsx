@@ -93,13 +93,14 @@ const SYSTEM_NAV: SysItem[] = [
       { label: 'Member directory', href: '/our-club/members',   dynamic: true },
       { label: 'Resources',        href: '/our-club/resources', dynamic: true },
       { label: 'Club galleries',   href: '/our-club/galleries', dynamic: true },
+      { label: 'Join / Renew',     href: '/our-club/join',      editHref: '/admin/content/join' },
     ],
   },
 ]
 
 // Number of system-defined children per parentKey (for slot calculation)
 const SYS_CHILD_COUNTS: Record<string, number> = {
-  images: 2, competitions: 3, 'our-club': 4,
+  images: 2, competitions: 3, 'our-club': 5,
 }
 const NAV_MAX_SLOTS = 6   // total sub-pages per tab (system + custom)
 const MAX_CUSTOM_TABS = 2
@@ -118,7 +119,7 @@ type BuiltinPageRow = {
   menuLocation: string
   visKey:      'about' | 'calendar' | null  // null = fixed, not editable
   fixedVis:    string | null                 // shown when visKey is null
-  editAction:  'about' | 'homepage' | null
+  editAction:  'about' | 'homepage' | 'join' | null
 }
 
 const BUILTIN_PAGES: BuiltinPageRow[] = [
@@ -133,6 +134,7 @@ const BUILTIN_PAGES: BuiltinPageRow[] = [
   { title: 'Member directory',     url: '/our-club/members',        menuLocation: 'Our Club',          visKey: null,       fixedVis: 'Members only',     editAction: null        },
   { title: 'Resources',            url: '/our-club/resources',      menuLocation: 'Our Club',          visKey: null,       fixedVis: 'Members only',     editAction: null        },
   { title: 'Club galleries',       url: '/our-club/galleries',      menuLocation: 'Our Club',          visKey: null,       fixedVis: 'Members only',     editAction: null        },
+  { title: 'Join / Renew',         url: '/our-club/join',           menuLocation: 'Our Club',          visKey: null,       fixedVis: 'Public',           editAction: 'join'      },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -1163,11 +1165,13 @@ function BuiltinPagesTable({
   onChangeVisibility,
   onEditAbout,
   onGoHomepageBuilder,
+  onEditJoin,
 }: {
   builtinVisibility:  BuiltinPageVisibility
   onChangeVisibility: (key: 'about' | 'calendar', value: BuiltinVisibility) => void
   onEditAbout:        () => void
   onGoHomepageBuilder: () => void
+  onEditJoin:         () => void
 }) {
   return (
     <div className="mb-8">
@@ -1227,6 +1231,12 @@ function BuiltinPagesTable({
                 </button>
               ) : row.editAction === 'homepage' ? (
                 <button onClick={onGoHomepageBuilder}
+                  className="text-[12px] font-medium hover:underline text-left"
+                  style={{ color: 'var(--action-primary)' }}>
+                  Edit content →
+                </button>
+              ) : row.editAction === 'join' ? (
+                <button onClick={onEditJoin}
                   className="text-[12px] font-medium hover:underline text-left"
                   style={{ color: 'var(--action-primary)' }}>
                   Edit content →
