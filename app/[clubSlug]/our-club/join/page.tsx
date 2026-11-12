@@ -70,6 +70,11 @@ export default async function JoinPage() {
   const clubId   = ctx?.clubId
   const clubSlug = ctx?.clubSlug ?? ''
 
+  const { createClient } = await import('@/lib/supabase/server')
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const isLoggedIn = Boolean(user)
+
   const [{ data: pageRaw }, { data: settingsRaw }] = await Promise.all([
     clubId
       ? (admin.from('pages').select('content').eq('slug', 'join-renew').eq('club_id', clubId).maybeSingle() as unknown as Promise<{ data: { content: string | null } | null }>)
@@ -217,8 +222,8 @@ export default async function JoinPage() {
         </div>
       )}
 
-      {/* CTA */}
-      {joinOpen && (
+      {/* CTA — only for anonymous visitors */}
+      {joinOpen && !isLoggedIn && (
         <div style={{
           borderTop: '1px solid var(--border-subtle)',
           paddingTop: 24,

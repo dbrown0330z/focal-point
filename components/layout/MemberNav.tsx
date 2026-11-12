@@ -15,7 +15,7 @@ function getInitials(name: string) {
 
 export default function MemberNav({
   clubSlug = '',
-  clubName: _clubName,
+  clubName = 'Focal Point',
   displayName,
   email,
   role,
@@ -89,7 +89,7 @@ export default function MemberNav({
         {/* Left: brand + nav links */}
         <nav className="flex items-center gap-6">
           <span className="mr-2 text-sm font-semibold text-content-primary">
-            Focal Point
+            {clubName}
           </span>
           {topLinks.map(({ href, label }) => (
             <Link
