@@ -17,6 +17,11 @@ const competitionsLinks = [
   { href: '/competitions/results', label: 'Results' },
 ]
 
+const ourClubLinks = [
+  { href: '/our-club/about', label: 'About our club' },
+  { href: '/our-club/join',  label: 'Join / Renew' },
+]
+
 function getInitials(name: string) {
   const parts = name.trim().split(/\s+/)
   if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
@@ -24,28 +29,43 @@ function getInitials(name: string) {
 }
 
 export default function MemberNav({
+  clubSlug: _clubSlug,
+  clubName: _clubName,
   displayName,
   email,
   role,
+  avatarUrl: _avatarUrl,
+  customPages: _customPages,
+  customTabs: _customTabs,
+  pendingCount: _pendingCount,
 }: {
-  displayName: string
-  email: string
-  role: string | null
+  clubSlug?:    string
+  clubName?:    string
+  displayName:  string
+  email:        string
+  role:         string | null
+  avatarUrl?:   string | null
+  customPages?: unknown[]
+  customTabs?:  unknown[]
+  pendingCount?: number
 }) {
   const pathname = usePathname()
   const { theme, toggle } = useTheme()
   const [open, setOpen] = useState(false)
   const [compOpen, setCompOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-  const compRef = useRef<HTMLDivElement>(null)
+  const [ourClubOpen, setOurClubOpen] = useState(false)
+  const menuRef    = useRef<HTMLDivElement>(null)
+  const compRef    = useRef<HTMLDivElement>(null)
+  const ourClubRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false)
-      if (compRef.current && !compRef.current.contains(e.target as Node)) setCompOpen(false)
+      if (menuRef.current    && !menuRef.current.contains(e.target as Node))    setOpen(false)
+      if (compRef.current    && !compRef.current.contains(e.target as Node))    setCompOpen(false)
+      if (ourClubRef.current && !ourClubRef.current.contains(e.target as Node)) setOurClubOpen(false)
     }
     function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') { setOpen(false); setCompOpen(false) }
+      if (e.key === 'Escape') { setOpen(false); setCompOpen(false); setOurClubOpen(false) }
     }
     document.addEventListener('mousedown', handleClick)
     document.addEventListener('keydown', handleKey)
@@ -56,7 +76,8 @@ export default function MemberNav({
   }, [])
 
   const initials = getInitials(displayName)
-  const isCompActive = pathname.startsWith('/competitions')
+  const isCompActive    = pathname.startsWith('/competitions')
+  const isOurClubActive = pathname.startsWith('/our-club')
 
   return (
     <header className="border-b border-border-default bg-surface-2">
@@ -118,6 +139,48 @@ export default function MemberNav({
                         : pathname.startsWith(href)
                           ? 'font-medium text-content-primary'
                           : 'text-content-secondary'
+                    }`}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Our Club dropdown */}
+          <div className="relative" ref={ourClubRef}>
+            <button
+              onClick={() => setOurClubOpen(o => !o)}
+              className={`flex items-center gap-1 text-sm transition-colors ${
+                isOurClubActive
+                  ? 'font-medium text-content-primary'
+                  : 'text-content-secondary hover:text-content-primary'
+              }`}
+              aria-expanded={ourClubOpen}
+            >
+              Our Club
+              <svg
+                className={`h-3 w-3 transition-transform ${ourClubOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {ourClubOpen && (
+              <div className="absolute left-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-xl border border-border-default bg-surface-2 shadow-lg">
+                {ourClubLinks.map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setOurClubOpen(false)}
+                    className={`flex items-center px-4 py-2.5 text-sm transition-colors hover:bg-surface-1 ${
+                      pathname === href || pathname.startsWith(href + '/')
+                        ? 'font-medium text-content-primary'
+                        : 'text-content-secondary'
                     }`}
                   >
                     {label}
