@@ -17,7 +17,6 @@ export type DuesConfigPayload = {
   zelleContact:     string | null
   cashappHandle:    string | null
   annualStandard:   number | null
-  renewalMonth:     number | null
   prorate:          boolean
   exemptHonorary:   boolean
   gracePeriodDays:  number | null
@@ -52,7 +51,6 @@ export async function saveDuesConfig(payload: DuesConfigPayload): Promise<{ erro
       dues_cashapp_handle:    payload.cashappHandle,
       dues_zelle_contact:     payload.zelleContact,
       dues_annual_standard:   payload.annualStandard,
-      dues_renewal_month:     payload.renewalMonth,
       dues_prorate:           payload.prorate,
       dues_exempt_honorary:   payload.exemptHonorary,
       dues_grace_period_days: payload.gracePeriodDays,

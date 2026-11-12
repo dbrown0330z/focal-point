@@ -58,7 +58,6 @@ type Settings = {
   timezone: string
   logo_path: string | null
   season_start_month: number
-  season_end_month: number
   membership_terms_source: 'default' | 'custom'
   membership_terms_reviewed: boolean
   membership_terms_updated_at: string | null
@@ -660,7 +659,6 @@ export default function ClubDefaultsClient({
         from_email:         s.from_email,
         timezone:           s.timezone,
         season_start_month: s.season_start_month,
-        season_end_month:   s.season_end_month,
         website_url:        s.website_url || null,
         facebook_url:       s.facebook_url || null,
         instagram_url:      s.instagram_url || null,
@@ -806,21 +804,10 @@ export default function ClubDefaultsClient({
         </Field>
         <Divider sx={{ my: '20px' }} />
 
-        <Field label="Competition season" hint={`Season runs ${MONTHS[s.season_start_month - 1]} through ${MONTHS[s.season_end_month - 1]}.`}>
-          <Stack direction="row" spacing={2}>
-            <Box sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: 11, color: 'text.secondary', mb: 0.5 }}>Start month</Typography>
-              <Select size="small" fullWidth value={s.season_start_month} onChange={e => set('season_start_month', Number(e.target.value))} sx={{ fontSize: 14 }}>
-                {MONTHS.map((m, i) => <MenuItem key={i} value={i + 1} sx={{ fontSize: 14 }}>{m}</MenuItem>)}
-              </Select>
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: 11, color: 'text.secondary', mb: 0.5 }}>End month</Typography>
-              <Select size="small" fullWidth value={s.season_end_month} onChange={e => set('season_end_month', Number(e.target.value))} sx={{ fontSize: 14 }}>
-                {MONTHS.map((m, i) => <MenuItem key={i} value={i + 1} sx={{ fontSize: 14 }}>{m}</MenuItem>)}
-              </Select>
-            </Box>
-          </Stack>
+        <Field label="Club year starts" hint="The month the new competition season begins. Also used as the annual membership renewal month.">
+          <Select size="small" fullWidth value={s.season_start_month} onChange={e => set('season_start_month', Number(e.target.value))} sx={{ fontSize: 14 }}>
+            {MONTHS.map((m, i) => <MenuItem key={i} value={i + 1} sx={{ fontSize: 14 }}>{m}</MenuItem>)}
+          </Select>
         </Field>
         <Divider sx={{ my: '20px' }} />
 

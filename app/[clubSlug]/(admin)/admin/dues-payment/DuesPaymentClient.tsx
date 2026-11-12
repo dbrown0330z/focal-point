@@ -255,7 +255,7 @@ type Props = {
   initialCashappHandle:      string | null
   initialZelleContact:       string | null
   initialAnnualStandard:     number | null
-  initialRenewalMonth:       number | null
+  seasonStartMonth:          number | null
   initialProrate:            boolean
   initialExemptHonorary:     boolean
   initialGracePeriodDays:    number | null
@@ -277,7 +277,7 @@ export default function DuesPaymentClient({
   initialCashappHandle,
   initialZelleContact,
   initialAnnualStandard,
-  initialRenewalMonth,
+  seasonStartMonth,
   initialProrate,
   initialExemptHonorary,
   initialGracePeriodDays,
@@ -301,7 +301,6 @@ export default function DuesPaymentClient({
 
   // Dues amounts
   const [annualStandard, setAnnualStandard] = useState(initialAnnualStandard?.toString() ?? '')
-  const [renewalMonth,   setRenewalMonth]   = useState<number | null>(initialRenewalMonth ?? null)
 
   // Grace period
   const [gracePeriodMode,   setGracePeriodMode]   = useState<GracePeriodMode>(() => daysToMode(initialGracePeriodDays))
@@ -376,7 +375,6 @@ export default function DuesPaymentClient({
         cashappHandle:    enabledMethods.includes('cashapp')     ? cashappHandle || null : null,
         zelleContact:     enabledMethods.includes('zelle')       ? zelleContact || null : null,
         annualStandard:   annualStandard ? parseFloat(annualStandard) : null,
-        renewalMonth,
         prorate,
         exemptHonorary,
         gracePeriodDays:    getGracePeriodDays(),
@@ -461,17 +459,21 @@ export default function DuesPaymentClient({
             </Box>
 
             <SubSection label="Annual renewal month">
-              <Select
-                size="small" displayEmpty
-                value={renewalMonth != null ? String(renewalMonth) : ''}
-                onChange={e => { const v = e.target.value as string; mark(setRenewalMonth)(v === '' ? null : Number(v)) }}
-                sx={{ fontSize: 13, minWidth: 200 }}
-              >
-                <MenuItem value="" disabled sx={{ fontSize: 13, color: 'text.hint' }}>Select…</MenuItem>
-                {MONTHS.map((m, i) => (
-                  <MenuItem key={m} value={String(i + 1)} sx={{ fontSize: 13 }}>{m}</MenuItem>
-                ))}
-              </Select>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Typography sx={{ fontSize: 13, color: 'text.primary' }}>
+                  {seasonStartMonth ? MONTHS[seasonStartMonth - 1] : <Typography component="span" sx={{ fontSize: 13, color: 'text.hint' }}>Not set</Typography>}
+                </Typography>
+                <Typography
+                  component="a"
+                  href="club-defaults"
+                  sx={{ fontSize: 12, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                >
+                  Change in Club Basics →
+                </Typography>
+              </Box>
+              <Typography sx={{ mt: 0.75, fontSize: 12, color: 'text.secondary' }}>
+                Set by the Club year start month in Club Basics.
+              </Typography>
             </SubSection>
 
             <SubSection label="Grace period">

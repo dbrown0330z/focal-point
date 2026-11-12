@@ -26,7 +26,6 @@ export async function saveClubSettings(data: {
   from_email: string
   timezone: string
   season_start_month: number
-  season_end_month: number
   website_url?: string | null
   facebook_url?: string | null
   instagram_url?: string | null
