@@ -6,21 +6,6 @@ import { useEffect, useRef, useState } from 'react'
 import { logout } from '@/app/(auth)/actions'
 import { useTheme } from './ThemeProvider'
 
-const topLinks = [
-  { href: '/',         label: 'Home' },
-  { href: '/calendar', label: 'Calendar' },
-  { href: '/library',  label: 'My Images' },
-]
-
-const competitionsLinks = [
-  { href: '/competitions',         label: 'Current Competition' },
-  { href: '/competitions/results', label: 'Results' },
-]
-
-const ourClubLinks = [
-  { href: '/our-club/about', label: 'About our club' },
-  { href: '/our-club/join',  label: 'Join / Renew' },
-]
 
 function getInitials(name: string) {
   const parts = name.trim().split(/\s+/)
@@ -29,7 +14,7 @@ function getInitials(name: string) {
 }
 
 export default function MemberNav({
-  clubSlug: _clubSlug,
+  clubSlug = '',
   clubName: _clubName,
   displayName,
   email,
@@ -49,6 +34,24 @@ export default function MemberNav({
   customTabs?:  unknown[]
   pendingCount?: number
 }) {
+  const base = `/${clubSlug}`
+
+  const topLinks = [
+    { href: `${base}`,             label: 'Home' },
+    { href: `${base}/calendar`,    label: 'Calendar' },
+    { href: `${base}/library`,     label: 'My Images' },
+  ]
+
+  const competitionsLinks = [
+    { href: `${base}/competitions`,         label: 'Current Competition' },
+    { href: `${base}/competitions/results`, label: 'Results' },
+  ]
+
+  const ourClubLinks = [
+    { href: `${base}/our-club/about`, label: 'About our club' },
+    { href: `${base}/our-club/join`,  label: 'Join / Renew' },
+  ]
+
   const pathname = usePathname()
   const { theme, toggle } = useTheme()
   const [open, setOpen] = useState(false)
@@ -224,7 +227,7 @@ export default function MemberNav({
               {/* Menu items */}
               <div className="py-1">
                 <Link
-                  href="/profile"
+                  href={`${base}/profile`}
                   onClick={() => setOpen(false)}
                   className="flex items-center px-4 py-2 text-sm text-content-primary hover:bg-surface-1 transition-colors"
                 >
@@ -233,7 +236,7 @@ export default function MemberNav({
 
                 {role === 'admin' && (
                   <Link
-                    href="/admin"
+                    href={`${base}/admin`}
                     onClick={() => setOpen(false)}
                     className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-action-primary hover:bg-surface-1 transition-colors"
                   >
