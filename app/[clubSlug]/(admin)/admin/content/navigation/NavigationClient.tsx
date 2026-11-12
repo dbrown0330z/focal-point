@@ -268,6 +268,8 @@ function SysSubRow({
   builtinVisibility?: BuiltinPageVisibility
   onChangeVisibility?: (key: 'about' | 'calendar', value: BuiltinVisibility) => void
 }) {
+  const params   = useParams()
+  const clubSlug = typeof params.clubSlug === 'string' ? params.clubSlug : ''
   return (
     <div className="flex items-center gap-3 py-2 pl-10 pr-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
       <span className="flex-1 text-[13px]" style={{ color: 'var(--text-secondary)' }}>{item.label}</span>
@@ -408,8 +410,6 @@ function SysNavRow({
   builtinVisibility?: BuiltinPageVisibility
   onChangeVisibility?: (key: 'about' | 'calendar', value: BuiltinVisibility) => void
 }) {
-  const params     = useParams()
-  const clubSlug   = typeof params.clubSlug === 'string' ? params.clubSlug : ''
   const [open, setOpen] = useState(false)
   const [localCustom, setLocalCustom] = useState<CustomPage[]>(customSubPages)
   const dragIdx = useRef<number | null>(null)
