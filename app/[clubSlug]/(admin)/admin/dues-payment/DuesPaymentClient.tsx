@@ -487,15 +487,12 @@ export default function DuesPaymentClient({
                 </Typography>
                 <Typography
                   component="a"
-                  href="club-defaults"
+                  href={`/${clubSlug}/admin/club-defaults`}
                   sx={{ fontSize: 12, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
                 >
                   Change in Club Basics →
                 </Typography>
               </Box>
-              <Typography sx={{ mt: 0.75, fontSize: 12, color: 'text.secondary' }}>
-                Set by the Club year start month in Club Basics.
-              </Typography>
             </SubSection>
 
             <SubSection label="Grace period">
