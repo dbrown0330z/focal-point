@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, createContext, useContext, useEffect } from 'react'
+import { useState, useTransition, createContext, useContext } from 'react'
 import { useRouter } from 'next/navigation'
 import { Collapse, Dialog, Switch } from '@mui/material'
 import { createCompetitionFromSchedule } from '../actions'
@@ -98,22 +98,7 @@ const C_LIGHT = {
 }
 
 type CType = typeof C_DARK
-const ThemeCtx = createContext<CType>(C_DARK)
-
-function useDarkMode(): boolean {
-  const [dark, setDark] = useState(() =>
-    typeof window !== 'undefined'
-      ? window.matchMedia('(prefers-color-scheme: dark)').matches
-      : false
-  )
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = (e: MediaQueryListEvent) => setDark(e.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [])
-  return dark
-}
+const ThemeCtx = createContext<CType>(C_LIGHT)
 
 function differs(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) !== JSON.stringify(b)
@@ -1406,8 +1391,7 @@ export default function CreateCompetitionWizard({
 }) {
   const router = useRouter()
   const [saving, startSaving] = useTransition()
-  const isDark = useDarkMode()
-  const C = isDark ? C_DARK : C_LIGHT
+  const C = C_LIGHT
 
   // ── Step ──
   const [step, setStep] = useState(1)
