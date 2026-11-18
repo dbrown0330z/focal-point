@@ -51,35 +51,37 @@ export default function DraftBanner({ checklist: initial }: { checklist: DraftCh
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
         <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: palette.dot }} />
 
-        <div style={{ flex: 1, fontSize: 14, color: palette.text, lineHeight: 1.5 }}>
+        <div style={{ flex: 1, fontSize: 14, color: palette.text, lineHeight: 1.6 }}>
           {allDone ? (
             'Your site is ready to go live — members can\'t access it yet.'
           ) : (
             <>
-              Your site is in <strong>draft mode</strong> — anyone visiting your URL will see a coming soon page until you publish.
-              {' '}You must{' '}
-              <a
-                href={`/${checklist.clubSlug}/admin/dues-payment`}
-                style={{ color: W.text, fontWeight: 700, textDecoration: 'underline' }}
+              <div>Your site is in <strong>draft mode</strong> — visitors will see a coming soon page until you go live.</div>
+              <div style={{ marginTop: 2 }}>
+                Before publishing, you need to{' '}
+                <a
+                  href={`/${checklist.clubSlug}/admin/dues-payment`}
+                  style={{ color: W.text, fontWeight: 700, textDecoration: 'underline' }}
+                >
+                  set up dues &amp; payment
+                </a>
+                {' '}— required even if membership is free.
+              </div>
+              <button
+                type="button"
+                onClick={() => setSuggestedOpen(v => !v)}
+                style={{
+                  marginTop: 4, background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 12, fontWeight: 500, color: palette.text, padding: 0,
+                  opacity: 0.65, fontFamily: 'inherit', textDecoration: 'underline',
+                  textDecorationStyle: 'dotted',
+                }}
               >
-                indicate dues &amp; payment
-              </a>
-              {' '}(if any) before publishing.
+                Optional: more things to set up before launch {suggestedOpen ? '↑' : '↓'}
+              </button>
             </>
           )}
         </div>
-
-        <button
-          type="button"
-          onClick={() => setSuggestedOpen(v => !v)}
-          style={{
-            flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer',
-            fontSize: 14, fontWeight: 500, color: palette.text, padding: '2px 6px',
-            opacity: 0.75, whiteSpace: 'nowrap', fontFamily: 'inherit',
-          }}
-        >
-          Suggested {suggestedOpen ? '↑' : '↓'}
-        </button>
 
         <button
           type="button"
