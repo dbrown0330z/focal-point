@@ -23,15 +23,27 @@ export default async function AdminLayout({
 
   const clubId = await requireClubId()
 
-  const [{ data: membership }, { data: club }] = await Promise.all([
+  const [
+    { data: membership },
+    { data: club },
+    { count: competitionCount },
+    { count: postCount },
+  ] = await Promise.all([
     admin.from('club_memberships').select('role').eq('user_id', user.id).eq('club_id', clubId).maybeSingle(),
     admin.from('clubs').select('is_published, dues_mode').eq('id', clubId).single(),
+    admin.from('competitions').select('id', { count: 'exact', head: true }).eq('club_id', clubId).is('deleted_at', null),
+    admin.from('posts').select('id', { count: 'exact', head: true }).eq('club_id', clubId),
   ])
 
   if (membership?.role !== 'admin') redirect(`/${clubSlug}`)
 
   const draftBanner = !club?.is_published ? (
-    <DraftBanner checklist={{ duesModeOk: !!club?.dues_mode, clubSlug }} />
+    <DraftBanner checklist={{
+      clubSlug,
+      duesModeOk:     !!club?.dues_mode,
+      hasCompetition: (competitionCount ?? 0) > 0,
+      hasPost:        (postCount ?? 0) > 0,
+    }} />
   ) : null
 
   return (

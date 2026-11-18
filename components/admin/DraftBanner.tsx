@@ -4,30 +4,78 @@ import { useState, useTransition } from 'react'
 import { publishSite } from '@/app/[clubSlug]/(admin)/admin/draft/actions'
 
 export type DraftChecklist = {
-  duesModeOk: boolean
-  clubSlug:   string
+  clubSlug:        string
+  duesModeOk:      boolean
+  hasCompetition:  boolean
+  hasPost:         boolean
 }
 
 // Light-mode palette — hardcoded to avoid OS dark-mode bleed into admin
-const W = { bg: '#FFF0C0', text: '#6B4000', dot: '#C47A00', border: 'rgba(196,122,0,0.25)' }
-const S = { bg: '#EDFAF0', text: '#174A1A', dot: '#2E7D32', border: 'rgba(46,125,50,0.20)' }
+const BG     = '#FFF8E1'
+const BORDER = 'rgba(196,122,0,0.20)'
+const DOT    = '#C47A00'
+const TEXT   = '#5A4000'
+const MUTED  = '#8A6820'
 
-const SUGGESTED = [
-  { label: 'Review Club Basics',             desc: 'Fill in your club name, location, season dates, and other key details.',   path: '/admin/club-defaults' },
-  { label: 'Customize the homepage',          desc: 'Edit the hero text and welcome message visitors see on your public site.', path: '/admin/content' },
-  { label: 'Customize your About page',       desc: 'Tell your story — history, what you shoot, and who you welcome.',          path: '/admin/content/about' },
-  { label: 'Schedule your first competition', desc: 'Create a competition template and open entries for your first round.',     path: '/admin/competitions/new' },
-  { label: 'Write a welcome post',            desc: 'Publish a news post so members see something when they first log in.',     path: '/admin/posts/new' },
-]
+function CheckIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+}
+
+function ArrowIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+    </svg>
+  )
+}
+
+function Item({ done, label, href }: { done: boolean; label: string; href: string }) {
+  return (
+    <a
+      href={href}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        fontSize: 12,
+        fontWeight: done ? 500 : 600,
+        color: done ? MUTED : TEXT,
+        textDecoration: 'none',
+        padding: '3px 8px',
+        borderRadius: 20,
+        border: `1px solid ${done ? 'rgba(196,122,0,0.18)' : 'rgba(196,122,0,0.35)'}`,
+        background: done ? 'rgba(196,122,0,0.06)' : 'rgba(196,122,0,0.12)',
+        opacity: done ? 0.7 : 1,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <span style={{ color: done ? '#2E7D32' : DOT, flexShrink: 0 }}>
+        {done ? <CheckIcon /> : <ArrowIcon />}
+      </span>
+      {label}
+    </a>
+  )
+}
 
 export default function DraftBanner({ checklist: initial }: { checklist: DraftChecklist }) {
-  const [checklist]                        = useState(initial)
-  const [suggestedOpen, setSuggestedOpen]  = useState(false)
-  const [publishing, start]               = useTransition()
-  const [publishError, setPublishError]   = useState<string | null>(null)
+  const [checklist] = useState(initial)
+  const [publishing, start] = useTransition()
+  const [publishError, setPublishError] = useState<string | null>(null)
 
-  const allDone = checklist.duesModeOk
-  const palette = allDone ? S : W
+  const { clubSlug, duesModeOk, hasCompetition, hasPost } = checklist
+
+  const items = [
+    { done: duesModeOk,     label: 'Dues & payment',      href: `/${clubSlug}/admin/dues-payment` },
+    { done: false,          label: 'Club Basics',          href: `/${clubSlug}/admin/club-defaults` },
+    { done: false,          label: 'Homepage',             href: `/${clubSlug}/admin/content` },
+    { done: false,          label: 'About page',           href: `/${clubSlug}/admin/content/about` },
+    { done: hasCompetition, label: 'First competition',    href: `/${clubSlug}/admin/competitions/new` },
+    { done: hasPost,        label: 'Welcome post',         href: `/${clubSlug}/admin/posts/new` },
+  ]
 
   async function handlePublish() {
     setPublishError(null)
@@ -39,60 +87,39 @@ export default function DraftBanner({ checklist: initial }: { checklist: DraftCh
 
   return (
     <div style={{
-      position: 'relative',
-      background: palette.bg,
-      borderBottom: `1px solid ${palette.border}`,
-      boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+      background: BG,
+      borderBottom: `1px solid ${BORDER}`,
+      boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
       fontFamily: 'var(--font-primary)',
-      zIndex: 40,
     }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
 
-      {/* ── Main bar ── */}
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
-        <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: palette.dot }} />
+        {/* Dot */}
+        <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: DOT }} />
 
-        <div style={{ flex: 1, fontSize: 14, color: palette.text, lineHeight: 1.6 }}>
-          {allDone ? (
-            'Your site is ready to go live — members can\'t access it yet.'
-          ) : (
-            <>
-              <div>Your site is in <strong>draft mode</strong> — visitors will see a coming soon page until you go live.</div>
-              <div style={{ marginTop: 2 }}>
-                Before publishing, you need to{' '}
-                <a
-                  href={`/${checklist.clubSlug}/admin/dues-payment`}
-                  style={{ color: W.text, fontWeight: 700, textDecoration: 'underline' }}
-                >
-                  set up dues &amp; payment
-                </a>
-                {' '}— required even if membership is free.
-              </div>
-              <button
-                type="button"
-                onClick={() => setSuggestedOpen(v => !v)}
-                style={{
-                  marginTop: 4, background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: 12, fontWeight: 500, color: palette.text, padding: 0,
-                  opacity: 0.65, fontFamily: 'inherit', textDecoration: 'underline',
-                  textDecorationStyle: 'dotted',
-                }}
-              >
-                Optional: more things to set up before launch {suggestedOpen ? '↑' : '↓'}
-              </button>
-            </>
-          )}
+        {/* Text + checklist */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ fontSize: 13, color: TEXT }}>
+            Your site is in <strong>draft mode</strong> — visitors see a coming soon page until you go live.
+            {' '}You can publish at any time; here&rsquo;s what&rsquo;s worth setting up first:
+          </span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+            {items.map(item => (
+              <Item key={item.href} done={item.done} label={item.label} href={item.href} />
+            ))}
+          </div>
         </div>
 
+        {/* Publish button — always active */}
         <button
           type="button"
           onClick={handlePublish}
-          disabled={!allDone || publishing}
+          disabled={publishing}
           style={{
             flexShrink: 0,
             padding: '7px 16px', borderRadius: 6, fontSize: 14, fontWeight: 600,
-            background: allDone ? S.dot : 'rgba(0,0,0,0.10)',
-            color: allDone ? 'white' : '#A0A0A0',
-            border: 'none', cursor: allDone ? 'pointer' : 'default',
+            background: '#2E7D32', color: 'white',
+            border: 'none', cursor: publishing ? 'default' : 'pointer',
             opacity: publishing ? 0.7 : 1, fontFamily: 'inherit',
           }}
         >
@@ -104,47 +131,6 @@ export default function DraftBanner({ checklist: initial }: { checklist: DraftCh
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px 10px' }}>
           <p style={{ margin: 0, fontSize: 13, color: '#D32F2F' }}>⚠ {publishError}</p>
         </div>
-      )}
-
-      {/* ── Suggested overlay (drops over page content) ── */}
-      {suggestedOpen && (
-        <>
-          <div
-            style={{ position: 'fixed', inset: 0, zIndex: 48 }}
-            onClick={() => setSuggestedOpen(false)}
-            aria-hidden
-          />
-          <div style={{
-            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 49,
-            background: '#FFFFFF',
-            borderBottom: '1px solid rgba(0,0,0,0.12)',
-            boxShadow: '0 8px 28px rgba(0,0,0,0.12)',
-          }}>
-            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '18px 24px 22px' }}>
-              <p style={{ margin: '0 0 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#7E8EA3' }}>
-                Suggested — nice to have before launch
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
-                {SUGGESTED.map(item => (
-                  <a
-                    key={item.path}
-                    href={`/${checklist.clubSlug}${item.path}`}
-                    style={{ display: 'block', padding: '10px 14px', borderRadius: 8, border: '1px solid #D8DDE7', textDecoration: 'none', background: '#F7F8FA' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#EDF0F5')}
-                    onMouseLeave={e => (e.currentTarget.style.background = '#F7F8FA')}
-                  >
-                    <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#131F2E', marginBottom: 3 }}>
-                      {item.label} →
-                    </span>
-                    <span style={{ display: 'block', fontSize: 12, color: '#5A6C82', lineHeight: 1.45 }}>
-                      {item.desc}
-                    </span>
-                  </a>
-                ))}
-              </div>
-            </div>
-          </div>
-        </>
       )}
     </div>
   )
