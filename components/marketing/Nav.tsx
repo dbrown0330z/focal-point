@@ -30,7 +30,10 @@ export function Nav() {
               {item.label}
             </Link>
           ))}
-          <Link href="/pricing" className="mkt-btn mkt-btn-amber mkt-btn-sm" style={{ marginLeft: 12 }}>
+          <Link href="/login" className="mkt-nav-link" style={{ marginLeft: 4 }}>
+            Sign in
+          </Link>
+          <Link href="/pricing" className="mkt-btn mkt-btn-amber mkt-btn-sm" style={{ marginLeft: 8 }}>
             Start free trial
           </Link>
         </div>
@@ -57,6 +60,13 @@ export function Nav() {
             {item.label}
           </Link>
         ))}
+        <Link
+          href="/login"
+          className="mkt-nav-link"
+          onClick={() => setOpen(false)}
+        >
+          Sign in
+        </Link>
         <Link
           href="/pricing"
           className="mkt-btn mkt-btn-amber"
