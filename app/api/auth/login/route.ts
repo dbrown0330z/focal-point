@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 /**
  * POST /api/auth/login
@@ -42,9 +43,24 @@ export async function POST(request: NextRequest) {
   const isFpAdmin = next === '/fp-admin' || next?.startsWith('/fp-admin/')
   const errorBase = isFpAdmin ? '/login?fp=1' : '/login'
 
+  // If no explicit destination, look up the user's club and send them home
+  let destination = next ?? null
+  if (!error && !destination && data.user) {
+    const service = createServiceClient()
+    const { data: membership } = await service
+      .from('club_memberships')
+      .select('clubs(slug)')
+      .eq('user_id', data.user.id)
+      .in('membership_status', ['active', 'approved'])
+      .limit(1)
+      .single()
+    const clubSlug = (membership?.clubs as { slug: string } | null)?.slug
+    if (clubSlug) destination = `/${clubSlug}`
+  }
+
   const redirectUrl = error
     ? new URL(`${errorBase}${errorBase.includes('?') ? '&' : '?'}error=${encodeURIComponent(error.message)}${next ? `&next=${encodeURIComponent(next)}` : ''}`, request.url)
-    : new URL(next ?? '/', request.url)
+    : new URL(destination ?? '/', request.url)
 
   const response = NextResponse.redirect(redirectUrl, { status: 303 })
 
