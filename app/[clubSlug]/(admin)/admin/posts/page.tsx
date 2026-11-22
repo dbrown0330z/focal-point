@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubSlug, requireClubId } from '@/lib/club-context'
 import {
   Box,
   Button,
@@ -29,10 +28,22 @@ const COL_CELL = {
   fontFamily: 'inherit',
 }
 
-export default async function AdminPostsPage() {
-  const clubSlug = await requireClubSlug()
-  const clubId   = await requireClubId()
+export default async function AdminPostsPage({
+  params,
+}: {
+  params: Promise<{ clubSlug: string }>
+}) {
+  const { clubSlug } = await params
   const admin = createServiceClient()
+
+  // Resolve club_id from URL slug — avoids relying on middleware cookies
+  const { data: club } = await admin
+    .from('clubs')
+    .select('id')
+    .eq('slug', clubSlug)
+    .single()
+
+  const clubId = club?.id ?? ''
 
   const { data: posts } = await admin
     .from('posts')
