@@ -87,8 +87,8 @@
   --status-success:      #2E7D32;
   --status-success-bg:   #EDFAF0;
   --status-success-text: #174A1A;
-  --font-heading: var(--font-lora, 'Lora', Georgia, serif);
-  --font-body:    var(--font-lora, 'Lora', Georgia, serif);
+  --font-heading: var(--font-inter, 'Inter', system-ui, sans-serif);
+  --font-body:    var(--font-inter, 'Inter', system-ui, sans-serif);
   font-family: var(--font-body);
 
   --surface-0: #F7F8FA;

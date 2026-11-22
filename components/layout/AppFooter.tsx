@@ -1,14 +1,30 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { getClubContext } from '@/lib/club-context'
+import { IrisMark } from '@/components/marketing/IrisMark'
 
 export type FooterVariant = 'auth' | 'app' | 'judge'
 
-// SVG logos (light/dark) are served from /public.
-// Mono PNG is the fallback while SVGs aren't available.
-const LOGO_LIGHT = '/fp-logo-light.svg'
-const LOGO_DARK  = '/fp-logo-dark.svg'
-
 const MARKETING_URL = `https://${process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'focalpointhq.com'}?ref=app`
+
+// Inline wordmark — avoids font-loading issues when SVG is served as <img>
+function FocalPointWordmark() {
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 8,
+      fontFamily: "var(--font-nunito, 'Nunito', system-ui, sans-serif)",
+      fontSize: 15,
+      fontWeight: 700,
+      letterSpacing: '-0.3px',
+      color: 'var(--text-primary)',
+      lineHeight: 1,
+    }}>
+      <IrisMark size={22} />
+      Focal<span style={{ color: '#E26A3E' }}>.</span>Point
+    </span>
+  )
+}
 
 export async function AppFooter({ variant }: { variant: FooterVariant }) {
   const ctx     = await getClubContext()
@@ -44,28 +60,12 @@ export async function AppFooter({ variant }: { variant: FooterVariant }) {
         }
         .app-footer-logo {
           display: inline-block;
-          line-height: 0;
+          line-height: 1;
           text-decoration: none;
-          opacity: 0.65;
+          opacity: 0.60;
           transition: opacity 0.2s ease;
         }
         .app-footer-logo:hover { opacity: 1; }
-        /* light mode: show light logo */
-        .app-footer-logo-light { display: block; }
-        .app-footer-logo-dark  { display: none;  }
-        /* OS dark mode (when no .dark class set by app yet) */
-        @media (prefers-color-scheme: dark) {
-          .app-footer-logo-light { display: none; }
-          .app-footer-logo-dark  { display: block; }
-        }
-        /* explicit .dark class overrides OS preference */
-        :root.dark .app-footer-logo-light { display: none;  }
-        :root.dark .app-footer-logo-dark  { display: block; }
-        .app-footer-logo img {
-          width: 120px;
-          height: auto;
-          display: block;
-        }
         .app-footer-copy {
           font-size: 12px;
           font-family: var(--font-nunito, 'Nunito', system-ui, sans-serif);
@@ -97,16 +97,7 @@ export async function AppFooter({ variant }: { variant: FooterVariant }) {
           <div className="app-footer-body">
 
             <a href={MARKETING_URL} target="_blank" rel="noopener noreferrer" aria-label="Focal Point home" className="app-footer-logo">
-              {/* Light-mode logo */}
-              <span className="app-footer-logo-light">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={LOGO_LIGHT} alt="Focal Point" width={120} height={41} />
-              </span>
-              {/* Dark-mode logo */}
-              <span className="app-footer-logo-dark">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={LOGO_DARK} alt="Focal Point" width={120} height={41} />
-              </span>
+              <FocalPointWordmark />
             </a>
 
             <p className="app-footer-copy">
