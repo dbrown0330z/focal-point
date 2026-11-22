@@ -338,6 +338,9 @@ export default function DuesPaymentClient({
     setEnabledMethods(prev => checked ? [...prev, method] : prev.filter(m => m !== method))
   }
 
+  // Dues gating: payment methods only make sense when dues > 0
+  const hasDuesAmount = annualStandard !== '' && parseFloat(annualStandard || '0') > 0
+
   // Validation: each selected method must have its required field filled
   const methodFieldMap: Partial<Record<ManualMethod, string>> = {
     'paypal-link': paypalLink,
@@ -353,6 +356,7 @@ export default function DuesPaymentClient({
   // Save
   const [saving, startSave]         = useTransition()
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const [saveError,  setSaveError]  = useState<string | null>(null)
   const handleSaveRef = useRef(handleSave)
   useEffect(() => { handleSaveRef.current = handleSave })
   useEffect(() => { registerSave(() => handleSaveRef.current()) }, [registerSave])
@@ -386,6 +390,7 @@ export default function DuesPaymentClient({
         joinFee:            joinFee ? parseFloat(joinFee) : null,
       })
       setSaveStatus(result.error ? 'error' : 'saved')
+      setSaveError(result.error ?? null)
       if (!result.error) markClean()
     })
   }
@@ -454,18 +459,6 @@ export default function DuesPaymentClient({
               <Typography sx={{ fontSize: 15, fontWeight: 600, color: '#131F2E' }}>Annual dues</Typography>
             </Box>
 
-            {enabledMethods.length === 0 && (
-              <Alert severity="warning" sx={{ mb: 2, py: 0.5, fontSize: 13 }}>
-                No payment methods configured yet.{' '}
-                <Box component="span"
-                  onClick={() => setActiveTab(1)}
-                  sx={{ fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  Set them up on the Payment Methods tab.
-                </Box>
-              </Alert>
-            )}
-
             <Box sx={{ display: 'flex', gap: 2 }}>
               <Box sx={{ flex: 1 }}>
                 <FieldLabel>Standard member ($/year)</FieldLabel>
@@ -479,6 +472,12 @@ export default function DuesPaymentClient({
               </Box>
               <Box sx={{ flex: 1 }} />
             </Box>
+
+            {!hasDuesAmount && (
+              <Typography sx={{ mt: 1.5, fontSize: 13, color: 'text.secondary', fontStyle: 'italic' }}>
+                Membership is currently free — members can join at no cost. Add an annual amount above if your club charges dues.
+              </Typography>
+            )}
 
             <SubSection label="Annual renewal month">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -624,7 +623,23 @@ export default function DuesPaymentClient({
       {/* ══════════════════════════════════════════════════════════════════════
           TAB 1 — PAYMENT METHODS
           ══════════════════════════════════════════════════════════════════ */}
-      {activeTab === 1 && (
+      {activeTab === 1 && !hasDuesAmount && (
+        <Box sx={{ maxWidth: 640 }}>
+          <Alert severity="info" sx={{ fontSize: 13 }}>
+            <strong>No payment methods needed</strong> — your membership is currently free.{' '}
+            <Box
+              component="span"
+              onClick={() => setActiveTab(0)}
+              sx={{ fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              Set an annual dues amount on the Member Dues tab
+            </Box>
+            {' '}to configure how members pay.
+          </Alert>
+        </Box>
+      )}
+
+      {activeTab === 1 && hasDuesAmount && (
         <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start', maxWidth: 920 }}>
 
           {/* ── Left: method selection ──────────────────────────────────── */}
@@ -675,6 +690,14 @@ export default function DuesPaymentClient({
                           <FieldLabel>{method.fieldLabel}</FieldLabel>
                           <TextField
                             size="small" fullWidth
+                            error={missingFields.includes(method.value) && isDirty}
+                            helperText={
+                              missingFields.includes(method.value) && isDirty
+                                ? `Required — enter your ${method.fieldLabel.toLowerCase()} to save ${method.label}.`
+                                : method.value === 'venmo'   ? 'Include the @ symbol, e.g. @yourclub'
+                                : method.value === 'cashapp' ? 'Include the $ symbol, e.g. $yourclub'
+                                : undefined
+                            }
                             value={
                               method.value === 'etransfer' ? etransferEmail :
                               method.value === 'zelle'     ? zelleContact :
@@ -774,10 +797,14 @@ export default function DuesPaymentClient({
             {saving ? 'Saving…' : 'Save changes'}
           </Button>
           {hasValidationErrors && isDirty && (
-            <Alert severity="warning" sx={{ py: 0, px: 1.5 }}>Fill in the required field for each selected payment method</Alert>
+            <Alert severity="warning" sx={{ py: 0, px: 1.5 }}>
+              {missingFields.length === 1
+                ? `Fill in the required field for ${MANUAL_METHODS.find(m => m.value === missingFields[0])?.label ?? missingFields[0]}`
+                : `Fill in required fields for: ${missingFields.map(m => MANUAL_METHODS.find(d => d.value === m)?.label ?? m).join(', ')}`}
+            </Alert>
           )}
           {saveStatus === 'saved' && !isDirty && <Alert severity="success" sx={{ py: 0, px: 1.5 }}>Settings saved</Alert>}
-          {saveStatus === 'error'  && <Alert severity="error"   sx={{ py: 0, px: 1.5 }}>Save failed — please try again</Alert>}
+          {saveStatus === 'error'  && <Alert severity="error"   sx={{ py: 0, px: 1.5 }}>{saveError ?? 'Save failed — please try again'}</Alert>}
         </Box>
       </Box>
 
