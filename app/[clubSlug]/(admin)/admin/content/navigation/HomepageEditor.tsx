@@ -41,6 +41,7 @@ import {
   type AffiliationsSettings,
   type DualPanelSettings,
   type CompetitionsSettings,
+  type NewsPostsSettings,
 } from '@/lib/homepage/types'
 import type { AdminGalleryData, ClubMember } from '@/app/[clubSlug]/(admin)/admin/content/galleries/ClubGalleriesTab'
 import { WelcomeTemplatePicker } from '@/components/setup/WelcomeTemplatePicker'
@@ -91,6 +92,10 @@ const MODAL_META: Record<string, { title: string; description: string }> = {
   'competitions': {
     title:       'Competitions (full width)',
     description: 'Full-width view of open competitions and recent results',
+  },
+  'news-posts': {
+    title:       'News & Posts',
+    description: 'Latest published posts from the admin — a news feed on your homepage',
   },
 }
 
@@ -844,6 +849,43 @@ function CompetitionsModalBody({ block, onChange }: { block: ContentBlock; onCha
   )
 }
 
+function NewsPostsModalBody({ block, onChange }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void }) {
+  const s = block.newsPostsSettings ?? { heading: 'Latest news', count: 5, layout: 'list' as const }
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      <TextField
+        label="Section heading"
+        value={s.heading}
+        onChange={e => onChange({ newsPostsSettings: { ...s, heading: e.target.value } })}
+        size="small" fullWidth
+      />
+      <FormControl size="small" fullWidth>
+        <InputLabel>Number of posts to show</InputLabel>
+        <Select
+          label="Number of posts to show"
+          value={s.count}
+          onChange={e => onChange({ newsPostsSettings: { ...s, count: Number(e.target.value) } })}
+        >
+          {[3, 5, 8, 10].map(n => (
+            <MenuItem key={n} value={n}>{n} posts</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      <FormControl size="small" fullWidth>
+        <InputLabel>Layout</InputLabel>
+        <Select
+          label="Layout"
+          value={s.layout}
+          onChange={e => onChange({ newsPostsSettings: { ...s, layout: e.target.value as NewsPostsSettings['layout'] } })}
+        >
+          <MenuItem value="list">List (title + date)</MenuItem>
+          <MenuItem value="cards">Cards (title + excerpt)</MenuItem>
+        </Select>
+      </FormControl>
+    </Box>
+  )
+}
+
 // ── Block edit modal ───────────────────────────────────────────────────────────
 
 function BlockEditModal({
@@ -897,6 +939,7 @@ function BlockEditModal({
         {block.type === 'custom-content'   && <CustomContentModalBody    block={block} onChange={onUpdate} />}
         {block.type === 'affiliations'     && <AffiliationsModalBody     block={block} onChange={onUpdate} />}
         {block.type === 'competitions'     && <CompetitionsModalBody     block={block} onChange={onUpdate} />}
+        {block.type === 'news-posts'       && <NewsPostsModalBody        block={block} onChange={onUpdate} />}
       </DialogContent>
 
       {/* Visibility footer — shown for all non-fixed blocks */}
@@ -946,6 +989,7 @@ const BLOCK_DISPLAY_NAMES: Record<string, string> = {
   'competitions':     'Competitions (full width)',
   'member-spotlight': 'Member spotlight',
   'affiliations':     'Affiliations & links',
+  'news-posts':       'News & Posts',
 }
 
 // ── Block subtitle ─────────────────────────────────────────────────────────────

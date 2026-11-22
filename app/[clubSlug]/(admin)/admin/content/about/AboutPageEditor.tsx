@@ -5,24 +5,16 @@ import {
   Box,
   Button,
   Checkbox,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
   FormControlLabel,
-  InputAdornment,
-  List,
-  ListItemButton,
-  ListItemText,
   Menu,
   MenuItem,
-  Popover,
   TextField,
   Switch,
-  ToggleButton,
-  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from '@mui/material'
@@ -32,18 +24,9 @@ import FormatUnderlinedIcon   from '@mui/icons-material/FormatUnderlined'
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted'
 import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered'
 import FormatClearIcon        from '@mui/icons-material/FormatClear'
-import FormatColorTextIcon    from '@mui/icons-material/FormatColorText'
-import FormatQuoteIcon        from '@mui/icons-material/FormatQuote'
-import HorizontalRuleIcon     from '@mui/icons-material/HorizontalRule'
-import TableChartIcon         from '@mui/icons-material/TableChart'
-import InsertPhotoIcon        from '@mui/icons-material/InsertPhoto'
 import LinkIcon               from '@mui/icons-material/Link'
-import MoreHorizIcon          from '@mui/icons-material/MoreHoriz'
+import LinkOffIcon            from '@mui/icons-material/LinkOff'
 import KeyboardArrowDownIcon  from '@mui/icons-material/KeyboardArrowDown'
-import UndoIcon               from '@mui/icons-material/Undo'
-import RedoIcon               from '@mui/icons-material/Redo'
-import LightModeIcon          from '@mui/icons-material/LightMode'
-import DarkModeIcon           from '@mui/icons-material/DarkMode'
 import SaveIcon               from '@mui/icons-material/Save'
 import EditIcon               from '@mui/icons-material/Edit'
 import LocationOnIcon         from '@mui/icons-material/LocationOn'
@@ -54,8 +37,6 @@ import PublicIcon             from '@mui/icons-material/Public'
 import InstagramIcon          from '@mui/icons-material/Instagram'
 import FacebookIcon           from '@mui/icons-material/Facebook'
 import PaidOutlinedIcon       from '@mui/icons-material/PaidOutlined'
-import SearchIcon             from '@mui/icons-material/Search'
-import InsertDriveFileIcon    from '@mui/icons-material/InsertDriveFile'
 import { createClient } from '@/lib/supabase/client'
 import { saveAboutPanelFields, type AboutPanelFields } from './actions'
 import { useAdminTheme }  from '@/components/layout/AdminThemeContext'
@@ -125,10 +106,6 @@ const SITE_DARK = {
   surface1:        '#1E1E1E',
   tableHead:       'rgba(255,255,255,0.05)',
 }
-
-// ── Document type (for link picker) ──────────────────────────────────────────
-
-type Doc = { id: string; title: string; category: string | null }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -219,8 +196,7 @@ export default function AboutPageEditor({
   const { theme: adminTheme } = useAdminTheme()
 
   // Editor refs
-  const editorRef   = useRef<HTMLDivElement>(null)
-  const imageRef    = useRef<HTMLInputElement>(null)
+  const editorRef     = useRef<HTMLDivElement>(null)
   const savedRangeRef = useRef<Range | null>(null)
 
   // Save state
@@ -244,40 +220,19 @@ export default function AboutPageEditor({
   const [panelSaving, setPanelSaving] = useState(false)
   const [panelSaveError, setPanelSaveError] = useState<string | null>(null)
 
-  // Preview theme (toggleable independently; admin is always light)
-  const [previewTheme, setPreviewTheme] = useState<'light' | 'dark'>('light')
+  // Preview theme — always light (no toggle)
+  const previewTheme = 'light'
 
   // Toolbar dropdowns
   const [styleAnchor, setStyleAnchor] = useState<HTMLElement | null>(null)
   const [fontAnchor,  setFontAnchor]  = useState<HTMLElement | null>(null)
-  const [colorAnchor, setColorAnchor] = useState<HTMLElement | null>(null)
-  const [moreAnchor,  setMoreAnchor]  = useState<HTMLElement | null>(null)
-  const [activeColor, setActiveColor] = useState('#000000')
   const [activeStyle, setActiveStyle] = useState('Normal text')
   const [activeFont,  setActiveFont]  = useState('Nunito')
 
-  // Image popover
-  const [imgAnchor, setImgAnchor] = useState<HTMLImageElement | null>(null)
-
-  // Table dialog
-  const [tableDialogOpen, setTableDialogOpen] = useState(false)
-  const [tableRows, setTableRows]             = useState('3')
-  const [tableCols, setTableCols]             = useState('3')
-  const [tableBorders, setTableBorders]       = useState(true)
-
-  // Inline table toolbar
-  const [activeTable,         setActiveTable]         = useState<HTMLTableElement | null>(null)
-  const [tableToolbarAnchor, setTableToolbarAnchor]   = useState<HTMLTableElement | null>(null)
-
   // Link dialog
   const [linkDialogOpen, setLinkDialogOpen] = useState(false)
-  const [linkMode,  setLinkMode]  = useState<'url' | 'doc'>('url')
   const [linkUrl,   setLinkUrl]   = useState('')
   const [linkText,  setLinkText]  = useState('')
-  const [docSearch, setDocSearch] = useState('')
-  const [docs,      setDocs]      = useState<Doc[]>([])
-  const [docsLoading, setDocsLoading] = useState(false)
-  const [selectedDoc, setSelectedDoc] = useState<Doc | null>(null)
 
   // ── Set initial content once on mount (avoids dangerouslySetInnerHTML
   //    re-render clobbering the contentEditable DOM on every state change) ────
@@ -330,32 +285,6 @@ export default function AboutPageEditor({
     }
   }
 
-  // ── DOM insert helper ────────────────────────────────────────────────────────
-
-  const domInsert = (buildNode: () => Node) => {
-    const editor = editorRef.current
-    if (!editor) return
-    restoreSelection()
-    const sel = window.getSelection()
-    if (!sel || sel.rangeCount === 0) return
-    const range = sel.getRangeAt(0)
-    range.deleteContents()
-    let anchor: Node = range.startContainer
-    if (anchor !== editor) {
-      while (anchor.parentNode && anchor.parentNode !== editor) anchor = anchor.parentNode
-    }
-    const node = buildNode()
-    const p = document.createElement('p')
-    p.appendChild(document.createTextNode(' '))
-    if (anchor === editor) { range.insertNode(p); range.insertNode(node) }
-    else { (anchor as Element).after(p); (anchor as Element).after(node) }
-    const newRange = document.createRange()
-    newRange.setStart(p.firstChild!, 0)
-    newRange.collapse(true)
-    sel.removeAllRanges()
-    sel.addRange(newRange)
-    editor.focus()
-  }
 
   // ── Exec wrappers ────────────────────────────────────────────────────────────
   // All toolbar buttons use onMouseDown+preventDefault so focus never leaves
@@ -398,224 +327,45 @@ export default function AboutPageEditor({
     }, 0)
   }
 
-  const applyColor = (color: string) => {
-    setActiveColor(color)
-    setColorAnchor(null)
-    setTimeout(() => {
-      restoreSelection()
-      document.execCommand('foreColor', false, color)
-      editorRef.current?.focus()
-    }, 0)
-  }
 
-  const insertBlockquote = () => {
-    setMoreAnchor(null)
-    setTimeout(() => {
-      restoreSelection()
-      const sel = window.getSelection()
-      const node = sel?.anchorNode
-      const inBq = !!(node instanceof Element ? node : node?.parentElement)?.closest('blockquote')
-      document.execCommand('formatBlock', false, inBq ? 'p' : 'blockquote')
-      editorRef.current?.focus()
-    }, 0)
-  }
-
-  const insertHR = () => {
-    setMoreAnchor(null)
-    setTimeout(() => { domInsert(() => document.createElement('hr')) }, 0)
-  }
 
   // ── Link dialog ──────────────────────────────────────────────────────────────
 
   const openLinkDialog = () => {
     const sel = window.getSelection()
-    setLinkText(sel?.toString() ?? '')
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0)
+      if (!range.collapsed) {
+        setLinkText(range.toString())
+      }
+    }
     setLinkUrl('https://')
-    setLinkMode('url')
-    setDocSearch('')
-    setSelectedDoc(null)
     setLinkDialogOpen(true)
   }
 
-  // Fetch documents when switching to doc mode
-  const handleLinkModeChange = async (mode: 'url' | 'doc') => {
-    setLinkMode(mode)
-    if (mode === 'doc' && docs.length === 0) {
-      setDocsLoading(true)
-      try {
-        const supabase = createClient()
-        const { data } = await supabase
-          .from('documents')
-          .select('id, title, document_categories(name)')
-          .is('deleted_at', null)
-          .eq('visibility', 'members')
-          .order('title')
-        if (data) {
-          setDocs(data.map((d: { id: string; title: string; document_categories: { name: string } | null }) => ({
-            id: d.id,
-            title: d.title,
-            category: d.document_categories?.name ?? null,
-          })))
-        }
-      } finally {
-        setDocsLoading(false)
-      }
-    }
-  }
-
   const confirmInsertLink = () => {
-    setLinkDialogOpen(false)
-    setTimeout(() => {
-      restoreSelection()
-      let href = ''
-      let display = linkText.trim()
-
-      if (linkMode === 'url') {
-        href = linkUrl.trim()
-        if (!href || href === 'https://') return
-        if (!display) display = href
-      } else {
-        if (!selectedDoc) return
-        href = `/our-club/documents/${selectedDoc.id}/download`
-        if (!display) display = selectedDoc.title
-      }
-
-      document.execCommand('insertHTML', false,
-        `<a href="${href}" ${linkMode === 'url' ? 'target="_blank" rel="noopener noreferrer"' : ''}>${display}</a>`
-      )
-      editorRef.current?.focus()
-    }, 0)
-  }
-
-  const filteredDocs = docs.filter(d =>
-    d.title.toLowerCase().includes(docSearch.toLowerCase()) ||
-    (d.category ?? '').toLowerCase().includes(docSearch.toLowerCase())
-  )
-
-  // ── Table ────────────────────────────────────────────────────────────────────
-
-  const buildTableEl = (rows: number, cols: number, borders: boolean) => {
-    const tok = previewTheme === 'dark' ? SITE_DARK : SITE_LIGHT
-    const table = document.createElement('table')
-    table.style.cssText = 'border-collapse:collapse;width:100%;margin:12px 0'
-    table.dataset.borders = borders ? 'on' : 'off'
-    for (let r = 0; r < rows; r++) {
-      const tr = document.createElement('tr')
-      for (let c = 0; c < cols; c++) {
-        const td = r === 0 ? document.createElement('th') : document.createElement('td')
-        td.style.cssText = `padding:8px 12px;min-width:80px;${borders ? `border:1px solid ${tok.borderDefault};` : ''}`
-        if (r === 0) td.style.backgroundColor = tok.tableHead
-        td.appendChild(document.createTextNode(' '))
-        tr.appendChild(td)
-      }
-      table.appendChild(tr)
-    }
-    return table
-  }
-
-  const confirmInsertTable = () => {
-    setTableDialogOpen(false)
-    const rows = Math.max(1, Math.min(20, parseInt(tableRows) || 3))
-    const cols = Math.max(1, Math.min(10, parseInt(tableCols) || 3))
-    setTimeout(() => domInsert(() => buildTableEl(rows, cols, tableBorders)), 0)
-  }
-
-  const addTableRow = () => {
-    if (!activeTable) return
-    const lastRow = activeTable.rows[activeTable.rows.length - 1]
-    const newRow  = document.createElement('tr')
-    Array.from(lastRow.cells).forEach(() => {
-      const td = document.createElement('td')
-      td.style.cssText = lastRow.cells[0].style.cssText.replace(/background[^;]+;?/, '')
-      td.appendChild(document.createTextNode(' '))
-      newRow.appendChild(td)
-    })
-    activeTable.appendChild(newRow)
-  }
-
-  const addTableCol = () => {
-    if (!activeTable) return
-    Array.from(activeTable.rows).forEach((row, r) => {
-      const td = r === 0 ? document.createElement('th') : document.createElement('td')
-      td.style.cssText = row.cells[0].style.cssText
-      if (r === 0) td.style.backgroundColor = (previewTheme === 'dark' ? SITE_DARK : SITE_LIGHT).tableHead
-      td.appendChild(document.createTextNode(' '))
-      row.appendChild(td)
-    })
-  }
-
-  const toggleTableBorders = () => {
-    if (!activeTable) return
-    const tok = previewTheme === 'dark' ? SITE_DARK : SITE_LIGHT
-    const on  = activeTable.dataset.borders !== 'on'
-    activeTable.dataset.borders = on ? 'on' : 'off'
-    Array.from(activeTable.querySelectorAll('td, th')).forEach(cell => {
-      (cell as HTMLElement).style.border = on ? `1px solid ${tok.borderDefault}` : ''
-    })
-  }
-
-  // ── Image ────────────────────────────────────────────────────────────────────
-
-  const handleInsertImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const url = URL.createObjectURL(file)
+    if (!linkUrl.trim()) return
     restoreSelection()
-    document.execCommand('insertHTML', false,
-      `<img src="${url}" style="width:60%;max-width:100%;height:auto;display:block;margin:12px 0" alt="${file.name}" />`
-    )
-    editorRef.current?.focus()
-    e.target.value = ''
-  }
-
-  const removeImage = () => {
-    if (!imgAnchor) return
-    const img = imgAnchor
-    setImgAnchor(null)
-    img.parentElement?.removeChild(img)
-    editorRef.current?.focus()
-    editorRef.current?.dispatchEvent(new Event('input', { bubbles: true }))
-  }
-
-  const applyImageWidth = (pct: number) => {
-    if (imgAnchor) imgAnchor.style.width = `${pct}%`
-    setImgAnchor(null)
-    editorRef.current?.focus()
-  }
-
-  const applyImageAlign = (align: 'left' | 'center' | 'right') => {
-    if (!imgAnchor) return
-    const img = imgAnchor
-    if (align === 'left') {
-      img.style.float = 'left'; img.style.display = 'inline'
-      img.style.margin = '4px 16px 8px 0'
-    } else if (align === 'right') {
-      img.style.float = 'right'; img.style.display = 'inline'
-      img.style.margin = '4px 0 8px 16px'
-    } else {
-      img.style.float = ''; img.style.display = 'block'
-      img.style.margin = '12px 0'
+    const display = linkText.trim() || linkUrl
+    const a = document.createElement('a')
+    a.href = linkUrl
+    a.textContent = display
+    const sel = window.getSelection()
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0)
+      range.deleteContents()
+      range.insertNode(a)
+      range.setStartAfter(a)
+      range.collapse(true)
+      sel.removeAllRanges()
+      sel.addRange(range)
     }
-    setImgAnchor(null)
+    setLinkDialogOpen(false)
+    setLinkUrl('')
+    setLinkText('')
     editorRef.current?.focus()
   }
 
-  const handleEditorClick = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement
-    if (target.tagName === 'IMG') {
-      setImgAnchor(target as HTMLImageElement)
-      setActiveTable(null); setTableToolbarAnchor(null)
-      return
-    }
-    const cell = target.closest('td, th')
-    if (cell) {
-      const table = cell.closest('table') as HTMLTableElement
-      setActiveTable(table); setTableToolbarAnchor(table)
-      setImgAnchor(null)
-      return
-    }
-    setImgAnchor(null); setActiveTable(null); setTableToolbarAnchor(null)
-  }
 
   // ── Save ─────────────────────────────────────────────────────────────────────
 
@@ -781,27 +531,6 @@ export default function AboutPageEditor({
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {/* Preview theme toggle */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Typography sx={{ fontSize: 11, color: 'text.secondary', mr: 0.5 }}>Preview</Typography>
-            <Tooltip title="Light mode">
-              <Box component="button"
-                onMouseDown={e => { e.preventDefault(); setPreviewTheme('light') }}
-                sx={{ ...btnSx, width: 28, height: 28, ...(previewTheme === 'light' ? { bgcolor: 'action.selected', color: 'text.primary' } : {}) }}>
-                <LightModeIcon sx={{ fontSize: 16 }} />
-              </Box>
-            </Tooltip>
-            <Tooltip title="Dark mode">
-              <Box component="button"
-                onMouseDown={e => { e.preventDefault(); setPreviewTheme('dark') }}
-                sx={{ ...btnSx, width: 28, height: 28, ...(previewTheme === 'dark' ? { bgcolor: 'action.selected', color: 'text.primary' } : {}) }}>
-                <DarkModeIcon sx={{ fontSize: 16 }} />
-              </Box>
-            </Tooltip>
-          </Box>
-
-          <Divider orientation="vertical" flexItem />
-
           {saveStatus === 'saved' && (
             <Typography sx={{ fontSize: 13, color: 'success.main' }}>Saved</Typography>
           )}
@@ -827,16 +556,6 @@ export default function AboutPageEditor({
         borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0,
         bgcolor: t => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
       }}>
-
-        {/* Undo / Redo */}
-        <ToolbarBtn title="Undo (Ctrl+Z)" onMouseDown={() => exec('undo')}>
-          <UndoIcon sx={{ fontSize: 16 }} />
-        </ToolbarBtn>
-        <ToolbarBtn title="Redo (Ctrl+Y)" onMouseDown={() => exec('redo')}>
-          <RedoIcon sx={{ fontSize: 16 }} />
-        </ToolbarBtn>
-
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
         {/* Text style */}
         <DropdownBtn label={activeStyle} title="Text style"
@@ -868,37 +587,6 @@ export default function AboutPageEditor({
         <ToolbarBtn title="Italic"    onMouseDown={() => exec('italic')}>    <FormatItalicIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
         <ToolbarBtn title="Underline" onMouseDown={() => exec('underline')}> <FormatUnderlinedIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
 
-        {/* Font colour */}
-        <Tooltip title="Text colour" placement="top">
-          <Box component="button"
-            onMouseDown={e => { e.preventDefault(); setColorAnchor(e.currentTarget) }}
-            sx={{
-              display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', width: 28, height: 28, borderRadius: '4px',
-              border: 'none', bgcolor: 'transparent', cursor: 'pointer',
-              color: 'text.secondary', gap: '2px', flexShrink: 0,
-              '&:hover': { bgcolor: 'action.hover' },
-            }}>
-            <FormatColorTextIcon sx={{ fontSize: 15 }} />
-            <Box sx={{ width: 14, height: 3, borderRadius: '1px', bgcolor: activeColor }} />
-          </Box>
-        </Tooltip>
-        <Popover open={!!colorAnchor} anchorEl={colorAnchor} onClose={() => setColorAnchor(null)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} {...MENU_FOCUS_PROPS}>
-          <Box sx={{ p: 1.5, display: 'grid', gridTemplateColumns: 'repeat(8, 20px)', gap: '6px' }}>
-            {COLOR_PALETTE.map(color => (
-              <Box key={color} component="button" onClick={() => applyColor(color)}
-                sx={{
-                  width: 20, height: 20, borderRadius: '3px',
-                  bgcolor: color, border: '1px solid rgba(0,0,0,0.15)',
-                  cursor: 'pointer', p: 0,
-                  outline: activeColor === color ? '2px solid' : 'none',
-                  outlineColor: 'primary.main', outlineOffset: '1px',
-                  '&:hover': { transform: 'scale(1.15)' },
-                }} />
-            ))}
-          </Box>
-        </Popover>
 
         <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
@@ -908,35 +596,14 @@ export default function AboutPageEditor({
 
         <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
-        {/* Insert image / link */}
-        <ToolbarBtn title="Insert image" onMouseDown={() => imageRef.current?.click()}><InsertPhotoIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+        {/* Link / Unlink */}
         <ToolbarBtn title="Insert link"  onMouseDown={openLinkDialog}><LinkIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-        <input ref={imageRef} type="file" accept="image/*" hidden onChange={handleInsertImage} />
+        <ToolbarBtn title="Remove link"  onMouseDown={() => exec('unlink')}><LinkOffIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
 
         <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
         {/* Clear formatting */}
         <ToolbarBtn title="Clear formatting" onMouseDown={clearFormatting}><FormatClearIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-
-        {/* More */}
-        <Tooltip title="More options" placement="top">
-          <Box component="button"
-            onMouseDown={e => { e.preventDefault(); setMoreAnchor(e.currentTarget as HTMLElement) }}
-            sx={{ ...btnSx, width: 28, height: 28 }}>
-            <MoreHorizIcon sx={{ fontSize: 16 }} />
-          </Box>
-        </Tooltip>
-        <Menu anchorEl={moreAnchor} open={!!moreAnchor} onClose={() => setMoreAnchor(null)} {...MENU_FOCUS_PROPS}>
-          <MenuItem onClick={insertBlockquote} sx={{ fontSize: 13, gap: 1.5 }}>
-            <FormatQuoteIcon sx={{ fontSize: 18, color: 'text.secondary' }} /> Block quote
-          </MenuItem>
-          <MenuItem onClick={insertHR} sx={{ fontSize: 13, gap: 1.5 }}>
-            <HorizontalRuleIcon sx={{ fontSize: 18, color: 'text.secondary' }} /> Horizontal rule
-          </MenuItem>
-          <MenuItem onClick={() => { setMoreAnchor(null); setTimeout(() => setTableDialogOpen(true), 50) }} sx={{ fontSize: 13, gap: 1.5 }}>
-            <TableChartIcon sx={{ fontSize: 18, color: 'text.secondary' }} /> Insert table…
-          </MenuItem>
-        </Menu>
       </Box>
 
       {/* ── Live-preview editor body ──────────────────────────────────────────── */}
@@ -1093,176 +760,31 @@ export default function AboutPageEditor({
         </Box>
       </Box>
 
-      {/* ── Image resize popover ──────────────────────────────────────────────── */}
-      <Popover open={!!imgAnchor} anchorEl={imgAnchor} onClose={() => setImgAnchor(null)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
-        transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        disableRestoreFocus>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 0.75 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Typography sx={{ fontSize: 11, color: 'text.secondary', mr: 0.5, minWidth: 36 }}>Width:</Typography>
-            {[25, 50, 75, 100].map(pct => (
-              <Button key={pct} size="small" variant="outlined" color="secondary"
-                onClick={() => applyImageWidth(pct)}
-                sx={{ minWidth: 0, px: 1, py: 0.25, fontSize: 11 }}>
-                {pct}%
-              </Button>
-            ))}
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Typography sx={{ fontSize: 11, color: 'text.secondary', mr: 0.5, minWidth: 36 }}>Align:</Typography>
-            {(['left', 'center', 'right'] as const).map(a => (
-              <Button key={a} size="small" variant="outlined" color="secondary"
-                onClick={() => applyImageAlign(a)}
-                sx={{ minWidth: 0, px: 1, py: 0.25, fontSize: 11, textTransform: 'capitalize' }}>
-                {a === 'left' ? '← Left' : a === 'right' ? 'Right →' : 'Center'}
-              </Button>
-            ))}
-          </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 0.25 }}>
-            <Button size="small" variant="text" color="error"
-              onClick={removeImage}
-              sx={{ minWidth: 0, px: 1, py: 0.25, fontSize: 11 }}>
-              Remove image
-            </Button>
-          </Box>
-        </Box>
-      </Popover>
 
-      {/* ── Inline table toolbar ──────────────────────────────────────────────── */}
-      <Popover
-        open={!!tableToolbarAnchor} anchorEl={tableToolbarAnchor}
-        onClose={() => { setTableToolbarAnchor(null); setActiveTable(null) }}
-        anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
-        transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        {...MENU_FOCUS_PROPS}
-        sx={{ pointerEvents: 'none', '& .MuiPopover-paper': { pointerEvents: 'auto' } }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.75 }}>
-          <Button size="small" variant="text" color="secondary" sx={{ fontSize: 12, py: 0.25, px: 1, minWidth: 0 }} onClick={addTableRow}>+ Row</Button>
-          <Button size="small" variant="text" color="secondary" sx={{ fontSize: 12, py: 0.25, px: 1, minWidth: 0 }} onClick={addTableCol}>+ Column</Button>
-          <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
-          <Button size="small" variant="text" color="secondary" sx={{ fontSize: 12, py: 0.25, px: 1, minWidth: 0 }} onClick={toggleTableBorders}>
-            {activeTable?.dataset.borders === 'on' ? 'Hide borders' : 'Show borders'}
-          </Button>
-        </Box>
-      </Popover>
-
-      {/* ── Table insert dialog ───────────────────────────────────────────────── */}
-      <Dialog open={tableDialogOpen} onClose={() => setTableDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>Insert table</DialogTitle>
-        <DialogContent sx={{ pt: '20px !important' }}>
-          <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-            <TextField label="Rows"    type="number" size="small" value={tableRows}
-              onChange={e => setTableRows(e.target.value)}
-              slotProps={{ input: { min: 1, max: 20 } as any }} sx={{ flex: 1 }} />
-            <TextField label="Columns" type="number" size="small" value={tableCols}
-              onChange={e => setTableCols(e.target.value)}
-              slotProps={{ input: { min: 1, max: 10 } as any }} sx={{ flex: 1 }} />
-          </Box>
-          <FormControlLabel
-            control={<Checkbox checked={tableBorders} onChange={e => setTableBorders(e.target.checked)} size="small" />}
-            label={<Typography sx={{ fontSize: 13 }}>Show cell borders</Typography>}
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button variant="outlined" color="secondary" onClick={() => setTableDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={confirmInsertTable}>Insert</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* ── Link dialog ───────────────────────────────────────────────────────── */}
+      {/* ── Link dialog ─────────────────────────────────────────────────────────────────────── */}
       <Dialog open={linkDialogOpen} onClose={() => setLinkDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>Insert link</DialogTitle>
         <DialogContent sx={{ pt: '16px !important' }}>
-
-          {/* Mode toggle */}
-          <ToggleButtonGroup
-            value={linkMode}
-            exclusive
-            size="small"
-            onChange={(_, v) => { if (v) handleLinkModeChange(v) }}
-            sx={{ mb: 2.5 }}
-          >
-            <ToggleButton value="url" sx={{ fontSize: 12, px: 2 }}>External URL</ToggleButton>
-            <ToggleButton value="doc" sx={{ fontSize: 12, px: 2, gap: 0.75 }}>
-              <InsertDriveFileIcon sx={{ fontSize: 14 }} /> Document library
-            </ToggleButton>
-          </ToggleButtonGroup>
-
-          {linkMode === 'url' ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <TextField label="URL" size="small" fullWidth value={linkUrl}
-                onChange={e => setLinkUrl(e.target.value)}
-                placeholder="https://example.com" />
-              <TextField label="Display text" size="small" fullWidth value={linkText}
-                onChange={e => setLinkText(e.target.value)}
-                placeholder="Leave blank to use URL" />
-            </Box>
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              <TextField
-                size="small" fullWidth placeholder="Search documents…"
-                value={docSearch} onChange={e => setDocSearch(e.target.value)}
-                slotProps={{ input: { startAdornment: (
-                  <InputAdornment position="start"><SearchIcon sx={{ fontSize: 16 }} /></InputAdornment>
-                )}}}
-              />
-              <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, maxHeight: 260, overflow: 'auto' }}>
-                {docsLoading ? (
-                  <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-                    <CircularProgress size={24} />
-                  </Box>
-                ) : filteredDocs.length === 0 ? (
-                  <Box sx={{ py: 4, textAlign: 'center' }}>
-                    <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-                      {docs.length === 0 ? 'No documents in library' : 'No matches'}
-                    </Typography>
-                  </Box>
-                ) : (
-                  <List dense disablePadding>
-                    {filteredDocs.map(doc => (
-                      <ListItemButton
-                        key={doc.id}
-                        selected={selectedDoc?.id === doc.id}
-                        onClick={() => { setSelectedDoc(doc); setLinkText(doc.title) }}
-                        sx={{ py: 0.75, px: 1.5 }}
-                      >
-                        <InsertDriveFileIcon sx={{ fontSize: 15, mr: 1.25, color: 'text.secondary', flexShrink: 0 }} />
-                        <ListItemText
-                          primary={doc.title}
-                          secondary={doc.category}
-                          slotProps={{
-                            primary:   { sx: { fontSize: 13 } },
-                            secondary: { sx: { fontSize: 11 } },
-                          }}
-                        />
-                      </ListItemButton>
-                    ))}
-                  </List>
-                )}
-              </Box>
-              <TextField label="Display text" size="small" fullWidth value={linkText}
-                onChange={e => setLinkText(e.target.value)}
-                placeholder="Leave blank to use document title" />
-            </Box>
-          )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField label="URL" size="small" fullWidth value={linkUrl}
+              onChange={e => setLinkUrl(e.target.value)}
+              placeholder="https://example.com" />
+            <TextField label="Display text" size="small" fullWidth value={linkText}
+              onChange={e => setLinkText(e.target.value)}
+              placeholder="Leave blank to use URL" />
+          </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button variant="outlined" color="secondary" onClick={() => setLinkDialogOpen(false)}>Cancel</Button>
           <Button
             variant="contained"
             onClick={confirmInsertLink}
-            disabled={
-              linkMode === 'url'
-                ? !linkUrl.trim() || linkUrl === 'https://'
-                : !selectedDoc
-            }
+            disabled={!linkUrl.trim() || linkUrl === 'https://'}
           >
             Insert link
           </Button>
         </DialogActions>
       </Dialog>
-
 
       {/* ── Panel edit dialog ─────────────────────────────────────────────────── */}
       <Dialog open={panelEditOpen} onClose={() => setPanelEditOpen(false)} maxWidth="sm" fullWidth>

@@ -67,6 +67,12 @@ export interface CompetitionsSettings {
   maxOpenShown:     1 | 2 | 3
 }
 
+export interface NewsPostsSettings {
+  heading: string
+  count:   number
+  layout:  'list' | 'cards'
+}
+
 export interface ContentBlock {
   id:                      string
   name:                    string
@@ -87,6 +93,7 @@ export interface ContentBlock {
   affiliationsSettings?:   AffiliationsSettings
   dualPanelSettings?:      DualPanelSettings
   competitionsSettings?:   CompetitionsSettings
+  newsPostsSettings?:      NewsPostsSettings
 }
 
 /**
@@ -119,6 +126,7 @@ export function mergeBlocks(saved: ContentBlock[], defaults: ContentBlock[]): Co
     if (def.affiliationsSettings    && !b.affiliationsSettings)    patch.affiliationsSettings    = def.affiliationsSettings
     if (def.dualPanelSettings       && !b.dualPanelSettings)       patch.dualPanelSettings       = def.dualPanelSettings
     if (def.competitionsSettings    && !b.competitionsSettings)    patch.competitionsSettings    = def.competitionsSettings
+    if (def.newsPostsSettings       && !b.newsPostsSettings)       patch.newsPostsSettings       = def.newsPostsSettings
     return Object.keys(patch).length > 0 ? { ...b, ...patch } : b
   })
 
@@ -189,6 +197,10 @@ export const DEFAULT_BLOCKS: ContentBlock[] = [
       showComingSoon:   true,
       maxOpenShown:     2,
     },
+  },
+  {
+    id: 'news-posts', name: 'News & Posts', type: 'news-posts', enabled: true,
+    newsPostsSettings: { heading: 'Latest news', count: 5, layout: 'list' },
   },
   {
     id: 'affiliations', name: 'Affiliations & links', type: 'affiliations', enabled: true,

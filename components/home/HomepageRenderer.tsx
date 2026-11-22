@@ -16,6 +16,7 @@ import type {
   SpotlightSettings,
   GalleryPreviewSettings,
   ClubGalleriesSettings,
+  NewsPostsSettings,
 } from '@/lib/homepage/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -744,6 +745,85 @@ function ClubGalleriesBlock({
   )
 }
 
+// ─── News & Posts block ───────────────────────────────────────────────────────
+
+function NewsPostsBlock({
+  settings,
+  posts,
+  clubSlug,
+}: {
+  settings: NewsPostsSettings
+  posts:    { id: string; title: string; published_at: string | null; body: string }[]
+  clubSlug: string
+}) {
+  if (posts.length === 0) return null
+
+  const excerpt = (html: string, maxLen = 160) => {
+    const text = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+    return text.length > maxLen ? text.slice(0, maxLen).trimEnd() + '…' : text
+  }
+
+  return (
+    <Section>
+      <div className="mx-auto w-full max-w-6xl px-4">
+        <SectionHeading>{settings.heading}</SectionHeading>
+        {settings.layout === 'cards' ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+            {posts.map(p => (
+              <a
+                key={p.id}
+                href={`/${clubSlug}/posts/${p.id}`}
+                style={{
+                  display: 'block', padding: '20px 22px',
+                  background: 'var(--surface-1)', borderRadius: 12,
+                  border: '1px solid var(--border-subtle)',
+                  textDecoration: 'none', color: 'inherit',
+                }}
+              >
+                <p style={{ margin: '0 0 8px', fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                  {p.title}
+                </p>
+                {p.published_at && (
+                  <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--text-secondary)' }}>
+                    {new Date(p.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                )}
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  {excerpt(p.body)}
+                </p>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {posts.map((p, i) => (
+              <a
+                key={p.id}
+                href={`/${clubSlug}/posts/${p.id}`}
+                style={{
+                  display: 'flex', alignItems: 'baseline', gap: 16,
+                  padding: '12px 4px',
+                  borderBottom: i < posts.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                  textDecoration: 'none', color: 'inherit',
+                }}
+              >
+                <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
+                  {p.title}
+                </span>
+                {p.published_at && (
+                  <span style={{ flexShrink: 0, fontSize: 12, color: 'var(--text-secondary)' }}>
+                    {new Date(p.published_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                )}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </Section>
+  )
+}
+
 // ─── Main renderer (server component) ────────────────────────────────────────
 
 export default async function HomepageRenderer({
@@ -1049,6 +1129,21 @@ export default async function HomepageRenderer({
     }
   }
 
+  // ── Fetch posts if news-posts block is on ────────────────────────────────
+  const postsBlock = enabled.find(b => b.type === 'news-posts')
+  let recentPosts: { id: string; title: string; published_at: string | null; body: string }[] = []
+  if (postsBlock) {
+    const count = postsBlock.newsPostsSettings?.count ?? 5
+    const { data: postsData } = await supabase
+      .from('posts')
+      .select('id, title, published_at, body')
+      .eq('club_id', clubId)
+      .not('published_at', 'is', null)
+      .order('published_at', { ascending: false })
+      .limit(count)
+    recentPosts = (postsData ?? []) as typeof recentPosts
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
@@ -1118,6 +1213,16 @@ export default async function HomepageRenderer({
           case 'affiliations':
             return block.affiliationsSettings ? (
               <AffiliationsBlock key={block.id} settings={block.affiliationsSettings} />
+            ) : null
+
+          case 'news-posts':
+            return block.newsPostsSettings ? (
+              <NewsPostsBlock
+                key={block.id}
+                settings={block.newsPostsSettings}
+                posts={recentPosts}
+                clubSlug={clubSlug}
+              />
             ) : null
 
           case 'dual-panel':

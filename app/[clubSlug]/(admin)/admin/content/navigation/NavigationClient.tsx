@@ -1505,6 +1505,7 @@ function EditablePageRow({
   description,
   editHref,
   editLabel = 'Edit page →',
+  viewHref,
   enableable = false,
   enabled = true,
   onToggle,
@@ -1514,6 +1515,7 @@ function EditablePageRow({
   description:  string
   editHref?:    string
   editLabel?:   string
+  viewHref?:    string
   enableable?:  boolean
   enabled?:     boolean
   onToggle?:    () => void
@@ -1524,7 +1526,7 @@ function EditablePageRow({
 
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 16,
+      display: 'flex', alignItems: 'center', gap: 12,
       padding: '14px 20px',
       background: 'var(--surface-2)',
       borderBottom: '1px solid var(--border-subtle)',
@@ -1559,6 +1561,26 @@ function EditablePageRow({
         >
           {enabled ? 'Disable' : 'Enable'}
         </button>
+      )}
+
+      {viewHref && (
+        <a
+          href={`/${clubSlug}${viewHref}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4,
+            fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)',
+            background: 'transparent', border: '1px solid var(--border-default)',
+            borderRadius: 'var(--radius-md)', padding: '5px 11px',
+            textDecoration: 'none',
+          }}
+        >
+          <svg style={{ width: 12, height: 12, flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+          View page
+        </a>
       )}
 
       {onEditClick ? (
@@ -1620,6 +1642,11 @@ export default function NavigationClient({
   const [activeTab, setActiveTab] = useState<MainTab>(
     (searchParams.get('tab') as MainTab | null) ?? 'homepage'
   )
+
+  useEffect(() => {
+    const tab = (searchParams.get('tab') as MainTab | null) ?? 'homepage'
+    setActiveTab(tab)
+  }, [searchParams])
   const [pages,             setPages]             = useState<CustomPage[]>(initialPages)
   const [tabs,              setTabs]              = useState<CustomTab[]>(initialTabs)
   const [builtinVisibility, setBuiltinVisibility] = useState<BuiltinPageVisibility>(initialBuiltinVisibility)
@@ -1776,23 +1803,27 @@ export default function NavigationClient({
                 title="Homepage"
                 description="The landing page for signed-in members, with customizable content blocks."
                 editLabel="Edit homepage →"
+                viewHref="/"
                 onEditClick={() => setActiveTab('homepage')}
               />
               <EditablePageRow
                 title="About Our Club"
                 description="Public page — visible to anyone visiting your club's site."
                 editHref="/admin/content/about"
+                viewHref="/our-club/about"
               />
               <EditablePageRow
                 title="Join / Renew"
                 description="Public page — membership information and payment instructions."
                 editHref="/admin/content/join"
+                viewHref="/our-club/join"
               />
               <EditablePageRow
                 title="Resources"
                 description="Members-only documents, downloads, and links organized by category."
                 editHref="/admin/resources"
                 editLabel="Manage resources →"
+                viewHref="/our-club/resources"
                 enableable
                 enabled={builtinVisibility.resourcesEnabled}
                 onToggle={() => changePageEnabled('resources', !builtinVisibility.resourcesEnabled)}
@@ -1802,6 +1833,7 @@ export default function NavigationClient({
                 description="Curated photo galleries created by admins, visible to members or the public."
                 editHref="/admin/galleries"
                 editLabel="Manage galleries →"
+                viewHref="/our-club/galleries"
                 enableable
                 enabled={builtinVisibility.galleriesEnabled}
                 onToggle={() => changePageEnabled('galleries', !builtinVisibility.galleriesEnabled)}
