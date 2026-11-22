@@ -42,7 +42,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`h-full dark ${lora.variable} ${nunito.variable} ${robotoMono.variable} ${inter.variable}`}>
+    <html lang="en" className={`h-full ${lora.variable} ${nunito.variable} ${robotoMono.variable} ${inter.variable}`}>
       <body className="min-h-full antialiased">
         <ThemeProvider>
           <Providers>

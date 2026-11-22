@@ -50,10 +50,15 @@ export async function AppFooter({ variant }: { variant: FooterVariant }) {
           transition: opacity 0.2s ease;
         }
         .app-footer-logo:hover { opacity: 1; }
-        /* light mode (no .dark class): show light logo */
+        /* light mode: show light logo */
         .app-footer-logo-light { display: block; }
         .app-footer-logo-dark  { display: none;  }
-        /* dark mode (.dark class on <html>): show dark logo */
+        /* OS dark mode (when no .dark class set by app yet) */
+        @media (prefers-color-scheme: dark) {
+          .app-footer-logo-light { display: none; }
+          .app-footer-logo-dark  { display: block; }
+        }
+        /* explicit .dark class overrides OS preference */
         :root.dark .app-footer-logo-light { display: none;  }
         :root.dark .app-footer-logo-dark  { display: block; }
         .app-footer-logo img {
@@ -63,12 +68,14 @@ export async function AppFooter({ variant }: { variant: FooterVariant }) {
         }
         .app-footer-copy {
           font-size: 12px;
+          font-family: var(--font-nunito, 'Nunito', system-ui, sans-serif);
           color: var(--text-secondary);
           margin: 0;
           line-height: 1.5;
         }
         .app-footer-links {
           font-size: 12px;
+          font-family: var(--font-nunito, 'Nunito', system-ui, sans-serif);
           margin: 0;
           line-height: 1.5;
         }

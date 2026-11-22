@@ -84,7 +84,8 @@ export default async function JoinPage() {
       : Promise.resolve({ data: null }),
   ])
 
-  const html         = pageRaw?.content ?? null
+  const DEFAULT_INTRO = '<p>We\'d love to have you as a member. Use the information below to pay your dues and complete your registration — or renew your existing membership for another year.</p>'
+  const html         = pageRaw?.content ?? DEFAULT_INTRO
   const settings     = settingsRaw
   const methods      = (settings?.dues_manual_methods ?? []) as string[]
   const annualDues   = settings?.dues_annual_standard
