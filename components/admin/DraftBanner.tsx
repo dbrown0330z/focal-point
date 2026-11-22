@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { publishSite } from '@/app/[clubSlug]/(admin)/admin/draft/actions'
+import { useUnsavedChanges } from '@/components/admin/UnsavedChangesProvider'
 
 export type DraftChecklist = {
   clubSlug:        string
@@ -34,9 +35,11 @@ function ArrowIcon() {
 }
 
 function Item({ done, label, href }: { done: boolean; label: string; href: string }) {
+  const { navigate } = useUnsavedChanges()
   return (
-    <a
-      href={href}
+    <button
+      type="button"
+      onClick={() => navigate(href)}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -51,13 +54,15 @@ function Item({ done, label, href }: { done: boolean; label: string; href: strin
         background: done ? 'rgba(196,122,0,0.06)' : 'rgba(196,122,0,0.12)',
         opacity: done ? 0.7 : 1,
         whiteSpace: 'nowrap',
+        cursor: 'pointer',
+        fontFamily: 'inherit',
       }}
     >
       <span style={{ color: done ? '#2E7D32' : DOT, flexShrink: 0 }}>
         {done ? <CheckIcon /> : <ArrowIcon />}
       </span>
       {label}
-    </a>
+    </button>
   )
 }
 
@@ -74,7 +79,7 @@ export default function DraftBanner({ checklist: initial }: { checklist: DraftCh
     { done: false,          label: 'Homepage',             href: `/${clubSlug}/admin/content` },
     { done: false,          label: 'About page',           href: `/${clubSlug}/admin/content/about` },
     { done: hasCompetition, label: 'First competition',    href: `/${clubSlug}/admin/competitions/new` },
-    { done: hasPost,        label: 'Welcome post',         href: `/${clubSlug}/admin/posts/new` },
+    { done: hasPost,        label: 'Welcome post (member feed)', href: `/${clubSlug}/admin/posts/new` },
   ]
 
   async function handlePublish() {
