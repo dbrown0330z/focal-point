@@ -31,8 +31,10 @@ type ParentSystem      = 'calendar' | 'images' | 'competitions' | 'our-club'
 type MainTab           = 'navigation' | 'homepage'
 
 export type BuiltinPageVisibility = {
-  about:    BuiltinVisibility
-  calendar: BuiltinVisibility
+  about:            BuiltinVisibility
+  calendar:         BuiltinVisibility
+  resourcesEnabled: boolean
+  galleriesEnabled: boolean
 }
 
 export type CustomPage = {
@@ -1496,6 +1498,100 @@ function PlacePageDialog({
   )
 }
 
+// ── Pages hub: editable page row ─────────────────────────────────────────────
+
+function EditablePageRow({
+  title,
+  description,
+  editHref,
+  editLabel = 'Edit page →',
+  enableable = false,
+  enabled = true,
+  onToggle,
+  onEditClick,
+}: {
+  title:        string
+  description:  string
+  editHref?:    string
+  editLabel?:   string
+  enableable?:  boolean
+  enabled?:     boolean
+  onToggle?:    () => void
+  onEditClick?: () => void
+}) {
+  const params   = useParams()
+  const clubSlug = typeof params.clubSlug === 'string' ? params.clubSlug : ''
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 16,
+      padding: '14px 20px',
+      background: 'var(--surface-2)',
+      borderBottom: '1px solid var(--border-subtle)',
+    }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</span>
+          {enableable && (
+            <span style={{
+              fontSize: 11, fontWeight: 600, letterSpacing: '0.03em',
+              color: enabled ? '#174A1A' : 'var(--text-tertiary)',
+              background: enabled ? '#EDFAF0' : 'var(--surface-1)',
+              padding: '1px 7px', borderRadius: 999,
+              border: `1px solid ${enabled ? 'rgba(46,125,50,0.3)' : 'var(--border-default)'}`,
+            }}>
+              {enabled ? 'Enabled' : 'Disabled'}
+            </span>
+          )}
+        </div>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{description}</p>
+      </div>
+
+      {enableable && onToggle && (
+        <button
+          onClick={onToggle}
+          style={{
+            flexShrink: 0, fontSize: 12, fontWeight: 500,
+            padding: '5px 12px', borderRadius: 'var(--radius-sm)',
+            cursor: 'pointer', border: '1px solid var(--border-default)',
+            color: 'var(--text-secondary)', background: 'var(--surface-1)',
+          }}
+        >
+          {enabled ? 'Disable' : 'Enable'}
+        </button>
+      )}
+
+      {onEditClick ? (
+        <button
+          onClick={onEditClick}
+          style={{
+            flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5,
+            fontSize: 13, fontWeight: 600, color: 'var(--action-primary)',
+            background: 'transparent', border: '1.5px solid var(--action-primary)',
+            borderRadius: 'var(--radius-md)', padding: '6px 14px',
+            cursor: 'pointer',
+          }}
+        >
+          {editLabel}
+        </button>
+      ) : editHref ? (
+        <Link
+          href={`/${clubSlug}${editHref}`}
+          style={{
+            flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5,
+            fontSize: 13, fontWeight: 600, color: 'var(--action-primary)',
+            background: 'transparent', border: '1.5px solid var(--action-primary)',
+            borderRadius: 'var(--radius-md)', padding: '6px 14px',
+            textDecoration: 'none',
+          }}
+        >
+          {editLabel}
+        </Link>
+      ) : null}
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function NavigationClient({
@@ -1506,7 +1602,7 @@ export default function NavigationClient({
   members = [],
   clubId,
   clubName = '',
-  initialBuiltinVisibility = { about: 'members_only', calendar: 'members_only' },
+  initialBuiltinVisibility = { about: 'members_only', calendar: 'members_only', resourcesEnabled: true, galleriesEnabled: true },
 }: {
   customPages:                CustomPage[]
   customTabs:                 CustomTab[]
@@ -1594,10 +1690,28 @@ export default function NavigationClient({
       .select('page_visibility')
       .eq('club_id', clubId)
       .single()
-    const current = (existing?.page_visibility as Record<string, string> | null) ?? {}
+    const current = (existing?.page_visibility as Record<string, unknown> | null) ?? {}
     await sb
       .from('club_settings')
       .update({ page_visibility: { ...current, [key]: value } })
+      .eq('club_id', clubId)
+  }
+
+  async function changePageEnabled(page: 'resources' | 'galleries', enabled: boolean) {
+    const stateKey = page === 'resources' ? 'resourcesEnabled' : 'galleriesEnabled'
+    setBuiltinVisibility(prev => ({ ...prev, [stateKey]: enabled }))
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = supabase as any
+    const { data: existing } = await sb
+      .from('club_settings')
+      .select('page_visibility')
+      .eq('club_id', clubId)
+      .single()
+    const current = (existing?.page_visibility as Record<string, unknown> | null) ?? {}
+    await sb
+      .from('club_settings')
+      .update({ page_visibility: { ...current, [`${page}_enabled`]: enabled } })
       .eq('club_id', clubId)
   }
 
@@ -1633,8 +1747,8 @@ export default function NavigationClient({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Content &amp; Pages</h1>
-        <p className="mt-1 text-[13px] text-content-secondary">Manage pages, navigation, and site content.</p>
+        <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Site Pages &amp; Navigation</h1>
+        <p className="mt-1 text-[13px] text-content-secondary">Edit page content, manage navigation tabs, and control which pages are active on your site.</p>
       </div>
 
       {err && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setErr(null)}>{err}</Alert>}
@@ -1652,60 +1766,123 @@ export default function NavigationClient({
       {/* ── Pages tab ────────────────────────────────────────────────────── */}
       {activeTab === 'navigation' && (
         <div>
-          {/* Action row */}
-          <div className="mb-4 flex items-center justify-end gap-2">
-            <Button
-              variant="outlined"
-              color="secondary"
-              size="small"
-              startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
-              onClick={() => setNewTabDialogOpen(true)}
-            >
-              New tab
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
-              onClick={() => setNewPageDialogOpen(true)}
-            >
-              New page
-            </Button>
-          </div>
+          {/* Editable pages hub */}
+          <section style={{ marginBottom: 32 }}>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+              Site Pages
+            </p>
+            <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
+              <EditablePageRow
+                title="Homepage"
+                description="The landing page for signed-in members, with customizable content blocks."
+                editLabel="Edit homepage →"
+                onEditClick={() => setActiveTab('homepage')}
+              />
+              <EditablePageRow
+                title="About Our Club"
+                description="Public page — visible to anyone visiting your club's site."
+                editHref="/admin/content/about"
+              />
+              <EditablePageRow
+                title="Join / Renew"
+                description="Public page — membership information and payment instructions."
+                editHref="/admin/content/join"
+              />
+              <EditablePageRow
+                title="Resources"
+                description="Members-only documents, downloads, and links organized by category."
+                editHref="/admin/resources"
+                editLabel="Manage resources →"
+                enableable
+                enabled={builtinVisibility.resourcesEnabled}
+                onToggle={() => changePageEnabled('resources', !builtinVisibility.resourcesEnabled)}
+              />
+              <EditablePageRow
+                title="Club Galleries"
+                description="Curated photo galleries created by admins, visible to members or the public."
+                editHref="/admin/galleries"
+                editLabel="Manage galleries →"
+                enableable
+                enabled={builtinVisibility.galleriesEnabled}
+                onToggle={() => changePageEnabled('galleries', !builtinVisibility.galleriesEnabled)}
+              />
+              <div style={{
+                padding: '10px 20px',
+                background: 'var(--surface-1)',
+                borderTop: '1px solid var(--border-subtle)',
+              }}>
+                <p style={{ margin: 0, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+                  <strong style={{ color: 'var(--text-secondary)' }}>My Images</strong> and{' '}
+                  <strong style={{ color: 'var(--text-secondary)' }}>My Galleries</strong> are user-generated — each member sees their own library. These cannot be disabled.
+                </p>
+              </div>
+            </div>
+          </section>
 
-          <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
-            {SYSTEM_NAV.map(item => (
-              <SysNavRow
-                key={item.href}
-                item={item}
-                customSubPages={item.parentKey ? pagesFor(item.parentKey) : []}
-                onDeletePage={deletePage}
-                onEditPage={openCustomPageEditor}
-                pending={pending}
-                builtinVisibility={builtinVisibility}
-                onChangeVisibility={changeBuiltinVisibility}
-              />
-            ))}
-            {tabs.map((tab, tabIdx) => (
-              <CustomTabRow
-                key={tab.id}
-                tab={tab}
-                customSubPages={pagesFor(tab.id)}
-                onDeletePage={deletePage}
-                onEditPage={openCustomPageEditor}
-                onDeleteTab={deleteTab}
-                pending={pending}
-                onDragStart={() => onTabDragStart(tabIdx)}
-                onDragOver={e => onTabDragOver(e, tabIdx)}
-                onDrop={() => onTabDrop(tabIdx)}
-                onDragEnd={onTabDragEnd}
-                isDragOver={tabDragOverIdx === tabIdx}
-                successMessage={newTabSuccessId === tab.id
-                  ? `"${tab.name}" added — click to expand and add pages to it`
-                  : undefined}
-              />
-            ))}
-          </div>
+          {/* Navigation structure */}
+          <section>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                Navigation structure
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  size="small"
+                  startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
+                  onClick={() => setNewTabDialogOpen(true)}
+                >
+                  New tab
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
+                  onClick={() => setNewPageDialogOpen(true)}
+                >
+                  New page
+                </Button>
+              </div>
+            </div>
+            <p className="mb-3 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+              Control which navigation tabs appear in the top bar and add custom pages to them. Custom tabs can be dragged to reorder.
+            </p>
+
+            <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
+              {SYSTEM_NAV.map(item => (
+                <SysNavRow
+                  key={item.href}
+                  item={item}
+                  customSubPages={item.parentKey ? pagesFor(item.parentKey) : []}
+                  onDeletePage={deletePage}
+                  onEditPage={openCustomPageEditor}
+                  pending={pending}
+                  builtinVisibility={builtinVisibility}
+                  onChangeVisibility={changeBuiltinVisibility}
+                />
+              ))}
+              {tabs.map((tab, tabIdx) => (
+                <CustomTabRow
+                  key={tab.id}
+                  tab={tab}
+                  customSubPages={pagesFor(tab.id)}
+                  onDeletePage={deletePage}
+                  onEditPage={openCustomPageEditor}
+                  onDeleteTab={deleteTab}
+                  pending={pending}
+                  onDragStart={() => onTabDragStart(tabIdx)}
+                  onDragOver={e => onTabDragOver(e, tabIdx)}
+                  onDrop={() => onTabDrop(tabIdx)}
+                  onDragEnd={onTabDragEnd}
+                  isDragOver={tabDragOverIdx === tabIdx}
+                  successMessage={newTabSuccessId === tab.id
+                    ? `"${tab.name}" added — click to expand and add pages to it`
+                    : undefined}
+                />
+              ))}
+            </div>
+          </section>
         </div>
       )}
 

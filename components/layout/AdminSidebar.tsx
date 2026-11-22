@@ -1,15 +1,16 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { logout } from '@/app/(auth)/actions'
 import { useUnsavedChanges } from '@/components/admin/UnsavedChangesProvider'
 import { useAdminTheme } from './AdminThemeContext'
 
 type NavItem = {
-  path:   string
-  label:  string
-  exact?: boolean
-  icon:   React.ReactNode
+  path:     string
+  label:    string
+  exact?:   boolean
+  tabKey?:  string   // when set, also checks ?tab=<tabKey> for active state
+  icon:     React.ReactNode
 }
 
 type NavGroup = {
@@ -88,26 +89,18 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Pages',
     items: [
       {
-        path: '/admin/content', label: 'Site Pages', exact: true,
+        path: '/admin/content', label: 'Homepage', exact: true, tabKey: 'homepage',
+        icon: (
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+        ),
+      },
+      {
+        path: '/admin/content', label: 'Site Pages & Nav', exact: true, tabKey: 'navigation',
         icon: (
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
-          </svg>
-        ),
-      },
-      {
-        path: '/admin/content/about', label: 'About Our Club',
-        icon: (
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        ),
-      },
-      {
-        path: '/admin/content/join', label: 'Join / Renew',
-        icon: (
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
           </svg>
         ),
       },
@@ -140,14 +133,21 @@ const NAV_GROUPS: NavGroup[] = [
 ]
 
 export default function AdminSidebar({ clubSlug }: { clubSlug: string }) {
-  const base     = `/${clubSlug}`
-  const pathname = usePathname()
+  const base         = `/${clubSlug}`
+  const pathname     = usePathname()
+  const searchParams = useSearchParams()
   const { navigate } = useUnsavedChanges()
   useAdminTheme()
 
-  function isActive(path: string, exact?: boolean) {
-    const href = `${base}${path}`
-    return exact ? pathname === href : pathname === href || pathname.startsWith(href + '/')
+  function isActive(path: string, exact?: boolean, tabKey?: string) {
+    const href      = `${base}${path}`
+    const baseMatch = exact ? pathname === href : pathname === href || pathname.startsWith(href + '/')
+    if (!baseMatch) return false
+    if (tabKey === undefined) return true
+    const currentTab = searchParams.get('tab')
+    // 'homepage' also matches when no tab param (it's the default)
+    if (tabKey === 'homepage') return !currentTab || currentTab === 'homepage'
+    return currentTab === tabKey
   }
 
   return (
@@ -183,12 +183,12 @@ export default function AdminSidebar({ clubSlug }: { clubSlug: string }) {
               </p>
             )}
             <div className="space-y-0.5">
-              {group.items.map(({ path, label, icon, exact }) => {
-                const href   = `${base}${path}`
-                const active = isActive(path, exact)
+              {group.items.map(({ path, label, icon, exact, tabKey }) => {
+                const href   = tabKey ? `${base}${path}?tab=${tabKey}` : `${base}${path}`
+                const active = isActive(path, exact, tabKey)
                 return (
                   <button
-                    key={path}
+                    key={tabKey ? `${path}?tab=${tabKey}` : path}
                     onClick={() => navigate(href)}
                     className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                       active

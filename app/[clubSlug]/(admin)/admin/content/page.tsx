@@ -29,10 +29,12 @@ export default async function ContentPage() {
   const homepageBlocks: ContentBlock[] = mergeBlocks(saved, DEFAULT_BLOCKS)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawPageVis = ((csVis as any)?.page_visibility as Record<string, string> | null) ?? {}
+  const rawPageVis = ((csVis as any)?.page_visibility as Record<string, unknown> | null) ?? {}
   const builtinVisibility: BuiltinPageVisibility = {
-    about:    (rawPageVis.about    === 'public' ? 'public' : 'members_only'),
-    calendar: (rawPageVis.calendar === 'public' ? 'public' : 'members_only'),
+    about:            (rawPageVis.about    === 'public' ? 'public' : 'members_only'),
+    calendar:         (rawPageVis.calendar === 'public' ? 'public' : 'members_only'),
+    resourcesEnabled: rawPageVis.resources_enabled !== false,
+    galleriesEnabled: rawPageVis.galleries_enabled !== false,
   }
 
   // ── Club galleries ──────────────────────────────────────────────────────────
