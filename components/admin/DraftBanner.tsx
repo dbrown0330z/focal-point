@@ -77,7 +77,8 @@ export default function DraftBanner({ checklist: initial }: { checklist: DraftCh
     { done: duesModeOk,     label: 'Dues & payment',      href: `/${clubSlug}/admin/dues-payment` },
     { done: false,          label: 'Club Basics',          href: `/${clubSlug}/admin/club-defaults` },
     { done: false,          label: 'Homepage',             href: `/${clubSlug}/admin/content` },
-    { done: false,          label: 'About page',           href: `/${clubSlug}/admin/content/about` },
+    { done: false,          label: 'About our club',        href: `/${clubSlug}/admin/content/about` },
+    { done: false,          label: 'Join / Renew page',    href: `/${clubSlug}/admin/content/join` },
     { done: hasCompetition, label: 'First competition',    href: `/${clubSlug}/admin/competitions/new` },
     { done: hasPost,        label: 'Welcome post (member feed)', href: `/${clubSlug}/admin/posts/new` },
   ]
