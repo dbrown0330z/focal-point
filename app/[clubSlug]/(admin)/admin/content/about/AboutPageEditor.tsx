@@ -221,7 +221,7 @@ export default function AboutPageEditor({
   const [panelSaveError, setPanelSaveError] = useState<string | null>(null)
 
   // Preview theme — always light (no toggle)
-  const previewTheme = 'light'
+  const previewTheme: 'light' | 'dark' = 'light'
 
   // Toolbar dropdowns
   const [styleAnchor, setStyleAnchor] = useState<HTMLElement | null>(null)
