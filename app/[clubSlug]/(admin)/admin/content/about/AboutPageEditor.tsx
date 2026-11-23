@@ -638,7 +638,6 @@ export default function AboutPageEditor({
               contentEditable
               suppressContentEditableWarning
               data-placeholder="Start writing about your club…"
-              onClick={handleEditorClick}
               sx={editorContentSx}
             />
           </Box>
