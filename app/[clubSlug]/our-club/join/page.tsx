@@ -65,21 +65,29 @@ function PaymentMethodCard({
 }
 
 export default async function JoinPage() {
-  const admin = createServiceClient()
+  const admin    = createServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminAny = admin as any
   const ctx   = await getClubContext()
   const clubId   = ctx?.clubId
   const clubSlug = ctx?.clubSlug ?? ''
 
+  const { createClient } = await import('@/lib/supabase/server')
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const isLoggedIn = Boolean(user)
+
   const [{ data: pageRaw }, { data: settingsRaw }] = await Promise.all([
     clubId
-      ? (admin.from('pages').select('content').eq('slug', 'join-renew').eq('club_id', clubId).maybeSingle() as unknown as Promise<{ data: { content: string | null } | null }>)
+      ? (adminAny.from('pages').select('content').eq('slug', 'join-renew').eq('club_id', clubId).maybeSingle() as Promise<{ data: { content: string | null } | null }>)
       : Promise.resolve({ data: null }),
     clubId
       ? (admin.from('club_settings').select('club_name, dues_manual_methods, dues_cheque_payable_to, dues_cheque_mail_to, dues_etransfer_email, dues_paypal_link, dues_venmo_handle, dues_cashapp_handle, dues_zelle_contact, dues_annual_standard, join_open').eq('club_id', clubId).single() as unknown as Promise<{ data: DuesSettings | null }>)
       : Promise.resolve({ data: null }),
   ])
 
-  const html         = pageRaw?.content ?? null
+  const DEFAULT_INTRO = '<p>We\'d love to have you as a member. Use the information below to pay your dues and complete your registration — or renew your existing membership for another year.</p>'
+  const html         = pageRaw?.content ?? DEFAULT_INTRO
   const settings     = settingsRaw
   const methods      = (settings?.dues_manual_methods ?? []) as string[]
   const annualDues   = settings?.dues_annual_standard
@@ -161,91 +169,115 @@ export default async function JoinPage() {
     )
   }
 
+  const isFree = !annualDues || annualDues <= 0
+
   return (
-    <div style={{ maxWidth: 680, margin: '0 auto' }}>
-      <h1 style={{
-        fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em',
-        color: 'var(--text-primary)', margin: '0 0 24px',
-      }}>
-        Join / Renew
-      </h1>
+    <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', gap: 48, alignItems: 'flex-start' }}>
 
-      {/* Custom intro block */}
-      {html && (
-        <div
-          dangerouslySetInnerHTML={{ __html: html }}
-          style={{
-            fontSize: 15,
-            lineHeight: 1.7,
-            color: 'var(--text-primary)',
-            marginBottom: 32,
-          }}
-        />
-      )}
-
-      {/* Dues amount */}
-      {annualDues && (
-        <div style={{
-          background: 'var(--surface-1)',
-          border: '1px solid var(--border-default)',
-          borderRadius: 'var(--radius-md)',
-          padding: '14px 20px',
-          marginBottom: 24,
-          display: 'flex',
-          alignItems: 'baseline',
-          gap: 8,
+      {/* Left — main content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h1 style={{
+          fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em',
+          color: 'var(--text-primary)', margin: '0 0 24px',
         }}>
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Annual membership dues</span>
-          <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>
-            ${annualDues.toFixed(2)}
-          </span>
-        </div>
-      )}
+          Join / Renew
+        </h1>
 
-      {/* Payment methods */}
-      {paymentCards.length > 0 && (
-        <div style={{ marginBottom: 32 }}>
-          <h2 style={{
-            fontSize: 18, fontWeight: 600, color: 'var(--text-primary)',
-            margin: '0 0 12px', letterSpacing: '-0.01em',
-          }}>
-            How to pay
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {paymentCards}
+        {/* Custom intro block */}
+        {html && (
+          <div
+            dangerouslySetInnerHTML={{ __html: html }}
+            style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--text-primary)', marginBottom: 32 }}
+          />
+        )}
+
+        {/* Payment methods */}
+        {!isFree && paymentCards.length > 0 && (
+          <div style={{ marginBottom: 32 }}>
+            <h2 style={{
+              fontSize: 18, fontWeight: 600, color: 'var(--text-primary)',
+              margin: '0 0 12px', letterSpacing: '-0.01em',
+            }}>
+              How to pay
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {paymentCards}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* CTA */}
-      {joinOpen && (
+        {/* CTA — only for anonymous visitors */}
+        {joinOpen && !isLoggedIn && (
+          <div style={{
+            borderTop: '1px solid var(--border-subtle)',
+            paddingTop: 24,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}>
+            <p style={{ margin: 0, fontSize: 15, color: 'var(--text-secondary)' }}>
+              Ready to become a member?
+            </p>
+            <Link
+              href={`/${clubSlug}/apply`}
+              style={{
+                display: 'inline-block',
+                background: 'var(--action-primary)',
+                color: 'white',
+                padding: '10px 24px',
+                borderRadius: 'var(--radius-md)',
+                fontSize: 14,
+                fontWeight: 500,
+                textDecoration: 'none',
+              }}
+            >
+              Apply to join
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* Right — dues panel */}
+      <div style={{
+        width: 240,
+        flexShrink: 0,
+        border: '1px solid var(--border-default)',
+        borderRadius: 'var(--radius-lg)',
+        overflow: 'hidden',
+        background: 'var(--surface-2)',
+      }}>
         <div style={{
-          borderTop: '1px solid var(--border-subtle)',
-          paddingTop: 24,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
+          padding: '12px 16px',
+          borderBottom: '1px solid var(--border-subtle)',
+          background: 'var(--surface-1)',
         }}>
-          <p style={{ margin: 0, fontSize: 15, color: 'var(--text-secondary)' }}>
-            Ready to become a member?
+          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+            Membership
           </p>
-          <Link
-            href={`/${clubSlug}/apply`}
-            style={{
-              display: 'inline-block',
-              background: 'var(--action-primary)',
-              color: 'white',
-              padding: '10px 24px',
-              borderRadius: 'var(--radius-md)',
-              fontSize: 14,
-              fontWeight: 500,
-              textDecoration: 'none',
-            }}
-          >
-            Apply to join
-          </Link>
         </div>
-      )}
+        <div style={{ padding: '16px' }}>
+          <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+            Annual dues
+          </p>
+          {isFree ? (
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
+              Free — no charge to join
+            </p>
+          ) : (
+            <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+              ${annualDues!.toFixed(2)}
+              <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-secondary)', marginLeft: 4 }}>/year</span>
+            </p>
+          )}
+
+          {!isFree && paymentCards.length > 0 && (
+            <p style={{ margin: '12px 0 0', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              {methods.length === 1 ? '1 payment method accepted.' : `${methods.length} payment methods accepted.`} See below for details.
+            </p>
+          )}
+        </div>
+      </div>
+
     </div>
   )
 }
