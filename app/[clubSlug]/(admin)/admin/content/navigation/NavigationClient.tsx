@@ -3,36 +3,31 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import {
-  Box,
-  Button,
-  CircularProgress,
+  Alert, Button,
   Dialog, DialogActions, DialogContent, DialogTitle,
   FormControl, FormControlLabel, FormLabel,
   MenuItem, Radio, RadioGroup,
-  Select, Tab, Tabs, TextField, Tooltip, Alert,
+  Select, TextField,
 } from '@mui/material'
-import AddIcon from '@mui/icons-material/Add'
-import CloseIcon from '@mui/icons-material/Close'
-import { useParams, useSearchParams } from 'next/navigation'
+import AddIcon         from '@mui/icons-material/Add'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+import { useParams }   from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import HomepageEditor from './HomepageEditor'
-import type { ContentBlock } from '@/lib/homepage/types'
-import AboutPageEditor from '../about/AboutPageEditor'
-import CustomPageEditorComponent from './[pageId]/CustomPageEditor'
 import { type AdminGalleryData, type ClubMember } from '../galleries/ClubGalleriesTab'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type PageType          = 'rich_text' | 'document_link' | 'external_link'
-type Visibility        = 'all_members' | 'members_only' | 'hidden'
-type BuiltinVisibility = 'members_only' | 'public'
-type PageStatus        = 'draft' | 'published'
-type ParentSystem      = 'calendar' | 'images' | 'competitions' | 'our-club'
-type MainTab           = 'navigation' | 'homepage'
+type PageType     = 'rich_text' | 'document_link' | 'external_link'
+type Visibility   = 'all_members' | 'members_only' | 'hidden'
+type BuiltinVis   = 'members_only' | 'public'
+type PageStatus   = 'draft' | 'published'
+type ParentSystem = 'calendar' | 'images' | 'competitions' | 'our-club'
 
 export type BuiltinPageVisibility = {
-  about:    BuiltinVisibility
-  calendar: BuiltinVisibility
+  about:            BuiltinVis
+  calendar:         BuiltinVis
+  resourcesEnabled: boolean
+  galleriesEnabled: boolean
 }
 
 export type CustomPage = {
@@ -56,839 +51,541 @@ export type CustomTab = {
   sort_order: number
 }
 
-// ── Static nav structure ──────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-type SysItem = {
-  label:     string
-  href:      string
-  editHref?: string
-  dynamic?:  boolean
-  visKey?:   'about' | 'calendar'
-  children?: SysItem[]
-  parentKey?: ParentSystem
+const SYS_CHILD_COUNTS: Record<string, number> = { images: 2, competitions: 3, 'our-club': 5 }
+const SLOT_LABEL: Record<ParentSystem, string>  = {
+  calendar: 'Calendar', images: 'Images', competitions: 'Competitions', 'our-club': 'Our Club',
 }
-
-const SYSTEM_NAV: SysItem[] = [
-  { label: 'Home',     href: '/',         dynamic: true },
-  { label: 'Calendar', href: '/calendar', dynamic: true, visKey: 'calendar' },
-  {
-    label: 'Images', href: '/library', dynamic: true, parentKey: 'images',
-    children: [
-      { label: 'My images',    href: '/library',           dynamic: true },
-      { label: 'My galleries', href: '/library/galleries', dynamic: true },
-    ],
-  },
-  {
-    label: 'Competitions', href: '/competitions', dynamic: true, parentKey: 'competitions',
-    children: [
-      { label: 'Current',   href: '/competitions',           dynamic: true },
-      { label: 'Results',   href: '/competitions/results',   dynamic: true },
-      { label: 'Standings', href: '/competitions/standings', dynamic: true },
-    ],
-  },
-  {
-    label: 'Our Club', href: '/our-club', dynamic: true, parentKey: 'our-club',
-    children: [
-      { label: 'About our club',   href: '/our-club/about',     editHref: '/admin/content/about', visKey: 'about' },
-      { label: 'Member directory', href: '/our-club/members',   dynamic: true },
-      { label: 'Resources',        href: '/our-club/resources', dynamic: true },
-      { label: 'Club galleries',   href: '/our-club/galleries', dynamic: true },
-      { label: 'Join / Renew',     href: '/our-club/join',      editHref: '/admin/content/join' },
-    ],
-  },
-]
-
-// Number of system-defined children per parentKey (for slot calculation)
-const SYS_CHILD_COUNTS: Record<string, number> = {
-  images: 2, competitions: 3, 'our-club': 5,
-}
-const NAV_MAX_SLOTS = 6   // total sub-pages per tab (system + custom)
+const NAV_MAX_SLOTS  = 6
 const MAX_CUSTOM_TABS = 2
-
-const SLOT_LABEL: Record<ParentSystem, string> = {
-  calendar:     'Calendar',
-  images:       'Images',
-  competitions: 'Competitions',
-  'our-club':   'Our Club',
-}
-
-// key: used for page_visibility lookup; null = visibility is fixed
-type BuiltinPageRow = {
-  title:       string
-  url:         string
-  menuLocation: string
-  visKey:      'about' | 'calendar' | null  // null = fixed, not editable
-  fixedVis:    string | null                 // shown when visKey is null
-  editAction:  'about' | 'homepage' | 'join' | null
-}
-
-const BUILTIN_PAGES: BuiltinPageRow[] = [
-  { title: 'Home',                 url: '/',                        menuLocation: 'Fixed — top level', visKey: null,       fixedVis: 'Members + public', editAction: 'homepage' },
-  { title: 'Calendar',             url: '/calendar',                menuLocation: 'Fixed — top level', visKey: 'calendar', fixedVis: null,               editAction: null        },
-  { title: 'My images',            url: '/library',                 menuLocation: 'Images',            visKey: null,       fixedVis: 'Members only',     editAction: null        },
-  { title: 'Galleries',            url: '/library/galleries',       menuLocation: 'Images',            visKey: null,       fixedVis: 'Members only',     editAction: null        },
-  { title: 'Current competitions', url: '/competitions',            menuLocation: 'Competitions',      visKey: null,       fixedVis: 'Members only',     editAction: null        },
-  { title: 'Results',              url: '/competitions/results',    menuLocation: 'Competitions',      visKey: null,       fixedVis: 'Members only',     editAction: null        },
-  { title: 'Standings',            url: '/competitions/standings',  menuLocation: 'Competitions',      visKey: null,       fixedVis: 'Members only',     editAction: null        },
-  { title: 'About our club',       url: '/our-club/about',          menuLocation: 'Our Club',          visKey: 'about',    fixedVis: null,               editAction: 'about'     },
-  { title: 'Member directory',     url: '/our-club/members',        menuLocation: 'Our Club',          visKey: null,       fixedVis: 'Members only',     editAction: null        },
-  { title: 'Resources',            url: '/our-club/resources',      menuLocation: 'Our Club',          visKey: null,       fixedVis: 'Members only',     editAction: null        },
-  { title: 'Club galleries',       url: '/our-club/galleries',      menuLocation: 'Our Club',          visKey: null,       fixedVis: 'Members only',     editAction: null        },
-  { title: 'Join / Renew',         url: '/our-club/join',           menuLocation: 'Our Club',          visKey: null,       fixedVis: 'Public',           editAction: 'join'      },
-]
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
+const GRID_COLS  = '32px minmax(0,1fr) 160px 320px'
+const GRID_GAP   = '20px'
+const GRID_PAD   = '0 20px 0 12px'
+const TAB_HDR_BG = '#EEF0F4'
 
 function slugify(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const days = Math.floor(diff / 86400000)
-  if (days === 0)  return 'Today'
-  if (days === 1)  return 'Yesterday'
-  if (days < 7)   return `${days}d ago`
-  if (days < 30)  return `${Math.floor(days / 7)}w ago`
-  return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+// ── Builtin page definitions ──────────────────────────────────────────────────
+
+type EditSlot = 'edit' | 'manage' | 'auto-generated' | 'user-generated' | null
+
+type BuiltinPageDef = {
+  key:       string
+  title:     string
+  tooltip:   string
+  viewPath?: string
+  editPath?: string
+  editSlot:  EditSlot
+  hasDrag:   boolean
+  visKey?:   'about' | 'calendar' | 'galleries' | 'join'
+  enableKey?: 'resources' | 'galleries'
 }
 
-function visibilityLabel(v: Visibility): string {
-  if (v === 'all_members')  return 'Members + public'
-  if (v === 'members_only') return 'Members only'
-  return 'Hidden'
-}
+const HOME_PAGES: BuiltinPageDef[] = [{
+  key: 'homepage', title: 'Homepage', hasDrag: false,
+  tooltip:  'The landing page for signed-in members, with customizable content blocks.',
+  viewPath: '/', editPath: '/admin/content/homepage', editSlot: 'edit',
+}]
 
-function menuLocationLabel(page: CustomPage, tabs: CustomTab[]): string {
-  if (page.parent_system) return SLOT_LABEL[page.parent_system]
-  if (page.tab_id)        return tabs.find(t => t.id === page.tab_id)?.name ?? '—'
-  return ''
-}
+const IMAGES_PAGES: BuiltinPageDef[] = [
+  { key: 'my-images',    title: 'My images',    hasDrag: true, tooltip: 'Each member sees their own library. Always on.', editSlot: 'user-generated' },
+  { key: 'my-galleries', title: 'My galleries', hasDrag: true, tooltip: 'Each member sees their own library. Always on.', editSlot: 'user-generated' },
+]
 
-// ── Small shared components ───────────────────────────────────────────────────
+const COMPETITIONS_PAGES: BuiltinPageDef[] = [
+  { key: 'comp-current',   title: 'Current',   hasDrag: true, tooltip: 'Competitions currently open for entries.',              editSlot: 'auto-generated' },
+  { key: 'comp-results',   title: 'Results',   hasDrag: true, tooltip: 'Scores and winners from past competitions.',            editSlot: 'auto-generated' },
+  { key: 'comp-standings', title: 'Standings', hasDrag: true, tooltip: 'Cumulative member rankings across the season.',         editSlot: 'auto-generated' },
+]
 
-function BuiltinChip() {
+const OUR_CLUB_PAGES: BuiltinPageDef[] = [
+  { key: 'about',            title: 'About our club',   hasDrag: true, visKey: 'about',    editSlot: 'edit',   viewPath: '/our-club/about',    editPath: '/admin/content/about',
+    tooltip: 'Customizable content page for describing your club.' },
+  { key: 'member-directory', title: 'Member directory', hasDrag: true,                     editSlot: 'auto-generated',
+    tooltip: 'List of club members and their contact details.' },
+  { key: 'resources',        title: 'Resources',        hasDrag: true, enableKey: 'resources', editSlot: 'manage', viewPath: '/our-club/resources', editPath: '/admin/resources',
+    tooltip: 'Members-only documents, downloads, and links organized by category.' },
+  { key: 'club-galleries',   title: 'Club galleries',   hasDrag: true, enableKey: 'galleries', visKey: 'galleries', editSlot: 'manage', viewPath: '/our-club/galleries', editPath: '/admin/galleries',
+    tooltip: 'Curated photo galleries created by admins.' },
+  { key: 'join',             title: 'Join / Renew',     hasDrag: true, visKey: 'join',     editSlot: 'edit',   viewPath: '/our-club/join',     editPath: '/admin/content/join',
+    tooltip: 'Membership information and payment instructions.' },
+]
+
+// ── Icons ─────────────────────────────────────────────────────────────────────
+
+function LockIcon() {
   return (
-    <Tooltip title="Built-in pages are always present and cannot be removed." placement="top">
-      <span className="inline-flex cursor-default select-none items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-        style={{ background: 'var(--surface-1)', color: 'var(--text-tertiary)', border: '1px solid var(--border-default)' }}>
-        Built-in
-      </span>
-    </Tooltip>
-  )
-}
-
-function PencilIcon() {
-  return (
-    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
-        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
     </svg>
   )
 }
+
+function HorizGrip() {
+  return (
+    <svg width="20" height="10" viewBox="0 0 20 10" aria-hidden="true">
+      {([3, 10, 17] as number[]).flatMap(cx => ([2, 8] as number[]).map(cy =>
+        <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.5" fill="currentColor" opacity="0.45"/>
+      ))}
+    </svg>
+  )
+}
+
+function VertGrip() {
+  return (
+    <svg width="10" height="20" viewBox="0 0 10 20" aria-hidden="true">
+      {([2, 8] as number[]).flatMap(cx => ([3, 10, 17] as number[]).map(cy =>
+        <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.5" fill="currentColor" opacity="0.45"/>
+      ))}
+    </svg>
+  )
+}
+
+function ExternalIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+    </svg>
+  )
+}
+
+// ── InfoTooltip ───────────────────────────────────────────────────────────────
+
+function InfoTooltip({ text }: { text: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+      <button
+        type="button" aria-label="More information"
+        onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
+        onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-tertiary)', display: 'inline-flex', lineHeight: 1 }}
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12.01" y2="8"/><polyline points="11 12 12 12 12 16"/>
+        </svg>
+      </button>
+      {open && (
+        <span role="tooltip" style={{
+          position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
+          marginBottom: 8, background: '#1F2733', color: '#fff', fontSize: 12,
+          borderRadius: 6, padding: '6px 10px', maxWidth: 260, whiteSpace: 'normal',
+          zIndex: 9999, pointerEvents: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', lineHeight: 1.5,
+        }}>
+          {text}
+        </span>
+      )}
+    </span>
+  )
+}
+
+// ── CUSTOM chip ───────────────────────────────────────────────────────────────
 
 function CustomChip() {
   return (
-    <Tooltip title="Custom tab — added by an admin" placement="top">
-      <span className="inline-flex cursor-default select-none items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-        style={{ background: 'rgba(0,151,167,0.10)', color: '#0097A7', border: '1px solid rgba(0,151,167,0.30)' }}>
-        Custom
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', padding: '2px 6px',
+      fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+      background: '#F1F3F6', color: 'var(--text-secondary)',
+      border: '1px solid #C9CED6', borderRadius: 4, flexShrink: 0,
+    }}>Custom</span>
+  )
+}
+
+// ── ToggleSwitch ──────────────────────────────────────────────────────────────
+
+function ToggleSwitch({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  const navy = '#24467F'
+  const off  = '#B4BAC4'
+  return (
+    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: disabled ? 'default' : 'pointer' }}>
+      <span style={{ position: 'relative', display: 'inline-block', width: 40, height: 22, flexShrink: 0 }}>
+        <input type="checkbox" role="switch" aria-label={checked ? 'Visible' : 'Hidden'}
+          checked={checked} disabled={disabled}
+          onChange={e => onChange(e.target.checked)}
+          style={{ opacity: 0, position: 'absolute', inset: 0, margin: 0, zIndex: 1, width: '100%', height: '100%', cursor: disabled ? 'default' : 'pointer' }} />
+        <span style={{ display: 'block', borderRadius: 11, height: '100%', background: checked ? navy : off, transition: 'background .2s' }} />
+        <span style={{ position: 'absolute', top: 3, left: checked ? 21 : 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.2)', transition: 'left .2s' }} />
       </span>
-    </Tooltip>
+      <span style={{ fontSize: 13, fontWeight: 500, color: checked ? navy : off, minWidth: 44, lineHeight: 1 }}>
+        {checked ? 'Visible' : 'Hidden'}
+      </span>
+    </label>
   )
 }
 
-function LiveBadge() {
+// ── Visibility selects ────────────────────────────────────────────────────────
+
+const selSx = {
+  height: 32, fontSize: 13, bgcolor: '#fff', width: '100%',
+  '& .MuiOutlinedInput-notchedOutline': { borderRadius: '6px', borderColor: '#C4C4C4' },
+}
+
+function BuiltinVisSelect({ value, onChange }: { value: BuiltinVis; onChange: (v: BuiltinVis) => void }) {
   return (
-    <Box component="span" sx={{
-      display: 'inline-flex', alignItems: 'center', gap: 0.625,
-      borderRadius: '999px', px: 1, py: 0.375,
-      fontSize: 11, fontWeight: 600, lineHeight: 1,
-      bgcolor: 'rgba(46,125,50,0.10)', color: '#174A1A',
-    }}>
-      <Box component="span" sx={{ width: 5, height: 5, borderRadius: '50%', flexShrink: 0, bgcolor: '#2E7D32' }} />
-      Live
-    </Box>
+    <Select size="small" value={value} onChange={e => onChange(e.target.value as BuiltinVis)} sx={selSx}>
+      <MenuItem value="members_only" sx={{ fontSize: 13 }}>Members only</MenuItem>
+      <MenuItem value="public"       sx={{ fontSize: 13 }}>Public</MenuItem>
+    </Select>
   )
 }
 
-function NotLiveBadge() {
+function CustomVisSelect({ value, onChange }: { value: Visibility; onChange: (v: Visibility) => void }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-      style={{ border: '1px solid var(--border-default)', color: 'var(--text-tertiary)' }}>
-      <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0, display: 'inline-block' }} />
-      Not live
-    </span>
+    <Select size="small" value={value} onChange={e => onChange(e.target.value as Visibility)} sx={selSx}>
+      <MenuItem value="all_members"  sx={{ fontSize: 13 }}>Members + public</MenuItem>
+      <MenuItem value="members_only" sx={{ fontSize: 13 }}>Members only</MenuItem>
+      <MenuItem value="hidden"       sx={{ fontSize: 13 }}>Hidden</MenuItem>
+    </Select>
   )
 }
 
-function DraftBadge() {
-  return (
-    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
-      style={{ border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
-      Draft
-    </span>
-  )
-}
+// ── Actions cluster ───────────────────────────────────────────────────────────
 
-function DragHandle({ disabled = false }: { disabled?: boolean }) {
-  return (
-    <span className={`flex-shrink-0 ${disabled ? 'cursor-default opacity-25' : 'cursor-grab active:cursor-grabbing'}`}
-      style={{ color: 'var(--text-tertiary)', touchAction: 'none' }}>
-      <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="currentColor">
-        <circle cx="5.5" cy="3.5"  r="1.4" />
-        <circle cx="10.5" cy="3.5" r="1.4" />
-        <circle cx="5.5" cy="8"    r="1.4" />
-        <circle cx="10.5" cy="8"   r="1.4" />
-        <circle cx="5.5" cy="12.5" r="1.4" />
-        <circle cx="10.5" cy="12.5" r="1.4" />
-      </svg>
-    </span>
-  )
-}
-
-function ChevronIcon({ open }: { open: boolean }) {
-  return (
-    <svg className={`h-4 w-4 flex-shrink-0 transition-transform duration-150 ${open ? 'rotate-90' : ''}`}
-      style={{ color: 'var(--text-tertiary)' }}
-      fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-    </svg>
-  )
-}
-
-// ── Navigation tab: system sub-item row ───────────────────────────────────────
-
-function SysSubRow({
-  item,
-  builtinVisibility,
-  onChangeVisibility,
+function ActionsCluster({
+  toggleEl, viewPath, editPath, editSlot, clubSlug, dimmed,
 }: {
-  item: SysItem
-  builtinVisibility?: BuiltinPageVisibility
-  onChangeVisibility?: (key: 'about' | 'calendar', value: BuiltinVisibility) => void
+  toggleEl?: React.ReactNode
+  viewPath?: string
+  editPath?: string
+  editSlot:  EditSlot
+  clubSlug:  string
+  dimmed?:   boolean
 }) {
+  const dim: React.CSSProperties = dimmed ? { opacity: 0.45, pointerEvents: 'none' } : {}
   return (
-    <div className="flex items-center gap-3 py-2 pl-10 pr-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-      <span className="flex-1 text-[13px]" style={{ color: 'var(--text-secondary)' }}>{item.label}</span>
-      {item.visKey && builtinVisibility && onChangeVisibility ? (
-        <select
-          value={builtinVisibility[item.visKey]}
-          onChange={e => onChangeVisibility(item.visKey!, e.target.value as BuiltinVisibility)}
-          className="rounded-[6px] px-2 py-1 text-[12px]"
-          style={{ border: 'var(--input-border)', background: 'var(--surface-2)', color: 'var(--text-primary)', cursor: 'pointer' }}
-        >
-          <option value="members_only">Members only</option>
-          <option value="public">Members + public</option>
-        </select>
-      ) : item.dynamic ? (
-        <span className="text-[11px] italic" style={{ color: 'var(--text-tertiary)' }}>Auto-generated</span>
-      ) : null}
-      {item.editHref && (
-        <Link href={`/${clubSlug}${item.editHref}`} className="text-[11px] font-medium hover:underline" style={{ color: 'var(--action-primary)' }}>
-          Edit content →
-        </Link>
-      )}
-      <BuiltinChip />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+      {/* Toggle slot — 116px */}
+      <div style={{ width: 116, display: 'flex', justifyContent: 'flex-start' }}>
+        {toggleEl}
+      </div>
+      {/* View slot — 84px */}
+      <div style={{ width: 84, ...dim }}>
+        {viewPath && (
+          <Button
+            component="a" href={`/${clubSlug}${viewPath}`} target="_blank" rel="noopener noreferrer"
+            variant="outlined" color="secondary" size="small" fullWidth
+            endIcon={<ExternalIcon />}
+            sx={{ fontSize: 12, py: 0.5, '& .MuiButton-endIcon': { ml: 0.5 } }}
+          >View</Button>
+        )}
+      </div>
+      {/* Edit slot — 104px */}
+      <div style={{ width: 104, display: 'flex', alignItems: 'center', justifyContent: 'center', ...dim }}>
+        {(editSlot === 'edit' || editSlot === 'manage') && editPath ? (
+          <Button component={Link} href={`/${clubSlug}${editPath}`}
+            variant="outlined" color="primary" size="small" fullWidth
+            sx={{ fontSize: 12, py: 0.5 }}>
+            {editSlot === 'manage' ? 'Manage' : 'Edit'}
+          </Button>
+        ) : editSlot === 'auto-generated' ? (
+          <span style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-tertiary)', textAlign: 'center', display: 'block', whiteSpace: 'nowrap' }}>
+            Auto-generated
+          </span>
+        ) : editSlot === 'user-generated' ? (
+          <span style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-tertiary)', textAlign: 'center', display: 'block', whiteSpace: 'nowrap' }}>
+            User generated
+          </span>
+        ) : null}
+      </div>
     </div>
   )
 }
 
-// ── Navigation tab: custom sub-item row ───────────────────────────────────────
+// ── Builtin page row ──────────────────────────────────────────────────────────
 
-function CustomSubRow({
-  page, onDelete, onEdit, pending,
-  onDragStart, onDragOver, onDrop, onDragEnd, isDragOver,
+function BuiltinPageRow({
+  page, clubSlug, builtinVis, onChangeVis, onChangeEnabled, pending,
+}: {
+  page:            BuiltinPageDef
+  clubSlug:        string
+  builtinVis:      BuiltinPageVisibility
+  onChangeVis:     (key: 'about' | 'calendar', v: BuiltinVis) => void
+  onChangeEnabled: (key: 'resources' | 'galleries', v: boolean) => void
+  pending:         boolean
+}) {
+  const enabled = page.enableKey === 'resources' ? builtinVis.resourcesEnabled
+    : page.enableKey === 'galleries' ? builtinVis.galleriesEnabled
+    : true
+  const dimmed = !!page.enableKey && !enabled
+
+  const visValue: BuiltinVis =
+    page.visKey === 'about'    ? builtinVis.about :
+    page.visKey === 'calendar' ? builtinVis.calendar :
+    'members_only'
+
+  const hasBuiltinVisSelect = page.visKey === 'about' || page.visKey === 'galleries'
+
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: '12px 20px 12px 12px',
+      alignItems: 'center', minHeight: 60, borderTop: '1px solid var(--border-subtle)',
+      background: dimmed ? '#F3F4F6' : '#fff',
+    }}>
+      {/* Drag handle */}
+      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-tertiary)', opacity: page.hasDrag ? (dimmed ? 0.4 : 1) : 0, cursor: page.hasDrag ? 'grab' : 'default' }}>
+        {page.hasDrag && <span aria-label="Drag to reorder"><VertGrip /></span>}
+      </div>
+      {/* Name + tooltip */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, opacity: dimmed ? 0.45 : 1 }}>
+        <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)' }}>{page.title}</span>
+        <InfoTooltip text={page.tooltip} />
+      </div>
+      {/* Visibility */}
+      <div style={{ opacity: dimmed ? 0.45 : 1, pointerEvents: dimmed ? 'none' : 'auto' }}>
+        {hasBuiltinVisSelect ? (
+          <BuiltinVisSelect value={visValue} onChange={v => onChangeVis(page.visKey as 'about' | 'calendar', v)} />
+        ) : page.visKey === 'join' ? (
+          <BuiltinVisSelect value="public" onChange={() => {}} />
+        ) : (
+          <span style={{ fontSize: 14, color: 'var(--text-secondary)', paddingLeft: 9 }}>Members only</span>
+        )}
+      </div>
+      {/* Actions */}
+      <ActionsCluster
+        editSlot={page.editSlot} viewPath={page.viewPath} editPath={page.editPath}
+        clubSlug={clubSlug} dimmed={dimmed}
+        toggleEl={page.enableKey ? (
+          <ToggleSwitch
+            checked={enabled}
+            onChange={v => onChangeEnabled(page.enableKey!, v)}
+            disabled={pending}
+          />
+        ) : undefined}
+      />
+    </div>
+  )
+}
+
+// ── Custom page row ───────────────────────────────────────────────────────────
+
+function CustomPageRow({
+  page, clubSlug, onDelete, onChangeVis, pending,
 }: {
   page:        CustomPage
+  clubSlug:    string
   onDelete:    (id: string) => void
-  onEdit:      (page: CustomPage) => void
+  onChangeVis: (id: string, v: Visibility) => void
   pending:     boolean
-  onDragStart: () => void
-  onDragOver:  (e: React.DragEvent) => void
-  onDrop:      () => void
-  onDragEnd:   () => void
-  isDragOver:  boolean
 }) {
-  const [confirmOpen, setConfirmOpen] = useState(false)
-
   return (
-    <>
-      <div
-        draggable
-        onDragStart={onDragStart}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
-        onDragEnd={onDragEnd}
-        className="flex items-center gap-3 py-2 pl-10 pr-4"
-        style={{ borderTop: isDragOver ? '2px solid var(--action-primary)' : '1px solid var(--border-subtle)' }}
-      >
-        <DragHandle />
-        <span className="flex-1 min-w-0 text-[13px]" style={{ color: 'var(--text-primary)' }}>
+    <div style={{
+      display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: '12px 20px 12px 12px',
+      alignItems: 'center', minHeight: 60, borderTop: '1px solid var(--border-subtle)', background: '#fff',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-tertiary)', cursor: 'grab' }}>
+        <span aria-label="Drag to reorder"><VertGrip /></span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {page.title}
-          <span className="ml-1.5 font-mono text-[11px]" style={{ color: 'var(--text-tertiary)' }}>/{page.slug}</span>
         </span>
-
-        {page.visibility === 'hidden' ? (
-          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
-            style={{ background: 'var(--surface-1)', color: 'var(--text-tertiary)', border: '1px solid var(--border-default)' }}>
-            Hidden
-          </span>
-        ) : page.status === 'draft' ? (
-          <DraftBadge />
-        ) : null}
-
-        {page.page_type === 'rich_text' && (
-          <button onClick={() => onEdit(page)} className="flex-shrink-0 text-[12px] font-medium hover:underline" style={{ color: 'var(--action-primary)' }}>
-            Edit content →
-          </button>
-        )}
-
-        <Tooltip title="Delete page">
-          <button disabled={pending} onClick={() => setConfirmOpen(true)}
-            className="flex-shrink-0 rounded p-1 transition-colors hover:bg-surface-1" style={{ color: 'var(--text-tertiary)' }}>
-            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
-        </Tooltip>
-
+        <InfoTooltip text="Admin-created page." />
         <CustomChip />
       </div>
-
-      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle component="div" sx={{ pb: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, bgcolor: 'rgba(211,47,47,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg style={{ width: 16, height: 16, color: '#D32F2F' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </Box>
-            <Box sx={{ fontSize: 15, fontWeight: 600 }}>Delete &ldquo;{page.title}&rdquo;?</Box>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.6 }}>
-            <Box sx={{ mb: 1.5 }}>All content will be permanently lost and <strong>cannot be undone</strong>.</Box>
-            <Box sx={{ bgcolor: 'var(--status-warning-bg)', border: '1px solid var(--status-warning)', borderRadius: 1.5, px: 1.75, py: 1.25, fontSize: 12, color: 'var(--status-warning-text)' }}>
-              💡 Consider setting visibility to <strong>Hidden</strong> instead — the page is preserved but hidden from all visitors.
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button variant="outlined" color="secondary" onClick={() => setConfirmOpen(false)}>Cancel</Button>
-          <Button variant="contained" disabled={pending} onClick={() => { setConfirmOpen(false); onDelete(page.id) }}
-            sx={{ bgcolor: '#D32F2F', '&:hover': { bgcolor: '#B71C1C' } }}>
-            Delete page
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </>
-  )
-}
-
-// ── Navigation tab: system top-level accordion row ────────────────────────────
-
-function SysNavRow({
-  item,
-  customSubPages,
-  onDeletePage,
-  onEditPage,
-  pending,
-  builtinVisibility,
-  onChangeVisibility,
-}: {
-  item:               SysItem
-  customSubPages:     CustomPage[]
-  onDeletePage:       (id: string) => void
-  onEditPage:         (page: CustomPage) => void
-  pending:            boolean
-  builtinVisibility?: BuiltinPageVisibility
-  onChangeVisibility?: (key: 'about' | 'calendar', value: BuiltinVisibility) => void
-}) {
-  const params     = useParams()
-  const clubSlug   = typeof params.clubSlug === 'string' ? params.clubSlug : ''
-  const [open, setOpen] = useState(false)
-  const [localCustom, setLocalCustom] = useState<CustomPage[]>(customSubPages)
-  const dragIdx = useRef<number | null>(null)
-  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
-
-  useEffect(() => setLocalCustom(customSubPages), [customSubPages])
-
-  const sysCount   = item.children?.length ?? 0
-  const totalCount = sysCount + localCustom.length
-  const canExpand  = totalCount > 0
-
-  const onCustomDragStart = (idx: number) => { dragIdx.current = idx }
-  const onCustomDragOver  = (e: React.DragEvent, idx: number) => { e.preventDefault(); setDragOverIdx(idx) }
-  const onCustomDragEnd   = () => { dragIdx.current = null; setDragOverIdx(null) }
-  const onCustomDrop      = async (toIdx: number) => {
-    const fromIdx = dragIdx.current
-    dragIdx.current = null; setDragOverIdx(null)
-    if (fromIdx === null || fromIdx === toIdx) return
-    const reordered = [...localCustom]
-    const [moved] = reordered.splice(fromIdx, 1)
-    reordered.splice(toIdx, 0, moved)
-    setLocalCustom(reordered)
-    const supabase = createClient()
-    await Promise.all(reordered.map((p, i) =>
-      supabase.from('nav_custom_pages').update({ sort_order: i }).eq('id', p.id)
-    ))
-  }
-
-  return (
-    <div style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-      <div
-        onClick={() => canExpand && setOpen(o => !o)}
-        className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-1 ${!canExpand ? 'cursor-default' : 'cursor-pointer'}`}
-      >
-        {canExpand ? <ChevronIcon open={open} /> : <span className="h-4 w-4 flex-shrink-0" />}
-        <span className="flex-1 text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-          {item.label}
-          {totalCount > 0 && (
-            <span className="ml-1.5 text-[13px] font-normal" style={{ color: 'var(--text-tertiary)' }}>({totalCount})</span>
-          )}
-        </span>
-        <div className="flex items-center gap-2.5 flex-shrink-0">
-          {item.visKey && builtinVisibility && onChangeVisibility && (
-            <select
-              value={builtinVisibility[item.visKey]}
-              onChange={e => onChangeVisibility(item.visKey!, e.target.value as BuiltinVisibility)}
-              onClick={e => e.stopPropagation()}
-              className="rounded-[6px] px-2 py-1 text-[12px]"
-              style={{ border: 'var(--input-border)', background: 'var(--surface-2)', color: 'var(--text-primary)', cursor: 'pointer' }}
-            >
-              <option value="members_only">Members only</option>
-              <option value="public">Members + public</option>
-            </select>
-          )}
-          <BuiltinChip />
+      <CustomVisSelect value={page.visibility} onChange={v => onChangeVis(page.id, v)} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+        <div style={{ width: 116 }} />
+        <div style={{ width: 84 }}>
+          <Button
+            component="a" href={`/${clubSlug}/our-club/${page.slug}`} target="_blank" rel="noopener noreferrer"
+            variant="outlined" color="secondary" size="small" fullWidth
+            sx={{ fontSize: 12, py: 0.5 }}
+          >View</Button>
+        </div>
+        <div style={{ width: 104, display: 'flex', gap: 4 }}>
+          <Button
+            component={Link} href={`/${clubSlug}/admin/content/navigation/${page.id}`}
+            variant="outlined" color="primary" size="small" sx={{ fontSize: 12, py: 0.5, flex: 1 }}
+          >Edit</Button>
+          <Button
+            variant="text" color="error" size="small"
+            onClick={() => onDelete(page.id)} disabled={pending}
+            sx={{ minWidth: 0, px: 0.75, py: 0.5, fontSize: 14, lineHeight: 1 }}
+          >×</Button>
         </div>
       </div>
-
-      {open && (
-        <div>
-          {item.children?.map(child => (
-            <SysSubRow
-              key={child.href}
-              item={child}
-              builtinVisibility={builtinVisibility}
-              onChangeVisibility={onChangeVisibility}
-            />
-          ))}
-          {localCustom.map((page, idx) => (
-            <CustomSubRow
-              key={page.id} page={page} onDelete={onDeletePage} onEdit={onEditPage} pending={pending}
-              onDragStart={() => onCustomDragStart(idx)}
-              onDragOver={e => onCustomDragOver(e, idx)}
-              onDrop={() => onCustomDrop(idx)}
-              onDragEnd={onCustomDragEnd}
-              isDragOver={dragOverIdx === idx}
-            />
-          ))}
-        </div>
-      )}
     </div>
   )
 }
 
-// ── Navigation tab: custom tab accordion row ──────────────────────────────────
+// ── Add page footer ───────────────────────────────────────────────────────────
 
-function CustomTabRow({
-  tab,
-  customSubPages,
-  onDeletePage,
-  onEditPage,
-  onDeleteTab,
-  pending,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
-  isDragOver,
-  successMessage,
-}: {
-  tab:            CustomTab
-  customSubPages: CustomPage[]
-  onDeletePage:   (id: string) => void
-  onEditPage:     (page: CustomPage) => void
-  onDeleteTab:    (id: string) => void
-  pending:        boolean
-  onDragStart:    () => void
-  onDragOver:     (e: React.DragEvent) => void
-  onDrop:         () => void
-  onDragEnd:      () => void
-  isDragOver:     boolean
-  successMessage?: string
-}) {
-  const [open, setOpen] = useState(false)
-  const [localPages, setLocalPages] = useState<CustomPage[]>(customSubPages)
-  const dragIdx = useRef<number | null>(null)
-  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
-
-  useEffect(() => setLocalPages(customSubPages), [customSubPages])
-
-  const hasLivePage = localPages.some(p => p.status === 'published' && p.visibility !== 'hidden')
-
-  const onSubDragStart = (idx: number) => { dragIdx.current = idx }
-  const onSubDragOver  = (e: React.DragEvent, idx: number) => { e.preventDefault(); setDragOverIdx(idx) }
-  const onSubDragEnd   = () => { dragIdx.current = null; setDragOverIdx(null) }
-  const onSubDrop      = async (toIdx: number) => {
-    const fromIdx = dragIdx.current
-    dragIdx.current = null; setDragOverIdx(null)
-    if (fromIdx === null || fromIdx === toIdx) return
-    const reordered = [...localPages]
-    const [moved] = reordered.splice(fromIdx, 1)
-    reordered.splice(toIdx, 0, moved)
-    setLocalPages(reordered)
-    const supabase = createClient()
-    await Promise.all(reordered.map((p, i) =>
-      supabase.from('nav_custom_pages').update({ sort_order: i }).eq('id', p.id)
-    ))
-  }
-
+function AddPageFooter({ tabName, onClick }: { tabName: string; onClick: () => void }) {
   return (
-    <div
-      draggable
-      onDragStart={e => { e.stopPropagation(); onDragStart() }}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onDragEnd={onDragEnd}
+    <button
+      type="button" onClick={onClick}
       style={{
-        borderBottom: '1px solid var(--border-subtle)',
-        borderTop: isDragOver ? '2px solid var(--action-primary)' : undefined,
+        display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px',
+        background: 'none', border: 'none', borderTop: '1px solid var(--border-subtle)',
+        cursor: 'pointer', color: 'var(--action-primary)', fontSize: 13, fontWeight: 500,
+        width: '100%', textAlign: 'left',
       }}
     >
-      <div
-        onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-1 cursor-pointer"
-      >
-        <DragHandle />
-        <ChevronIcon open={open} />
-        <span className="flex-1 text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-          {tab.name}
-          {localPages.length > 0 && (
-            <span className="ml-1.5 text-[13px] font-normal" style={{ color: 'var(--text-tertiary)' }}>({localPages.length})</span>
-          )}
-        </span>
-        <div className="flex items-center gap-2.5 flex-shrink-0">
-          {hasLivePage ? <LiveBadge /> : <NotLiveBadge />}
-          <CustomChip />
-          <Tooltip title="Delete tab and all its pages">
-            <button
-              disabled={pending}
-              onClick={e => { e.stopPropagation(); onDeleteTab(tab.id) }}
-              className="rounded p-1 transition-colors hover:bg-surface-1"
-              style={{ color: 'var(--text-tertiary)' }}
-            >
-              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </Tooltip>
-        </div>
-      </div>
-
-      {successMessage && (
-        <div className="px-4 py-2.5 flex items-center gap-2 text-[13px]"
-          style={{ borderTop: '1px solid var(--border-subtle)', background: 'rgba(46,125,50,0.06)', color: '#174A1A' }}>
-          <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-          {successMessage}
-        </div>
-      )}
-
-      {open && (
-        <div>
-          {localPages.map((page, idx) => (
-            <CustomSubRow
-              key={page.id} page={page} onDelete={onDeletePage} onEdit={onEditPage} pending={pending}
-              onDragStart={() => onSubDragStart(idx)}
-              onDragOver={e => onSubDragOver(e, idx)}
-              onDrop={() => onSubDrop(idx)}
-              onDragEnd={onSubDragEnd}
-              isDragOver={dragOverIdx === idx}
-            />
-          ))}
-          {localPages.length === 0 && (
-            <div className="py-3 pl-10 pr-4 text-[13px] italic" style={{ color: 'var(--text-tertiary)', borderTop: '1px solid var(--border-subtle)' }}>
-              No pages yet — not visible to members until a page is published here.
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+      <AddIcon sx={{ fontSize: 16 }} /> Add page to {tabName}
+    </button>
   )
 }
 
-// ── Add page or tab — inline panel ────────────────────────────────────────────
+// ── Tab block (builtin) ───────────────────────────────────────────────────────
 
-type AddPanelStep = 'where' | 'page' | 'tab'
-
-function AddPanel({
-  tabs,
-  pages,
-  clubId,
-  onPageCreated,
-  onTabCreated,
-  onClose,
+function TabBlock({
+  label, note, isLocked, isCalendar, isCustom, pageCount,
+  expanded, onToggle, headerRightContent, dragHandleEl, children, footerEl,
 }: {
-  tabs:           CustomTab[]
-  pages:          CustomPage[]
-  clubId:         string
-  onPageCreated:  (page: CustomPage) => void
-  onTabCreated:   (tab: CustomTab) => void
-  onClose:        () => void
+  label:               string
+  note?:               string
+  isLocked?:           boolean
+  isCalendar?:         boolean
+  isCustom?:           boolean
+  pageCount:           number
+  expanded:            boolean
+  onToggle:            () => void
+  headerRightContent?: React.ReactNode
+  dragHandleEl?:       React.ReactNode
+  children?:           React.ReactNode
+  footerEl?:           React.ReactNode
 }) {
-  const [step,     setStep]     = useState<AddPanelStep>('where')
-  const [mode,     setMode]     = useState<'existing' | 'new'>('existing')
-  const [tabId,    setTabId]    = useState('')
-  const [title,    setTitle]    = useState('')
-  const [type,     setType]     = useState<PageType>('rich_text')
-  const [url,      setUrl]      = useState('https://')
-  const [vis,      setVis]      = useState<Visibility>('all_members')
-  const [tabName,  setTabName]  = useState('')
-  const [saving,   setSaving]   = useState(false)
-  const [err,      setErr]      = useState<string | null>(null)
-
-  // Build slot info for dropdown
-  const sysTabOptions = (['images', 'competitions', 'our-club'] as ParentSystem[]).map(key => {
-    const sysCount    = SYS_CHILD_COUNTS[key] ?? 0
-    const customCount = pages.filter(p => p.parent_system === key).length
-    const total       = sysCount + customCount
-    return { value: key, label: SLOT_LABEL[key], total, isFull: total >= NAV_MAX_SLOTS }
-  })
-  const customTabOptions = tabs.map(t => {
-    const count = pages.filter(p => p.tab_id === t.id).length
-    return { value: t.id, label: t.name, total: count, isFull: count >= NAV_MAX_SLOTS }
-  })
-  const allTabOptions = [...sysTabOptions, ...customTabOptions]
-
-  // Set default tab selection
-  useEffect(() => {
-    if (!tabId) {
-      const first = allTabOptions.find(o => !o.isFull)
-      if (first) setTabId(first.value)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const canContinue = mode === 'new' || (mode === 'existing' && !!tabId)
-  const canCreate   = step === 'page' ? title.trim().length > 0 : tabName.trim().length > 0
-
-  function handleContinue() {
-    if (mode === 'existing') setStep('page')
-    else setStep('tab')
-  }
-
-  async function handleCreatePage() {
-    if (!title.trim()) return
-    setSaving(true); setErr(null)
-    const supabase   = createClient()
-    const slug       = slugify(title)
-    const isSystem   = (['images', 'competitions', 'our-club'] as string[]).includes(tabId)
-    const { data, error } = await supabase.from('nav_custom_pages').insert({
-      club_id:      clubId,
-      title:        title.trim(),
-      slug,
-      page_type:    type,
-      visibility:   vis,
-      status:       vis === 'hidden' ? 'draft' : 'published',
-      external_url: type === 'external_link' ? url : null,
-      sort_order:   pages.filter(p => isSystem ? p.parent_system === tabId : p.tab_id === tabId).length,
-      ...(isSystem ? { parent_system: tabId, tab_id: null } : { parent_system: null, tab_id: tabId }),
-    }).select().single()
-    setSaving(false)
-    if (error) { setErr(error.message); return }
-    onPageCreated(data as CustomPage)
-    onClose()
-  }
-
-  async function handleCreateTab() {
-    if (!tabName.trim()) return
-    setSaving(true); setErr(null)
-    const supabase = createClient()
-    const { data, error } = await supabase.from('nav_custom_tabs').insert({
-      club_id:    clubId,
-      name:       tabName.trim(),
-      slug:       slugify(tabName),
-      sort_order: tabs.length,
-    }).select().single()
-    setSaving(false)
-    if (error) { setErr(error.message); return }
-    onTabCreated(data as CustomTab)
-    onClose()
-  }
-
-  const selectedTabLabel = allTabOptions.find(o => o.value === tabId)?.label ?? ''
-
+  const pageWord = pageCount === 1 ? 'page' : 'pages'
   return (
-    <div className="mt-3 rounded-[10px] overflow-hidden" style={{ border: '1px solid var(--border-default)', background: 'var(--surface-2)' }}>
-      {/* Panel header */}
-      <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--surface-1)' }}>
-        <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-          {step === 'where' && 'Add page or tab'}
-          {step === 'page'  && `New page in ${selectedTabLabel}`}
-          {step === 'tab'   && 'New tab'}
-        </span>
-        {step !== 'where' && (
-          <button onClick={() => { setStep('where'); setErr(null) }} className="text-[12px] hover:underline" style={{ color: 'var(--text-tertiary)' }}>
-            ← Back
-          </button>
+    <div style={{
+      border: '1px solid var(--border-default)', borderRadius: 10, overflow: 'visible',
+      background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+    }}>
+      <div style={{
+        display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: GRID_PAD,
+        alignItems: 'center', minHeight: 56, background: TAB_HDR_BG,
+        borderBottom: expanded && !isCalendar ? '1px solid var(--border-default)' : 'none',
+        borderRadius: expanded && !isCalendar ? '10px 10px 0 0' : 10,
+        position: 'relative',
+      }}>
+        {/* Col 1 — caret / lock */}
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          {isLocked ? (
+            <span style={{ color: 'var(--text-tertiary)', display: 'flex', opacity: 0.6 }}><LockIcon /></span>
+          ) : !isCalendar ? (
+            <button type="button" onClick={onToggle} aria-label={expanded ? 'Collapse' : 'Expand'}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', borderRadius: 4 }}>
+              <ChevronRightIcon sx={{ fontSize: 18, transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }} />
+            </button>
+          ) : null}
+        </div>
+        {/* Col 2 — name + count */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{label}</span>
+          {!isCalendar && (
+            <span style={{ fontSize: 14, color: 'var(--text-tertiary)', fontWeight: 400 }}>
+              ({pageCount} {pageWord})
+            </span>
+          )}
+          {isCustom && <CustomChip />}
+          {note && <span style={{ fontSize: 13, fontStyle: 'italic', color: 'var(--text-tertiary)' }}>{note}</span>}
+        </div>
+        {/* Centered drag handle */}
+        {dragHandleEl && (
+          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', color: 'var(--text-tertiary)', display: 'flex', cursor: 'grab' }}>
+            {dragHandleEl}
+          </div>
         )}
+        {/* Col 3 — visibility */}
+        <div>{headerRightContent}</div>
+        {/* Col 4 — empty */}
+        <div />
       </div>
-
-      <div className="px-4 py-4">
-        {err && <p className="mb-3 text-[12px]" style={{ color: 'var(--status-error)' }}>{err}</p>}
-
-        {/* Step 1 — where */}
-        {step === 'where' && (
-          <div className="flex flex-col gap-4">
-            <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>Where should this page live?</p>
-
-            <div className="flex flex-col gap-2">
-              {/* Option A — existing tab */}
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input type="radio" name="addMode" value="existing" checked={mode === 'existing'}
-                  onChange={() => setMode('existing')} className="mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <span className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                    Add to an existing tab
-                  </span>
-                  <span className="ml-2 text-[11px] font-semibold uppercase tracking-wide rounded px-1.5 py-0.5"
-                    style={{ background: 'rgba(26,111,196,0.10)', color: 'var(--action-primary)' }}>
-                    Recommended
-                  </span>
-                  {mode === 'existing' && (
-                    <div className="mt-2">
-                      <select
-                        value={tabId}
-                        onChange={e => setTabId(e.target.value)}
-                        className="w-full rounded-[6px] px-3 py-2 text-[13px]"
-                        style={{ border: 'var(--input-border)', background: 'var(--surface-2)', color: 'var(--text-primary)' }}
-                      >
-                        <option value="">Select a tab…</option>
-                        {allTabOptions.map(o => (
-                          <option key={o.value} value={o.value} disabled={o.isFull}>
-                            {o.label}  ({o.total} of {NAV_MAX_SLOTS} slots used{o.isFull ? ' — full' : ''})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-              </label>
-
-              {/* Option B — new tab */}
-              {tabs.length < MAX_CUSTOM_TABS && (
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input type="radio" name="addMode" value="new" checked={mode === 'new'}
-                    onChange={() => setMode('new')} className="mt-0.5 flex-shrink-0" />
-                  <span className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>Create a new tab</span>
-                </label>
-              )}
-              {tabs.length >= MAX_CUSTOM_TABS && (
-                <p className="ml-6 text-[12px] italic" style={{ color: 'var(--text-tertiary)' }}>
-                  Maximum of {MAX_CUSTOM_TABS} custom tabs reached — add pages to an existing tab instead.
-                </p>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 justify-end pt-1" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-              <Button variant="outlined" color="secondary" size="small" onClick={onClose}>Cancel</Button>
-              <Button variant="contained" size="small" disabled={!canContinue} onClick={handleContinue}>Continue →</Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2a — page form */}
-        {step === 'page' && (
-          <div className="flex flex-col gap-4">
-            <TextField
-              label="Page name" size="small" fullWidth autoFocus
-              slotProps={{ htmlInput: { maxLength: 40 } }}
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && canCreate && !saving && handleCreatePage()}
-            />
-
-            <FormControl>
-              <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Page type</FormLabel>
-              <RadioGroup value={type} onChange={e => setType(e.target.value as PageType)}>
-                <FormControlLabel value="rich_text" control={<Radio size="small" />}
-                  label={<span><strong style={{ fontSize: 13 }}>Rich text page</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— formatted content</span></span>}
-                  sx={{ alignItems: 'center', mb: 0.5 }} />
-                <FormControlLabel value="document_link" control={<Radio size="small" />}
-                  label={<span><strong style={{ fontSize: 13 }}>Document link</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— links to a file in Documents</span></span>}
-                  sx={{ alignItems: 'center', mb: 0.5 }} />
-                <FormControlLabel value="external_link" control={<Radio size="small" />}
-                  label={<span><strong style={{ fontSize: 13 }}>External link</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— opens in a new tab</span></span>}
-                  sx={{ alignItems: 'center' }} />
-              </RadioGroup>
-            </FormControl>
-
-            {type === 'external_link' && (
-              <TextField label="URL" size="small" fullWidth value={url}
-                onChange={e => setUrl(e.target.value)} placeholder="https://example.com" />
-            )}
-
-            <FormControl size="small" fullWidth>
-              <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Visibility</FormLabel>
-              <Select value={vis} onChange={e => setVis(e.target.value as Visibility)} sx={{ fontSize: 13 }}>
-                <MenuItem value="all_members"  sx={{ fontSize: 13 }}>Members + public</MenuItem>
-                <MenuItem value="members_only" sx={{ fontSize: 13 }}>Members only</MenuItem>
-                <MenuItem value="hidden"       sx={{ fontSize: 13 }}>Hidden</MenuItem>
-              </Select>
-            </FormControl>
-
-            <div className="flex items-center gap-2 justify-end pt-1" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-              <Button variant="outlined" color="secondary" size="small" onClick={onClose}>Cancel</Button>
-              <Button variant="contained" size="small" disabled={!canCreate || saving} onClick={handleCreatePage}>
-                {saving ? 'Creating…' : 'Create page →'}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2b — tab form */}
-        {step === 'tab' && (
-          <div className="flex flex-col gap-4">
-            <TextField
-              label="Tab name" size="small" fullWidth autoFocus
-              slotProps={{ htmlInput: { maxLength: 20 } }}
-              value={tabName}
-              onChange={e => setTabName(e.target.value.slice(0, 20))}
-              helperText={`${tabName.length}/20 characters — shown in the main navigation bar`}
-              onKeyDown={e => e.key === 'Enter' && canCreate && !saving && handleCreateTab()}
-            />
-            <p className="text-[12px] m-0" style={{ color: 'var(--text-secondary)' }}>
-              The tab appears in the navigation tree immediately. It won&apos;t be visible to members until you add at least one published page to it.
-            </p>
-            <div className="flex items-center gap-2 justify-end pt-1" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-              <Button variant="outlined" color="secondary" size="small" onClick={onClose}>Cancel</Button>
-              <Button variant="contained" size="small" disabled={!canCreate || saving} onClick={handleCreateTab}>
-                {saving ? 'Creating…' : 'Create tab →'}
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
+      {expanded && children}
+      {expanded && footerEl}
     </div>
   )
 }
 
-// ── New Page dialog (with nav section picker) ─────────────────────────────────
+// ── Custom tab block ──────────────────────────────────────────────────────────
+
+function CustomTabBlock({
+  tab, pages, clubSlug, onDelete, onDeletePage, onChangeVis, onAddPage,
+  pending, dragHandleEl, dragOverStyle, onDragStart, onDragOver, onDragEnd, onDrop,
+}: {
+  tab:           CustomTab
+  pages:         CustomPage[]
+  clubSlug:      string
+  onDelete:      (id: string) => void
+  onDeletePage:  (id: string) => void
+  onChangeVis:   (id: string, v: Visibility) => void
+  onAddPage:     () => void
+  pending:       boolean
+  dragHandleEl:  React.ReactNode
+  dragOverStyle: React.CSSProperties
+  onDragStart:   () => void
+  onDragOver:    (e: React.DragEvent) => void
+  onDragEnd:     () => void
+  onDrop:        () => void
+}) {
+  const [expanded, setExpanded] = useState(true)
+  const count = pages.length
+  return (
+    <div draggable onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDrop={onDrop}
+      style={{ border: '1px solid var(--border-default)', borderRadius: 10, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', ...dragOverStyle }}>
+      <div style={{
+        display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: GRID_PAD,
+        alignItems: 'center', minHeight: 56, background: TAB_HDR_BG,
+        borderBottom: expanded ? '1px solid var(--border-default)' : 'none',
+        borderRadius: expanded ? '10px 10px 0 0' : 10, position: 'relative',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <button type="button" onClick={() => setExpanded(e => !e)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', borderRadius: 4 }}>
+            <ChevronRightIcon sx={{ fontSize: 18, transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }} />
+          </button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>{tab.name}</span>
+          <span style={{ fontSize: 14, color: 'var(--text-tertiary)', fontWeight: 400 }}>
+            ({count} {count === 1 ? 'page' : 'pages'})
+          </span>
+          <CustomChip />
+        </div>
+        <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', color: 'var(--text-tertiary)', cursor: 'grab', display: 'flex' }}>
+          {dragHandleEl}
+        </div>
+        <div />
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Button variant="outlined" color="secondary" size="small" onClick={() => onDelete(tab.id)} disabled={pending} sx={{ fontSize: 12, py: 0.5 }}>
+            Delete
+          </Button>
+        </div>
+      </div>
+      {expanded && pages.map(p => (
+        <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={onDeletePage} onChangeVis={onChangeVis} pending={pending} />
+      ))}
+      {expanded && count === 0 && (
+        <div style={{ padding: '24px 20px', textAlign: 'center', borderTop: '1px dashed var(--border-default)', color: 'var(--text-tertiary)', fontSize: 13 }}>
+          No pages yet. Add one below — empty tabs are hidden from members.
+        </div>
+      )}
+      {expanded && <AddPageFooter tabName={tab.name} onClick={onAddPage} />}
+    </div>
+  )
+}
+
+// ── Column header row ─────────────────────────────────────────────────────────
+
+function ColumnHeaders() {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: '0 20px 0 12px', alignItems: 'center', marginBottom: 8 }}>
+      <div />
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Tab / Page</span>
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Visibility</span>
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', textAlign: 'right' }}>Actions</span>
+    </div>
+  )
+}
+
+// ── NewPageDialogFull ─────────────────────────────────────────────────────────
 
 function NewPageDialogFull({
-  open,
-  tabs,
-  pages,
-  clubId,
-  onPageCreated,
-  onClose,
+  open, tabs, pages, clubId, onPageCreated, onClose,
 }: {
   open:          boolean
   tabs:          CustomTab[]
@@ -902,11 +599,9 @@ function NewPageDialogFull({
     total: (SYS_CHILD_COUNTS[key] ?? 0) + pages.filter(p => p.parent_system === key).length,
   }))
   const customTabOptions = tabs.map(t => ({
-    value: t.id, label: t.name,
-    total: pages.filter(p => p.tab_id === t.id).length,
+    value: t.id, label: t.name, total: pages.filter(p => p.tab_id === t.id).length,
   }))
   const allOptions = [...sysTabOptions, ...customTabOptions]
-
   const defaultSection = allOptions.find(o => o.total < NAV_MAX_SLOTS)?.value ?? allOptions[0]?.value ?? ''
 
   const [section, setSection] = useState(defaultSection)
@@ -928,17 +623,13 @@ function NewPageDialogFull({
   async function handleCreate() {
     if (!title.trim() || !section) return
     setSaving(true); setErr(null)
-    const supabase  = createClient()
-    const isSystem  = (['images', 'competitions', 'our-club'] as string[]).includes(section)
+    const supabase = createClient()
+    const isSystem = (['images', 'competitions', 'our-club'] as string[]).includes(section)
     const { data, error } = await supabase.from('nav_custom_pages').insert({
-      club_id:      clubId,
-      title:        title.trim(),
-      slug:         slugify(title),
-      page_type:    type,
-      visibility:   vis,
-      status:       vis === 'hidden' ? 'draft' : 'published',
+      club_id: clubId, title: title.trim(), slug: slugify(title),
+      page_type: type, visibility: vis, status: vis === 'hidden' ? 'draft' : 'published',
       external_url: type === 'external_link' ? url : null,
-      sort_order:   pages.filter(p => isSystem ? p.parent_system === section : p.tab_id === section).length,
+      sort_order: pages.filter(p => isSystem ? p.parent_system === section : p.tab_id === section).length,
       ...(isSystem ? { parent_system: section, tab_id: null } : { parent_system: null, tab_id: section }),
     }).select().single()
     setSaving(false)
@@ -952,9 +643,8 @@ function NewPageDialogFull({
       <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>New page</DialogTitle>
       <DialogContent sx={{ pt: '16px !important', display: 'flex', flexDirection: 'column', gap: 2.5 }}>
         {err && <p className="text-[12px] m-0" style={{ color: 'var(--status-error)' }}>{err}</p>}
-
         <FormControl size="small" fullWidth>
-          <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Section</FormLabel>
+          <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Tab</FormLabel>
           <Select value={section} onChange={e => setSection(e.target.value)} sx={{ fontSize: 13 }}>
             {allOptions.map(o => (
               <MenuItem key={o.value} value={o.value} disabled={o.total >= NAV_MAX_SLOTS} sx={{ fontSize: 13 }}>
@@ -963,32 +653,24 @@ function NewPageDialogFull({
             ))}
           </Select>
         </FormControl>
-
         <TextField label="Page title" size="small" fullWidth autoFocus
           slotProps={{ htmlInput: { maxLength: 40 } }}
           value={title} onChange={e => setTitle(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && title.trim() && !saving && handleCreate()} />
-
         <FormControl>
           <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Page type</FormLabel>
           <RadioGroup value={type} onChange={e => setType(e.target.value as PageType)}>
-            <FormControlLabel value="rich_text" control={<Radio size="small" />}
-              label={<span><strong style={{ fontSize: 13 }}>Rich text</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— formatted content</span></span>}
-              sx={{ alignItems: 'center', mb: 0.5 }} />
-            <FormControlLabel value="document_link" control={<Radio size="small" />}
-              label={<span><strong style={{ fontSize: 13 }}>Document link</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— links to a file in Resources</span></span>}
-              sx={{ alignItems: 'center', mb: 0.5 }} />
-            <FormControlLabel value="external_link" control={<Radio size="small" />}
-              label={<span><strong style={{ fontSize: 13 }}>External link</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— opens in a new tab</span></span>}
-              sx={{ alignItems: 'center' }} />
+            <FormControlLabel value="rich_text"     control={<Radio size="small" />} sx={{ alignItems: 'center', mb: 0.5 }}
+              label={<span><strong style={{ fontSize: 13 }}>Rich text</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— formatted content</span></span>} />
+            <FormControlLabel value="document_link" control={<Radio size="small" />} sx={{ alignItems: 'center', mb: 0.5 }}
+              label={<span><strong style={{ fontSize: 13 }}>Document link</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— links to a file in Resources</span></span>} />
+            <FormControlLabel value="external_link" control={<Radio size="small" />} sx={{ alignItems: 'center' }}
+              label={<span><strong style={{ fontSize: 13 }}>External link</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— opens in a new tab</span></span>} />
           </RadioGroup>
         </FormControl>
-
         {type === 'external_link' && (
-          <TextField label="URL" size="small" fullWidth value={url}
-            onChange={e => setUrl(e.target.value)} placeholder="https://example.com" />
+          <TextField label="URL" size="small" fullWidth value={url} onChange={e => setUrl(e.target.value)} placeholder="https://example.com" />
         )}
-
         <FormControl size="small" fullWidth>
           <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Visibility</FormLabel>
           <Select value={vis} onChange={e => setVis(e.target.value as Visibility)} sx={{ fontSize: 13 }}>
@@ -1008,14 +690,10 @@ function NewPageDialogFull({
   )
 }
 
-// ── New Tab dialog ────────────────────────────────────────────────────────────
+// ── NewTabDialog ──────────────────────────────────────────────────────────────
 
 function NewTabDialog({
-  open,
-  tabs,
-  clubId,
-  onTabCreated,
-  onClose,
+  open, tabs, clubId, onTabCreated, onClose,
 }: {
   open:         boolean
   tabs:         CustomTab[]
@@ -1037,10 +715,7 @@ function NewTabDialog({
     setSaving(true); setErr(null)
     const supabase = createClient()
     const { data, error } = await supabase.from('nav_custom_tabs').insert({
-      club_id:    clubId,
-      name:       tabName.trim(),
-      slug:       slugify(tabName),
-      sort_order: tabs.length,
+      club_id: clubId, name: tabName.trim(), slug: slugify(tabName), sort_order: tabs.length,
     }).select().single()
     setSaving(false)
     if (error) { setErr(error.message); return }
@@ -1059,16 +734,13 @@ function NewTabDialog({
           </p>
         ) : (
           <>
-            <TextField
-              label="Tab name" size="small" fullWidth autoFocus
+            <TextField label="Tab name" size="small" fullWidth autoFocus
               slotProps={{ htmlInput: { maxLength: 20 } }}
-              value={tabName}
-              onChange={e => setTabName(e.target.value.slice(0, 20))}
+              value={tabName} onChange={e => setTabName(e.target.value.slice(0, 20))}
               helperText={`${tabName.length}/20 — shown in the main navigation bar`}
-              onKeyDown={e => e.key === 'Enter' && tabName.trim() && !saving && handleCreate()}
-            />
+              onKeyDown={e => e.key === 'Enter' && tabName.trim() && !saving && handleCreate()} />
             <p className="text-[12px] m-0" style={{ color: 'var(--text-secondary)' }}>
-              The tab appears immediately in the navigation tree. It won&apos;t be visible to members until you add at least one published page to it. Drag to reorder tabs.
+              The new tab won&apos;t be visible to members until you add at least one published page to it.
             </p>
           </>
         )}
@@ -1085,697 +757,226 @@ function NewTabDialog({
   )
 }
 
-// ── Pages tab — "New page" dialog (simplified, no nav placement) ──────────────
-
-function NewPageDialog({
-  open,
-  onClose,
-  onSave,
-  pending,
-}: {
-  open:    boolean
-  onClose: () => void
-  onSave:  (title: string, type: PageType, url: string, vis: Visibility) => void
-  pending: boolean
-}) {
-  const [title, setTitle] = useState('')
-  const [type,  setType]  = useState<PageType>('rich_text')
-  const [url,   setUrl]   = useState('https://')
-  const [vis,   setVis]   = useState<Visibility>('all_members')
-
-  function handleSave() {
-    if (!title.trim()) return
-    onSave(title, type, url, vis)
-    setTitle(''); setType('rich_text'); setUrl('https://'); setVis('all_members')
-  }
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>New page</DialogTitle>
-      <DialogContent sx={{ pt: '16px !important', display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-        <TextField label="Page title" size="small" fullWidth autoFocus
-          value={title} onChange={e => setTitle(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSave()} />
-
-        <FormControl>
-          <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Page type</FormLabel>
-          <RadioGroup value={type} onChange={e => setType(e.target.value as PageType)}>
-            <FormControlLabel value="rich_text" control={<Radio size="small" />}
-              label={<span><strong style={{ fontSize: 13 }}>Rich text page</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— formatted content with headings, images, and links</span></span>}
-              sx={{ alignItems: 'center', mb: 0.5 }} />
-            <FormControlLabel value="document_link" control={<Radio size="small" />}
-              label={<span><strong style={{ fontSize: 13 }}>Document link</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— link to a file in the Documents library</span></span>}
-              sx={{ alignItems: 'center', mb: 0.5 }} />
-            <FormControlLabel value="external_link" control={<Radio size="small" />}
-              label={<span><strong style={{ fontSize: 13 }}>External link</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— opens an external URL in a new tab</span></span>}
-              sx={{ alignItems: 'center' }} />
-          </RadioGroup>
-        </FormControl>
-
-        {type === 'external_link' && (
-          <TextField label="URL" size="small" fullWidth value={url}
-            onChange={e => setUrl(e.target.value)} placeholder="https://example.com" />
-        )}
-
-        <FormControl size="small" fullWidth>
-          <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Visibility</FormLabel>
-          <Select value={vis} onChange={e => setVis(e.target.value as Visibility)} sx={{ fontSize: 13 }}>
-            <MenuItem value="all_members"  sx={{ fontSize: 13 }}>Members + public</MenuItem>
-            <MenuItem value="members_only" sx={{ fontSize: 13 }}>Members only</MenuItem>
-            <MenuItem value="hidden"       sx={{ fontSize: 13 }}>Hidden — do not show in navigation</MenuItem>
-          </Select>
-        </FormControl>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2.5 }}>
-        <Button variant="outlined" color="secondary" onClick={onClose}>Cancel</Button>
-        <Button variant="contained" disabled={!title.trim() || pending} onClick={handleSave}>Create page</Button>
-      </DialogActions>
-    </Dialog>
-  )
-}
-
-// Shared column layout for both tables:
-// Title | URL | Visibility | Menu location | Last updated | (edit icon) | (delete icon) | Live
-const TABLE_COL = 'grid-cols-[minmax(0,1.6fr)_minmax(160px,1fr)_130px_130px_80px_32px_32px_56px]'
-
-const TABLE_HEADERS = ['Title', 'URL', 'Visibility', 'Menu location', 'Last updated', '', '', '']
-
-// ── Built-in pages table ──────────────────────────────────────────────────────
-
-function BuiltinPagesTable({
-  builtinVisibility,
-  onChangeVisibility,
-  onEditAbout,
-  onGoHomepageBuilder,
-  onEditJoin,
-}: {
-  builtinVisibility:  BuiltinPageVisibility
-  onChangeVisibility: (key: 'about' | 'calendar', value: BuiltinVisibility) => void
-  onEditAbout:        () => void
-  onGoHomepageBuilder: () => void
-  onEditJoin:         () => void
-}) {
-  return (
-    <div className="mb-8">
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
-        Built-in pages
-      </p>
-      <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
-        <div className={`grid ${TABLE_COL} gap-3 px-4 py-2.5`}
-          style={{ borderBottom: '1px solid var(--border-default)', background: 'var(--surface-1)' }}>
-          {TABLE_HEADERS.map((h, i) => (
-            <span key={i} className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{h}</span>
-          ))}
-        </div>
-
-        {BUILTIN_PAGES.map((row, i) => {
-          const visValue: string = row.visKey
-            ? (builtinVisibility[row.visKey] === 'public' ? 'Members + public' : 'Members only')
-            : (row.fixedVis ?? 'Members only')
-
-          return (
-            <div key={row.url}
-              className={`grid ${TABLE_COL} items-center gap-3 px-4 py-2.5`}
-              style={{ borderBottom: i < BUILTIN_PAGES.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-              {/* Title */}
-              <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{row.title}</span>
-
-              {/* URL — full, no truncation */}
-              <span className="font-mono text-[12px]" style={{ color: 'var(--text-secondary)' }}>{row.url}</span>
-
-              {/* Visibility — dropdown for about/calendar, static otherwise */}
-              {row.visKey ? (
-                <select
-                  value={builtinVisibility[row.visKey]}
-                  onChange={e => onChangeVisibility(row.visKey!, e.target.value as BuiltinVisibility)}
-                  className="rounded-[6px] px-2 py-1.5 text-[12px] w-full"
-                  style={{ border: 'var(--input-border)', background: 'var(--surface-2)', color: 'var(--text-primary)', cursor: 'pointer' }}
-                >
-                  <option value="members_only">Members only</option>
-                  <option value="public">Members + public</option>
-                </select>
-              ) : (
-                <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{visValue}</span>
-              )}
-
-              {/* Menu location */}
-              <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{row.menuLocation}</span>
-
-              {/* Last updated — always — for built-ins */}
-              <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>—</span>
-
-              {/* Edit action */}
-              {row.editAction === 'about' ? (
-                <button onClick={onEditAbout}
-                  className="text-[12px] font-medium hover:underline text-left"
-                  style={{ color: 'var(--action-primary)' }}>
-                  Edit content →
-                </button>
-              ) : row.editAction === 'homepage' ? (
-                <button onClick={onGoHomepageBuilder}
-                  className="text-[12px] font-medium hover:underline text-left"
-                  style={{ color: 'var(--action-primary)' }}>
-                  Edit content →
-                </button>
-              ) : row.editAction === 'join' ? (
-                <button onClick={onEditJoin}
-                  className="text-[12px] font-medium hover:underline text-left"
-                  style={{ color: 'var(--action-primary)' }}>
-                  Edit content →
-                </button>
-              ) : (
-                <span />
-              )}
-
-              {/* No delete for built-in pages */}
-              <span />
-
-              {/* Live — always live for built-ins */}
-              <LiveBadge />
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-// ── Custom pages table ────────────────────────────────────────────────────────
-
-function PagesTable({
-  pages,
-  tabs,
-  onEditPage,
-  onDeletePage,
-  onGoToNavigation,
-  pending,
-}: {
-  pages:            CustomPage[]
-  tabs:             CustomTab[]
-  onEditPage:       (page: CustomPage) => void
-  onDeletePage:     (id: string) => void
-  onGoToNavigation: () => void
-  pending:          boolean
-}) {
-  const [confirmId, setConfirmId] = useState<string | null>(null)
-  const confirmPage = pages.find(p => p.id === confirmId) ?? null
-
-  function menuCell(page: CustomPage) {
-    const location = menuLocationLabel(page, tabs)
-    if (location) {
-      return <span className="text-[13px] truncate" style={{ color: 'var(--text-secondary)' }}>{location}</span>
-    }
-    if (page.status === 'draft') {
-      return <span className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>—</span>
-    }
-    if (page.visibility === 'hidden') {
-      return <span className="text-[13px] italic" style={{ color: 'var(--text-tertiary)' }}>Hidden</span>
-    }
-    return (
-      <button
-        onClick={onGoToNavigation}
-        className="flex items-center gap-1 text-[12px] font-medium hover:underline text-left"
-        style={{ color: 'var(--status-warning)' }}
-      >
-        <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-        Not in navigation
-      </button>
-    )
-  }
-
-  return (
-    <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
-      <div className={`grid ${TABLE_COL} gap-3 px-4 py-2.5`}
-        style={{ borderBottom: '1px solid var(--border-default)', background: 'var(--surface-1)' }}>
-        {TABLE_HEADERS.map((h, i) => (
-          <span key={i} className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{h}</span>
-        ))}
-      </div>
-
-      {pages.length === 0 ? (
-        <div className="px-4 py-8 text-center text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
-          No custom pages yet. Click <strong>New page</strong> to create one.
-        </div>
-      ) : (
-        pages.map((page, i) => (
-          <div key={page.id}
-            className={`grid ${TABLE_COL} items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-1`}
-            style={{ borderBottom: i < pages.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-            {/* Title */}
-            <span className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{page.title}</span>
-
-            {/* URL */}
-            <span className="font-mono text-[12px] truncate" style={{ color: 'var(--text-secondary)' }}>/{page.slug}</span>
-
-            {/* Visibility */}
-            <span className="text-[13px] truncate" style={{ color: 'var(--text-secondary)' }}>{visibilityLabel(page.visibility)}</span>
-
-            {/* Menu location */}
-            {menuCell(page)}
-
-            {/* Last updated */}
-            <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-              {page.updated_at ? timeAgo(page.updated_at) : '—'}
-            </span>
-
-            {/* Edit link — only for rich_text pages */}
-            {page.page_type === 'rich_text' ? (
-              <button onClick={() => onEditPage(page)}
-                className="text-[12px] font-medium hover:underline text-left"
-                style={{ color: 'var(--action-primary)' }}>
-                Edit content →
-              </button>
-            ) : <span />}
-
-            {/* Delete icon */}
-            <Tooltip title="Delete page">
-              <button
-                disabled={pending}
-                onClick={() => setConfirmId(page.id)}
-                className="flex items-center justify-center rounded p-1 transition-colors hover:bg-surface-1"
-                style={{ color: 'var(--text-tertiary)' }}
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </Tooltip>
-
-            {/* Status — far right */}
-            <span>{page.status === 'published' ? <LiveBadge /> : <DraftBadge />}</span>
-          </div>
-        ))
-      )}
-
-      {/* Delete confirmation dialog */}
-      {confirmPage && (
-        <Dialog open onClose={() => setConfirmId(null)} maxWidth="xs" fullWidth>
-          <DialogTitle component="div" sx={{ pb: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Box sx={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, bgcolor: 'rgba(211,47,47,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg style={{ width: 16, height: 16, color: '#D32F2F' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </Box>
-              <Box sx={{ fontSize: 15, fontWeight: 600 }}>Delete &ldquo;{confirmPage.title}&rdquo;?</Box>
-            </Box>
-          </DialogTitle>
-          <DialogContent>
-            <Box sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.6 }}>
-              <Box sx={{ mb: 1.5 }}>All content will be permanently lost and <strong>cannot be undone</strong>.</Box>
-              <Box sx={{ bgcolor: 'var(--status-warning-bg)', border: '1px solid var(--status-warning)', borderRadius: 1.5, px: 1.75, py: 1.25, fontSize: 12, color: 'var(--status-warning-text)' }}>
-                💡 Consider setting visibility to <strong>Hidden</strong> instead — the page is preserved but hidden from all visitors.
-              </Box>
-            </Box>
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-            <Button variant="outlined" color="secondary" onClick={() => setConfirmId(null)}>Cancel</Button>
-            <Button variant="contained" disabled={pending}
-              onClick={() => { setConfirmId(null); onDeletePage(confirmPage.id) }}
-              sx={{ bgcolor: '#D32F2F', '&:hover': { bgcolor: '#B71C1C' } }}>
-              Delete page
-            </Button>
-          </DialogActions>
-        </Dialog>
-      )}
-    </div>
-  )
-}
-
-// ── Mobile nav preview ────────────────────────────────────────────────────────
-
-function MobileNavPreview({ tabs }: { tabs: CustomTab[] }) {
-  const navItems = ['Home', 'Calendar', 'Images', 'Competitions', 'Our Club', ...tabs.map(t => t.name)]
-  return (
-    <div className="sticky top-6">
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
-        Mobile preview
-      </p>
-      <div className="mx-auto rounded-[24px] overflow-hidden" style={{ width: 220, border: '2px solid var(--border-default)', background: 'var(--surface-1)', boxShadow: '0 4px 24px rgba(0,0,0,0.10)' }}>
-        <div className="px-4 pt-3 pb-1 flex justify-between items-center" style={{ background: 'var(--surface-2)' }}>
-          <span className="text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>9:41</span>
-          <div className="flex gap-1">
-            {[0,1,2].map(i => <div key={i} className="rounded-full" style={{ width: 4, height: 4, background: 'var(--text-tertiary)' }} />)}
-          </div>
-        </div>
-        <div className="px-4 py-2.5 flex items-center justify-between" style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border-subtle)' }}>
-          <span className="text-[13px] font-semibold" style={{ fontFamily: 'var(--font-primary)', color: 'var(--text-primary)' }}>Club</span>
-          <svg className="h-4 w-4" style={{ color: 'var(--text-primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </div>
-        <div style={{ background: 'var(--surface-0)' }}>
-          {navItems.map((item, i) => (
-            <div key={item} className="px-4 py-3 flex items-center justify-between"
-              style={{ borderBottom: i < navItems.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-              <span className="text-[13px]" style={{ color: i === 0 ? 'var(--action-primary)' : 'var(--text-primary)', fontWeight: i === 0 ? 600 : 400 }}>
-                {item}
-              </span>
-              <svg className="h-3 w-3" style={{ color: 'var(--text-tertiary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          ))}
-        </div>
-        <div className="h-4" style={{ background: 'var(--surface-2)' }} />
-      </div>
-      <p className="mt-3 text-center text-[11px]" style={{ color: 'var(--text-tertiary)' }}>Approximate mobile layout</p>
-    </div>
-  )
-}
-
-// ── Place page in nav dialog ──────────────────────────────────────────────────
-
-function PlacePageDialog({
-  page,
-  tabs,
-  onClose,
-  onSave,
-  pending,
-}: {
-  page:    CustomPage
-  tabs:    CustomTab[]
-  onClose: () => void
-  onSave:  (parent: ParentSystem | string) => void
-  pending: boolean
-}) {
-  const parentOptions = [
-    { value: 'our-club',     label: 'Our Club' },
-    { value: 'images',       label: 'Images' },
-    { value: 'competitions', label: 'Competitions' },
-    ...tabs.map(t => ({ value: t.id, label: t.name })),
-  ]
-  const [parent, setParent] = useState(parentOptions[0]?.value ?? '')
-  return (
-    <Dialog open onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>Add to navigation</DialogTitle>
-      <DialogContent sx={{ pt: '12px !important', display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <p className="text-[13px] m-0" style={{ color: 'var(--text-secondary)' }}>
-          Choose where <strong>&ldquo;{page.title}&rdquo;</strong> should appear in the navigation.
-        </p>
-        <FormControl size="small" fullWidth>
-          <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Menu location</FormLabel>
-          <Select value={parent} onChange={e => setParent(e.target.value)} sx={{ fontSize: 13 }}>
-            {parentOptions.map(o => (
-              <MenuItem key={o.value} value={o.value} sx={{ fontSize: 13 }}>{o.label}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-        <Button variant="outlined" color="secondary" onClick={onClose}>Not yet</Button>
-        <Button variant="contained" disabled={pending} onClick={() => onSave(parent)}>
-          Add to {parentOptions.find(o => o.value === parent)?.label ?? 'navigation'}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  )
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function NavigationClient({
   customPages: initialPages,
   customTabs:  initialTabs,
-  initialHomepageBlocks,
   initialGalleries = [],
-  members = [],
+  members      = [],
   clubId,
-  clubName = '',
-  initialBuiltinVisibility = { about: 'members_only', calendar: 'members_only' },
+  clubName     = '',
+  initialBuiltinVisibility = { about: 'members_only', calendar: 'members_only', resourcesEnabled: true, galleriesEnabled: true },
 }: {
-  customPages:                CustomPage[]
-  customTabs:                 CustomTab[]
-  initialHomepageBlocks?:     ContentBlock[]
-  initialGalleries?:          AdminGalleryData[]
-  members?:                   ClubMember[]
-  clubId:                     string
-  clubName?:                  string
-  initialBuiltinVisibility?:  BuiltinPageVisibility
+  customPages:               CustomPage[]
+  customTabs:                CustomTab[]
+  initialGalleries?:         AdminGalleryData[]
+  members?:                  ClubMember[]
+  clubId:                    string
+  clubName?:                 string
+  initialBuiltinVisibility?: BuiltinPageVisibility
 }) {
-  const params      = useParams()
-  const searchParams = useSearchParams()
-  const clubSlug    = typeof params.clubSlug === 'string' ? params.clubSlug : ''
+  // suppress unused-var lint for props kept for API compatibility
+  void initialGalleries; void members; void clubName
 
-  const [activeTab, setActiveTab] = useState<MainTab>(
-    (searchParams.get('tab') as MainTab | null) ?? 'homepage'
-  )
-  const [pages,             setPages]             = useState<CustomPage[]>(initialPages)
-  const [tabs,              setTabs]              = useState<CustomTab[]>(initialTabs)
-  const [builtinVisibility, setBuiltinVisibility] = useState<BuiltinPageVisibility>(initialBuiltinVisibility)
-  const [pending, startTrans] = useTransition()
-  const [err,     setErr]     = useState<string | null>(null)
+  const params   = useParams()
+  const clubSlug = typeof params.clubSlug === 'string' ? params.clubSlug : ''
 
-  // ── Custom tab drag/drop ──────────────────────────────────────────────────
+  const [pages,      setPages]    = useState<CustomPage[]>(initialPages)
+  const [tabs,       setTabs]     = useState<CustomTab[]>(initialTabs)
+  const [builtinVis, setBV]       = useState<BuiltinPageVisibility>(initialBuiltinVisibility)
+  const [pending,    startTrans]  = useTransition()
+  const [err,        setErr]      = useState<string | null>(null)
+  const [newPageOpen, setNewPageOpen] = useState(false)
+  const [newTabOpen,  setNewTabOpen]  = useState(false)
+
+  // Tab drag state
   const tabDragIdx = useRef<number | null>(null)
-  const [tabDragOverIdx, setTabDragOverIdx] = useState<number | null>(null)
+  const [tabDragOver, setTabDragOver] = useState<number | null>(null)
+
   const onTabDragStart = (idx: number) => { tabDragIdx.current = idx }
-  const onTabDragOver  = (e: React.DragEvent, idx: number) => { e.preventDefault(); setTabDragOverIdx(idx) }
-  const onTabDragEnd   = () => { tabDragIdx.current = null; setTabDragOverIdx(null) }
+  const onTabDragOver  = (e: React.DragEvent, idx: number) => { e.preventDefault(); setTabDragOver(idx) }
+  const onTabDragEnd   = () => { tabDragIdx.current = null; setTabDragOver(null) }
   const onTabDrop      = async (toIdx: number) => {
     const fromIdx = tabDragIdx.current
-    tabDragIdx.current = null; setTabDragOverIdx(null)
+    tabDragIdx.current = null; setTabDragOver(null)
     if (fromIdx === null || fromIdx === toIdx) return
     const reordered = [...tabs]
     const [moved] = reordered.splice(fromIdx, 1)
     reordered.splice(toIdx, 0, moved)
     setTabs(reordered)
-    const supabase = createClient()
-    await Promise.all(reordered.map((t, i) =>
-      supabase.from('nav_custom_tabs').update({ sort_order: i }).eq('id', t.id)
-    ))
+    const sb = createClient()
+    await Promise.all(reordered.map((t, i) => sb.from('nav_custom_tabs').update({ sort_order: i }).eq('id', t.id)))
   }
 
-  // ── About page inline editor ──────────────────────────────────────────────
-  const [aboutDialogOpen, setAboutDialogOpen] = useState(false)
-  const [aboutLoading,    setAboutLoading]    = useState(false)
-  const [aboutPageData,   setAboutPageData]   = useState<{ id: string | null; content: string } | null>(null)
-
-  // ── Custom page inline editor ─────────────────────────────────────────────
-  const [editingCustomPage, setEditingCustomPage] = useState<CustomPage | null>(null)
-  const [customPageContent, setCustomPageContent] = useState('')
-  const [customPageLoading, setCustomPageLoading] = useState(false)
-
-  // ── New page / new tab dialogs ───────────────────────────────────────────
-  const [newPageDialogOpen, setNewPageDialogOpen] = useState(false)
-  const [newTabDialogOpen,  setNewTabDialogOpen]  = useState(false)
-  const [newTabSuccessId,   setNewTabSuccessId]   = useState<string | null>(null)
-
-  async function openAboutEditor() {
-    setAboutDialogOpen(true)
-    if (aboutPageData) return
-    setAboutLoading(true)
-    const supabase = createClient()
-    const { data } = await supabase.from('pages').select('id, content').eq('slug', 'about').maybeSingle()
-    setAboutPageData({ id: data?.id ?? null, content: data?.content ?? '' })
-    setAboutLoading(false)
-  }
-
-  async function openCustomPageEditor(page: CustomPage) {
-    setEditingCustomPage(page)
-    setCustomPageLoading(true)
-    const supabase = createClient()
-    const { data } = await supabase.from('nav_custom_pages').select('content').eq('id', page.id).maybeSingle()
-    setCustomPageContent((data as unknown as { content?: string } | null)?.content ?? '')
-    setCustomPageLoading(false)
-  }
-
-  async function changeBuiltinVisibility(key: 'about' | 'calendar', value: BuiltinVisibility) {
-    setBuiltinVisibility(prev => ({ ...prev, [key]: value }))
-    const supabase = createClient()
+  // DB operations
+  async function changeBuiltinVis(key: 'about' | 'calendar', value: BuiltinVis) {
+    setBV(prev => ({ ...prev, [key]: value }))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = supabase as any
-    const { data: existing } = await sb
-      .from('club_settings')
-      .select('page_visibility')
-      .eq('club_id', clubId)
-      .single()
-    const current = (existing?.page_visibility as Record<string, string> | null) ?? {}
-    await sb
-      .from('club_settings')
-      .update({ page_visibility: { ...current, [key]: value } })
-      .eq('club_id', clubId)
+    const sb = createClient() as any
+    const { data: existing } = await sb.from('club_settings').select('page_visibility').eq('club_id', clubId).single()
+    const current = (existing?.page_visibility as Record<string, unknown> | null) ?? {}
+    await sb.from('club_settings').update({ page_visibility: { ...current, [key]: value } }).eq('club_id', clubId)
+  }
+
+  async function changePageEnabled(key: 'resources' | 'galleries', enabled: boolean) {
+    const stateKey = key === 'resources' ? 'resourcesEnabled' : 'galleriesEnabled'
+    setBV(prev => ({ ...prev, [stateKey]: enabled }))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = createClient() as any
+    const { data: existing } = await sb.from('club_settings').select('page_visibility').eq('club_id', clubId).single()
+    const current = (existing?.page_visibility as Record<string, unknown> | null) ?? {}
+    await sb.from('club_settings').update({ page_visibility: { ...current, [`${key}_enabled`]: enabled } }).eq('club_id', clubId)
+  }
+
+  async function changeCustomPageVis(id: string, v: Visibility) {
+    setPages(prev => prev.map(p => p.id === id ? { ...p, visibility: v } : p))
+    const sb = createClient()
+    await sb.from('nav_custom_pages').update({ visibility: v, status: v === 'hidden' ? 'draft' : 'published' }).eq('id', id)
   }
 
   function deletePage(id: string) {
     startTrans(async () => {
-      const supabase = createClient()
-      await supabase.from('nav_custom_pages').delete().eq('id', id)
+      await createClient().from('nav_custom_pages').delete().eq('id', id)
       setPages(prev => prev.filter(p => p.id !== id))
     })
   }
 
   function deleteTab(id: string) {
     startTrans(async () => {
-      const supabase = createClient()
-      await supabase.from('nav_custom_tabs').delete().eq('id', id)
+      await createClient().from('nav_custom_tabs').delete().eq('id', id)
       setTabs(prev => prev.filter(t => t.id !== id))
       setPages(prev => prev.filter(p => p.tab_id !== id))
     })
   }
 
-  const pagesFor = (parent: ParentSystem | string) =>
-    pages.filter(p =>
-      (['calendar', 'images', 'competitions', 'our-club'] as string[]).includes(parent)
-        ? p.parent_system === parent
-        : p.tab_id === parent
-    )
+  const pagesFor = (ps: ParentSystem) => pages.filter(p => p.parent_system === ps)
+  const pagesForTab = (tabId: string) => pages.filter(p => p.tab_id === tabId)
 
-  const MAIN_TABS = [
-    { key: 'homepage'   as MainTab, label: 'Homepage' },
-    { key: 'navigation' as MainTab, label: 'Pages' },
-  ]
+  const builtinRowProps = { clubSlug, builtinVis, onChangeVis: changeBuiltinVis, onChangeEnabled: changePageEnabled, pending }
+
+  // ── Builtin tab expanded states ───────────────────────────────────────────
+
+  const [imagesOpen,       setImagesOpen]       = useState(true)
+  const [competitionsOpen, setCompetitionsOpen] = useState(true)
+  const [ourClubOpen,      setOurClubOpen]      = useState(true)
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Content &amp; Pages</h1>
-        <p className="mt-1 text-[13px] text-content-secondary">Manage pages, navigation, and site content.</p>
+      {/* Page header */}
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Site Pages &amp; Navigation</h1>
+          <p className="mt-1 text-[13px] text-content-secondary" style={{ maxWidth: 560 }}>
+            Each block is a tab in the top bar. Drag a tab by its handle to reorder. Use the toggle on Resources and Club Galleries to show or hide them.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outlined" color="secondary" size="small"
+            startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
+            onClick={() => setNewTabOpen(true)}>
+            New tab
+          </Button>
+          <Button variant="contained" size="small"
+            startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
+            onClick={() => setNewPageOpen(true)}>
+            New page
+          </Button>
+        </div>
       </div>
 
       {err && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setErr(null)}>{err}</Alert>}
 
-      <Tabs
-        value={MAIN_TABS.findIndex(t => t.key === activeTab)}
-        onChange={(_, i) => setActiveTab(MAIN_TABS[i].key)}
-        sx={{ mb: 4, borderBottom: '1px solid', borderColor: 'divider' }}
-      >
-        {MAIN_TABS.map(t => (
-          <Tab key={t.key} label={t.label} sx={{ textTransform: 'none' }} />
+      <ColumnHeaders />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+        {/* ── Home (locked, always first) ── */}
+        <TabBlock label="Home" pageCount={1} isLocked expanded onToggle={() => {}}
+          note="Always first"
+          dragHandleEl={<span style={{ opacity: 0.3 }}><LockIcon /></span>}
+        >
+          {HOME_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
+        </TabBlock>
+
+        {/* ── Calendar (single-page tab) ── */}
+        <TabBlock
+          label="Calendar" pageCount={0} isCalendar expanded onToggle={() => {}}
+          note="Single-page tab"
+          dragHandleEl={<HorizGrip />}
+          headerRightContent={
+            <BuiltinVisSelect value={builtinVis.calendar} onChange={v => changeBuiltinVis('calendar', v)} />
+          }
+        />
+
+        {/* ── Images ── */}
+        {(() => {
+          const custom = pagesFor('images')
+          return (
+            <TabBlock label="Images" pageCount={IMAGES_PAGES.length + custom.length}
+              dragHandleEl={<HorizGrip />} expanded={imagesOpen} onToggle={() => setImagesOpen(o => !o)}
+              footerEl={<AddPageFooter tabName="Images" onClick={() => setNewPageOpen(true)} />}
+            >
+              {IMAGES_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
+              {custom.map(p => <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={deletePage} onChangeVis={changeCustomPageVis} pending={pending} />)}
+            </TabBlock>
+          )
+        })()}
+
+        {/* ── Competitions ── */}
+        {(() => {
+          const custom = pagesFor('competitions')
+          return (
+            <TabBlock label="Competitions" pageCount={COMPETITIONS_PAGES.length + custom.length}
+              dragHandleEl={<HorizGrip />} expanded={competitionsOpen} onToggle={() => setCompetitionsOpen(o => !o)}
+              footerEl={<AddPageFooter tabName="Competitions" onClick={() => setNewPageOpen(true)} />}
+            >
+              {COMPETITIONS_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
+              {custom.map(p => <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={deletePage} onChangeVis={changeCustomPageVis} pending={pending} />)}
+            </TabBlock>
+          )
+        })()}
+
+        {/* ── Our Club ── */}
+        {(() => {
+          const custom = pagesFor('our-club')
+          return (
+            <TabBlock label="Our Club" pageCount={OUR_CLUB_PAGES.length + custom.length}
+              dragHandleEl={<HorizGrip />} expanded={ourClubOpen} onToggle={() => setOurClubOpen(o => !o)}
+              footerEl={<AddPageFooter tabName="Our Club" onClick={() => setNewPageOpen(true)} />}
+            >
+              {OUR_CLUB_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
+              {custom.map(p => <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={deletePage} onChangeVis={changeCustomPageVis} pending={pending} />)}
+            </TabBlock>
+          )
+        })()}
+
+        {/* ── Custom tabs ── */}
+        {tabs.map((tab, tabIdx) => (
+          <CustomTabBlock
+            key={tab.id} tab={tab} pages={pagesForTab(tab.id)} clubSlug={clubSlug}
+            onDelete={deleteTab} onDeletePage={deletePage} onChangeVis={changeCustomPageVis}
+            onAddPage={() => setNewPageOpen(true)} pending={pending}
+            dragHandleEl={<HorizGrip />}
+            dragOverStyle={tabDragOver === tabIdx ? { outline: '2px solid var(--action-primary)', outlineOffset: 2 } : {}}
+            onDragStart={() => onTabDragStart(tabIdx)}
+            onDragOver={e => onTabDragOver(e, tabIdx)}
+            onDragEnd={onTabDragEnd}
+            onDrop={() => onTabDrop(tabIdx)}
+          />
         ))}
-      </Tabs>
-
-      {/* ── Pages tab ────────────────────────────────────────────────────── */}
-      {activeTab === 'navigation' && (
-        <div>
-          {/* Action row */}
-          <div className="mb-4 flex items-center justify-end gap-2">
-            <Button
-              variant="outlined"
-              color="secondary"
-              size="small"
-              startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
-              onClick={() => setNewTabDialogOpen(true)}
-            >
-              New tab
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
-              onClick={() => setNewPageDialogOpen(true)}
-            >
-              New page
-            </Button>
-          </div>
-
-          <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
-            {SYSTEM_NAV.map(item => (
-              <SysNavRow
-                key={item.href}
-                item={item}
-                customSubPages={item.parentKey ? pagesFor(item.parentKey) : []}
-                onDeletePage={deletePage}
-                onEditPage={openCustomPageEditor}
-                pending={pending}
-                builtinVisibility={builtinVisibility}
-                onChangeVisibility={changeBuiltinVisibility}
-              />
-            ))}
-            {tabs.map((tab, tabIdx) => (
-              <CustomTabRow
-                key={tab.id}
-                tab={tab}
-                customSubPages={pagesFor(tab.id)}
-                onDeletePage={deletePage}
-                onEditPage={openCustomPageEditor}
-                onDeleteTab={deleteTab}
-                pending={pending}
-                onDragStart={() => onTabDragStart(tabIdx)}
-                onDragOver={e => onTabDragOver(e, tabIdx)}
-                onDrop={() => onTabDrop(tabIdx)}
-                onDragEnd={onTabDragEnd}
-                isDragOver={tabDragOverIdx === tabIdx}
-                successMessage={newTabSuccessId === tab.id
-                  ? `"${tab.name}" added — click to expand and add pages to it`
-                  : undefined}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Homepage tab ─────────────────────────────────────────────────── */}
-      {activeTab === 'homepage' && (
-        <HomepageEditor initialBlocks={initialHomepageBlocks} galleries={initialGalleries} members={members} clubName={clubName} />
-      )}
-
-      {/* ── Dialogs ─────────────────────────────────────────────────────── */}
+      </div>
 
       <NewPageDialogFull
-        open={newPageDialogOpen}
-        tabs={tabs}
-        pages={pages}
-        clubId={clubId}
+        open={newPageOpen} tabs={tabs} pages={pages} clubId={clubId}
         onPageCreated={page => setPages(prev => [...prev, page])}
-        onClose={() => setNewPageDialogOpen(false)}
+        onClose={() => setNewPageOpen(false)}
       />
-
       <NewTabDialog
-        open={newTabDialogOpen}
-        tabs={tabs}
-        clubId={clubId}
-        onTabCreated={tab => { setTabs(prev => [...prev, tab]); setNewTabSuccessId(tab.id) }}
-        onClose={() => setNewTabDialogOpen(false)}
+        open={newTabOpen} tabs={tabs} clubId={clubId}
+        onTabCreated={tab => setTabs(prev => [...prev, tab])}
+        onClose={() => setNewTabOpen(false)}
       />
-
-      {/* About page inline editor */}
-      <Dialog open={aboutDialogOpen} onClose={() => setAboutDialogOpen(false)} fullScreen>
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
-            <Button startIcon={<CloseIcon sx={{ fontSize: 16 }} />} variant="text" color="secondary" size="small"
-              onClick={() => setAboutDialogOpen(false)}>
-              Back to Pages
-            </Button>
-          </Box>
-          {aboutLoading || !aboutPageData ? (
-            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CircularProgress size={32} />
-            </Box>
-          ) : (
-            <Box sx={{ flex: 1, overflow: 'hidden' }}>
-              <AboutPageEditor pageId={aboutPageData.id} initialContent={aboutPageData.content} clubInfo={null} />
-            </Box>
-          )}
-        </Box>
-      </Dialog>
-
-      {/* Custom page inline editor */}
-      {editingCustomPage && (
-        <Dialog open onClose={() => setEditingCustomPage(null)} fullScreen>
-          {customPageLoading ? (
-            <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CircularProgress size={32} />
-            </Box>
-          ) : (
-            <CustomPageEditorComponent
-              pageId={editingCustomPage.id}
-              menuLabel={menuLocationLabel(editingCustomPage, tabs)}
-              initialTitle={editingCustomPage.title}
-              initialContent={customPageContent}
-              initialVisibility={editingCustomPage.visibility}
-              initialStatus={editingCustomPage.status}
-              slug={editingCustomPage.slug}
-              clubSlug={clubSlug}
-              onBack={() => setEditingCustomPage(null)}
-            />
-          )}
-        </Dialog>
-      )}
     </div>
   )
 }
