@@ -4,17 +4,28 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
 export async function login(formData: FormData) {
-  const supabase = await createClient()
+  console.log('[login] action started')
+  let supabase
+  try {
+    supabase = await createClient()
+    console.log('[login] client created, URL:', process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(0, 30))
+  } catch (e) {
+    console.error('[login] createClient threw:', e)
+    redirect('/login?error=client_init_failed')
+  }
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { error } = await supabase!.auth.signInWithPassword({
     email: formData.get('email') as string,
     password: formData.get('password') as string,
   })
+
+  console.log('[login] signInWithPassword result — error:', error?.message ?? 'none')
 
   if (error) {
     redirect('/login?error=' + encodeURIComponent(error.message))
   }
 
+  console.log('[login] success, redirecting to /')
   redirect('/')
 }
 
@@ -57,5 +68,9 @@ export async function resetPassword(formData: FormData) {
 export async function logout() {
   const supabase = await createClient()
   await supabase.auth.signOut()
-  redirect('/')
+  // Send the user back to the club homepage (now public) so they land on the
+  // welcome banner rather than an isolated login screen.
+  const { getClubContext } = await import('@/lib/club-context')
+  const ctx = await getClubContext()
+  redirect(ctx ? `/${ctx.clubSlug}` : '/login')
 }

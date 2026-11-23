@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { submitImage } from '@/app/(member)/competitions/[id]/actions'
+import { submitImage } from '@/app/[clubSlug]/(member)/competitions/[id]/actions'
 
 type Category = { id: string; name: string }
 type Image = { id: string; title: string; publicUrl: string }

@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Focal Point — Design Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body,#root{height:100%;overflow:hidden}
+    body{background:#080A0E}
+    ::-webkit-scrollbar{width:5px;height:5px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:3px}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+    .fade-in{animation:fadeUp 0.2s ease both}
+    input[type="checkbox"]{cursor:pointer;accent-color:#4A90D4}
+    input[type="range"]{cursor:pointer}
+    button:focus-visible{outline:2px solid #4A90D4;outline-offset:2px}
+    select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237E8EA3' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px !important}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- ── 1. Shared tokens ────────────────────────────────────────────────────── -->
+<script type="text/babel">
+const T = {
+  lora:"'Lora',Georgia,serif", nunito:"'Nunito',system-ui,sans-serif",
+  mono:"'Roboto Mono',monospace", sans:"'Inter',system-ui,sans-serif",
+  // Member dark
+  md:{s0:'#141414',s1:'#1E1E1E',s2:'#292929',t1:'#E8E8E8',t2:'#A0A0A0',t3:'#737373',tDis:'#525252',ac:'#4A90D4',bd:'rgba(255,255,255,0.12)',bds:'rgba(255,255,255,0.07)'},
+  // Member light — t2 pushed to #595959 (5.4:1 on white) for older-reader contrast
+  ml:{s0:'#F4F4F4',s1:'#EAEAEA',s2:'#FFFFFF',t1:'#1A1A1A',t2:'#595959',t3:'#777777',ac:'#1A6FC4',bd:'rgba(0,0,0,0.13)',bds:'rgba(0,0,0,0.07)'},
+  // Admin light
+  al:{s0:'#F7F8FA',s1:'#EDF0F5',s2:'#FFFFFF',t1:'#131F2E',t2:'#5A6C82',t3:'#7E8EA3',ac:'#1E4D8C',bd:'#D8DDE7',bds:'#EDF0F5',nav:'#26374C',navAc:'#1E4D8C',navT:'#F7F8FA',navM:'#7E8EA3'},
+  // Admin dark — cool blue palette
+  ad:{s0:'#0D1520',s1:'#121E2E',s2:'#192638',s3:'#1F3248',t1:'#D8DDE7',t2:'#7E8EA3',t3:'#5A6C82',ac:'#4A7FC4',bd:'rgba(184,196,214,0.12)',bds:'rgba(184,196,214,0.07)',nav:'#07101C',navAc:'#1A3A6A',navT:'#D8DDE7',navM:'#5A6C82'},
+  success:'#2E7D32',successBg:'#EDFAF0',successText:'#174A1A',successBgDk:'#0E2410',successTxtDk:'#97C459',
+  warning:'#A67C00',warningBg:'#FFFBE6',warningText:'#6B5000',warningBgDk:'#3A2E00',warningTxtDk:'#FAD84A',
+  error:'#D32F2F',errorBg:'#FDEEEE',errorText:'#7A1515',errorBgDk:'#3D1212',errorTxtDk:'#F09595',
+};
+
+// Calendar event colors — separate light/dark text for readability
+const EV_COLOR = {
+  open:    {bgDk:'rgba(46,125,50,0.22)',   txtDk:'#97C459', bgLt:'rgba(46,125,50,0.13)',   txtLt:'#1B5E20'},
+  closed:  {bgDk:'rgba(211,47,47,0.20)',   txtDk:'#F09595', bgLt:'rgba(211,47,47,0.12)',   txtLt:'#7A1515'},
+  meeting: {bgDk:'rgba(74,144,212,0.22)',  txtDk:'#7AB8E8', bgLt:'rgba(74,144,212,0.16)', txtLt:'#0D47A1'},
+  board:   {bgDk:'rgba(108,71,212,0.20)',  txtDk:'#C3AAFF', bgLt:'rgba(108,71,212,0.13)', txtLt:'#311B92'},
+};
+
+function Pill({variant,dark}){
+  const v={
+    submitted:{bg:'rgba(0,151,167,0.16)',color:'#00ACC1',label:'Submitted'},
+    available:{bg:'transparent',color:dark?'#7E8EA3':'#595959',border:`1px solid ${dark?'#5A6C82':'#909090'}`,label:'Available'},
+    judging:{bg:dark?T.warningBgDk:T.warningBg,color:dark?T.warningTxtDk:T.warningText,label:'Judging'},
+    complete:{bg:dark?T.successBgDk:T.successBg,color:dark?T.successTxtDk:T.successText,label:'Complete'},
+    open:{bg:dark?T.successBgDk:T.successBg,color:dark?T.successTxtDk:T.successText,label:'Open'},
+    closed:{bg:dark?T.errorBgDk:T.errorBg,color:dark?T.errorTxtDk:T.errorText,label:'Closed'},
+    pending:{bg:'rgba(108,71,212,0.16)',color:'#9B7FE8',label:'Pending'},
+    flagged:{bg:'rgba(108,71,212,0.16)',color:'#9B7FE8',label:'★ Flagged'},
+  }[variant]||{bg:'transparent',color:'#7E8EA3',border:'1px solid #7E8EA3',label:variant};
+  return <span style={{display:'inline-flex',alignItems:'center',padding:'2px 9px',borderRadius:9999,fontSize:12,fontWeight:700,letterSpacing:'0.03em',textTransform:'uppercase',fontFamily:T.nunito,background:v.bg,color:v.color,border:v.border||'none',whiteSpace:'nowrap'}}>{v.label}</span>;
+}
+
+function ApertureIcon({size=20,color='currentColor'}){
+  return(<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="14.31" y1="8" x2="20.05" y2="17.94"/><line x1="9.69" y1="8" x2="21.17" y2="8"/><line x1="7.38" y1="12" x2="13.12" y2="2.06"/><line x1="9.69" y1="16" x2="3.95" y2="6.06"/><line x1="14.31" y1="16" x2="2.83" y2="16"/><line x1="16.62" y1="12" x2="10.88" y2="21.94"/></svg>);
+}
+
+function Icon({name,size=16,color='currentColor',style:xs}){
+  const P={
+    grid:<><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></>,
+    list:<><line x1="9" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="9" y1="18" x2="21" y2="18"/><line x1="4" y1="6" x2="4.01" y2="6"/><line x1="4" y1="12" x2="4.01" y2="12"/><line x1="4" y1="18" x2="4.01" y2="18"/></>,
+    plus:<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
+    chevL:<polyline points="15 18 9 12 15 6"/>,
+    chevR:<polyline points="9 18 15 12 9 6"/>,
+    home:<><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,
+    cal:<><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>,
+    img:<><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></>,
+    trophy:<><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></>,
+    users:<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
+    userChk:<><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></>,
+    settings:<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
+    mail:<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>,
+    doc:<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>,
+    layout:<><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></>,
+    clock:<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+    sun:<><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>,
+    moon:<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>,
+    pages:<><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>,
+    info:<><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></>,
+    trash:<><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></>,
+    maximize:<><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></>,
+    flag:<><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></>,
+  };
+  return(<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={xs}>{P[name]||null}</svg>);
+}
+
+window._FP={T,EV_COLOR,Pill,ApertureIcon,Icon};
+</script>
+
+<!-- ── 2. Member + Judging portals ─────────────────────────────────────────── -->
+<script type="text/babel">
+const {T,EV_COLOR,Pill,ApertureIcon,Icon}=window._FP;
+
+// ─── Member Nav ───────────────────────────────────────────────────────────────
+function MemberNav({dark,screen,setScreen,onToggleDark}){
+  const c=dark?T.md:T.ml;
+  const items=[{id:'home',label:'Home',icon:'home'},{id:'calendar',label:'Calendar',icon:'cal'},{id:'images',label:'My Images',icon:'img'},{id:'competitions',label:'Competitions',icon:'trophy'}];
+  return(
+    <div style={{background:dark?'#1C1C1C':'#FFFFFF',borderBottom:`1px solid ${c.bd}`,boxShadow:dark?'none':'0 1px 8px rgba(0,0,0,0.07)',display:'flex',alignItems:'center',padding:'0 24px',height:54,flexShrink:0,fontFamily:T.nunito,zIndex:2,position:'relative'}}>
+      <div style={{display:'flex',alignItems:'center',gap:9,marginRight:36,userSelect:'none'}}>
+        <div style={{width:30,height:30,borderRadius:8,background:dark?'rgba(74,144,212,0.15)':'rgba(26,111,196,0.10)',display:'flex',alignItems:'center',justifyContent:'center'}}><ApertureIcon size={18} color={c.ac}/></div>
+        <span style={{fontSize:15,fontWeight:700,color:c.t1,letterSpacing:'-0.01em',whiteSpace:'nowrap',fontFamily:T.lora}}>Nashoba Valley Photo Club</span>
+      </div>
+      <div style={{display:'flex',gap:2,flex:1}}>
+        {items.map(item=>{
+          const active=screen===item.id;
+          return(<button key={item.id} onClick={()=>setScreen(item.id)} style={{display:'flex',alignItems:'center',gap:6,padding:'7px 14px',borderRadius:8,border:'none',cursor:'pointer',fontFamily:T.nunito,background:active?(dark?'rgba(74,144,212,0.14)':'rgba(26,111,196,0.09)'):'transparent',color:active?c.ac:c.t2,fontSize:14,fontWeight:active?700:500,transition:'all 0.14s'}}><Icon name={item.icon} size={15} color={active?c.ac:dark?c.t3:'#888'}/>{item.label}</button>);
+        })}
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:10}}>
+        <button onClick={onToggleDark} style={{display:'flex',alignItems:'center',gap:6,background:'transparent',border:`1px solid ${c.bd}`,borderRadius:8,padding:'6px 12px',cursor:'pointer',color:c.t2,fontSize:13,fontFamily:T.nunito,fontWeight:500}}>
+          <Icon name={dark?'sun':'moon'} size={14} color={c.t2}/>{dark?'Light mode':'Dark mode'}
+        </button>
+        <div style={{width:34,height:34,borderRadius:'50%',background:c.ac,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:T.nunito,boxShadow:dark?'none':'0 1px 4px rgba(26,111,196,0.30)'}}>DB</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── My Images ────────────────────────────────────────────────────────────────
+const PHOTOS=[
+  {id:1,name:'1965 Volkswagen Beetle at Carlisle Auto Show',badge:'submitted',img:'https://picsum.photos/seed/sweetvw/400/300',grad:'linear-gradient(135deg,#2a2a2a,#1a1a1a)'},
+  {id:2,name:'Tobacco Hornworm on Tomato Leaf — Macro Series',badge:'submitted',img:'https://picsum.photos/seed/leafclose/400/300',grad:'linear-gradient(135deg,#1a3a22,#0d2010)'},
+  {id:3,name:'Fog over Quabbin Reservoir at Dawn, October',badge:'submitted',img:'https://picsum.photos/seed/mainelighthouse/400/300',grad:'linear-gradient(135deg,#3a2e1a,#4a3820)'},
+  {id:4,name:'Barrel Racing at Nashoba Valley Fair — Summer 2023',badge:'available',img:'https://picsum.photos/seed/horserace/400/300',grad:'linear-gradient(135deg,#1e1e1e,#2a2a2a)'},
+];
+
+function MyImages({dark}){
+  const c=dark?T.md:T.ml;
+  const [view,setView]=React.useState('gallery');
+  const [filter,setFilter]=React.useState('all');
+  const filtered=filter==='all'?PHOTOS:PHOTOS.filter(p=>p.badge===filter);
+  const cardBg=dark?T.md.s1:'#FFFFFF';
+  const cardShadow=dark?'none':'0 2px 12px rgba(0,0,0,0.09)';
+  return(
+    <div style={{flex:1,overflow:'auto',padding:'28px 32px',background:c.s0,fontFamily:T.nunito}}>
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:20}}>
+        <div>
+          <h1 style={{fontSize:28,fontWeight:700,color:c.t1,letterSpacing:'-0.02em',margin:0,fontFamily:T.lora}}>My Images</h1>
+          <p style={{color:c.t2,fontSize:15,marginTop:5}}>4 photos</p>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <div style={{display:'flex',background:dark?T.md.s2:'#DCDCDC',borderRadius:8,padding:3,gap:1}}>
+            {['gallery','list'].map(v=>(<button key={v} onClick={()=>setView(v)} style={{background:view===v?(dark?T.md.s1:'#fff'):'transparent',border:'none',borderRadius:6,padding:'5px 9px',cursor:'pointer',transition:'all 0.15s',boxShadow:view===v?'0 1px 4px rgba(0,0,0,0.12)':'none'}}><Icon name={v==='gallery'?'grid':'list'} size={15} color={view===v?c.t1:dark?c.t3:'#888'}/></button>))}
+          </div>
+          <button style={{background:c.ac,color:'#fff',border:'none',borderRadius:8,padding:'9px 18px',cursor:'pointer',fontSize:14,fontWeight:700,fontFamily:T.nunito,display:'flex',alignItems:'center',gap:6,boxShadow:dark?'0 2px 8px rgba(74,144,212,0.45)':'0 2px 8px rgba(26,111,196,0.40)'}}>
+            <Icon name="plus" size={14} color="#fff"/>Add photo
+          </button>
+        </div>
+      </div>
+      {/* Filter bar */}
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:24}}>
+        <button style={{display:'flex',alignItems:'center',gap:6,background:dark?T.md.s2:'#fff',border:`1px solid ${c.bd}`,borderRadius:8,padding:'7px 13px',cursor:'pointer',color:c.t2,fontSize:14,fontFamily:T.nunito,fontWeight:500}}>Date added <span style={{opacity:0.5,marginLeft:2}}>↕</span></button>
+        {['all','submitted','available'].map(f=>(<button key={f} onClick={()=>setFilter(f)} style={{padding:'7px 16px',borderRadius:8,border:`1px solid ${filter===f?c.ac:(dark?'transparent':'#CCCCCC')}`,cursor:'pointer',fontSize:14,fontFamily:T.nunito,fontWeight:filter===f?700:500,background:filter===f?c.ac:(dark?T.md.s2:'#FFFFFF'),color:filter===f?'#fff':c.t2,transition:'all 0.14s'}}>{f[0].toUpperCase()+f.slice(1)}</button>))}
+      </div>
+      {/* Gallery */}
+      {view==='gallery'&&(
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(215px,1fr))',gap:18}}>
+          {filtered.map(photo=>(
+            <div key={photo.id} style={{borderRadius:12,overflow:'hidden',background:cardBg,boxShadow:cardShadow,cursor:'pointer'}}>
+              <div style={{position:'relative',paddingTop:'72%',background:photo.grad}}>
+                <img src={photo.img} alt={photo.name} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none'}}/>
+              </div>
+              <div style={{padding:'11px 13px',display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:600,color:c.t1,fontFamily:T.nunito,lineHeight:1.45,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden',minHeight:'2.85em',marginBottom:5}}>{photo.name}</div>
+                  <Pill variant={photo.badge} dark={dark}/>
+                </div>
+                <div style={{display:'flex',gap:10,opacity:dark?0.4:0.5,flexShrink:0,paddingTop:2}}><Icon name="info" size={15} color={c.t2}/><Icon name="trash" size={15} color={c.t2}/></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* List */}
+      {view==='list'&&(
+        <div style={{background:cardBg,borderRadius:12,border:`1px solid ${c.bd}`,overflow:'hidden',boxShadow:cardShadow}}>
+          {filtered.map((photo,i)=>(
+            <div key={photo.id} style={{display:'flex',alignItems:'center',gap:14,padding:'13px 18px',borderBottom:i<filtered.length-1?`1px solid ${c.bds}`:'none',cursor:'pointer'}}>
+              <div style={{width:52,height:38,borderRadius:7,background:photo.grad,flexShrink:0,overflow:'hidden'}}><img src={photo.img} alt={photo.name} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none'}}/></div>
+              <div style={{flex:1,minWidth:0,fontSize:14,fontWeight:600,color:c.t1,fontFamily:T.nunito,lineHeight:1.4}}>{photo.name}</div>
+              <Pill variant={photo.badge} dark={dark}/>
+              <div style={{display:'flex',gap:12,opacity:dark?0.4:0.5}}><Icon name="info" size={15} color={c.t2}/><Icon name="trash" size={15} color={c.t2}/></div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Calendar ─────────────────────────────────────────────────────────────────
+const CAL_EVENTS={1:[{label:'Submissions Open',type:'open',sub:'Monthly Competition'}],8:[{label:'Board Meeting',type:'board',sub:'7:00 PM · Zoom'}],15:[{label:'Submissions Closed',type:'closed',sub:'Monthly Competition'}],22:[{label:'Regular Meeting',type:'meeting',sub:'7:30 PM · Community Room'}]};
+
+function MemberCalendar({dark}){
+  const c=dark?T.md:T.ml;
+  const cells=[];
+  for(let i=0;i<3;i++)cells.push(null);
+  for(let d=1;d<=30;d++)cells.push(d);
+  while(cells.length%7!==0)cells.push(null);
+  return(
+    <div style={{flex:1,overflow:'auto',padding:'28px 32px',background:c.s0,fontFamily:T.nunito}}>
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:20}}>
+        <div>
+          <h1 style={{fontSize:28,fontWeight:700,color:c.t1,letterSpacing:'-0.02em',margin:0,fontFamily:T.lora}}>Calendar</h1>
+          <p style={{color:c.t2,fontSize:15,marginTop:5}}>Club events and meetings</p>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <div style={{display:'flex',background:dark?T.md.s2:'#DCDCDC',borderRadius:8,padding:3}}>
+            {['grid','list'].map(v=>(<button key={v} style={{background:v==='grid'?(dark?T.md.s1:'#fff'):'transparent',border:'none',borderRadius:6,padding:'5px 9px',cursor:'pointer'}}><Icon name={v} size={15} color={dark?c.t2:'#666'}/></button>))}
+          </div>
+          <button style={{background:c.ac,color:'#fff',border:'none',borderRadius:8,padding:'9px 16px',cursor:'pointer',fontSize:14,fontWeight:700,fontFamily:T.nunito,display:'flex',alignItems:'center',gap:6,boxShadow:dark?'0 2px 8px rgba(74,144,212,0.45)':'0 2px 8px rgba(26,111,196,0.40)'}}>
+            <Icon name="plus" size={14} color="#fff"/>Add event
+          </button>
+        </div>
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
+        <button style={{background:'transparent',border:`1px solid ${c.bd}`,borderRadius:8,width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}><Icon name="chevL" size={15} color={c.t2}/></button>
+        <span style={{fontSize:17,fontWeight:700,color:c.t1,minWidth:115,textAlign:'center',fontFamily:T.lora}}>April 2026</span>
+        <button style={{background:'transparent',border:`1px solid ${c.bd}`,borderRadius:8,width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}><Icon name="chevR" size={15} color={c.t2}/></button>
+        <button style={{background:'transparent',border:`1px solid ${c.bd}`,borderRadius:8,padding:'6px 14px',cursor:'pointer',color:c.t1,fontSize:14,fontFamily:T.nunito,fontWeight:500}}>Today</button>
+      </div>
+      <div style={{border:`1px solid ${dark?c.bd:'#D0D0D0'}`,borderRadius:12,overflow:'hidden',boxShadow:dark?'none':'0 2px 12px rgba(0,0,0,0.07)'}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',background:dark?T.md.s1:'#EFEFEF'}}>
+          {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>(<div key={d} style={{padding:'10px 12px',fontSize:12,fontWeight:700,color:dark?c.t3:'#666',letterSpacing:'0.05em',textTransform:'uppercase',textAlign:'center',borderBottom:`1px solid ${dark?c.bd:'#D0D0D0'}`,fontFamily:T.nunito}}>{d}</div>))}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',background:dark?T.md.s0:'#fff'}}>
+          {cells.map((day,i)=>{
+            const events=day?(CAL_EVENTS[day]||[]):[];
+            const isToday=day===21,isWeekend=i%7===0||i%7===6;
+            return(
+              <div key={i} style={{minHeight:100,padding:'8px 10px',borderRight:i%7<6?`1px solid ${dark?c.bds:'#E8E8E8'}`:'none',borderBottom:`1px solid ${dark?c.bds:'#E8E8E8'}`,background:isWeekend&&!dark?'rgba(0,0,0,0.02)':'transparent'}}>
+                {day&&(<>
+                  <div style={{width:27,height:27,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:4,background:isToday?c.ac:'transparent',color:isToday?'#fff':isWeekend?(dark?c.t3:'#999'):c.t1,fontSize:14,fontWeight:isToday?700:400,fontFamily:T.nunito}}>{day}</div>
+                  {events.map((ev,ei)=>{
+                    const ec=EV_COLOR[ev.type]||EV_COLOR.meeting;
+                    const bg=dark?ec.bgDk:ec.bgLt, txt=dark?ec.txtDk:ec.txtLt;
+                    return(<div key={ei} style={{background:bg,borderRadius:6,padding:'5px 8px',marginBottom:3,cursor:'pointer'}}>
+                      <div style={{fontSize:12,fontWeight:700,color:txt,lineHeight:1.3,fontFamily:T.nunito}}>{ev.label}</div>
+                      <div style={{fontSize:11,color:txt,opacity:0.72,marginTop:1,fontFamily:T.nunito}}>{ev.sub}</div>
+                    </div>);
+                  })}
+                </>)}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{display:'flex',gap:16,marginTop:16,flexWrap:'wrap'}}>
+        {[['#1A6FC4','Competition'],['#4A90D4','Regular Meeting'],['#6C47D4','Board Meeting'],['#E65100','Field Trip'],['#5A6C82','Other'],['#2E7D32','Submissions Open'],['#D32F2F','Submissions Closed']].map(([color,label])=>(
+          <div key={label} style={{display:'flex',alignItems:'center',gap:6,fontSize:13,color:c.t2,fontFamily:T.nunito,fontWeight:500}}><div style={{width:9,height:9,borderRadius:'50%',background:color}}/>{label}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MemberPortal({tweaksVisible}){
+  const [dark,setDark]=React.useState(true);
+  const [screen,setScreen]=React.useState(()=>localStorage.getItem('fp-member-screen')||'images');
+  React.useEffect(()=>{localStorage.setItem('fp-member-screen',screen);},[screen]);
+  const c=dark?T.md:T.ml;
+  return(
+    <div style={{height:'100%',display:'flex',flexDirection:'column',background:c.s0}}>
+      <MemberNav dark={dark} screen={screen} setScreen={setScreen} onToggleDark={()=>setDark(d=>!d)}/>
+      {screen==='images'&&<MyImages dark={dark}/>}
+      {screen==='calendar'&&<MemberCalendar dark={dark}/>}
+      {(screen==='home'||screen==='competitions')&&(
+        <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:14,color:c.t3,fontFamily:T.nunito}}>
+          <Icon name={screen==='home'?'home':'trophy'} size={36} color={c.t3}/>
+          <div style={{fontSize:16}}>{screen==='home'?'Home':'Competitions'} — select a screen from the nav</div>
+        </div>
+      )}
+      {tweaksVisible&&(
+        <div style={{position:'fixed',bottom:20,right:20,background:dark?T.md.s1:'#fff',border:`1px solid ${c.bd}`,borderRadius:12,padding:20,width:220,boxShadow:'0 8px 32px rgba(0,0,0,0.3)',zIndex:9000,fontFamily:T.sans}}>
+          <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:c.t2,marginBottom:14}}>Tweaks</div>
+          <label style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14,cursor:'pointer'}}><span style={{fontSize:14,color:c.t1}}>Dark mode</span><input type="checkbox" checked={dark} onChange={e=>setDark(e.target.checked)}/></label>
+          <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:c.t2,marginBottom:8}}>Screen</div>
+          <div style={{display:'flex',gap:6}}>
+            {[['images','My Images'],['calendar','Calendar']].map(([id,label])=>(<button key={id} onClick={()=>setScreen(id)} style={{padding:'5px 11px',borderRadius:6,border:`1px solid ${c.bd}`,background:screen===id?c.ac:'transparent',color:screen===id?'#fff':c.t1,fontSize:13,cursor:'pointer',fontFamily:T.sans}}>{label}</button>))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Judging data ─────────────────────────────────────────────────────────────
+const JUDGE_PHOTOS_INIT = [
+  {id:1,num:'#1',name:'Barrel Racing at Nashoba Valley Fair — Summer 2023',score:25,triage:'strong',flagged:false,
+   img:'https://picsum.photos/seed/horserace/900/600',
+   meta:{date:'June 10, 2023',lens:'XF16-55mmF2.8 R LM WR',make:'FUJIFILM',model:'X-T4',focal:'40mm',aperture:'f/2.8',iso:'6400',shutter:'1/840s'}},
+  {id:2,num:'#2',name:'1965 Volkswagen Beetle at Carlisle Auto Show',score:23,triage:'maybe',flagged:true,
+   img:'https://picsum.photos/seed/sweetvw/900/600',
+   meta:{date:'March 15, 2024',lens:'XF35mmF1.4 R',make:'FUJIFILM',model:'X-T3',focal:'35mm',aperture:'f/2.0',iso:'800',shutter:'1/250s'}},
+];
+
+// ─── Judging Flow ─────────────────────────────────────────────────────────────
+function JudgingFlow({dark,category,onBack}){
+  const c=dark?T.md:T.ml;
+  const [view,setView]=React.useState('triage');
+  const [photoIdx,setPhotoIdx]=React.useState(0);
+  const [filter,setFilter]=React.useState('all');
+  const [photos,setPhotos]=React.useState(JUDGE_PHOTOS_INIT);
+  const [dragId,setDragId]=React.useState(null);
+  const scored=photos.filter(p=>p.score>0).length;
+  const upd=(id,patch)=>setPhotos(ps=>ps.map(p=>p.id===id?{...p,...patch}:p));
+
+  // Keyboard nav in single view
+  React.useEffect(()=>{
+    if(view!=='single') return;
+    const h=e=>{
+      if(e.key==='ArrowLeft') setPhotoIdx(i=>Math.max(0,i-1));
+      if(e.key==='ArrowRight') setPhotoIdx(i=>Math.min(photos.length-1,i+1));
+      if(e.key==='f'||e.key==='F') upd(photos[photoIdx].id,{flagged:!photos[photoIdx].flagged});
+    };
+    window.addEventListener('keydown',h);
+    return()=>window.removeEventListener('keydown',h);
+  },[view,photoIdx,photos]);
+
+  // Shared breadcrumb + mode switcher bar
+  const TopBar=(
+    <div style={{display:'flex',alignItems:'center',padding:'0 20px',height:42,borderBottom:`1px solid ${c.bd}`,background:dark?T.md.s1:'#F8F8F8',flexShrink:0}}>
+      {/* Breadcrumb */}
+      <div style={{display:'flex',alignItems:'center',gap:6,flex:1}}>
+        <button onClick={onBack} style={{display:'flex',alignItems:'center',gap:4,background:'transparent',border:'none',cursor:'pointer',color:c.ac,fontSize:14,fontFamily:T.nunito,fontWeight:600,padding:'3px 0'}}>
+          <Icon name="chevL" size={13} color={c.ac}/>Home
+        </button>
+        <span style={{color:c.t3,fontSize:14}}>›</span>
+        <span style={{fontSize:14,fontWeight:600,color:c.t1,fontFamily:T.nunito}}>{category.name}</span>
+        <span style={{fontSize:13,color:c.t2,fontFamily:T.nunito}}>{scored}/{photos.length}</span>
+        <div style={{width:56,height:4,background:dark?T.md.s2:'#DCDCDC',borderRadius:9999,overflow:'hidden',marginLeft:2}}>
+          <div style={{width:`${scored/photos.length*100}%`,height:'100%',background:T.success,borderRadius:9999}}/>
+        </div>
+      </div>
+      {/* Mode switcher — centered */}
+      <div style={{display:'flex',alignItems:'center',position:'absolute',left:'50%',transform:'translateX(-50%)'}}>
+        {['Triage','Grid','Single'].map((mode,i)=>{
+          const id=mode.toLowerCase(),active=view===id;
+          return(
+            <button key={mode} onClick={()=>setView(id)} style={{
+              padding:'5px 18px',background:active?c.ac:'transparent',
+              border:`1px solid ${active?c.ac:c.bd}`,
+              borderRadius:i===0?'7px 0 0 7px':i===2?'0 7px 7px 0':'0',
+              marginLeft:i>0?-1:0,cursor:'pointer',
+              color:active?'#fff':c.t2,fontSize:13,fontWeight:active?700:500,fontFamily:T.nunito,
+              position:'relative',zIndex:active?1:0,
+            }}>{mode}</button>
+          );
+        })}
+      </div>
+      <div style={{flex:1}}/>
+    </div>
+  );
+
+  // Filter bar (Grid + Single)
+  const FilterBar=(
+    <div style={{display:'flex',alignItems:'center',gap:6,padding:'0 20px',height:42,borderBottom:`1px solid ${c.bd}`,background:dark?T.md.s1:'#F0F0F0',flexShrink:0}}>
+      <span style={{fontSize:13,color:c.t3,fontFamily:T.nunito,marginRight:2}}>Filter:</span>
+      {['All','Unscored','Scored','Flagged'].map(f=>{
+        const fk=f.toLowerCase(),active=filter===fk;
+        return(<button key={f} onClick={()=>setFilter(fk)} style={{padding:'4px 13px',borderRadius:6,border:'none',cursor:'pointer',fontSize:13,fontFamily:T.nunito,fontWeight:active?700:500,background:active?c.ac:'transparent',color:active?'#fff':c.t2}}>{f}</button>);
+      })}
+      <div style={{width:1,height:18,background:c.bd,margin:'0 6px'}}/>
+      <span style={{fontSize:13,color:c.t2,fontFamily:T.nunito}}>Bucket:</span>
+      <select style={{fontSize:13,fontFamily:T.nunito,color:c.t1,background:dark?T.md.s2:'#fff',border:`1px solid ${c.bd}`,borderRadius:6,padding:'3px 8px',outline:'none'}}>
+        <option>All</option><option>Strong</option><option>Maybe</option><option>Weak</option>
+      </select>
+      <div style={{marginLeft:'auto',display:'flex',gap:6,alignItems:'center'}}>
+        {['S','M','L'].map(sz=>(<button key={sz} style={{width:24,height:24,borderRadius:5,border:`1px solid ${c.bd}`,background:sz==='L'?c.ac:'transparent',color:sz==='L'?'#fff':c.t2,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:T.nunito}}>{sz}</button>))}
+        <div style={{width:1,height:18,background:c.bd,margin:'0 4px'}}/>
+        <button style={{padding:'4px 6px',background:'transparent',border:`1px solid ${c.ac}`,borderRadius:5,cursor:'pointer'}}><Icon name="grid" size={14} color={c.ac}/></button>
+        <button style={{padding:'4px 6px',background:'transparent',border:`1px solid ${c.bd}`,borderRadius:5,cursor:'pointer'}}><Icon name="list" size={14} color={c.t3}/></button>
+      </div>
+    </div>
+  );
+
+  // ── Triage View ──────────────────────────────────────────────────────────────
+  function TriageView(){
+    const BUCKETS=[
+      {id:'strong',label:'Strong',color:'#2E7D32'},
+      {id:'maybe', label:'Maybe', color:'#D84315'},
+      {id:'weak',  label:'Weak',  color:'#C62828'},
+    ];
+    return(
+      <div style={{flex:1,overflow:'auto',padding:'0 20px 20px',background:dark?T.md.s0:'#F4F4F4'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0'}}>
+          <p style={{fontSize:14,color:c.t2,fontFamily:T.nunito,lineHeight:1.5}}>Drag images into groups as a rough first pass — no scores are assigned here. Switch to Grid or Single to assign precise scores.</p>
+          <button onClick={()=>setPhotos(JUDGE_PHOTOS_INIT)} style={{marginLeft:20,padding:'6px 14px',background:'transparent',border:`1px solid ${c.bd}`,borderRadius:7,cursor:'pointer',color:c.t1,fontSize:13,fontFamily:T.nunito,whiteSpace:'nowrap',fontWeight:500}}>Reset triage</button>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14}}>
+          {BUCKETS.map(bucket=>{
+            const bp=photos.filter(p=>p.triage===bucket.id);
+            return(
+              <div key={bucket.id}
+                onDragOver={e=>e.preventDefault()}
+                onDrop={e=>{e.preventDefault();if(dragId)upd(dragId,{triage:bucket.id});setDragId(null);}}
+                style={{borderRadius:10,overflow:'hidden',border:`1px solid ${dark?c.bd:'#CCCCCC'}`,boxShadow:dark?'none':'0 2px 8px rgba(0,0,0,0.07)'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 16px',background:bucket.color}}>
+                  <span style={{fontSize:15,fontWeight:700,color:'#fff',fontFamily:T.nunito}}>{bucket.label}</span>
+                  <div style={{display:'flex',alignItems:'center',gap:10}}>
+                    <span style={{fontSize:15,fontWeight:700,color:'rgba(255,255,255,0.9)'}}>{bp.length}</span>
+                    {bp.length>0&&<button style={{background:'transparent',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.75)',fontSize:12,fontFamily:T.nunito,fontWeight:600}}>View in grid →</button>}
+                  </div>
+                </div>
+                <div style={{padding:12,background:dark?'rgba(255,255,255,0.025)':'rgba(0,0,0,0.02)',minHeight:180,display:'flex',flexWrap:'wrap',gap:10,alignContent:'flex-start'}}>
+                  {bp.length===0?(
+                    <div style={{width:'100%',textAlign:'center',paddingTop:48,color:dark?c.t3:'#AAA',fontSize:14,fontFamily:T.nunito}}>Drop images here</div>
+                  ):bp.map(photo=>(
+                    <div key={photo.id} draggable
+                      onDragStart={e=>{setDragId(photo.id);e.dataTransfer.effectAllowed='move';}}
+                      style={{width:120,cursor:'grab',borderRadius:8,overflow:'hidden',background:dark?T.md.s2:'#fff',boxShadow:'0 2px 10px rgba(0,0,0,0.25)',userSelect:'none'}}>
+                      <div style={{position:'relative',paddingTop:'68%',background:'#1a1a1a'}}>
+                        <img src={photo.img} alt={photo.name} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none'}}/>
+                        <div style={{position:'absolute',top:5,left:5,background:'rgba(0,0,0,0.65)',color:'#fff',fontSize:11,fontWeight:700,padding:'1px 7px',borderRadius:4,fontFamily:T.nunito}}>{photo.num}</div>
+                      </div>
+                      <div style={{padding:'7px 9px',borderTop:`1px solid ${c.bds}`}}>
+                        <div style={{fontSize:12,fontWeight:600,color:c.t1,fontFamily:T.nunito,lineHeight:1.35,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{photo.name}</div>
+                        <div style={{fontSize:16,fontWeight:700,color:dark?T.md.t2:'#444',fontFamily:T.lora,marginTop:1}}>{photo.score}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Grid View ────────────────────────────────────────────────────────────────
+  function GridView(){
+    const PRESETS=[8,16,23,30];
+    return(
+      <div style={{flex:1,overflow:'auto',padding:20,background:dark?T.md.s0:'#F4F4F4',display:'flex',flexWrap:'wrap',gap:18,alignContent:'flex-start'}}>
+        {photos.map(photo=>(
+          <div key={photo.id} style={{width:300,borderRadius:10,overflow:'hidden',background:dark?T.md.s1:'#fff',border:`2px solid ${photo.flagged?'#6C47D4':photo.score>0?c.ac:(dark?'transparent':'#E0E0E0')}`,boxShadow:dark?'none':'0 2px 12px rgba(0,0,0,0.09)'}}>
+            <div style={{position:'relative',paddingTop:'66%',background:'#111'}}>
+              <img src={photo.img} alt={photo.name} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none'}}/>
+              <div style={{position:'absolute',top:7,left:7,background:'rgba(0,0,0,0.65)',color:'#fff',fontSize:12,fontWeight:700,padding:'2px 8px',borderRadius:5,fontFamily:T.nunito}}>{photo.num}</div>
+              {photo.flagged&&<div style={{position:'absolute',top:7,right:7,background:'#6C47D4',color:'#fff',fontSize:12,fontWeight:700,padding:'2px 9px',borderRadius:5,fontFamily:T.nunito}}>★ Flagged</div>}
+            </div>
+            <div style={{padding:'11px 14px'}}>
+              <div style={{fontSize:13,fontWeight:600,color:c.t1,marginBottom:9,fontFamily:T.nunito,lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden',minHeight:'2.6em'}}>{photo.name}</div>
+              <div style={{display:'flex',gap:6,marginBottom:9}}>
+                {PRESETS.map(preset=>(<button key={preset} onClick={()=>upd(photo.id,{score:preset})} style={{flex:1,padding:'6px 0',borderRadius:6,border:`1px solid ${c.bd}`,cursor:'pointer',fontFamily:T.nunito,fontSize:14,fontWeight:600,background:photo.score===preset?c.ac:(dark?T.md.s2:'#F0F0F0'),color:photo.score===preset?'#fff':c.t2,transition:'all 0.12s'}}>{preset}</button>))}
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                <input type="range" min={1} max={30} value={photo.score||1} onChange={e=>upd(photo.id,{score:parseInt(e.target.value)})} style={{flex:1,accentColor:c.ac}}/>
+                <span style={{fontSize:18,fontWeight:700,color:c.t1,minWidth:28,textAlign:'right',fontFamily:T.lora}}>{photo.score||'—'}</span>
+              </div>
+              <button onClick={()=>upd(photo.id,{flagged:!photo.flagged})} style={{marginTop:9,display:'flex',alignItems:'center',gap:6,padding:'6px 11px',background:photo.flagged?'rgba(108,71,212,0.14)':'transparent',border:`1px solid ${photo.flagged?'#6C47D4':c.bd}`,borderRadius:6,cursor:'pointer',color:photo.flagged?'#9B7FE8':c.t2,fontSize:13,fontFamily:T.nunito,fontWeight:600}}>
+                <Icon name="flag" size={13} color={photo.flagged?'#9B7FE8':c.t2}/>{photo.flagged?'Flagged':'Flag'}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // ── Single View ──────────────────────────────────────────────────────────────
+  function SingleView(){
+    const photo=photos[photoIdx];
+    const panelBg=dark?T.md.s1:'#FFFFFF';
+    const panelBd=dark?T.md.bd:'#E0E0E0';
+    const lbl={fontSize:11,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:dark?T.md.t3:'#888',marginBottom:5,fontFamily:T.nunito};
+    const META=[['Date',photo.meta.date],['Lens',photo.meta.lens],['Make',photo.meta.make],['Model',photo.meta.model],['Focal length',photo.meta.focal],['Aperture',photo.meta.aperture],['ISO',photo.meta.iso],['Shutter',photo.meta.shutter]];
+    return(
+      <div style={{flex:1,display:'grid',gridTemplateColumns:'1fr 270px',overflow:'hidden'}}>
+        {/* Image pane */}
+        <div style={{position:'relative',background:'#0A0A0A',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <img src={photo.img} alt={photo.name} style={{width:'100%',height:'100%',objectFit:'contain'}} onError={e=>{e.target.style.display='none'}}/>
+          {/* Thumbnail strip */}
+          <div style={{position:'absolute',bottom:0,left:0,right:0,display:'flex',gap:6,padding:'10px 14px',background:'linear-gradient(transparent,rgba(0,0,0,0.72))'}}>
+            {photos.map((p,i)=>(
+              <div key={p.id} onClick={()=>setPhotoIdx(i)} style={{cursor:'pointer',borderRadius:6,overflow:'hidden',border:`2px solid ${i===photoIdx?c.ac:'rgba(255,255,255,0.15)'}`,position:'relative',width:68,height:50,flexShrink:0,transition:'border-color 0.14s'}}>
+                <img src={p.img} alt={p.name} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none'}}/>
+                <div style={{position:'absolute',bottom:2,right:3,fontSize:11,fontWeight:700,color:'#fff',textShadow:'0 1px 3px rgba(0,0,0,0.9)',fontFamily:T.lora}}>{p.score}</div>
+              </div>
+            ))}
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.45)',fontFamily:T.nunito,alignSelf:'flex-end',marginLeft:6}}>← → keys · Z zoom · F flag</div>
+          </div>
+        </div>
+        {/* Scoring panel */}
+        <div style={{background:panelBg,borderLeft:`1px solid ${panelBd}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+          {/* Header */}
+          <div style={{padding:'16px 18px 12px',borderBottom:`1px solid ${panelBd}`,display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexShrink:0}}>
+            <div>
+              <div style={{fontSize:12,color:dark?T.md.t3:'#888',fontFamily:T.nunito,marginBottom:2}}>{photo.num}</div>
+              <div style={{fontSize:20,fontWeight:700,color:dark?T.md.t1:'#1A1A1A',fontFamily:T.lora,lineHeight:1.2}}>{photo.name}</div>
+            </div>
+            <button style={{display:'flex',alignItems:'center',gap:5,padding:'5px 10px',background:'transparent',border:`1px solid ${panelBd}`,borderRadius:6,cursor:'pointer',fontSize:12,color:dark?T.md.t2:'#555',fontFamily:T.nunito,fontWeight:500,whiteSpace:'nowrap'}}>
+              <Icon name="maximize" size={12} color={dark?T.md.t2:'#555'}/>Fullscreen
+            </button>
+          </div>
+          {/* Score */}
+          <div style={{padding:'14px 18px',borderBottom:`1px solid ${panelBd}`,flexShrink:0}}>
+            <div style={lbl}>Score</div>
+            <div style={{display:'flex',alignItems:'baseline',gap:4,marginBottom:10}}>
+              <span style={{fontSize:44,fontWeight:700,color:dark?T.md.t1:'#1A1A1A',lineHeight:1,fontFamily:T.lora}}>{photo.score||'—'}</span>
+              <span style={{fontSize:16,color:dark?T.md.t3:'#999',fontFamily:T.nunito}}>/30</span>
+            </div>
+            <input type="range" min={1} max={30} value={photo.score||1} onChange={e=>upd(photo.id,{score:parseInt(e.target.value)})} style={{width:'100%',accentColor:c.ac}}/>
+            {photo.triage&&(
+              <div style={{marginTop:10,display:'flex',alignItems:'center',gap:6}}>
+                <span style={{fontSize:14,fontWeight:600,color:photo.triage==='strong'?T.success:photo.triage==='maybe'?'#D84315':T.error,fontFamily:T.nunito}}>
+                  Triage: {photo.triage[0].toUpperCase()+photo.triage.slice(1)}
+                </span>
+                <span style={{fontSize:14,color:dark?T.md.t3:'#AAA',fontFamily:T.nunito}}>✕</span>
+              </div>
+            )}
+            <button style={{marginTop:10,display:'flex',alignItems:'center',gap:5,background:'transparent',border:'none',cursor:'pointer',color:c.ac,fontSize:14,fontFamily:T.nunito,fontWeight:600,padding:0}}>
+              ▶ Add feedback <span style={{fontWeight:400,color:dark?T.md.t3:'#999'}}>(optional)</span>
+            </button>
+          </div>
+          {/* Photographer */}
+          <div style={{padding:'12px 18px',borderBottom:`1px solid ${panelBd}`,flexShrink:0}}>
+            <div style={lbl}>Photographer</div>
+            <div style={{fontSize:15,fontWeight:600,color:dark?T.md.t1:'#1A1A1A',fontFamily:T.nunito}}>Dave Brown</div>
+          </div>
+          {/* Metadata */}
+          <div style={{padding:'12px 18px',flex:1,overflow:'auto'}}>
+            <div style={lbl}>Capture Data</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'5px 8px'}}>
+              {META.map(([label,val])=>(
+                <React.Fragment key={label}>
+                  <span style={{fontSize:13,color:dark?T.md.t3:'#888',fontFamily:T.nunito}}>{label}</span>
+                  <span style={{fontSize:13,color:dark?T.md.t1:'#1A1A1A',fontFamily:T.nunito,fontWeight:500}}>{val}</span>
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+          {/* Prev/Next */}
+          <div style={{padding:'12px 18px',borderTop:`1px solid ${panelBd}`,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+            <button onClick={()=>setPhotoIdx(i=>Math.max(0,i-1))} disabled={photoIdx===0} style={{padding:'7px 16px',background:'transparent',border:`1px solid ${panelBd}`,borderRadius:7,cursor:photoIdx===0?'default':'pointer',color:photoIdx===0?(dark?T.md.tDis:'#CCC'):(dark?T.md.t1:'#1A1A1A'),fontSize:14,fontFamily:T.nunito,fontWeight:500}}>Prev</button>
+            <span style={{fontSize:14,color:dark?T.md.t2:'#555',fontFamily:T.nunito,fontWeight:500}}>{photoIdx+1} / {photos.length}</span>
+            <button onClick={()=>setPhotoIdx(i=>Math.min(photos.length-1,i+1))} disabled={photoIdx===photos.length-1} style={{padding:'7px 16px',background:'transparent',border:`1px solid ${panelBd}`,borderRadius:7,cursor:photoIdx===photos.length-1?'default':'pointer',color:photoIdx===photos.length-1?(dark?T.md.tDis:'#CCC'):(dark?T.md.t1:'#1A1A1A'),fontSize:14,fontFamily:T.nunito,fontWeight:500}}>Next »</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return(
+    <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}}>
+      {TopBar}
+      {view!=='triage'&&FilterBar}
+      {view==='triage'&&<TriageView/>}
+      {view==='grid'&&<GridView/>}
+      {view==='single'&&<SingleView/>}
+    </div>
+  );
+}
+
+// ─── Judging Portal (landing + flow) ─────────────────────────────────────────
+function JudgingPortal({tweaksVisible}){
+  const [dark,setDark]=React.useState(true);
+  const [submitted,setSubmitted]=React.useState(false);
+  const [activeCategory,setActiveCategory]=React.useState(null);
+  const c=dark?T.md:T.ml;
+
+  // Top nav bar — always shown
+  const NavBar=(
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 32px',height:48,borderBottom:`1px solid ${c.bd}`,background:dark?'#1A1A1A':'#fff',flexShrink:0,boxShadow:dark?'none':'0 1px 6px rgba(0,0,0,0.07)'}}>
+      <div style={{display:'flex',alignItems:'center',gap:9}}>
+        <div style={{width:26,height:26,borderRadius:7,background:dark?'rgba(74,144,212,0.15)':'rgba(26,111,196,0.10)',display:'flex',alignItems:'center',justifyContent:'center'}}><ApertureIcon size={15} color={c.ac}/></div>
+        <span style={{fontSize:14,fontWeight:700,color:c.t1,fontFamily:T.lora}}>Nashoba Valley Photo Club</span>
+      </div>
+      <span style={{fontSize:10,fontWeight:700,letterSpacing:'0.10em',textTransform:'uppercase',color:c.t3,fontFamily:T.nunito}}>Judging Portal / Test Judge</span>
+      <button onClick={()=>setDark(d=>!d)} style={{display:'flex',alignItems:'center',gap:6,background:'transparent',border:`1px solid ${c.bd}`,borderRadius:8,padding:'6px 12px',cursor:'pointer',color:c.t2,fontSize:13,fontFamily:T.nunito,fontWeight:500}}>
+        <Icon name={dark?'sun':'moon'} size={13} color={c.t2}/>{dark?'Light mode':'Dark mode'}
+      </button>
+    </div>
+  );
+
+  // If a category is selected, show the judging flow
+  if(activeCategory){
+    return(
+      <div style={{height:'100%',display:'flex',flexDirection:'column',background:dark?'#141414':'#F4F4F4'}}>
+        {NavBar}
+        <JudgingFlow dark={dark} category={activeCategory} onBack={()=>setActiveCategory(null)}/>
+      </div>
+    );
+  }
+
+  // Landing page
+  return(
+    <div style={{height:'100%',overflow:'auto',background:dark?'#141414':'#F4F4F4',fontFamily:T.nunito}}>
+      {NavBar}
+      {/* Hero */}
+      <div style={{padding:'56px 48px 44px',background:dark?'linear-gradient(180deg,#1C1C1C 0%,#141414 60%)':'linear-gradient(180deg,#fff 0%,#F4F4F4 60%)'}}>
+        <h1 style={{fontSize:50,fontWeight:700,lineHeight:1.1,letterSpacing:'-0.03em',color:c.t1,marginBottom:6,fontFamily:T.lora}}>Aperture set, images loaded.</h1>
+        <h2 style={{fontSize:50,fontWeight:700,lineHeight:1.1,letterSpacing:'-0.03em',color:dark?'rgba(232,232,232,0.42)':'rgba(26,26,26,0.35)',marginBottom:28,fontFamily:T.lora}}>The rest is up to you, Test.</h2>
+        <p style={{fontSize:16,color:c.t2,maxWidth:420,lineHeight:1.65}}>You're judging <strong style={{color:c.t1,fontWeight:700}}>April 2026</strong>. Work through each category below — your progress saves automatically.</p>
+      </div>
+      {/* Cards */}
+      <div style={{padding:'0 48px 40px',display:'grid',gridTemplateColumns:'1fr 1.6fr',gap:20,maxWidth:1040}}>
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+          <div style={{background:dark?T.md.s1:'#fff',border:`1px solid ${c.bd}`,borderRadius:12,padding:24,boxShadow:dark?'none':'0 2px 10px rgba(0,0,0,0.07)'}}>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:c.t3,marginBottom:16}}>Competition Overview</div>
+            <div style={{fontSize:54,fontWeight:700,color:c.t1,lineHeight:1,fontFamily:T.lora}}>4</div>
+            <div style={{fontSize:15,color:c.t2,marginTop:4}}>images</div>
+            <div style={{fontSize:14,color:c.t3,marginTop:2}}>across 3 categories</div>
+          </div>
+          <div style={{background:dark?T.md.s2:'#EFEFEF',border:`1px solid ${c.bd}`,borderRadius:12,padding:24}}>
+            <div style={{fontSize:15,fontWeight:700,color:c.t1,marginBottom:12}}>How to score</div>
+            {['Score each image on a scale of 1–30.','There are 3 categories — judge each one separately at your own pace.','Written feedback is optional but encouraged.','Your progress saves automatically — you can return at any time before the deadline.'].map((txt,i)=>(
+              <div key={i} style={{display:'flex',gap:8,marginBottom:9,fontSize:14,color:c.t2,lineHeight:1.6}}><span style={{color:c.t3,flexShrink:0,marginTop:2}}>·</span><span>{txt}</span></div>
+            ))}
+          </div>
+        </div>
+        <div style={{background:dark?T.md.s1:'#fff',border:`1px solid ${c.bd}`,borderRadius:12,padding:28,display:'flex',flexDirection:'column',gap:18,boxShadow:dark?'none':'0 2px 10px rgba(0,0,0,0.07)'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <div style={{fontSize:17,fontWeight:700,color:c.t1}}>Your progress</div>
+            <div style={{fontSize:15,fontWeight:700,color:dark?T.successTxtDk:T.success}}>100%</div>
+          </div>
+          <div><div style={{fontSize:11,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:c.t3,marginBottom:4}}>Judging deadline</div><div style={{fontSize:16,color:c.t1,fontWeight:500}}>May 31, 2026</div></div>
+          <div><div style={{fontSize:48,fontWeight:700,color:c.t1,lineHeight:1,fontFamily:T.lora}}>4</div><div style={{fontSize:15,color:c.t2}}>of 4 scored</div></div>
+          <div style={{background:dark?T.md.s2:'#E0E0E0',borderRadius:9999,height:8,overflow:'hidden'}}><div style={{width:'100%',height:'100%',background:dark?T.successTxtDk:T.success,borderRadius:9999}}/></div>
+          <div style={{background:dark?T.md.s2:'#EFEFEF',border:`1px solid ${c.bd}`,borderRadius:8,padding:'11px 14px',display:'flex',alignItems:'center',gap:8,fontSize:14,color:c.t2}}><Icon name="clock" size={15} color={c.t3}/>41 days remaining in the judging window.</div>
+          {!submitted?(
+            <div>
+              <div style={{fontSize:14,color:c.t2,marginBottom:10}}>All 4 images scored. Submit to send to the club.</div>
+              <button onClick={()=>setSubmitted(true)} style={{width:'100%',padding:'15px 20px',background:dark?'#FFFFFF':'#1E4D8C',color:dark?'#141414':'#fff',border:'none',borderRadius:10,cursor:'pointer',fontSize:16,fontWeight:700,fontFamily:T.nunito,boxShadow:dark?'0 4px 20px rgba(255,255,255,0.18)':'0 4px 16px rgba(30,77,140,0.45)'}}>Submit all scores →</button>
+            </div>
+          ):(
+            <div style={{background:dark?T.successBgDk:T.successBg,border:`1px solid ${dark?T.successTxtDk+'44':T.success+'55'}`,borderRadius:10,padding:'16px 20px',textAlign:'center'}}>
+              <div style={{fontSize:16,fontWeight:700,color:dark?T.successTxtDk:T.successText}}>✓ Scores submitted successfully</div>
+              <div style={{fontSize:14,color:dark?T.successTxtDk:T.successText,opacity:0.75,marginTop:4}}>The club has been notified.</div>
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Categories — clicking opens the judging flow */}
+      <div style={{padding:'0 48px 48px',maxWidth:1040}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+          <div style={{fontSize:18,fontWeight:700,color:c.t1}}>Categories</div>
+          <div style={{fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:c.t3}}>3 Total</div>
+        </div>
+        {[{name:'Open',status:'complete',count:2},{name:'Nature',status:'complete',count:1},{name:'Monochrome',status:'complete',count:1}].map((cat,i)=>(
+          <div key={i} onClick={()=>setActiveCategory(cat)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:dark?T.md.s1:'#fff',border:`1px solid ${c.bd}`,borderRadius:10,padding:'15px 20px',marginBottom:10,cursor:'pointer',boxShadow:dark?'none':'0 1px 6px rgba(0,0,0,0.06)',transition:'box-shadow 0.14s'}}>
+            <div style={{display:'flex',alignItems:'center',gap:12}}><span style={{fontSize:15,fontWeight:600,color:c.t1}}>{cat.name}</span><Pill variant={cat.status} dark={dark}/></div>
+            <div style={{display:'flex',alignItems:'center',gap:10}}><span style={{fontSize:14,color:c.t2}}>{cat.count} image{cat.count>1?'s':''}</span><Icon name="chevR" size={15} color={c.t3}/></div>
+          </div>
+        ))}
+      </div>
+      {tweaksVisible&&(
+        <div style={{position:'fixed',bottom:20,right:20,background:dark?T.md.s1:'#fff',border:`1px solid ${c.bd}`,borderRadius:12,padding:20,width:200,boxShadow:'0 8px 32px rgba(0,0,0,0.3)',zIndex:9000,fontFamily:T.sans}}>
+          <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:c.t2,marginBottom:14}}>Tweaks</div>
+          <label style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,cursor:'pointer'}}><span style={{fontSize:14,color:c.t1}}>Dark mode</span><input type="checkbox" checked={dark} onChange={e=>setDark(e.target.checked)}/></label>
+          <label style={{display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}><span style={{fontSize:14,color:c.t1}}>Submitted state</span><input type="checkbox" checked={submitted} onChange={e=>setSubmitted(e.target.checked)}/></label>
+        </div>
+      )}
+    </div>
+  );
+}
+
+window._FP.MemberPortal=MemberPortal;
+window._FP.JudgingPortal=JudgingPortal;
+</script>
+
+<!-- ── 3. Admin portal ──────────────────────────────────────────────────────── -->
+<script type="text/babel">
+const {T,Pill,Icon,ApertureIcon}=window._FP;
+const ADMIN_NAV=[{id:'dashboard',label:'Dashboard',icon:'layout'},{id:'members',label:'Members',icon:'users'},{id:'competitions',label:'Competitions',icon:'trophy'},{id:'judges',label:'Judges',icon:'userChk'},{id:'pages',label:'Content & Pages',icon:'pages'},{id:'docs',label:'Documents',icon:'doc'},{id:'email',label:'Emails & Notifications',icon:'mail'},{id:'defaults',label:'Club Defaults',icon:'settings'}];
+function AdminSidebar({screen,setScreen,dark}){
+  const nb=dark?T.ad.nav:T.al.nav,na=dark?T.ad.navAc:T.al.navAc,nt=dark?T.ad.navT:T.al.navT,nm=dark?T.ad.navM:T.al.navM,dv=dark?'rgba(255,255,255,0.07)':'rgba(255,255,255,0.10)';
+  return(<div style={{width:204,flexShrink:0,background:nb,display:'flex',flexDirection:'column',fontFamily:T.mono}}>
+    <div style={{padding:'20px 16px 12px'}}><div style={{fontSize:10,fontWeight:500,color:nm,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:2}}>Focal Point</div><div style={{fontSize:17,fontWeight:700,color:nt,letterSpacing:'-0.01em'}}>Admin</div></div>
+    <div style={{padding:'0 8px 8px'}}><button style={{display:'flex',alignItems:'center',gap:7,padding:'5px 8px',background:'transparent',border:'none',cursor:'pointer',color:nm,fontSize:12,fontFamily:T.mono,borderRadius:6,width:'100%'}}><Icon name="chevL" size={13} color={nm}/>Back to site</button></div>
+    <div style={{height:1,background:dv,margin:'0 8px 8px'}}/>
+    <div style={{flex:1,padding:'0 8px',overflowY:'auto'}}>
+      {ADMIN_NAV.map(item=>{const active=screen===item.id;return(<button key={item.id} onClick={()=>setScreen(item.id)} style={{display:'flex',alignItems:'center',gap:9,padding:'7px 10px',borderRadius:8,border:'none',cursor:'pointer',width:'100%',textAlign:'left',marginBottom:2,fontFamily:T.mono,fontSize:13,background:active?na:'transparent',color:active?nt:nm,transition:'background 0.12s,color 0.12s'}}><Icon name={item.icon} size={14} color={active?nt:nm}/>{item.label}</button>);})}
+    </div>
+    <div style={{borderTop:`1px solid ${dv}`,padding:'10px 8px'}}>
+      <div style={{display:'flex',alignItems:'center',gap:9,padding:'6px 8px'}}><div style={{width:28,height:28,borderRadius:'50%',background:na,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:11,fontWeight:700}}>N</div><div><div style={{fontSize:12,fontWeight:600,color:nt}}>NVPC Admin</div><div style={{fontSize:11,color:nm}}>admin@nvpc.org</div></div></div>
+      <button style={{padding:'5px 8px',background:'transparent',border:'none',cursor:'pointer',color:nm,fontSize:12,fontFamily:T.mono,borderRadius:6}}>Sign out</button>
+    </div>
+  </div>);
+}
+function AdminDashboard({dark}){
+  const c=dark?T.ad:T.al;
+  const STATS=[{value:'0',label:'Pending approvals',empty:true,note:'No members awaiting review'},{value:'1',label:'Active members'},{value:'1',label:'Active competitions'}];
+  const ACT=[{time:'2h ago',label:'Image submitted',detail:'horses.jpg · Diana B.',dot:c.ac},{time:'2h ago',label:'Image submitted',detail:'maine.jpg · Diana B.',dot:c.ac},{time:'3h ago',label:'Image submitted',detail:'leaf.jpg · Diana B.',dot:c.ac},{time:'Yesterday',label:'Member registered',detail:'Diana B. joined as member',dot:dark?T.successTxtDk:T.success},{time:'Apr 1',label:'Submissions opened',detail:'April 2026 competition',dot:dark?T.successTxtDk:T.success},{time:'Mar 29',label:'Competition created',detail:'April 2026 · 3 categories',dot:c.t3}];
+  const QUICK=[{label:'Add member',icon:'users'},{label:'New competition',icon:'trophy'},{label:'Send email',icon:'mail'},{label:'Upload document',icon:'doc'}];
+  return(<div style={{flex:1,overflow:'auto',padding:'28px 32px',background:dark?T.ad.s0:T.al.s0,fontFamily:T.mono}}>
+    <div style={{maxWidth:960,margin:'0 auto'}}>
+      <h1 style={{fontSize:22,fontWeight:700,color:c.t1,letterSpacing:'-0.015em',margin:0}}>Dashboard</h1>
+      <p style={{fontSize:13,color:c.t2,marginTop:4,marginBottom:28}}>Club overview</p>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14,marginBottom:28}}>
+        {STATS.map((s,i)=>(<div key={i} style={{background:dark?T.ad.s1:T.al.s2,border:`1px solid ${c.bd}`,borderRadius:10,padding:'20px 22px'}}><div style={{fontSize:36,fontWeight:700,color:s.empty?c.t3:c.t1,lineHeight:1,marginBottom:6}}>{s.value}</div><div style={{fontSize:13,color:c.t2}}>{s.label}</div>{s.empty&&<div style={{fontSize:11,color:c.t3,marginTop:5,fontStyle:'italic'}}>{s.note}</div>}</div>))}
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 340px',gap:24}}>
+        <div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><div style={{fontSize:11,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:c.t3}}>Active Competitions</div><button style={{background:'transparent',border:'none',cursor:'pointer',fontSize:13,color:c.ac,fontFamily:T.mono}}>View all →</button></div>
+          <div style={{background:dark?T.ad.s1:T.al.s2,border:`1px solid ${c.bd}`,borderRadius:10,padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}><div><div style={{fontSize:14,fontWeight:600,color:c.t1,marginBottom:4}}>April 2026</div><div style={{fontSize:12,color:c.t2}}>Closes 5/30/2026 · 3 categories</div></div><Pill variant="judging" dark={dark}/></div>
+          <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:c.t3,marginBottom:12}}>Quick Actions</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>{QUICK.map((q,i)=>(<button key={i} style={{display:'flex',alignItems:'center',gap:9,padding:'10px 14px',background:dark?T.ad.s1:T.al.s2,border:`1px solid ${c.bd}`,borderRadius:8,cursor:'pointer',color:c.t1,fontSize:13,fontFamily:T.mono,textAlign:'left'}}><Icon name={q.icon} size={14} color={c.ac}/>{q.label}</button>))}</div>
+        </div>
+        <div>
+          <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:c.t3,marginBottom:12}}>Recent Activity</div>
+          <div style={{background:dark?T.ad.s1:T.al.s2,border:`1px solid ${c.bd}`,borderRadius:10,overflow:'hidden'}}>
+            {ACT.map((item,i)=>(<div key={i} style={{display:'flex',gap:10,padding:'11px 16px',borderBottom:i<ACT.length-1?`1px solid ${c.bd}`:'none',alignItems:'flex-start'}}><div style={{width:7,height:7,borderRadius:'50%',background:item.dot,marginTop:5,flexShrink:0}}/><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:600,color:c.t1,lineHeight:1.3}}>{item.label}</div><div style={{fontSize:11,color:c.t2,marginTop:1}}>{item.detail}</div></div><div style={{fontSize:11,color:c.t3,whiteSpace:'nowrap'}}>{item.time}</div></div>))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>);
+}
+function AdminClubDefaults({dark}){
+  const c=dark?T.ad:T.al;
+  const [tab,setTab]=React.useState('basics');
+  const [dirty,setDirty]=React.useState(false);
+  const [saved,setSaved]=React.useState(false);
+  const mark=()=>{setDirty(true);setSaved(false);};
+  const save=()=>{setDirty(false);setSaved(true);setTimeout(()=>setSaved(false),3500);};
+  const inp={width:'100%',padding:'8px 12px',borderRadius:6,border:`1px solid ${c.bd}`,background:dark?T.ad.s2:'#fff',color:c.t1,fontSize:14,fontFamily:T.mono,outline:'none'};
+  function FR({label,children,hint}){return(<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:32,padding:'18px 0',borderBottom:`1px solid ${dark?c.bds:c.bd}`,alignItems:'start'}}><div><label style={{display:'block',fontSize:13,fontWeight:500,color:c.t1,marginBottom:7}}>{label}</label>{children}</div><p style={{fontSize:12,color:c.t2,lineHeight:1.6,paddingTop:26}}>{hint}</p></div>);}
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return(<div style={{flex:1,display:'flex',flexDirection:'column',background:dark?T.ad.s0:T.al.s0,overflow:'hidden',fontFamily:T.mono}}>
+    <div style={{flex:1,overflow:'auto',padding:'28px 32px'}}>
+      <div style={{maxWidth:860,margin:'0 auto'}}>
+        <h1 style={{fontSize:22,fontWeight:700,color:c.t1,letterSpacing:'-0.015em',margin:0}}>Club Defaults</h1>
+        <p style={{fontSize:13,color:c.t2,marginTop:4,marginBottom:22}}>Configure your club's core settings and defaults.</p>
+        <div style={{display:'flex',borderBottom:`1px solid ${c.bd}`,marginBottom:28}}>
+          {['Basics','Competitions','Recognition & Standing'].map(t=>{const k=t.split(' ')[0].toLowerCase(),active=tab===k;return(<button key={t} onClick={()=>setTab(k)} style={{padding:'10px 18px',background:'transparent',border:'none',borderBottom:active?`2px solid ${c.ac}`:'2px solid transparent',color:active?c.ac:c.t2,fontSize:14,fontWeight:active?600:400,cursor:'pointer',fontFamily:T.mono,marginBottom:'-1px',transition:'all 0.15s'}}>{t}</button>);})}
+        </div>
+        {tab==='basics'&&(<>
+          <h2 style={{fontSize:15,fontWeight:600,color:c.t1,marginBottom:14}}>Club identity</h2>
+          <div style={{background:dark?T.ad.s1:T.al.s2,border:`1px solid ${c.bd}`,borderRadius:12,padding:'0 24px'}}>
+            <FR label="Club name" hint="The full official name of your club."><input style={inp} defaultValue="Nashoba Valley Photo Club" onChange={mark}/></FR>
+            <FR label="Club short name" hint="An abbreviation or acronym used in compact displays."><input style={inp} defaultValue="NVPC" onChange={mark}/></FR>
+            <FR label="Club location" hint="Optional. City or region your club is based in."><input style={inp} defaultValue="Littleton, MA" onChange={mark}/></FR>
+            <FR label="Timezone" hint="Used for competition deadlines and scheduling."><select style={inp} onChange={mark}><option>America/New_York</option><option>America/Chicago</option></select></FR>
+            <FR label="Club logo" hint="Displayed on the member site and in communications."><button style={{padding:'7px 14px',background:'transparent',border:`1px solid ${c.bd}`,borderRadius:6,cursor:'pointer',color:c.t1,fontSize:13,fontFamily:T.mono}}>Upload logo</button></FR>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:32,padding:'18px 0',alignItems:'start'}}>
+              <div><label style={{display:'block',fontSize:13,fontWeight:500,color:c.t1,marginBottom:7}}>Competition season</label><div style={{display:'flex',gap:8}}><div style={{flex:1}}><div style={{fontSize:11,color:c.t3,marginBottom:4}}>Start month</div><select style={inp} onChange={mark}>{MONTHS.map(m=><option key={m} selected={m==='September'}>{m}</option>)}</select></div><div style={{flex:1}}><div style={{fontSize:11,color:c.t3,marginBottom:4}}>End month</div><select style={inp} onChange={mark}>{MONTHS.map(m=><option key={m} selected={m==='August'}>{m}</option>)}</select></div></div></div>
+              <p style={{fontSize:12,color:c.t2,lineHeight:1.6,paddingTop:26}}>Season runs September through August.</p>
+            </div>
+          </div>
+        </>)}
+        {tab!=='basics'&&(<div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:240,gap:10}}><Icon name="settings" size={28} color={c.t3}/><div style={{fontSize:14,color:c.t3}}>{tab.charAt(0).toUpperCase()+tab.slice(1)} settings — coming soon</div></div>)}
+      </div>
+    </div>
+    <div style={{borderTop:`1px solid ${c.bd}`,padding:'12px 32px',background:dark?T.ad.s1:T.al.s2,display:'flex',alignItems:'center',justifyContent:'flex-end',gap:12,boxShadow:dark?'0 -4px 16px rgba(0,0,0,0.35)':'0 -4px 12px rgba(0,0,0,0.06)',flexShrink:0}}>
+      {saved&&<span style={{fontSize:13,color:dark?T.successTxtDk:T.successText}}>✓ Changes saved</span>}
+      <button style={{padding:'8px 18px',background:'transparent',border:`1px solid ${c.bd}`,borderRadius:6,cursor:'pointer',color:c.t2,fontSize:13,fontFamily:T.mono}}>Discard</button>
+      <button onClick={save} disabled={!dirty} style={{padding:'8px 20px',borderRadius:6,border:'none',cursor:dirty?'pointer':'default',fontFamily:T.mono,background:dirty?c.ac:(dark?T.ad.s3:'#C8CFD9'),color:dirty?'#fff':c.t3,fontSize:13,fontWeight:500,boxShadow:dirty?`0 2px 8px ${dark?'rgba(74,127,196,0.45)':'rgba(30,77,140,0.35)'}`:'none',transition:'all 0.2s'}}>Save changes</button>
+    </div>
+  </div>);
+}
+function AdminPortal({tweaksVisible}){
+  const [dark,setDark]=React.useState(false);
+  const [screen,setScreen]=React.useState(()=>localStorage.getItem('fp-admin-screen')||'dashboard');
+  React.useEffect(()=>{localStorage.setItem('fp-admin-screen',screen);},[screen]);
+  const c=dark?T.ad:T.al;
+  return(<div style={{height:'100%',display:'flex',background:dark?T.ad.s0:T.al.s0}}>
+    <AdminSidebar screen={screen} setScreen={setScreen} dark={dark}/>
+    {screen==='dashboard'&&<AdminDashboard dark={dark}/>}
+    {screen==='defaults'&&<AdminClubDefaults dark={dark}/>}
+    {!['dashboard','defaults'].includes(screen)&&(<div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,color:c.t3,fontFamily:T.mono}}><Icon name={ADMIN_NAV.find(n=>n.id===screen)?.icon||'layout'} size={28} color={c.t3}/><div style={{fontSize:13}}>{screen} — coming soon</div><button onClick={()=>setScreen('dashboard')} style={{fontSize:12,color:c.ac,background:'transparent',border:'none',cursor:'pointer',fontFamily:T.mono}}>← Back to dashboard</button></div>)}
+    {tweaksVisible&&(<div style={{position:'fixed',bottom:20,right:20,background:dark?T.ad.s1:'#fff',border:`1px solid ${c.bd}`,borderRadius:12,padding:20,width:240,boxShadow:'0 8px 32px rgba(0,0,0,0.3)',zIndex:9000,fontFamily:T.sans}}>
+      <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:c.t2,marginBottom:16}}>Tweaks</div>
+      <label style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,cursor:'pointer'}}><span style={{fontSize:14,color:c.t1}}>Admin dark mode</span><input type="checkbox" checked={dark} onChange={e=>setDark(e.target.checked)}/></label>
+      <div style={{fontSize:11,color:c.t3,marginBottom:16,lineHeight:1.5}}>Cool-blue palette · base {dark?'#0D1520':'#F7F8FA'}</div>
+      <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:c.t2,marginBottom:8}}>Screen</div>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{[['dashboard','Dashboard'],['defaults','Club Defaults'],['members','Members']].map(([id,label])=>(<button key={id} onClick={()=>setScreen(id)} style={{padding:'5px 11px',borderRadius:6,border:`1px solid ${c.bd}`,background:screen===id?c.ac:'transparent',color:screen===id?'#fff':c.t1,fontSize:12,cursor:'pointer'}}>{label}</button>))}</div>
+    </div>)}
+  </div>);
+}
+window._FP.AdminPortal=AdminPortal;
+</script>
+
+<!-- ── 4. App shell ─────────────────────────────────────────────────────────── -->
+<script type="text/babel">
+const {MemberPortal,JudgingPortal,AdminPortal}=window._FP;
+function ProtoChromeBar({portal,setPortal}){
+  const portals=[{id:'member',label:'Member Portal'},{id:'judging',label:'Judging Portal'},{id:'admin',label:'Admin'}];
+  return(<div style={{position:'fixed',top:0,left:0,right:0,zIndex:9999,height:38,background:'#0A0C12',borderBottom:'1px solid rgba(255,255,255,0.07)',display:'flex',alignItems:'center',gap:20,padding:'0 18px',fontFamily:"'Inter',system-ui,sans-serif"}}>
+    <div style={{display:'flex',alignItems:'center',gap:7,marginRight:6}}>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4A90D4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="14.31" y1="8" x2="20.05" y2="17.94"/><line x1="9.69" y1="8" x2="21.17" y2="8"/><line x1="7.38" y1="12" x2="13.12" y2="2.06"/><line x1="9.69" y1="16" x2="3.95" y2="6.06"/><line x1="14.31" y1="16" x2="2.83" y2="16"/><line x1="16.62" y1="12" x2="10.88" y2="21.94"/></svg>
+      <span style={{fontSize:10,fontWeight:600,letterSpacing:'0.09em',textTransform:'uppercase',color:'#3A4557'}}>Focal Point · Prototype</span>
+    </div>
+    <div style={{width:1,height:16,background:'rgba(255,255,255,0.08)'}}/>
+    <div style={{display:'flex',gap:2}}>{portals.map(p=>(<button key={p.id} onClick={()=>setPortal(p.id)} style={{padding:'4px 13px',borderRadius:6,border:'none',cursor:'pointer',fontSize:12,fontWeight:500,fontFamily:"'Inter',system-ui,sans-serif",background:portal===p.id?'rgba(74,144,212,0.16)':'transparent',color:portal===p.id?'#7AB8E8':'#4A5568',transition:'all 0.13s'}}>{p.label}</button>))}</div>
+    <div style={{marginLeft:'auto',fontSize:10,color:'#252F3F',letterSpacing:'0.03em'}}>Toggle Tweaks for design controls</div>
+  </div>);
+}
+function App(){
+  const [portal,setPortal]=React.useState(()=>localStorage.getItem('fp-portal')||'member');
+  const [tweaksVisible,setTweaksVisible]=React.useState(false);
+  React.useEffect(()=>{localStorage.setItem('fp-portal',portal);},[portal]);
+  React.useEffect(()=>{
+    const h=e=>{
+      if(e.data?.type==='__activate_edit_mode') setTweaksVisible(true);
+      if(e.data?.type==='__deactivate_edit_mode') setTweaksVisible(false);
+    };
+    window.addEventListener('message',h);
+    window.parent.postMessage({type:'__edit_mode_available'},'*');
+    return()=>window.removeEventListener('message',h);
+  },[]);
+  return(<div style={{height:'100vh',display:'flex',flexDirection:'column'}}>
+    <ProtoChromeBar portal={portal} setPortal={setPortal}/>
+    <div key={portal} style={{flex:1,marginTop:38,overflow:'hidden',position:'relative'}} className="fade-in">
+      {portal==='member'  && <MemberPortal  tweaksVisible={tweaksVisible}/>}
+      {portal==='judging' && <JudgingPortal tweaksVisible={tweaksVisible}/>}
+      {portal==='admin'   && <AdminPortal   tweaksVisible={tweaksVisible}/>}
+    </div>
+  </div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

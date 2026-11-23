@@ -5,6 +5,7 @@
       "name": "focal-point-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
+      "cwd": "/Users/brown/focal-point",
       "port": 3000,
       "autoPort": true
     }

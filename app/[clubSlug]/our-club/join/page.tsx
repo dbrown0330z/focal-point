@@ -65,9 +65,7 @@ function PaymentMethodCard({
 }
 
 export default async function JoinPage() {
-  const admin    = createServiceClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const adminAny = admin as any
+  const admin = createServiceClient()
   const ctx   = await getClubContext()
   const clubId   = ctx?.clubId
   const clubSlug = ctx?.clubSlug ?? ''
@@ -79,7 +77,7 @@ export default async function JoinPage() {
 
   const [{ data: pageRaw }, { data: settingsRaw }] = await Promise.all([
     clubId
-      ? (adminAny.from('pages').select('content').eq('slug', 'join-renew').eq('club_id', clubId).maybeSingle() as Promise<{ data: { content: string | null } | null }>)
+      ? (admin.from('pages').select('content').eq('slug', 'join-renew').eq('club_id', clubId).maybeSingle() as unknown as Promise<{ data: { content: string | null } | null }>)
       : Promise.resolve({ data: null }),
     clubId
       ? (admin.from('club_settings').select('club_name, dues_manual_methods, dues_cheque_payable_to, dues_cheque_mail_to, dues_etransfer_email, dues_paypal_link, dues_venmo_handle, dues_cashapp_handle, dues_zelle_contact, dues_annual_standard, join_open').eq('club_id', clubId).single() as unknown as Promise<{ data: DuesSettings | null }>)

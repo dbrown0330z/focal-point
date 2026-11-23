@@ -1,0 +1,44 @@
+---
+title: Running competitions
+description: Creating, managing, and publishing competition results
+section: Admin guide
+order: 3
+---
+
+# Running competitions
+
+Competitions are the core of the member experience. Each competition has categories, a submission window, a judging phase, and published results.
+
+## Creating a competition
+
+1. Go to **Competitions → New competition**.
+2. Set the **name**, **season**, and dates for submission open/close.
+3. Add **categories** (e.g. Open, Nature). You can reuse a saved template.
+4. Configure any per-competition overrides to the default rules.
+5. Click **Create**.
+
+The competition starts in **Draft** status — members cannot see or submit to it yet.
+
+## Competition lifecycle
+
+| Status | Members can see? | Members can submit? | Judging? |
+|---|---|---|---|
+| Draft | No | No | No |
+| Open | Yes | Yes | No |
+| Judging | Yes | No | Yes (judge portal) |
+| Closed | Yes | No | No |
+| Results published | Yes | No | Scores visible |
+
+Change the status from the competition detail page.
+
+## Assigning a judge
+
+1. Open the competition and click **Assign judge**.
+2. Enter the judge's email. A **magic link** token is generated.
+3. Share the link with the judge — they access the judging portal directly, no account needed.
+
+Judge tokens expire when you move the competition out of **Judging** status.
+
+## Publishing results
+
+When judging is complete, review the scores under **Entries**, then change the competition status to **Results published**. Members will see scores and any judge comments immediately.

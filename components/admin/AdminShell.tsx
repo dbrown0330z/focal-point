@@ -1,13 +1,8 @@
 'use client'
 
-import { Suspense } from 'react'
 import { UnsavedChangesProvider } from './UnsavedChangesProvider'
 import AdminSidebar from '@/components/layout/AdminSidebar'
 import { useAdminTheme } from '@/components/layout/AdminThemeContext'
-
-function SidebarFallback() {
-  return <aside className="flex h-screen w-52 flex-col bg-admin-nav" />
-}
 
 export default function AdminShell({
   children,
@@ -24,9 +19,7 @@ export default function AdminShell({
   return (
     <UnsavedChangesProvider>
       <div className="admin-context flex h-screen overflow-hidden bg-surface-0">
-        <Suspense fallback={<SidebarFallback />}>
-          <AdminSidebar clubSlug={clubSlug} />
-        </Suspense>
+        <AdminSidebar clubSlug={clubSlug} />
         <div className="flex flex-1 flex-col overflow-hidden">
           {banner}
           <main className="flex-1 overflow-y-auto px-6 py-8">

@@ -27,6 +27,9 @@ export default function ScoreForm({
     const formData = new FormData(e.currentTarget)
     await upsertScore(token, formData)
     setSaving(false)
+    // Bust the client-side router cache so navigating back to /score or /landing
+    // shows fresh scores rather than a stale cached version.
+    router.refresh()
     if (nextId) {
       router.push(`/judge/${token}/score/${nextId}`)
     } else {

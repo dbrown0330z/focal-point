@@ -92,7 +92,8 @@ export async function GET(request: Request) {
           .maybeSingle()
 
         if (club?.slug) {
-          destination = `${origin}/${club.slug}/onboarding/profile`
+          // onboarding is a top-level route — no club-slug prefix
+          destination = `${origin}/onboarding/profile`
         }
       }
     }

@@ -96,16 +96,6 @@ const SITE_LIGHT = {
   surface1:        '#ECECEC',
   tableHead:       'rgba(0,0,0,0.04)',
 }
-const SITE_DARK = {
-  bg:              '#141414',
-  textPrimary:     '#E8E8E8',
-  textSecondary:   '#9E9E9E',
-  actionPrimary:   '#4A90D4',
-  actionSecondary: '#6EA8D8',
-  borderDefault:   'rgba(255,255,255,0.12)',
-  surface1:        '#1E1E1E',
-  tableHead:       'rgba(255,255,255,0.05)',
-}
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -221,7 +211,6 @@ export default function AboutPageEditor({
   const [panelSaveError, setPanelSaveError] = useState<string | null>(null)
 
   // Preview theme — always light (no toggle)
-  const previewTheme = 'light' as 'light' | 'dark'
 
   // Toolbar dropdowns
   const [styleAnchor, setStyleAnchor] = useState<HTMLElement | null>(null)
@@ -374,11 +363,9 @@ export default function AboutPageEditor({
     setSaveStatus('saving')
     startSave(async () => {
       const supabase = createClient()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sbAny = supabase as any
       const res = pageId
-        ? await sbAny.from('pages').update({ content: html, updated_at: new Date().toISOString() }).eq('id', pageId)
-        : await sbAny.from('pages').insert({ slug: 'about', title: 'About our club', content: html })
+        ? await supabase.from('pages').update({ content: html, updated_at: new Date().toISOString() }).eq('id', pageId)
+        : await supabase.from('pages').insert({ slug: 'about', title: 'About our club', content: html })
       setSaveStatus(res.error ? 'error' : 'saved')
       setTimeout(() => setSaveStatus('idle'), 2500)
     })
@@ -443,7 +430,7 @@ export default function AboutPageEditor({
 
   // ── Derived site tokens ───────────────────────────────────────────────────────
 
-  const tok = previewTheme === 'dark' ? SITE_DARK : SITE_LIGHT
+  const tok = SITE_LIGHT
 
   // Live preview: when dialog is open, merge panelForm edits into preview
   const previewInfo: ClubInfo = panelEditOpen
@@ -645,7 +632,7 @@ export default function AboutPageEditor({
           {/* ── Right: club details panel preview ──────────────────────────────── */}
           <Box sx={{ width: 272, flexShrink: 0 }}>
             <Box sx={{
-              bgcolor: previewTheme === 'dark' ? tok.surface1 : '#FFFFFF',
+              bgcolor: '#FFFFFF',
               border: `1px solid ${tok.borderDefault}`,
               borderRadius: '12px',
               p: 2.5,

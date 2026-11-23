@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 200" width="760" height="200">
+  <title>Focal.Point — horizontal lockup (multi-color)</title>
+  <g transform="translate(100 100)">
+    <path d="M 92.000 0.000 L 15.000 25.981 L -15.000 25.981 L 46.000 79.674 A 92 92 0 0 0 92.000 0.000 Z" fill="#E5B25C"></path>
+    <path d="M 46.000 79.674 L -15.000 25.981 L -30.000 0.000 L -46.000 79.674 A 92 92 0 0 0 46.000 79.674 Z" fill="#E58A57"></path>
+    <path d="M -46.000 79.674 L -30.000 0.000 L -15.000 -25.981 L -92.000 0.000 A 92 92 0 0 0 -46.000 79.674 Z" fill="#E26B68"></path>
+    <path d="M -92.000 0.000 L -15.000 -25.981 L 15.000 -25.981 L -46.000 -79.674 A 92 92 0 0 0 -92.000 0.000 Z" fill="#C998C9"></path>
+    <path d="M -46.000 -79.674 L 15.000 -25.981 L 30.000 0.000 L 46.000 -79.674 A 92 92 0 0 0 -46.000 -79.674 Z" fill="#7FA9CF"></path>
+    <path d="M 46.000 -79.674 L 30.000 0.000 L 15.000 25.981 L 92.000 0.000 A 92 92 0 0 0 46.000 -79.674 Z" fill="#84C5B2"></path>
+    <circle cx="0" cy="0" r="95" fill="none" stroke="#0E0E10" stroke-width="6"></circle>
+    <line x1="92.000" y1="0.000" x2="15.000" y2="25.981" stroke="#0E0E10" stroke-width="6" stroke-linecap="round"></line>
+    <line x1="46.000" y1="79.674" x2="-15.000" y2="25.981" stroke="#0E0E10" stroke-width="6" stroke-linecap="round"></line>
+    <line x1="-46.000" y1="79.674" x2="-30.000" y2="0.000" stroke="#0E0E10" stroke-width="6" stroke-linecap="round"></line>
+    <line x1="-92.000" y1="0.000" x2="-15.000" y2="-25.981" stroke="#0E0E10" stroke-width="6" stroke-linecap="round"></line>
+    <line x1="-46.000" y1="-79.674" x2="15.000" y2="-25.981" stroke="#0E0E10" stroke-width="6" stroke-linecap="round"></line>
+    <line x1="46.000" y1="-79.674" x2="30.000" y2="0.000" stroke="#0E0E10" stroke-width="6" stroke-linecap="round"></line>
+    <polygon points="30.000,0.000 15.000,25.981 -15.000,25.981 -30.000,0.000 -15.000,-25.981 15.000,-25.981" fill="#F7F6F2" stroke="#0E0E10" stroke-width="6" stroke-linejoin="round"></polygon>
+  </g>
+  <text x="232" y="132" font-family="&#39;Space Grotesk&#39;, &#39;Bricolage Grotesque&#39;, &#39;Helvetica Neue&#39;, Arial, sans-serif" font-weight="600" font-size="92" letter-spacing="-3.5" fill="#0E0E10">Focal<tspan fill="#E58A57">.</tspan>Point</text>
+</svg>

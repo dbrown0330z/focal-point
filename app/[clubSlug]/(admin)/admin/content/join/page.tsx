@@ -6,20 +6,18 @@ import type { ManualMethod } from '@/app/[clubSlug]/(admin)/admin/dues-payment/a
 export const dynamic = 'force-dynamic'
 
 export default async function AdminJoinPage() {
-  const admin    = createServiceClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const adminAny = admin as any
+  const admin  = createServiceClient()
   const ctx    = await getClubContext()
   const clubId = ctx?.clubId
 
   const [pageResult, settingsResult] = await Promise.all([
     clubId
-      ? (adminAny.from('pages').select('id, content').eq('slug', 'join-renew').eq('club_id', clubId).maybeSingle() as Promise<{ data: { id: string; content: string | null } | null }>)
+      ? (admin.from('pages').select('id, content').eq('slug', 'join-renew').eq('club_id', clubId).maybeSingle() as unknown as Promise<{ data: { id: string; content: string | null } | null }>)
       : Promise.resolve({ data: null }),
     clubId
-      ? (adminAny.from('club_settings').select(
+      ? admin.from('club_settings').select(
           'dues_annual_standard, dues_manual_methods, dues_cheque_payable_to, dues_cheque_mail_to, dues_etransfer_email, dues_paypal_link, dues_venmo_handle, dues_cashapp_handle, dues_zelle_contact'
-        ).eq('club_id', clubId).maybeSingle() as Promise<{ data: { dues_annual_standard: number | null; dues_manual_methods: string[] | null; dues_cheque_payable_to: string | null; dues_cheque_mail_to: string | null; dues_etransfer_email: string | null; dues_paypal_link: string | null; dues_venmo_handle: string | null; dues_cashapp_handle: string | null; dues_zelle_contact: string | null } | null }>)
+        ).eq('club_id', clubId).maybeSingle()
       : Promise.resolve({ data: null }),
   ])
 

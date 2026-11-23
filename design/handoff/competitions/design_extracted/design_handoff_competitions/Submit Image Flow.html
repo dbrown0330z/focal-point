@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Submit Image — NVPC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,700;1,400&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body,#root{height:100%;overflow:hidden}
+    body{background:#141414}
+    ::-webkit-scrollbar{width:5px;height:5px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:3px}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+    @keyframes scaleIn{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:none}}
+    @keyframes successPop{0%{transform:scale(0.7);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+    .fade-up{animation:fadeUp 0.22s ease both}
+    .scale-in{animation:scaleIn 0.2s ease both}
+    .success-pop{animation:successPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both}
+    input,textarea,select{font-family:'Nunito',system-ui,sans-serif}
+    button:focus-visible{outline:2px solid #4A90D4;outline-offset:2px}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+// ── Tokens ────────────────────────────────────────────────────────────────────
+const T = {
+  lora:"'Lora',Georgia,serif", nu:"'Nunito',system-ui,sans-serif",
+  // dark
+  d:{s0:'#141414',s1:'#1E1E1E',s2:'#292929',s3:'#333',
+     t1:'#E8E8E8',t2:'#A0A0A0',t3:'#737373',tDis:'#525252',
+     ac:'#4A90D4',acH:'#5FA0E0',bd:'rgba(255,255,255,0.12)',bds:'rgba(255,255,255,0.07)'},
+  // light
+  l:{s0:'#F4F4F4',s1:'#EAEAEA',s2:'#FFFFFF',
+     t1:'#1A1A1A',t2:'#595959',t3:'#888',
+     ac:'#1A6FC4',acH:'#155AA3',bd:'rgba(0,0,0,0.13)',bds:'rgba(0,0,0,0.07)'},
+  success:'#2E7D32',successBg:'#EDFAF0',successText:'#174A1A',
+  successBgDk:'#0E2410',successTxtDk:'#97C459',
+};
+
+// Library images — only "available" (not yet submitted)
+const LIBRARY = [
+  {id:1,name:'Fog over Quabbin Reservoir at Dawn, October',img:'https://picsum.photos/seed/mainelighthouse/400/300',grad:'linear-gradient(135deg,#1a2a3a,#0d1a2a)'},
+  {id:2,name:'Blue Jay on Feeder — Backyard Series',img:'https://picsum.photos/seed/bluejay44/400/300',grad:'linear-gradient(135deg,#1a2a3a,#1a3a22)'},
+  {id:3,name:'Low Tide at Plum Island, March',img:'https://picsum.photos/seed/plumisland/400/300',grad:'linear-gradient(135deg,#1a2a3a,#2a1a1a)'},
+  {id:4,name:'Ice Storm Aftermath — Westford Center',img:'https://picsum.photos/seed/icestorm/400/300',grad:'linear-gradient(135deg,#1a2a3a,#2a2a3a)'},
+  {id:5,name:'Monarch on Milkweed',img:'https://picsum.photos/seed/monarch/400/300',grad:'linear-gradient(135deg,#3a2200,#2a1a00)'},
+  {id:6,name:'Sunset from Pack Monadnock',img:'https://picsum.photos/seed/monadnock/400/300',grad:'linear-gradient(135deg,#3a1a00,#1a0a00)'},
+];
+const CATEGORIES = ['Open','Nature','Monochrome','Landscape','Portrait','Abstract'];
+
+// ── Shared micro-components ───────────────────────────────────────────────────
+function ApertureIcon({size=20,color='currentColor'}){
+  return(<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="14.31" y1="8" x2="20.05" y2="17.94"/><line x1="9.69" y1="8" x2="21.17" y2="8"/><line x1="7.38" y1="12" x2="13.12" y2="2.06"/><line x1="9.69" y1="16" x2="3.95" y2="6.06"/><line x1="14.31" y1="16" x2="2.83" y2="16"/><line x1="16.62" y1="12" x2="10.88" y2="21.94"/></svg>);
+}
+function Icon({n,size=16,color='currentColor'}){
+  const P={
+    x:<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+    chevL:<polyline points="15 18 9 12 15 6"/>,
+    upload:<><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></>,
+    img:<><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></>,
+    check:<polyline points="20 6 9 17 4 12"/>,
+    trophy:<><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></>,
+    zoom:<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></>,
+    users:<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
+    cal:<><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>,
+    home:<><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,
+  };
+  return(<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{P[n]||null}</svg>);
+}
+
+// Progress stepper
+function Stepper({steps, current, dark}){
+  const c=dark?T.d:T.l;
+  return(
+    <div style={{display:'flex',alignItems:'center',gap:0,marginBottom:28}}>
+      {steps.map((label,i)=>{
+        const done=i<current, active=i===current;
+        return(
+          <React.Fragment key={i}>
+            <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
+              <div style={{width:28,height:28,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',
+                background:done?T.d.ac:active?c.ac:(dark?c.s3:c.s1),
+                border:`2px solid ${done||active?c.ac:c.bd}`,
+                transition:'all 0.2s',flexShrink:0}}>
+                {done
+                  ? <Icon n="check" size={13} color="#fff"/>
+                  : <span style={{fontSize:12,fontWeight:700,color:active?'#fff':c.t3,fontFamily:T.nu}}>{i+1}</span>}
+              </div>
+              <span style={{fontSize:11,fontWeight:active?700:500,color:active?c.ac:done?c.t2:c.t3,fontFamily:T.nu,whiteSpace:'nowrap',letterSpacing:'0.02em'}}>{label}</span>
+            </div>
+            {i<steps.length-1&&(
+              <div style={{flex:1,height:2,background:i<current?c.ac:c.bd,margin:'0 8px',marginBottom:18,transition:'background 0.3s'}}/>
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Competition "page" backdrop ───────────────────────────────────────────────
+function CompetitionPage({dark, onOpen}){
+  const c=dark?T.d:T.l;
+  const entries=[
+    {name:'Barrel Racing at Nashoba Valley Fair',img:'https://picsum.photos/seed/horserace/300/200',member:'Diana B.',cat:'Open'},
+    {name:'Tobacco Hornworm on Tomato Leaf',img:'https://picsum.photos/seed/leafclose/300/200',member:'Diana B.',cat:'Nature'},
+    {name:'1965 VW Beetle at Carlisle Auto Show',img:'https://picsum.photos/seed/sweetvw/300/200',member:'Diana B.',cat:'Open'},
+  ];
+  return(
+    <div style={{flex:1,overflow:'auto',background:c.s0,fontFamily:T.nu}}>
+      {/* Page header */}
+      <div style={{padding:'28px 32px 0',display:'flex',alignItems:'flex-start',justifyContent:'space-between'}}>
+        <div>
+          <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:c.t3,marginBottom:6}}>April 2026 Competition</div>
+          <h1 style={{fontSize:28,fontWeight:700,color:c.t1,letterSpacing:'-0.02em',margin:0,fontFamily:T.lora}}>Open, Nature & Monochrome</h1>
+          <p style={{color:c.t2,fontSize:15,marginTop:5,lineHeight:1.5}}>Submissions close May 15, 2026 · 3 of 5 entries submitted</p>
+        </div>
+        <button onClick={onOpen} style={{
+          background:c.ac,color:'#fff',border:'none',borderRadius:10,
+          padding:'11px 22px',cursor:'pointer',fontSize:15,fontWeight:700,fontFamily:T.nu,
+          display:'flex',alignItems:'center',gap:8,flexShrink:0,
+          boxShadow:dark?'0 2px 12px rgba(74,144,212,0.45)':'0 2px 10px rgba(26,111,196,0.40)',
+        }}>
+          <Icon n="upload" size={15} color="#fff"/>Submit an image
+        </button>
+      </div>
+
+      {/* Progress */}
+      <div style={{padding:'20px 32px',display:'flex',gap:10}}>
+        {['Open','Nature','Monochrome'].map((cat,i)=>(
+          <div key={cat} style={{background:dark?T.d.s1:'#fff',border:`1px solid ${c.bd}`,borderRadius:10,padding:'12px 18px',display:'flex',alignItems:'center',gap:12,boxShadow:dark?'none':'0 1px 6px rgba(0,0,0,0.06)'}}>
+            <div style={{width:36,height:36,borderRadius:'50%',border:`3px solid ${i<2?c.ac:c.bd}`,display:'flex',alignItems:'center',justifyContent:'center',background:i<2?c.ac:'transparent'}}>
+              {i<2?<Icon n="check" size={14} color="#fff"/>:<span style={{fontSize:12,color:c.t3,fontFamily:T.nu,fontWeight:700}}>{i+1}</span>}
+            </div>
+            <div>
+              <div style={{fontSize:14,fontWeight:600,color:c.t1}}>{cat}</div>
+              <div style={{fontSize:12,color:c.t2}}>{i<2?'1 submitted':'0 submitted'}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Submitted entries */}
+      <div style={{padding:'0 32px 32px'}}>
+        <div style={{fontSize:12,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:c.t3,marginBottom:14}}>Your submissions</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:14}}>
+          {entries.map((e,i)=>(
+            <div key={i} style={{borderRadius:10,overflow:'hidden',background:dark?T.d.s1:'#fff',boxShadow:dark?'none':'0 2px 10px rgba(0,0,0,0.07)'}}>
+              <div style={{position:'relative',paddingTop:'68%',background:'#1a1a1a'}}>
+                <img src={e.img} alt={e.name} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} onError={f=>{f.target.style.display='none'}}/>
+                <div style={{position:'absolute',top:7,left:7,background:'rgba(0,0,0,0.65)',color:'#fff',fontSize:11,fontWeight:700,padding:'2px 7px',borderRadius:5,fontFamily:T.nu}}>{e.cat}</div>
+              </div>
+              <div style={{padding:'10px 12px'}}>
+                <div style={{fontSize:13,fontWeight:600,color:c.t1,lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden',minHeight:'2.6em'}}>{e.name}</div>
+                <span style={{display:'inline-flex',marginTop:5,padding:'2px 8px',borderRadius:9999,fontSize:11,fontWeight:700,letterSpacing:'0.03em',textTransform:'uppercase',fontFamily:T.nu,background:'rgba(0,151,167,0.16)',color:'#00ACC1'}}>Submitted</span>
+              </div>
+            </div>
+          ))}
+          {/* Empty slot hint */}
+          <div style={{borderRadius:10,border:`2px dashed ${c.bd}`,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:180,cursor:'pointer',gap:8,opacity:0.6}} onClick={onOpen}>
+            <Icon n="upload" size={20} color={c.t3}/>
+            <span style={{fontSize:13,color:c.t3,fontFamily:T.nu}}>Add entry</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Step 1: Choose source ─────────────────────────────────────────────────────
+function StepSource({dark, onChoose}){
+  const c=dark?T.d:T.l;
+  const [hover,setHover]=React.useState(null);
+  const opts=[
+    {id:'upload',icon:'upload',title:'Upload a new image',desc:'Choose a file from your device. It will be submitted to the competition and saved to your library.',badge:null},
+    {id:'library',icon:'img',title:'Choose from My Images',desc:'Pick from photos already in your library. Only images not yet entered in a competition are shown.',badge:`${LIBRARY.length} available`},
+  ];
+  return(
+    <div className="fade-up" style={{display:'flex',flexDirection:'column',gap:14}}>
+      {opts.map(opt=>(
+        <button key={opt.id}
+          onMouseEnter={()=>setHover(opt.id)}
+          onMouseLeave={()=>setHover(null)}
+          onClick={()=>onChoose(opt.id)}
+          style={{display:'flex',alignItems:'center',gap:18,padding:'20px 22px',
+            background:hover===opt.id?(dark?T.d.s3:T.l.s1):(dark?T.d.s2:T.l.s2),
+            border:`2px solid ${hover===opt.id?c.ac:c.bd}`,
+            borderRadius:12,cursor:'pointer',textAlign:'left',transition:'all 0.15s',
+            boxShadow:hover===opt.id?(dark?`0 0 0 3px rgba(74,144,212,0.15)`:`0 0 0 3px rgba(26,111,196,0.10)`):'none'}}>
+          <div style={{width:48,height:48,borderRadius:12,background:hover===opt.id?(dark?'rgba(74,144,212,0.18)':'rgba(26,111,196,0.10)'):(dark?T.d.s3:T.l.s1),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'background 0.15s'}}>
+            <Icon n={opt.icon} size={22} color={hover===opt.id?c.ac:(dark?T.d.t2:T.l.t3)}/>
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:4}}>
+              <span style={{fontSize:16,fontWeight:700,color:c.t1,fontFamily:T.nu}}>{opt.title}</span>
+              {opt.badge&&<span style={{fontSize:11,fontWeight:700,background:dark?'rgba(74,144,212,0.16)':'rgba(26,111,196,0.10)',color:c.ac,padding:'2px 8px',borderRadius:9999,fontFamily:T.nu}}>{opt.badge}</span>}
+            </div>
+            <p style={{fontSize:14,color:c.t2,lineHeight:1.55,fontFamily:T.nu}}>{opt.desc}</p>
+          </div>
+          <Icon n="chevL" size={18} color={c.t3} style={{transform:'rotate(180deg)',flexShrink:0}}/>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── Step 2a: Upload ───────────────────────────────────────────────────────────
+function StepUpload({dark, imageName, setImageName, category, setCategory}){
+  const c=dark?T.d:T.l;
+  const [dragging,setDragging]=React.useState(false);
+  const [preview,setPreview]=React.useState('https://picsum.photos/seed/newupload/600/400');
+  const inp={
+    width:'100%',padding:'10px 14px',borderRadius:8,
+    border:`1.5px solid ${c.bd}`,background:dark?T.d.s2:T.l.s2,
+    color:c.t1,fontSize:15,fontFamily:T.nu,outline:'none',transition:'border-color 0.15s',
+  };
+  return(
+    <div className="fade-up" style={{display:'flex',flexDirection:'column',gap:18}}>
+      {/* Drop zone */}
+      <div
+        onDragOver={e=>{e.preventDefault();setDragging(true);}}
+        onDragLeave={()=>setDragging(false)}
+        onDrop={e=>{e.preventDefault();setDragging(false);}}
+        style={{borderRadius:12,border:`2px dashed ${dragging?c.ac:c.bd}`,background:dragging?(dark?'rgba(74,144,212,0.07)':'rgba(26,111,196,0.05)'):(dark?T.d.s2:'#FAFAFA'),padding:'32px 24px',textAlign:'center',cursor:'pointer',transition:'all 0.15s',position:'relative',overflow:'hidden'}}>
+        {preview?(
+          <>
+            <img src={preview} alt="preview" style={{width:'100%',maxHeight:200,objectFit:'cover',borderRadius:8,display:'block',marginBottom:12}} onError={e=>{setPreview(null)}}/>
+            <div style={{fontSize:13,color:c.t2,fontFamily:T.nu}}>Drag a different image to replace · or <span style={{color:c.ac,cursor:'pointer',fontWeight:600}}>browse</span></div>
+          </>
+        ):(
+          <>
+            <div style={{width:48,height:48,borderRadius:12,background:dark?T.d.s3:T.l.s1,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px'}}>
+              <Icon n="upload" size={22} color={c.ac}/>
+            </div>
+            <div style={{fontSize:15,fontWeight:600,color:c.t1,fontFamily:T.nu,marginBottom:4}}>Drop your image here</div>
+            <div style={{fontSize:14,color:c.t2,fontFamily:T.nu}}>or <span style={{color:c.ac,cursor:'pointer',fontWeight:600}}>browse files</span></div>
+            <div style={{fontSize:12,color:c.t3,fontFamily:T.nu,marginTop:8}}>JPEG, PNG, TIFF · max 50 MB</div>
+          </>
+        )}
+      </div>
+
+      {/* Name field */}
+      <div>
+        <label style={{display:'block',fontSize:13,fontWeight:700,color:c.t2,fontFamily:T.nu,marginBottom:6,letterSpacing:'0.02em'}}>
+          Image title <span style={{color:dark?T.d.ac:T.l.ac}}>*</span>
+        </label>
+        <input
+          style={inp}
+          placeholder="e.g. Fog over Quabbin Reservoir at Dawn"
+          value={imageName}
+          onChange={e=>setImageName(e.target.value)}
+          onFocus={e=>e.target.style.borderColor=c.ac}
+          onBlur={e=>e.target.style.borderColor=c.bd}
+        />
+        <div style={{fontSize:12,color:c.t3,fontFamily:T.nu,marginTop:5}}>This name will appear in your library and in competition results.</div>
+      </div>
+
+      {/* Category */}
+      <div>
+        <label style={{display:'block',fontSize:13,fontWeight:700,color:c.t2,fontFamily:T.nu,marginBottom:6,letterSpacing:'0.02em'}}>
+          Competition category <span style={{color:dark?T.d.ac:T.l.ac}}>*</span>
+        </label>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          {['Open','Nature','Monochrome'].map(cat=>(
+            <button key={cat} onClick={()=>setCategory(cat)} style={{
+              padding:'8px 18px',borderRadius:8,border:`1.5px solid ${category===cat?c.ac:c.bd}`,
+              background:category===cat?c.ac:(dark?T.d.s2:T.l.s2),
+              color:category===cat?'#fff':c.t1,
+              fontSize:14,fontWeight:category===cat?700:500,fontFamily:T.nu,cursor:'pointer',transition:'all 0.14s',
+            }}>{cat}</button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Step 2b: Library picker ───────────────────────────────────────────────────
+function StepLibrary({dark, selected, setSelected, zoomImg, setZoomImg, category, setCategory}){
+  const c=dark?T.d:T.l;
+  return(
+    <div className="fade-up" style={{display:'flex',flexDirection:'column',gap:18}}>
+      <div style={{fontSize:14,color:c.t2,fontFamily:T.nu,lineHeight:1.55}}>
+        Showing <strong style={{color:c.t1}}>{LIBRARY.length} images</strong> from your library that haven't been entered in a competition yet.
+      </div>
+
+      {/* Grid */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,maxHeight:320,overflowY:'auto',paddingRight:2}}>
+        {LIBRARY.map(img=>{
+          const sel=selected?.id===img.id;
+          return(
+            <div key={img.id} style={{borderRadius:9,overflow:'hidden',cursor:'pointer',position:'relative',
+              border:`2px solid ${sel?c.ac:c.bd}`,
+              boxShadow:sel?`0 0 0 3px ${dark?'rgba(74,144,212,0.25)':'rgba(26,111,196,0.18)'}`:'none',
+              transition:'all 0.14s'}}
+              onClick={()=>setSelected(sel?null:img)}>
+              <div style={{position:'relative',paddingTop:'72%',background:img.grad}}>
+                <img src={img.img} alt={img.name} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none'}}/>
+                {/* Zoom button */}
+                <button
+                  onClick={e=>{e.stopPropagation();setZoomImg(img);}}
+                  style={{position:'absolute',top:5,right:5,width:26,height:26,borderRadius:6,background:'rgba(0,0,0,0.60)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',opacity:0.85}}>
+                  <Icon n="zoom" size={13} color="#fff"/>
+                </button>
+                {/* Selected checkmark */}
+                {sel&&(
+                  <div style={{position:'absolute',top:5,left:5,width:22,height:22,borderRadius:'50%',background:c.ac,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <Icon n="check" size={12} color="#fff"/>
+                  </div>
+                )}
+              </div>
+              <div style={{padding:'7px 9px',background:dark?T.d.s1:T.l.s2}}>
+                <div style={{fontSize:12,fontWeight:600,color:c.t1,fontFamily:T.nu,lineHeight:1.35,
+                  display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden',minHeight:'2.5em'}}>{img.name}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Category — only shown once an image is selected */}
+      {selected&&(
+        <div className="fade-up">
+          <div style={{height:1,background:c.bd,marginBottom:18}}/>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+            <div style={{width:42,height:32,borderRadius:6,overflow:'hidden',background:selected.grad,flexShrink:0}}>
+              <img src={selected.img} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none'}}/>
+            </div>
+            <div style={{flex:1,minWidth:0,fontSize:13,fontWeight:600,color:c.t1,fontFamily:T.nu,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{selected.name}</div>
+          </div>
+          <label style={{display:'block',fontSize:13,fontWeight:700,color:c.t2,fontFamily:T.nu,marginBottom:8,letterSpacing:'0.02em'}}>
+            Competition category <span style={{color:c.ac}}>*</span>
+          </label>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+            {['Open','Nature','Monochrome'].map(cat=>(
+              <button key={cat} onClick={()=>setCategory(cat)} style={{
+                padding:'8px 18px',borderRadius:8,border:`1.5px solid ${category===cat?c.ac:c.bd}`,
+                background:category===cat?c.ac:(dark?T.d.s2:T.l.s2),
+                color:category===cat?'#fff':c.t1,
+                fontSize:14,fontWeight:category===cat?700:500,fontFamily:T.nu,cursor:'pointer',transition:'all 0.14s',
+              }}>{cat}</button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Step 3: Review & confirm ──────────────────────────────────────────────────
+function StepConfirm({dark, source, imageName, selected, category}){
+  const c=dark?T.d:T.l;
+  const name = source==='upload' ? imageName : selected?.name;
+  const imgSrc = source==='upload'
+    ? 'https://picsum.photos/seed/newupload/600/400'
+    : selected?.img;
+  const imgGrad = source==='library' ? selected?.grad : 'linear-gradient(135deg,#2a2a2a,#1a1a1a)';
+  return(
+    <div className="fade-up" style={{display:'flex',flexDirection:'column',gap:16}}>
+      <div style={{borderRadius:12,overflow:'hidden',border:`1px solid ${c.bd}`,background:dark?T.d.s2:T.l.s2}}>
+        {/* Image preview */}
+        <div style={{position:'relative',paddingTop:'42%',background:imgGrad}}>
+          <img src={imgSrc} alt="" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none'}}/>
+        </div>
+        {/* Details */}
+        <div style={{padding:'16px 20px',display:'flex',flexDirection:'column',gap:10}}>
+          {[
+            ['Image title', name],
+            ['Category', category],
+            ['Competition', 'April 2026'],
+            ...(source==='upload'?[['Added to library', 'Yes — saved to My Images']]:[]),
+          ].map(([label,value])=>(
+            <div key={label} style={{display:'flex',alignItems:'baseline',gap:8}}>
+              <span style={{fontSize:13,color:c.t3,fontFamily:T.nu,minWidth:130}}>{label}</span>
+              <span style={{fontSize:14,fontWeight:600,color:c.t1,fontFamily:T.nu,flex:1}}>{value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{background:dark?'rgba(74,144,212,0.08)':'rgba(26,111,196,0.06)',border:`1px solid ${dark?'rgba(74,144,212,0.20)':'rgba(26,111,196,0.15)'}`,borderRadius:10,padding:'12px 16px',fontSize:14,color:c.t2,fontFamily:T.nu,lineHeight:1.55}}>
+        Once submitted you can withdraw your entry before the deadline (May 15, 2026). Scores are not visible to members during judging.
+      </div>
+    </div>
+  );
+}
+
+// ── Lightbox ──────────────────────────────────────────────────────────────────
+function Lightbox({img, dark, onClose}){
+  const c=dark?T.d:T.l;
+  React.useEffect(()=>{
+    const h=e=>{if(e.key==='Escape')onClose();};
+    window.addEventListener('keydown',h);
+    return()=>window.removeEventListener('keydown',h);
+  },[]);
+  return(
+    <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.88)',display:'flex',alignItems:'center',justifyContent:'center',padding:32}}>
+      <div onClick={e=>e.stopPropagation()} className="scale-in" style={{background:dark?T.d.s1:T.l.s2,borderRadius:14,overflow:'hidden',maxWidth:700,width:'100%',boxShadow:'0 24px 64px rgba(0,0,0,0.7)'}}>
+        <div style={{position:'relative',background:img.grad}}>
+          <img src={img.img} alt={img.name} style={{width:'100%',maxHeight:420,objectFit:'cover',display:'block'}} onError={e=>{e.target.style.display='none'}}/>
+          <button onClick={onClose} style={{position:'absolute',top:12,right:12,width:32,height:32,borderRadius:8,background:'rgba(0,0,0,0.65)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <Icon n="x" size={16} color="#fff"/>
+          </button>
+        </div>
+        <div style={{padding:'16px 20px'}}>
+          <div style={{fontSize:16,fontWeight:700,color:c.t1,fontFamily:T.lora,lineHeight:1.4}}>{img.name}</div>
+          <div style={{fontSize:13,color:c.t3,fontFamily:T.nu,marginTop:4}}>Press Esc to close</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Success ───────────────────────────────────────────────────────────────────
+function SuccessView({dark, onReturn}){
+  const c=dark?T.d:T.l;
+  return(
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 24px',textAlign:'center',gap:16}}>
+      <div className="success-pop" style={{width:72,height:72,borderRadius:'50%',background:dark?T.successBgDk:T.successBg,border:`2px solid ${dark?T.successTxtDk:T.success}`,display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <Icon n="check" size={32} color={dark?T.successTxtDk:T.success}/>
+      </div>
+      <div>
+        <h2 style={{fontSize:22,fontWeight:700,color:c.t1,fontFamily:T.lora,marginBottom:6}}>Image submitted!</h2>
+        <p style={{fontSize:15,color:c.t2,fontFamily:T.nu,lineHeight:1.6,maxWidth:320}}>Your photo has been entered in the April 2026 competition. You'll be notified when judging is complete.</p>
+      </div>
+      <button onClick={onReturn} style={{background:c.ac,color:'#fff',border:'none',borderRadius:9,padding:'11px 24px',cursor:'pointer',fontSize:15,fontWeight:700,fontFamily:T.nu,boxShadow:dark?'0 2px 12px rgba(74,144,212,0.45)':'0 2px 10px rgba(26,111,196,0.40)'}}>
+        Return to competition
+      </button>
+    </div>
+  );
+}
+
+// ── Main modal ────────────────────────────────────────────────────────────────
+function SubmitModal({dark, onClose, onSuccess}){
+  const c=dark?T.d:T.l;
+  const [source,setSource]=React.useState(null);   // 'upload' | 'library'
+  const [step,setStep]=React.useState(0);          // 0=source, 1=pick, 2=confirm
+  const [imageName,setImageName]=React.useState('');
+  const [category,setCategory]=React.useState('');
+  const [selected,setSelected]=React.useState(null);
+  const [zoomImg,setZoomImg]=React.useState(null);
+
+  const STEPS = source==='upload'
+    ? ['Source','Upload','Confirm']
+    : ['Source','Library','Confirm'];
+
+  const canProceed = step===0
+    ? !!source
+    : step===1
+      ? source==='upload' ? (imageName.trim()&&category) : (selected&&category)
+      : true;
+
+  function handleNext(){
+    if(step===0){setStep(1);}
+    else if(step===1){setStep(2);}
+    else{onSuccess();}
+  }
+  function handleBack(){
+    if(step===1){setStep(0);setSource(null);}
+    else if(step===2){setStep(1);}
+  }
+  function pickSource(s){setSource(s);setStep(1);}
+
+  return(
+    <>
+      <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.65)',backdropFilter:'blur(2px)',display:'flex',alignItems:'center',justifyContent:'center',padding:32}}>
+      <div className="scale-in" onClick={e=>e.stopPropagation()} style={{
+        width:'100%',maxWidth:540,
+        background:dark?T.d.s1:T.l.s2,
+        borderRadius:16,boxShadow:'0 24px 64px rgba(0,0,0,0.55)',
+        border:`1px solid ${c.bd}`,
+        display:'flex',flexDirection:'column',
+        maxHeight:'calc(100vh - 64px)',overflow:'hidden',
+      }}>
+        {/* Modal header */}
+        <div style={{padding:'20px 24px 0',borderBottom:`1px solid ${c.bd}`,flexShrink:0}}>
+          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:16}}>
+            <div>
+              <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:c.t3,fontFamily:T.nu,marginBottom:4}}>April 2026 Competition</div>
+              <h2 style={{fontSize:20,fontWeight:700,color:c.t1,fontFamily:T.lora,margin:0}}>Submit an image</h2>
+            </div>
+            <button onClick={onClose} style={{width:32,height:32,borderRadius:8,background:dark?T.d.s2:T.l.s1,border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <Icon n="x" size={16} color={c.t2}/>
+            </button>
+          </div>
+          {source&&<Stepper steps={STEPS} current={step} dark={dark}/>}
+        </div>
+
+        {/* Modal body */}
+        <div style={{flex:1,overflow:'auto',padding:'20px 24px'}}>
+          {step===0&&<StepSource dark={dark} onChoose={pickSource}/>}
+          {step===1&&source==='upload'&&<StepUpload dark={dark} imageName={imageName} setImageName={setImageName} category={category} setCategory={setCategory}/>}
+          {step===1&&source==='library'&&<StepLibrary dark={dark} selected={selected} setSelected={setSelected} zoomImg={zoomImg} setZoomImg={setZoomImg} category={category} setCategory={setCategory}/>}
+          {step===2&&<StepConfirm dark={dark} source={source} imageName={imageName} selected={selected} category={category}/>}
+        </div>
+
+        {/* Modal footer */}
+        {step>0&&(
+          <div style={{padding:'14px 24px',borderTop:`1px solid ${c.bd}`,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:dark?T.d.s1:T.l.s2}}>
+            <button onClick={handleBack} style={{padding:'9px 18px',background:'transparent',border:`1px solid ${c.bd}`,borderRadius:8,cursor:'pointer',color:c.t1,fontSize:14,fontFamily:T.nu,fontWeight:500,display:'flex',alignItems:'center',gap:6}}>
+              <Icon n="chevL" size={14} color={c.t2}/>Back
+            </button>
+            <button onClick={handleNext} disabled={!canProceed} style={{
+              padding:'10px 24px',background:canProceed?c.ac:(dark?T.d.s3:'#CCCCCC'),
+              color:canProceed?'#fff':(dark?T.d.tDis:'#999'),
+              border:'none',borderRadius:8,cursor:canProceed?'pointer':'default',
+              fontSize:14,fontWeight:700,fontFamily:T.nu,transition:'all 0.15s',
+              boxShadow:canProceed?(dark?'0 2px 10px rgba(74,144,212,0.40)':'0 2px 8px rgba(26,111,196,0.35)'):'none',
+            }}>
+              {step===2?'Submit image →':'Continue →'}
+            </button>
+          </div>
+        )}
+      </div>
+      </div>
+
+      {/* Lightbox */}
+      {zoomImg&&<Lightbox img={zoomImg} dark={dark} onClose={()=>setZoomImg(null)}/>}
+    </>
+  );
+}
+
+// ── Nav bar ───────────────────────────────────────────────────────────────────
+function Nav({dark, onToggle}){
+  const c=dark?T.d:T.l;
+  const items=[{id:'home',l:'Home',i:'home'},{id:'cal',l:'Calendar',i:'cal'},{id:'imgs',l:'My Images',i:'img'},{id:'comp',l:'Competitions',i:'trophy'}];
+  return(
+    <div style={{background:dark?'#1C1C1C':'#fff',borderBottom:`1px solid ${c.bd}`,boxShadow:dark?'none':'0 1px 8px rgba(0,0,0,0.07)',display:'flex',alignItems:'center',padding:'0 24px',height:54,flexShrink:0,fontFamily:T.nu}}>
+      <div style={{display:'flex',alignItems:'center',gap:9,marginRight:32,userSelect:'none'}}>
+        <div style={{width:30,height:30,borderRadius:8,background:dark?'rgba(74,144,212,0.15)':'rgba(26,111,196,0.10)',display:'flex',alignItems:'center',justifyContent:'center'}}><ApertureIcon size={18} color={c.ac}/></div>
+        <span style={{fontSize:15,fontWeight:700,color:c.t1,letterSpacing:'-0.01em',fontFamily:T.lora}}>Nashoba Valley Photo Club</span>
+      </div>
+      <div style={{display:'flex',gap:2,flex:1}}>
+        {items.map((item,idx)=>{
+          const active=idx===3;
+          return(<button key={item.id} style={{display:'flex',alignItems:'center',gap:6,padding:'7px 14px',borderRadius:8,border:'none',cursor:'pointer',fontFamily:T.nu,background:active?(dark?'rgba(74,144,212,0.14)':'rgba(26,111,196,0.09)'):'transparent',color:active?c.ac:c.t2,fontSize:14,fontWeight:active?700:500}}>
+            <Icon n={item.i} size={15} color={active?c.ac:dark?T.d.t3:'#888'}/>{item.l}
+          </button>);
+        })}
+      </div>
+      <button onClick={onToggle} style={{display:'flex',alignItems:'center',gap:6,background:'transparent',border:`1px solid ${c.bd}`,borderRadius:8,padding:'6px 12px',cursor:'pointer',color:c.t2,fontSize:13,fontFamily:T.nu,fontWeight:500}}>
+        <Icon n={dark?'sun':'moon'} size={13} color={c.t2}/>{dark?'Light':'Dark'}
+      </button>
+    </div>
+  );
+}
+// reusing sun/moon icons inline
+Nav.displayName='Nav';
+
+// ── Root ──────────────────────────────────────────────────────────────────────
+function App(){
+  const [dark,setDark]=React.useState(true);
+  const [modalOpen,setModalOpen]=React.useState(false);
+  const [done,setDone]=React.useState(false);
+  const [tweaks,setTweaks]=React.useState(false);
+
+  React.useEffect(()=>{
+    const h=e=>{
+      if(e.data?.type==='__activate_edit_mode') setTweaks(true);
+      if(e.data?.type==='__deactivate_edit_mode') setTweaks(false);
+    };
+    window.addEventListener('message',h);
+    window.parent.postMessage({type:'__edit_mode_available'},'*');
+    return()=>window.removeEventListener('message',h);
+  },[]);
+
+  // Add sun/moon to Icon map via a wrapper
+  const c=dark?T.d:T.l;
+
+  return(
+    <div style={{height:'100vh',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+      {/* Inject sun/moon into nav - handled inline */}
+      <div style={{background:dark?'#1C1C1C':'#fff',borderBottom:`1px solid ${c.bd}`,boxShadow:dark?'none':'0 1px 8px rgba(0,0,0,0.07)',display:'flex',alignItems:'center',padding:'0 24px',height:54,flexShrink:0,fontFamily:T.nu}}>
+        <div style={{display:'flex',alignItems:'center',gap:9,marginRight:32,userSelect:'none'}}>
+          <div style={{width:30,height:30,borderRadius:8,background:dark?'rgba(74,144,212,0.15)':'rgba(26,111,196,0.10)',display:'flex',alignItems:'center',justifyContent:'center'}}><ApertureIcon size={18} color={c.ac}/></div>
+          <span style={{fontSize:15,fontWeight:700,color:c.t1,letterSpacing:'-0.01em',fontFamily:T.lora}}>Nashoba Valley Photo Club</span>
+        </div>
+        <div style={{display:'flex',gap:2,flex:1}}>
+          {[['home','Home','home'],['cal','Calendar','cal'],['imgs','My Images','img'],['comp','Competitions','trophy']].map(([id,label,icon],idx)=>{
+            const active=idx===3;
+            return(<button key={id} style={{display:'flex',alignItems:'center',gap:6,padding:'7px 14px',borderRadius:8,border:'none',cursor:'pointer',fontFamily:T.nu,background:active?(dark?'rgba(74,144,212,0.14)':'rgba(26,111,196,0.09)'):'transparent',color:active?c.ac:c.t2,fontSize:14,fontWeight:active?700:500}}>
+              <Icon n={icon} size={15} color={active?c.ac:dark?T.d.t3:'#888'}/>{label}
+            </button>);
+          })}
+        </div>
+        <button onClick={()=>setDark(d=>!d)} style={{display:'flex',alignItems:'center',gap:6,background:'transparent',border:`1px solid ${c.bd}`,borderRadius:8,padding:'6px 12px',cursor:'pointer',color:c.t2,fontSize:13,fontFamily:T.nu}}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c.t2} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            {dark
+              ? <><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>
+              : <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>}
+          </svg>
+          {dark?'Light':'Dark'}
+        </button>
+        <div style={{width:34,height:34,borderRadius:'50%',background:c.ac,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:13,fontWeight:700,fontFamily:T.nu,marginLeft:10}}>DB</div>
+      </div>
+
+      {/* Page */}
+      <CompetitionPage dark={dark} onOpen={()=>{setDone(false);setModalOpen(true);}}/>
+
+      {/* Modal */}
+      {modalOpen&&!done&&(
+        <SubmitModal
+          dark={dark}
+          onClose={()=>setModalOpen(false)}
+          onSuccess={()=>setDone(true)}
+        />
+      )}
+
+      {/* Success overlay */}
+      {done&&(
+        <div style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.65)',backdropFilter:'blur(2px)',display:'flex',alignItems:'center',justifyContent:'center',padding:32}}>
+          <div className="scale-in" style={{width:'100%',maxWidth:420,background:dark?T.d.s1:T.l.s2,borderRadius:16,boxShadow:'0 24px 64px rgba(0,0,0,0.55)',border:`1px solid ${c.bd}`}}>
+            <SuccessView dark={dark} onReturn={()=>{setModalOpen(false);setDone(false);}}/>
+          </div>
+        </div>
+      )}
+
+      {/* Tweaks */}
+      {tweaks&&(
+        <div style={{position:'fixed',bottom:20,right:20,background:dark?T.d.s1:'#fff',border:`1px solid ${c.bd}`,borderRadius:12,padding:20,width:200,boxShadow:'0 8px 32px rgba(0,0,0,0.3)',zIndex:9999,fontFamily:T.nu,display:'flex',flexDirection:'column',gap:12}}>
+          <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:c.t2}}>Tweaks</div>
+          <label style={{display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}>
+            <span style={{fontSize:14,color:c.t1}}>Dark mode</span>
+            <input type="checkbox" checked={dark} onChange={e=>setDark(e.target.checked)}/>
+          </label>
+          <button onClick={()=>{setDone(false);setModalOpen(true);}} style={{padding:'8px 14px',background:c.ac,color:'#fff',border:'none',borderRadius:7,cursor:'pointer',fontSize:13,fontFamily:T.nu,fontWeight:600}}>
+            Re-open modal
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

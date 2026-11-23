@@ -29,15 +29,13 @@ type ClubInfo = {
 }
 
 export default async function AdminAboutPage() {
-  const admin    = createServiceClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const adminAny = admin as any
+  const admin  = createServiceClient()
   const ctx    = await getClubContext()
   const clubId = ctx?.clubId
 
   const [{ data: pageRaw }, { data: settingsRaw }, { count: memberCount }] = await Promise.all([
     clubId
-      ? (adminAny.from('pages').select('id, content').eq('slug', 'about').eq('club_id', clubId).maybeSingle() as Promise<{ data: { id: string; content: string | null } | null }>)
+      ? (admin.from('pages').select('id, content').eq('slug', 'about').eq('club_id', clubId).maybeSingle() as unknown as Promise<{ data: { id: string; content: string | null } | null }>)
       : Promise.resolve({ data: null }),
     clubId
       ? (admin.from('club_settings').select(
