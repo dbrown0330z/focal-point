@@ -17,9 +17,9 @@ export default async function AdminJoinPage() {
       ? (adminAny.from('pages').select('id, content').eq('slug', 'join-renew').eq('club_id', clubId).maybeSingle() as Promise<{ data: { id: string; content: string | null } | null }>)
       : Promise.resolve({ data: null }),
     clubId
-      ? admin.from('club_settings').select(
+      ? (adminAny.from('club_settings').select(
           'dues_annual_standard, dues_manual_methods, dues_cheque_payable_to, dues_cheque_mail_to, dues_etransfer_email, dues_paypal_link, dues_venmo_handle, dues_cashapp_handle, dues_zelle_contact'
-        ).eq('club_id', clubId).maybeSingle()
+        ).eq('club_id', clubId).maybeSingle() as Promise<{ data: { dues_annual_standard: number | null; dues_manual_methods: string[] | null; dues_cheque_payable_to: string | null; dues_cheque_mail_to: string | null; dues_etransfer_email: string | null; dues_paypal_link: string | null; dues_venmo_handle: string | null; dues_cashapp_handle: string | null; dues_zelle_contact: string | null } | null }>)
       : Promise.resolve({ data: null }),
   ])
 
