@@ -9,14 +9,12 @@ import {
   Dialog, DialogActions, DialogContent, DialogTitle,
   FormControl, FormControlLabel, FormLabel,
   MenuItem, Radio, RadioGroup,
-  Select, Tab, Tabs, TextField, Tooltip, Alert,
+  Select, TextField, Tooltip, Alert,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import HomepageEditor from './HomepageEditor'
-import type { ContentBlock } from '@/lib/homepage/types'
 import AboutPageEditor from '../about/AboutPageEditor'
 import CustomPageEditorComponent from './[pageId]/CustomPageEditor'
 import { type AdminGalleryData, type ClubMember } from '../galleries/ClubGalleriesTab'
@@ -28,7 +26,6 @@ type Visibility        = 'all_members' | 'members_only' | 'hidden'
 type BuiltinVisibility = 'members_only' | 'public'
 type PageStatus        = 'draft' | 'published'
 type ParentSystem      = 'calendar' | 'images' | 'competitions' | 'our-club'
-type MainTab           = 'navigation' | 'homepage'
 
 export type BuiltinPageVisibility = {
   about:            BuiltinVisibility
@@ -1619,7 +1616,6 @@ function EditablePageRow({
 export default function NavigationClient({
   customPages: initialPages,
   customTabs:  initialTabs,
-  initialHomepageBlocks,
   initialGalleries = [],
   members = [],
   clubId,
@@ -1628,25 +1624,15 @@ export default function NavigationClient({
 }: {
   customPages:                CustomPage[]
   customTabs:                 CustomTab[]
-  initialHomepageBlocks?:     ContentBlock[]
   initialGalleries?:          AdminGalleryData[]
   members?:                   ClubMember[]
   clubId:                     string
   clubName?:                  string
   initialBuiltinVisibility?:  BuiltinPageVisibility
 }) {
-  const params      = useParams()
-  const searchParams = useSearchParams()
-  const clubSlug    = typeof params.clubSlug === 'string' ? params.clubSlug : ''
+  const params   = useParams()
+  const clubSlug = typeof params.clubSlug === 'string' ? params.clubSlug : ''
 
-  const [activeTab, setActiveTab] = useState<MainTab>(
-    (searchParams.get('tab') as MainTab | null) ?? 'homepage'
-  )
-
-  useEffect(() => {
-    const tab = (searchParams.get('tab') as MainTab | null) ?? 'homepage'
-    setActiveTab(tab)
-  }, [searchParams])
   const [pages,             setPages]             = useState<CustomPage[]>(initialPages)
   const [tabs,              setTabs]              = useState<CustomTab[]>(initialTabs)
   const [builtinVisibility, setBuiltinVisibility] = useState<BuiltinPageVisibility>(initialBuiltinVisibility)
@@ -1766,33 +1752,17 @@ export default function NavigationClient({
         : p.tab_id === parent
     )
 
-  const MAIN_TABS = [
-    { key: 'homepage'   as MainTab, label: 'Homepage' },
-    { key: 'navigation' as MainTab, label: 'Pages' },
-  ]
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Site Pages &amp; Navigation</h1>
-        <p className="mt-1 text-[13px] text-content-secondary">Edit page content, manage navigation tabs, and control which pages are active on your site.</p>
+        <p className="mt-1 text-[13px] text-content-secondary">Manage navigation tabs and control which pages are active on your site.</p>
       </div>
 
       {err && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setErr(null)}>{err}</Alert>}
 
-      <Tabs
-        value={MAIN_TABS.findIndex(t => t.key === activeTab)}
-        onChange={(_, i) => setActiveTab(MAIN_TABS[i].key)}
-        sx={{ mb: 4, borderBottom: '1px solid', borderColor: 'divider' }}
-      >
-        {MAIN_TABS.map(t => (
-          <Tab key={t.key} label={t.label} sx={{ textTransform: 'none' }} />
-        ))}
-      </Tabs>
 
-      {/* ── Pages tab ────────────────────────────────────────────────────── */}
-      {activeTab === 'navigation' && (
-        <div>
           {/* Editable pages hub */}
           <section style={{ marginBottom: 32 }}>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
@@ -1803,8 +1773,8 @@ export default function NavigationClient({
                 title="Homepage"
                 description="The landing page for signed-in members, with customizable content blocks."
                 editLabel="Edit homepage →"
+                editHref="/admin/content/homepage"
                 viewHref="/"
-                onEditClick={() => setActiveTab('homepage')}
               />
               <EditablePageRow
                 title="About Our Club"
@@ -1915,13 +1885,7 @@ export default function NavigationClient({
               ))}
             </div>
           </section>
-        </div>
-      )}
 
-      {/* ── Homepage tab ─────────────────────────────────────────────────── */}
-      {activeTab === 'homepage' && (
-        <HomepageEditor initialBlocks={initialHomepageBlocks} galleries={initialGalleries} members={members} clubName={clubName} />
-      )}
 
       {/* ── Dialogs ─────────────────────────────────────────────────────── */}
 
