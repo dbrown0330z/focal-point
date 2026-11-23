@@ -1,37 +1,48 @@
 import type { Metadata } from 'next'
-import { Lora, Nunito, Literata } from 'next/font/google'
+import { Lora, Nunito, Roboto_Mono, Inter } from 'next/font/google'
 import ThemeProvider from '@/components/layout/ThemeProvider'
 import { Providers } from '@/src/app/providers'
 import './globals.css'
 
+// All fonts loaded as variable fonts (no weight array) to satisfy
+// Next.js 16's "exactly one query entry" constraint in the font resolver.
 const lora = Lora({
   subsets: ['latin'],
-  weight: ['400', '500', '700'],
   style: ['normal', 'italic'],
   variable: '--font-lora',
+  display: 'swap',
 })
 
 const nunito = Nunito({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
   variable: '--font-nunito',
+  display: 'swap',
 })
 
-const literata = Literata({
+const robotoMono = Roboto_Mono({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  style: ['normal', 'italic'],
-  variable: '--font-literata',
+  variable: '--font-roboto-mono',
+  display: 'swap',
+})
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
   title: 'Focal Point',
   description: 'Your camera club, online.',
+  icons: {
+    icon: '/favicon.png',
+    apple: '/apple-touch-icon.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`h-full dark ${lora.variable} ${nunito.variable} ${literata.variable}`}>
+    <html lang="en" className={`h-full ${lora.variable} ${nunito.variable} ${robotoMono.variable} ${inter.variable}`}>
       <body className="min-h-full antialiased">
         <ThemeProvider>
           <Providers>
