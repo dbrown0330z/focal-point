@@ -128,7 +128,7 @@ function HorizGrip() {
   return (
     <svg width="20" height="10" viewBox="0 0 20 10" aria-hidden="true">
       {([3, 10, 17] as number[]).flatMap(cx => ([2, 8] as number[]).map(cy =>
-        <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.5" fill="currentColor" opacity="0.45"/>
+        <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.5" fill="currentColor" opacity="0.70"/>
       ))}
     </svg>
   )
@@ -138,7 +138,7 @@ function VertGrip() {
   return (
     <svg width="10" height="20" viewBox="0 0 10 20" aria-hidden="true">
       {([2, 8] as number[]).flatMap(cx => ([3, 10, 17] as number[]).map(cy =>
-        <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.5" fill="currentColor" opacity="0.45"/>
+        <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.5" fill="currentColor" opacity="0.70"/>
       ))}
     </svg>
   )
@@ -326,7 +326,7 @@ function BuiltinPageRow({
       background: dimmed ? '#F3F4F6' : '#fff',
     }}>
       {/* Drag handle */}
-      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-tertiary)', opacity: page.hasDrag ? (dimmed ? 0.4 : 1) : 0, cursor: page.hasDrag ? 'grab' : 'default' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)', opacity: page.hasDrag ? (dimmed ? 0.4 : 1) : 0, cursor: page.hasDrag ? 'grab' : 'default' }}>
         {page.hasDrag && <span aria-label="Drag to reorder"><VertGrip /></span>}
       </div>
       {/* Name + tooltip */}
@@ -376,7 +376,7 @@ function CustomPageRow({
       display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: '12px 20px 12px 12px',
       alignItems: 'center', minHeight: 60, borderTop: '1px solid var(--border-subtle)', background: '#fff',
     }}>
-      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-tertiary)', cursor: 'grab' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)', cursor: 'grab' }}>
         <span aria-label="Drag to reorder"><VertGrip /></span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
@@ -452,7 +452,7 @@ function TabBlock({
   const pageWord = pageCount === 1 ? 'page' : 'pages'
   return (
     <div style={{
-      border: '1px solid var(--border-default)', borderRadius: 10, overflow: 'visible',
+      border: '1px solid var(--border-default)', borderRadius: 10, overflow: 'hidden',
       background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
     }}>
       <div style={{
@@ -486,7 +486,7 @@ function TabBlock({
         </div>
         {/* Centered drag handle */}
         {dragHandleEl && (
-          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', color: 'var(--text-tertiary)', display: 'flex', cursor: 'grab' }}>
+          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', color: 'var(--text-secondary)', display: 'flex', cursor: 'grab' }}>
             {dragHandleEl}
           </div>
         )}
@@ -546,7 +546,7 @@ function CustomTabBlock({
           </span>
           <CustomChip />
         </div>
-        <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', color: 'var(--text-tertiary)', cursor: 'grab', display: 'flex' }}>
+        <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', color: 'var(--text-secondary)', cursor: 'grab', display: 'flex' }}>
           {dragHandleEl}
         </div>
         <div />
