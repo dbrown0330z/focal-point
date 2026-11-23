@@ -6,13 +6,15 @@ import type { ManualMethod } from '@/app/[clubSlug]/(admin)/admin/dues-payment/a
 export const dynamic = 'force-dynamic'
 
 export default async function AdminJoinPage() {
-  const admin  = createServiceClient()
+  const admin    = createServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminAny = admin as any
   const ctx    = await getClubContext()
   const clubId = ctx?.clubId
 
   const [pageResult, settingsResult] = await Promise.all([
     clubId
-      ? (admin.from('pages').select('id, content').eq('slug', 'join-renew').eq('club_id', clubId).maybeSingle() as unknown as Promise<{ data: { id: string; content: string | null } | null }>)
+      ? (adminAny.from('pages').select('id, content').eq('slug', 'join-renew').eq('club_id', clubId).maybeSingle() as Promise<{ data: { id: string; content: string | null } | null }>)
       : Promise.resolve({ data: null }),
     clubId
       ? admin.from('club_settings').select(

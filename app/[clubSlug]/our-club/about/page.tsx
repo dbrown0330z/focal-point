@@ -32,6 +32,8 @@ type ClubInfo = {
 export default async function AboutPage() {
   const supabase = await createClient()
   const admin    = createServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminAny = admin as any
   const ctx      = await getClubContext()
   const clubId   = ctx?.clubId
 
@@ -48,7 +50,7 @@ export default async function AboutPage() {
         ).eq('club_id', clubId).single() as unknown as Promise<{ data: ClubInfo | null }>)
       : Promise.resolve({ data: null }),
     clubId
-      ? (admin.from('pages').select('id, content').eq('slug', 'about').eq('club_id', clubId).maybeSingle() as unknown as Promise<{ data: { id: string; content: string | null } | null }>)
+      ? (adminAny.from('pages').select('id, content').eq('slug', 'about').eq('club_id', clubId).maybeSingle() as Promise<{ data: { id: string; content: string | null } | null }>)
       : Promise.resolve({ data: null }),
     clubId
       ? admin.from('club_memberships').select('id', { count: 'exact', head: true }).eq('club_id', clubId).eq('membership_status', 'active')
