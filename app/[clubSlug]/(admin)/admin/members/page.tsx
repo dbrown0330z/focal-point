@@ -1,0 +1,180 @@
+import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubId } from '@/lib/club-context'
+import MembersClient from './MembersClient'
+
+export default async function MembersPage() {
+  const supabase = await createClient()
+  const admin    = createServiceClient()
+  const clubId   = await requireClubId()
+
+  const thisYear      = new Date().getFullYear()
+  const yearStart     = `${thisYear}-01-01`
+  const nextYearStart = `${thisYear + 1}-01-01`
+
+  // Get this club's member user IDs first, then scope all queries
+  const { data: clubMemberships } = await admin
+    .from('club_memberships')
+    .select('user_id')
+    .eq('club_id', clubId)
+  const clubMemberIds = (clubMemberships ?? []).map(m => m.user_id)
+  const memberIdFilter = clubMemberIds.length > 0 ? clubMemberIds : ['00000000-0000-0000-0000-000000000000']
+
+  // Get this club's competition IDs to scope submissions/scores
+  const { data: clubComps } = await admin
+    .from('competitions')
+    .select('id, submission_limit, opens_at, status')
+    .eq('club_id', clubId)
+  const clubCompIds = (clubComps ?? []).map(c => c.id)
+  const compIdFilter = clubCompIds.length > 0 ? clubCompIds : ['00000000-0000-0000-0000-000000000000']
+  const competitionsThisYear = (clubComps ?? []).filter(c =>
+    c.status !== 'draft' && c.opens_at && c.opens_at >= yearStart && c.opens_at < nextYearStart
+  )
+
+  // Fetch submission IDs for this club's competitions — needed to scope scores query
+  const { data: subIdRows } = await admin
+    .from('submissions')
+    .select('id')
+    .in('competition_id', compIdFilter)
+  const submissionIdFilter = subIdRows?.map(r => r.id) ?? []
+
+  const [
+    { data: profiles },
+    { data: submissions },
+    { data: submissionsThisYear },
+    { data: submissionsWithCategories },
+    { data: clubSettings },
+    { data: { users } },
+    { data: memberClasses },
+    // Scores for avg / highest / lowest per member
+    { data: allScores },
+  ] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, first_name, last_name, display_name, member_number, membership_status, membership_class, role, created_at, bio, camera_brands, shooting_interests, experience_level, avatar_url, location, phone, perm_competition_manager, perm_event_manager, perm_comms_manager, pref_competition_reminders, pref_results_notifications, pref_club_newsletter, pref_public_profile, pref_show_scores_publicly, pref_show_in_directory')
+      .in('id', memberIdFilter)
+      .order('member_number', { ascending: true }),
+    admin.from('submissions').select('member_id').in('competition_id', compIdFilter),
+    admin.from('submissions').select('member_id, competition_id').in('competition_id', compIdFilter).gte('submitted_at', yearStart).lt('submitted_at', nextYearStart),
+    admin.from('submissions').select('member_id, competition_categories(name)').in('competition_id', compIdFilter),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (admin.from('club_settings') as any).select('member_classes_enabled, approval_mode, notify_new_application, notify_member_activates, notify_payment_link_expires, notify_membership_expires, notify_recipients').eq('club_id', clubId).single(),
+    admin.auth.admin.listUsers({ perPage: 1000 }),
+    admin.from('member_classes').select('id, name').eq('club_id', clubId).order('sort_order').order('created_at'),
+    submissionIdFilter.length > 0
+      ? admin.from('scores').select('score, submission_id, submissions!inner(member_id)').in('submission_id', submissionIdFilter)
+      : Promise.resolve({ data: [] }),
+  ])
+
+  const emailById:     Record<string, string>      = {}
+  const lastLoginById: Record<string, string | null> = {}
+  for (const u of users) {
+    if (u.email) emailById[u.id] = u.email
+    lastLoginById[u.id] = u.last_sign_in_at ?? null
+  }
+
+  const submissionCounts: Record<string, number> = {}
+  for (const s of submissions ?? []) {
+    submissionCounts[s.member_id] = (submissionCounts[s.member_id] ?? 0) + 1
+  }
+
+  // Submissions this year (count) and competitions entered this year (distinct competition_ids)
+  const submissionCountsThisYear: Record<string, number> = {}
+  const competitionSetsThisYear:  Record<string, Set<string>> = {}
+  for (const s of submissionsThisYear ?? []) {
+    submissionCountsThisYear[s.member_id] = (submissionCountsThisYear[s.member_id] ?? 0) + 1
+    if (s.competition_id) {
+      if (!competitionSetsThisYear[s.member_id]) competitionSetsThisYear[s.member_id] = new Set()
+      competitionSetsThisYear[s.member_id].add(s.competition_id)
+    }
+  }
+
+  // Category breakdown per member (all-time, for donut chart)
+  const categoryBreakdown: Record<string, Record<string, number>> = {}
+  for (const s of submissionsWithCategories ?? []) {
+    const catName = (s.competition_categories as { name: string } | null)?.name ?? 'Uncategorized'
+    if (!categoryBreakdown[s.member_id]) categoryBreakdown[s.member_id] = {}
+    categoryBreakdown[s.member_id][catName] = (categoryBreakdown[s.member_id][catName] ?? 0) + 1
+  }
+
+  // Club-wide competition totals this year
+  const totalCompetitionsThisYear   = competitionsThisYear?.length ?? 0
+  const totalPossibleImagesThisYear = (competitionsThisYear ?? []).reduce(
+    (sum, c) => sum + (c.submission_limit ?? 3),
+    0,
+  )
+
+  // Score stats per member
+  // Step 1: sum all judge scores per submission (final submission score = sum)
+  type SubScore = { total: number; memberId: string }
+  const submissionScoreTotals: Record<string, SubScore> = {}
+  for (const row of allScores ?? []) {
+    const memberId = (row.submissions as { member_id: string } | null)?.member_id
+    if (!memberId) continue
+    const subId = (row as { submission_id: string }).submission_id
+    if (!submissionScoreTotals[subId]) submissionScoreTotals[subId] = { total: 0, memberId }
+    submissionScoreTotals[subId].total += row.score
+  }
+  // Step 2: group submission scores by member
+  const memberScoreLists: Record<string, number[]> = {}
+  for (const { total, memberId } of Object.values(submissionScoreTotals)) {
+    if (!memberScoreLists[memberId]) memberScoreLists[memberId] = []
+    memberScoreLists[memberId].push(total)
+  }
+
+  // Joined this month count
+  const monthStart = new Date()
+  monthStart.setDate(1)
+  monthStart.setHours(0, 0, 0, 0)
+  const joinedThisMonth = (profiles ?? []).filter(p => new Date(p.created_at) >= monthStart).length
+
+  const profilesWithCounts = (profiles ?? []).map(p => {
+    const scoreList = memberScoreLists[p.id]
+    return {
+      ...p,
+      submission_count:           submissionCounts[p.id] ?? 0,
+      submission_count_this_year: submissionCountsThisYear[p.id] ?? 0,
+      competitions_this_year:     competitionSetsThisYear[p.id]?.size ?? 0,
+      submission_categories:      categoryBreakdown[p.id] ?? {},
+      email:                      emailById[p.id]     ?? null,
+      last_login:                 lastLoginById[p.id] ?? null,
+      avg_score:     scoreList ? Math.round((scoreList.reduce((a, b) => a + b, 0) / scoreList.length) * 10) / 10 : null,
+      highest_score: scoreList ? Math.max(...scoreList) : null,
+      lowest_score:  scoreList ? Math.min(...scoreList) : null,
+      // Permission columns — default false until migration runs
+      perm_competition_manager:   (p as { perm_competition_manager?: boolean }).perm_competition_manager ?? false,
+      perm_event_manager:         (p as { perm_event_manager?: boolean }).perm_event_manager ?? false,
+      perm_comms_manager:         (p as { perm_comms_manager?: boolean }).perm_comms_manager ?? false,
+      // Preference columns — default true until migrations run
+      pref_competition_reminders: (p as { pref_competition_reminders?: boolean }).pref_competition_reminders ?? true,
+      pref_results_notifications: (p as { pref_results_notifications?: boolean }).pref_results_notifications ?? true,
+      pref_club_newsletter:       (p as { pref_club_newsletter?: boolean }).pref_club_newsletter ?? true,
+      pref_public_profile:        (p as { pref_public_profile?: boolean }).pref_public_profile ?? true,
+      pref_show_scores_publicly:  (p as { pref_show_scores_publicly?: boolean }).pref_show_scores_publicly ?? true,
+      pref_show_in_directory:     (p as { pref_show_in_directory?: boolean }).pref_show_in_directory ?? true,
+    }
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cs = clubSettings as any
+  const enrollmentSettings = {
+    approvalMode:             (cs?.approval_mode             ?? 'email_verification') as 'admin_approval' | 'email_verification',
+    notifyNewApplication:     cs?.notify_new_application     ?? true,
+    notifyMemberActivates:    cs?.notify_member_activates    ?? true,
+    notifyPaymentLinkExpires: cs?.notify_payment_link_expires ?? true,
+    notifyMembershipExpires:  cs?.notify_membership_expires  ?? true,
+    notifyRecipients:         (cs?.notify_recipients ?? 'all') as 'all' | 'owner' | 'none',
+  }
+
+  return (
+    <MembersClient
+      profiles={profilesWithCounts}
+      memberClassesEnabled={clubSettings?.member_classes_enabled ?? false}
+      memberClasses={memberClasses ?? []}
+      totalCompetitionsThisYear={totalCompetitionsThisYear}
+      totalPossibleImagesThisYear={totalPossibleImagesThisYear}
+      joinedThisMonth={joinedThisMonth}
+      enrollmentSettings={enrollmentSettings}
+    />
+  )
+}

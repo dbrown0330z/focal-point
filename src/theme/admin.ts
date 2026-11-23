@@ -39,7 +39,7 @@ const adminTheme = createTheme({
   },
 
   typography: {
-    fontFamily: "var(--font-literata, 'Literata', Georgia, serif)",
+    fontFamily: "var(--font-inter, 'Inter', system-ui, sans-serif)",
     htmlFontSize: 15,
     fontSize: 15,
     h1: { fontSize: '22px', fontWeight: 700, letterSpacing: '-0.015em', lineHeight: 1.3 },
@@ -65,7 +65,7 @@ const adminTheme = createTheme({
           minHeight:     '34px',
           padding:       '7px 16px',
           borderRadius:  '6px',
-          fontFamily:    "var(--font-literata, 'Literata', Georgia, serif)",
+          fontFamily:    "var(--font-inter, 'Inter', system-ui, sans-serif)",
         },
         contained: {
           boxShadow: '0 2px 6px rgba(30,77,140,0.30), 0 1px 2px rgba(0,0,0,0.10)',
@@ -93,7 +93,7 @@ const adminTheme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: '4px',
-          fontFamily:   "var(--font-literata, 'Literata', Georgia, serif)",
+          fontFamily:   "var(--font-inter, 'Inter', system-ui, sans-serif)",
           fontWeight:   500,
         },
       },
@@ -104,7 +104,7 @@ const adminTheme = createTheme({
         root: {
           borderRadius:    '6px',
           fontSize:        '13px',
-          fontFamily:      "var(--font-literata, 'Literata', Georgia, serif)",
+          fontFamily:      "var(--font-inter, 'Inter', system-ui, sans-serif)",
           backgroundColor: '#FFFFFF',
           '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#B0BACA' },
           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
@@ -128,7 +128,7 @@ const adminTheme = createTheme({
             letterSpacing:   '0.04em',
             textTransform:   'uppercase',
             borderBottom:    '1px solid #D8DDE7',
-            fontFamily:      "var(--font-literata, 'Literata', Georgia, serif)",
+            fontFamily:      "var(--font-inter, 'Inter', system-ui, sans-serif)",
           },
         },
       },
@@ -138,7 +138,7 @@ const adminTheme = createTheme({
       styleOverrides: {
         root: {
           borderColor: '#EDF0F5',
-          fontFamily:  "var(--font-literata, 'Literata', Georgia, serif)",
+          fontFamily:  "var(--font-inter, 'Inter', system-ui, sans-serif)",
           color:       '#131F2E',
           fontSize:    '13px',
         },
@@ -155,14 +155,14 @@ const adminTheme = createTheme({
 
     MuiDialog: {
       styleOverrides: {
-        paper: { fontFamily: "var(--font-literata, 'Literata', Georgia, serif)" },
+        paper: { fontFamily: "var(--font-inter, 'Inter', system-ui, sans-serif)" },
       },
     },
 
     MuiDialogTitle: {
       styleOverrides: {
         root: {
-          fontFamily: "var(--font-literata, 'Literata', Georgia, serif)",
+          fontFamily: "var(--font-inter, 'Inter', system-ui, sans-serif)",
           color:      '#131F2E',
           fontSize:   '15px',
           fontWeight: 600,
@@ -172,7 +172,7 @@ const adminTheme = createTheme({
 
     MuiTypography: {
       styleOverrides: {
-        root: { fontFamily: "var(--font-literata, 'Literata', Georgia, serif)" },
+        root: { fontFamily: "var(--font-inter, 'Inter', system-ui, sans-serif)" },
       },
     },
 

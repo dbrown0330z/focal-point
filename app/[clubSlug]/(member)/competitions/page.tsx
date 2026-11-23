@@ -1,0 +1,140 @@
+import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import { requireClubId } from '@/lib/club-context'
+import CompetitionsClient from './CompetitionsClient'
+
+export const dynamic = 'force-dynamic'
+
+export default async function CompetitionsPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const admin = createServiceClient()
+  const clubId = await requireClubId()
+
+  const nowIso = new Date().toISOString()
+
+  // Current competitions: open or judging — includes opens_at so we can
+  // separate "truly open" from "open status but submissions not yet started"
+  const { data: currentRaw } = await supabase
+    .from('competitions')
+    .select('id, title, short_title, status, opens_at, closes_at, results_at, submission_limit, competition_categories(id, name), judge_tokens(judge_name)')
+    .eq('club_id', clubId)
+    .in('status', ['open', 'judging', 'judging_on_hold', 'results_pending'])
+    .is('archived_at', null)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+
+  // Separate "truly active" from "scheduled — opens_at still in future"
+  const activeRaw    = (currentRaw ?? []).filter(c => !('opens_at' in c) || !(c as {opens_at: string|null}).opens_at || (c as {opens_at: string|null}).opens_at! <= nowIso)
+  const upcomingRaw  = (currentRaw ?? []).filter(c => ('opens_at' in c) && (c as {opens_at: string|null}).opens_at && (c as {opens_at: string|null}).opens_at! > nowIso)
+
+  const upcomingCompetitions = upcomingRaw.map(c => ({
+    id:      c.id,
+    title:   (c as unknown as { short_title: string | null }).short_title ?? c.title,
+    opensAt: (c as unknown as { opens_at: string | null }).opens_at ?? null,
+  }))
+
+  // For each current competition, fetch member submissions and club stats
+  const currentCompetitions = await Promise.all(
+    activeRaw.map(async comp => {
+      const mySubmissions = user ? await (async () => {
+        const { data } = await supabase
+          .from('submissions')
+          .select('id, image_id, category_id, images(title, storage_path), competition_categories(name)')
+          .eq('competition_id', comp.id)
+          .eq('member_id', user.id)
+          .eq('status', 'submitted')
+        return (data ?? []).map(s => {
+          const img = s.images as unknown as { title: string; storage_path: string }
+          const cat = s.competition_categories as unknown as { name: string }
+          return {
+            id: s.id,
+            imageId: s.image_id,
+            categoryId: s.category_id,
+            categoryName: cat?.name ?? '',
+            imageTitle: img?.title ?? '',
+            publicUrl: admin.storage.from('images').getPublicUrl(img?.storage_path ?? '').data.publicUrl,
+          }
+        })
+      })() : []
+
+      const { data: allSubs } = await admin
+        .from('submissions')
+        .select('member_id, category_id, competition_categories(name)')
+        .eq('competition_id', comp.id)
+        .eq('status', 'submitted')
+
+      const subs = allSubs ?? []
+      const totalImages = subs.length
+      const memberSet = new Set(subs.map(s => s.member_id))
+      const membersEntered = memberSet.size
+
+      const byCat: Record<string, { name: string; count: number }> = {}
+      for (const sub of subs) {
+        const cat = sub.competition_categories as unknown as { name: string } | null
+        const key = sub.category_id
+        if (!byCat[key]) byCat[key] = { name: cat?.name ?? 'Unknown', count: 0 }
+        byCat[key].count++
+      }
+
+      const tokens = comp.judge_tokens as unknown as { judge_name: string }[] | null
+
+      return {
+        id: comp.id,
+        title: (comp as unknown as { short_title: string | null }).short_title ?? comp.title,
+        status: comp.status,
+        closes_at: comp.closes_at,
+        results_at: (comp as unknown as { results_at: string | null }).results_at ?? null,
+        submission_limit: comp.submission_limit,
+        categoryLimit: null as number | null, // TODO: add per-category limit to competition_categories table
+        categories: (comp.competition_categories as unknown as { id: string; name: string }[]) ?? [],
+        judgeName: tokens?.[0]?.judge_name ?? null,
+        mySubmissions,
+        clubStats: { totalImages, membersEntered, byCat: Object.values(byCat) },
+      }
+    })
+  )
+
+  // Library images: exclude any image the member has an active submission for,
+  // across ALL competitions (not just currently-open ones). A submission to a
+  // closed or results-published competition still holds the slot until the
+  // image is released/withdrawn, so we query submissions directly instead of
+  // relying on the currentCompetitions list.
+  const libraryImages = user ? await (async () => {
+    const [{ data: imgs }, { data: activeSubs }] = await Promise.all([
+      supabase
+        .from('images')
+        .select('id, title, storage_path, created_at')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('submissions')
+        .select('image_id')
+        .eq('member_id', user.id)
+        .eq('status', 'submitted'),
+    ])
+
+    const submittedIds = new Set((activeSubs ?? []).map(s => s.image_id))
+
+    return (imgs ?? [])
+      .filter(img => !submittedIds.has(img.id))
+      .map(img => ({
+        id: img.id,
+        title: img.title,
+        storage_path: img.storage_path,
+        created_at: img.created_at,
+        publicUrl: admin.storage.from('images').getPublicUrl(img.storage_path).data.publicUrl,
+      }))
+  })() : []
+
+
+
+  return (
+    <CompetitionsClient
+      userId={user?.id ?? ''}
+      currentCompetitions={currentCompetitions}
+      upcomingCompetitions={upcomingCompetitions}
+      libraryImages={libraryImages}
+    />
+  )
+}

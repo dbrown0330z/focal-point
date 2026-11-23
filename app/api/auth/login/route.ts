@@ -1,0 +1,73 @@
+import { createServerClient } from '@supabase/ssr'
+import { NextRequest, NextResponse } from 'next/server'
+import { createServiceClient } from '@/lib/supabase/service'
+
+/**
+ * POST /api/auth/login
+ *
+ * Handles email/password sign-in and sets the session cookies directly on
+ * the redirect response — bypassing the Next.js 16 server-action cookie issue
+ * where cookies set via cookieStore.set() don't survive the redirect.
+ */
+export async function POST(request: NextRequest) {
+  const formData = await request.formData()
+  const email    = formData.get('email')    as string
+  const password = formData.get('password') as string
+  const next     = (formData.get('next') as string | null)?.trim() || null
+
+  // Collect cookies that Supabase wants to set
+  const cookiesToApply: Array<{
+    name: string
+    value: string
+    options: Parameters<NextResponse['cookies']['set']>[2]
+  }> = []
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => request.cookies.getAll(),
+        setAll: (cookies) => {
+          cookies.forEach(({ name, value, options }) =>
+            cookiesToApply.push({ name, value, options })
+          )
+        },
+      },
+    }
+  )
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+
+  // Preserve fp=1 so errors redirect back to the fp-admin login, not the club login
+  const isFpAdmin = next === '/fp-admin' || next?.startsWith('/fp-admin/')
+  const errorBase = isFpAdmin ? '/login?fp=1' : '/login'
+
+  // If no explicit destination, look up the user's club and send them home
+  let destination = next ?? null
+  if (!error && !destination && data.user) {
+    const service = createServiceClient()
+    const { data: membership } = await service
+      .from('club_memberships')
+      .select('clubs(slug)')
+      .eq('user_id', data.user.id)
+      .in('membership_status', ['active', 'approved'])
+      .limit(1)
+      .single()
+    const clubSlug = (membership?.clubs as { slug: string } | null)?.slug
+    if (clubSlug) destination = `/${clubSlug}`
+  }
+
+  const redirectUrl = error
+    ? new URL(`${errorBase}${errorBase.includes('?') ? '&' : '?'}error=${encodeURIComponent(error.message)}${next ? `&next=${encodeURIComponent(next)}` : ''}`, request.url)
+    : new URL(destination ?? '/', request.url)
+
+  const response = NextResponse.redirect(redirectUrl, { status: 303 })
+
+  // Apply session cookies directly to the response so the browser stores them
+  cookiesToApply.forEach(({ name, value, options }) => {
+    response.cookies.set(name, value, options)
+  })
+
+  return response
+}

@@ -77,8 +77,18 @@
 
 /* Admin Context — light mode only; overrides dark vars within admin area */
 .admin-context {
-  --font-heading: var(--font-literata, 'Literata', Georgia, serif);
-  --font-body:    var(--font-literata, 'Literata', Georgia, serif);
+  /* Force light-mode status colors — admin is always light regardless of OS pref */
+  --status-error:        #D32F2F;
+  --status-error-bg:     #FDEEEE;
+  --status-error-text:   #7A1515;
+  --status-warning:      #A67C00;
+  --status-warning-bg:   #FFFBE6;
+  --status-warning-text: #6B5000;
+  --status-success:      #2E7D32;
+  --status-success-bg:   #EDFAF0;
+  --status-success-text: #174A1A;
+  --font-heading: var(--font-inter, 'Inter', system-ui, sans-serif);
+  --font-body:    var(--font-inter, 'Inter', system-ui, sans-serif);
   font-family: var(--font-body);
 
   --surface-0: #F7F8FA;

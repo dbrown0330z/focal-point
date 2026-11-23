@@ -1,121 +1,225 @@
 'use client'
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { logout } from '@/app/(auth)/actions'
+import { useUnsavedChanges } from '@/components/admin/UnsavedChangesProvider'
+import { useAdminTheme } from './AdminThemeContext'
 
-const navItems = [
+type NavItem = {
+  path:     string
+  label:    string
+  exact?:   boolean
+  tabKey?:  string   // when set, also checks ?tab=<tabKey> for active state
+  icon:     React.ReactNode
+}
+
+type NavGroup = {
+  label?: string
+  items:  NavItem[]
+}
+
+const NAV_GROUPS: NavGroup[] = [
   {
-    href: '/admin',
-    label: 'Dashboard',
-    exact: true,
-    icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-      </svg>
-    ),
+    items: [
+      {
+        path: '/admin', label: 'Dashboard', exact: true,
+        icon: (
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+        ),
+      },
+      {
+        path: '/admin/club-defaults', label: 'Club Basics',
+        icon: (
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        ),
+      },
+      {
+        path: '/admin/members', label: 'Members',
+        icon: (
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        ),
+      },
+      {
+        path: '/admin/dues-payment', label: 'Dues & Payment',
+        icon: (
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+          </svg>
+        ),
+      },
+      {
+        path: '/admin/notifications', label: 'Communication',
+        icon: (
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        ),
+      },
+    ],
   },
   {
-    href: '/admin/members',
-    label: 'Members',
-    icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    ),
-  },
-  {
-    href: '/admin/competitions',
     label: 'Competitions',
-    icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-      </svg>
-    ),
+    items: [
+      {
+        path: '/admin/competitions', label: 'Competitions',
+        icon: (
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 21h8M12 17v4M12 17a5 5 0 005-5V5H7v7a5 5 0 005 5zM7 5H4.5A1.5 1.5 0 003 6.5v.5A3.5 3.5 0 006.5 10.5H7M17 5h2.5A1.5 1.5 0 0121 6.5v.5a3.5 3.5 0 01-3.5 3.5H17" />
+          </svg>
+        ),
+      },
+      {
+        path: '/admin/judges', label: 'Judges',
+        icon: (
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+          </svg>
+        ),
+      },
+    ],
   },
   {
-    href: '/admin/content',
-    label: 'Content & Pages',
-    icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-      </svg>
-    ),
-  },
-  {
-    href: '/admin/resources',
-    label: 'Resources',
-    icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-      </svg>
-    ),
-  },
-  {
-    href: '/admin/notifications',
-    label: 'Emails & Notifications',
-    icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
+    label: 'Content',
+    items: [
+      {
+        path: '/admin/content/homepage', label: 'Homepage',
+        icon: (
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+        ),
+      },
+      {
+        path: '/admin/content', label: 'Site Pages & Nav', exact: true,
+        icon: (
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+          </svg>
+        ),
+      },
+      {
+        path: '/admin/galleries', label: 'Galleries',
+        icon: (
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        ),
+      },
+      {
+        path: '/admin/resources', label: 'Resources',
+        icon: (
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+        ),
+      },
+      {
+        path: '/admin/posts', label: 'News & Posts',
+        icon: (
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+          </svg>
+        ),
+      },
+    ],
   },
 ]
 
-export default function AdminSidebar() {
-  const pathname = usePathname()
+export default function AdminSidebar({ clubSlug }: { clubSlug: string }) {
+  const base         = `/${clubSlug}`
+  const pathname     = usePathname()
+  const searchParams = useSearchParams()
+  const { navigate } = useUnsavedChanges()
+  useAdminTheme()
 
-  function isActive(href: string, exact?: boolean) {
-    if (exact) return pathname === href
-    return pathname === href || pathname.startsWith(href + '/')
+  function isActive(path: string, exact?: boolean, tabKey?: string) {
+    const href      = `${base}${path}`
+    const baseMatch = exact ? pathname === href : pathname === href || pathname.startsWith(href + '/')
+    if (!baseMatch) return false
+    if (tabKey === undefined) return true
+    const currentTab = searchParams.get('tab')
+    // 'homepage' also matches when no tab param (it's the default)
+    if (tabKey === 'homepage') return !currentTab || currentTab === 'homepage'
+    return currentTab === tabKey
   }
 
   return (
-    <aside className="flex h-screen w-56 flex-col bg-admin-nav">
-      {/* Back to site */}
-      <div className="px-3 pt-3 pb-2">
-        <Link
-          href="/"
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-admin-nav-muted hover:bg-white/10 hover:text-admin-nav-text transition-colors"
+    <aside className="flex h-screen w-52 flex-col bg-admin-nav">
+      {/* Brand */}
+      <div className="px-4 pt-5 pb-3">
+        <span className="block text-[10px] font-medium uppercase tracking-[0.06em] text-admin-nav-muted">Focal Point</span>
+        <span className="block text-[17px] font-bold leading-tight tracking-[-0.01em] text-admin-nav-text">Admin</span>
+      </div>
+
+      {/* Back to member site */}
+      <div className="px-3 pb-3">
+        <button
+          onClick={() => navigate(base)}
+          className="flex w-full items-center gap-2 rounded-md border border-white/20 bg-white/10 px-3 py-2 text-[13px] font-medium text-admin-nav-text hover:bg-white/20 transition-colors"
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Back to site
-        </Link>
+          Back to member site
+        </button>
       </div>
 
-      {/* Brand */}
-      <div className="flex items-center gap-2 px-5 py-4 border-y border-white/10">
-        <div className="flex flex-col">
-          <span className="text-xs font-medium text-admin-nav-muted">Focal Point</span>
-          <span className="text-lg font-semibold text-admin-nav-text">Admin</span>
-        </div>
-      </div>
+      <div className="mx-2 h-px bg-white/10 mb-2" />
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-        {navItems.map(({ href, label, icon, exact }) => {
-          const active = isActive(href, exact)
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                active
-                  ? 'bg-admin-nav-active text-admin-nav-text'
-                  : 'text-admin-nav-muted hover:bg-white/10 hover:text-admin-nav-text'
-              }`}
-            >
-              <span className={active ? 'text-admin-nav-text' : 'text-admin-nav-muted'}>{icon}</span>
-              {label}
-            </Link>
-          )
-        })}
+      <nav className="flex-1 overflow-y-auto px-3 py-2">
+        {NAV_GROUPS.map((group, gi) => (
+          <div key={gi} className={gi > 0 ? 'mt-3' : ''}>
+            {group.label && (
+              <p className="mb-1 px-3 text-[9px] font-semibold uppercase tracking-[0.1em] text-admin-nav-muted/60">
+                {group.label}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {group.items.map(({ path, label, icon, exact, tabKey }) => {
+                const href   = tabKey ? `${base}${path}?tab=${tabKey}` : `${base}${path}`
+                const active = isActive(path, exact, tabKey)
+                return (
+                  <button
+                    key={tabKey ? `${path}?tab=${tabKey}` : path}
+                    onClick={() => navigate(href)}
+                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                      active
+                        ? 'bg-admin-nav-active text-admin-nav-text'
+                        : 'text-admin-nav-muted hover:bg-white/10 hover:text-admin-nav-text'
+                    }`}
+                  >
+                    <span className={active ? 'text-admin-nav-text' : 'text-admin-nav-muted'}>{icon}</span>
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-white/10 px-3 py-3">
+      <div className="border-t border-white/10 px-3 py-3 space-y-0.5">
+        <a
+          href={`/${clubSlug}/help/admin`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-admin-nav-muted hover:bg-white/10 hover:text-admin-nav-text transition-colors"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Help
+        </a>
+
         <form action={logout}>
           <button
             type="submit"

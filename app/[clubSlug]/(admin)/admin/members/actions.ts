@@ -1,0 +1,521 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { createServiceClient } from '@/lib/supabase/service'
+import { getClubContext, requireClubId, requireClubSlug } from '@/lib/club-context'
+import { sendMemberApproved, sendMemberRejected, sendMemberSuspended, sendMemberBanned, sendMemberEmailChanged } from '@/lib/email/send'
+import type { Database } from '@/types/database'
+
+type MembershipStatus = Database['public']['Enums']['membership_status']
+
+export async function setMemberStatus(memberId: string, status: MembershipStatus) {
+  const supabase = createServiceClient()
+  const ctx = await getClubContext()
+
+  // Read the member's current role so we never accidentally strip admin access
+  // when only changing membership status. Admin role must be removed explicitly
+  // via removeAdminRole / makeAdmin — not as a side-effect of a status change.
+  const { data: current } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', memberId)
+    .single()
+
+  const currentRole = current?.role ?? null
+  const isAdmin = currentRole === 'admin'
+
+  // Only set role for non-admin members; for active/complimentary set to 'member'
+  const roleByStatus: Partial<Record<MembershipStatus, 'member' | null>> = {
+    active:        'member',
+    complimentary: 'member',
+    pending:       null,
+    approved:      null,
+    expired:       null,
+    cancelled:     null,
+    paused:        null,
+    banned:        null,
+  }
+  // Preserve existing admin role; for regular members derive role from status
+  const newRole = isAdmin ? currentRole : (roleByStatus[status] ?? null)
+
+  // Update the flat profile (legacy + used by admin area)
+  await supabase
+    .from('profiles')
+    .update({ membership_status: status, role: newRole })
+    .eq('id', memberId)
+
+  // Keep club_memberships in sync — this is what the member-facing directory
+  // and layout guards query.
+  if (ctx?.clubId) {
+    await supabase
+      .from('club_memberships')
+      .update({ membership_status: status, role: newRole })
+      .eq('user_id', memberId)
+      .eq('club_id', ctx.clubId)
+  }
+
+  revalidatePath('/admin/members')
+}
+
+export async function approveMember(memberId: string) {
+  await setMemberStatus(memberId, 'approved')
+
+  // Send approval email with link to the onboarding wizard
+  try {
+    const service = createServiceClient()
+    const clubId = await requireClubId()
+    const [{ data: profile }, { data: clubSettings }, { data: { user } }] = await Promise.all([
+      service.from('profiles').select('first_name, display_name').eq('id', memberId).single(),
+      service.from('club_settings').select('club_name').eq('club_id', clubId).single(),
+      service.auth.admin.getUserById(memberId),
+    ])
+
+    const email          = user?.email
+    const firstName      = profile?.first_name || profile?.display_name || 'there'
+    const clubName       = clubSettings?.club_name ?? 'the club'
+    const base           = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
+    const onboardingUrl  = `${base}/onboarding/profile`
+
+    if (email) {
+      await sendMemberApproved({ memberEmail: email, firstName, clubName, onboardingUrl })
+    }
+  } catch (err) {
+    // Non-fatal — approval is complete even if the email fails
+    console.error('[approveMember] failed to send approval email:', err)
+  }
+}
+
+export async function rejectMember(memberId: string, reason: string) {
+  // Send rejection email before deleting the record
+  try {
+    const service = createServiceClient()
+    const clubId = await requireClubId()
+    const [{ data: profile }, { data: clubSettings }, { data: { user } }] = await Promise.all([
+      service.from('profiles').select('first_name, display_name').eq('id', memberId).single(),
+      service.from('club_settings').select('club_name').eq('club_id', clubId).single(),
+      service.auth.admin.getUserById(memberId),
+    ])
+
+    const email      = user?.email
+    const firstName  = profile?.first_name || profile?.display_name || 'there'
+    const clubName   = clubSettings?.club_name ?? 'the club'
+    if (email) {
+      await sendMemberRejected({ memberEmail: email, firstName, clubName, reason })
+    }
+  } catch (err) {
+    console.error('[rejectMember] failed to send rejection email:', err)
+  }
+
+  // Delete the applicant's account — they can reapply
+  await deleteMember(memberId)
+}
+
+export async function suspendMember(memberId: string, reason: string) {
+  // Status 'paused' = Suspended in the UI
+  await setMemberStatus(memberId, 'paused')
+
+  // Send notification to member
+  try {
+    const service = createServiceClient()
+    const clubId = await requireClubId()
+    const [{ data: profile }, { data: clubSettings }, { data: { user } }] = await Promise.all([
+      service.from('profiles').select('first_name, display_name').eq('id', memberId).single(),
+      service.from('club_settings').select('club_name').eq('club_id', clubId).single(),
+      service.auth.admin.getUserById(memberId),
+    ])
+    const email      = user?.email
+    const firstName  = profile?.first_name || profile?.display_name || 'there'
+    const clubName   = clubSettings?.club_name ?? 'the club'
+    if (email) {
+      await sendMemberSuspended({ memberEmail: email, firstName, clubName })
+    }
+    // Store reason as an internal note (non-fatal if this fails)
+    console.info(`[suspendMember] ${memberId} suspended. Reason: ${reason}`)
+  } catch (err) {
+    console.error('[suspendMember] failed to send notification:', err)
+  }
+}
+
+export async function banMember(memberId: string) {
+  await setMemberStatus(memberId, 'banned')
+
+  // Send termination notification to member
+  try {
+    const service = createServiceClient()
+    const clubId = await requireClubId()
+    const [{ data: profile }, { data: clubSettings }, { data: { user } }] = await Promise.all([
+      service.from('profiles').select('first_name, display_name').eq('id', memberId).single(),
+      service.from('club_settings').select('club_name').eq('club_id', clubId).single(),
+      service.auth.admin.getUserById(memberId),
+    ])
+    const email      = user?.email
+    const firstName  = profile?.first_name || profile?.display_name || 'there'
+    const clubName   = clubSettings?.club_name ?? 'the club'
+    if (email) {
+      await sendMemberBanned({ memberEmail: email, firstName, clubName })
+    }
+  } catch (err) {
+    console.error('[banMember] failed to send notification:', err)
+  }
+}
+
+export async function resignMember(memberId: string) {
+  // Status 'cancelled' = Resigned in the UI
+  await setMemberStatus(memberId, 'cancelled')
+}
+
+type PermissionKey = 'perm_competition_manager' | 'perm_event_manager' | 'perm_comms_manager'
+type PreferenceKey = 'pref_competition_reminders' | 'pref_results_notifications'
+
+export async function setMemberPermission(
+  memberId: string,
+  permission: PermissionKey,
+  enabled: boolean,
+): Promise<{ error?: string }> {
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('profiles')
+    .update({ [permission]: enabled })
+    .eq('id', memberId)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/members')
+  return {}
+}
+
+export async function deleteMember(memberId: string) {
+  const supabase = createServiceClient()
+  const ctx = await getClubContext()
+
+  // Determine competition footprint before touching anything.
+  const { data: submittedImages } = await supabase
+    .from('submissions')
+    .select('image_id')
+    .eq('member_id', memberId)
+
+  const retainedImageIds    = new Set((submittedImages ?? []).map(s => s.image_id))
+  const hasCompetitionHistory = retainedImageIds.size > 0
+
+  // Delete library images not tied to any competition.
+  const { data: allImages } = await supabase
+    .from('images')
+    .select('id, storage_path')
+    .eq('owner_id', memberId)
+
+  const toDelete = (allImages ?? []).filter(img => !retainedImageIds.has(img.id))
+  if (toDelete.length) {
+    await supabase.storage.from('images').remove(toDelete.map(i => i.storage_path))
+    await supabase.from('images').delete().in('id', toDelete.map(i => i.id))
+  }
+
+  if (hasCompetitionHistory) {
+    // Member has submitted to competitions — keep the profile row so galleries
+    // and results history remain intact, but strip all PII.
+    await supabase
+      .from('profiles')
+      .update({
+        first_name:         null,
+        last_name:          null,
+        display_name:       'Deleted member',
+        bio:                null,
+        avatar_url:         null,
+        camera_brands:      [],
+        shooting_interests: [],
+        experience_level:   null,
+        membership_status:  'cancelled',
+        role:               null,
+      })
+      .eq('id', memberId)
+  } else {
+    // No competition history — fully remove the record so the row vanishes
+    // from the member list instead of lingering as "Resigned".
+    if (ctx?.clubId) {
+      await supabase
+        .from('club_memberships')
+        .delete()
+        .eq('user_id', memberId)
+        .eq('club_id', ctx.clubId)
+    }
+    await supabase.from('profiles').delete().eq('id', memberId)
+  }
+
+  // Always delete the auth account — frees the email address so they can
+  // re-apply, and prevents sign-in regardless of which branch above ran.
+  await supabase.auth.admin.deleteUser(memberId)
+
+  if (ctx?.clubSlug) revalidatePath(`/${ctx.clubSlug}/admin/members`)
+  revalidatePath('/admin/members')
+}
+
+export async function updateMemberName(memberId: string, firstName: string, lastName: string) {
+  const supabase = createServiceClient()
+  const displayName = [firstName, lastName].filter(Boolean).join(' ').trim() || firstName
+  await supabase
+    .from('profiles')
+    .update({
+      first_name:   firstName || null,
+      last_name:    lastName || null,
+      display_name: displayName,
+    })
+    .eq('id', memberId)
+  revalidatePath('/admin/members')
+  revalidatePath('/our-club/members')
+  revalidatePath('/', 'layout')   // nav bar + home page pick up the new display_name
+}
+
+export async function removeAdminRole(memberId: string) {
+  const supabase = createServiceClient()
+  const ctx = await getClubContext()
+  await supabase
+    .from('profiles')
+    .update({ role: 'member' })
+    .eq('id', memberId)
+  if (ctx?.clubId) {
+    await supabase
+      .from('club_memberships')
+      .update({ role: 'member' })
+      .eq('user_id', memberId)
+      .eq('club_id', ctx.clubId)
+  }
+  revalidatePath('/admin/members')
+}
+
+export async function makeAdmin(memberId: string) {
+  const supabase = createServiceClient()
+  const ctx = await getClubContext()
+  await supabase
+    .from('profiles')
+    .update({ role: 'admin' })
+    .eq('id', memberId)
+  if (ctx?.clubId) {
+    await supabase
+      .from('club_memberships')
+      .update({ role: 'admin' })
+      .eq('user_id', memberId)
+      .eq('club_id', ctx.clubId)
+  }
+  revalidatePath('/admin/members')
+}
+
+export async function setMemberSkillLevel(memberId: string, className: string | null) {
+  const supabase = createServiceClient()
+  await supabase
+    .from('profiles')
+    .update({ membership_class: className })
+    .eq('id', memberId)
+  revalidatePath('/admin/members')
+}
+
+export async function setMemberClassesEnabled(enabled: boolean): Promise<{ error?: string }> {
+  const supabase = createServiceClient()
+  const clubId = await requireClubId()
+  const { error } = await supabase
+    .from('club_settings')
+    .update({ member_classes_enabled: enabled })
+    .eq('club_id', clubId)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/members')
+  return {}
+}
+
+export async function addMemberClass(name: string): Promise<{ error?: string; id?: string }> {
+  const supabase = createServiceClient()
+  const clubId = await requireClubId()
+  const { data: existing } = await supabase
+    .from('member_classes')
+    .select('sort_order')
+    .eq('club_id', clubId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .single()
+  const sort_order = (existing?.sort_order ?? -1) + 1
+  const { data, error } = await supabase
+    .from('member_classes')
+    .insert({ name: name.trim(), sort_order, club_id: clubId })
+    .select('id')
+    .single()
+  if (error) return { error: error.message }
+  revalidatePath('/admin/members')
+  return { id: data.id }
+}
+
+export async function seedDefaultMemberClasses(): Promise<{ error?: string; classes?: { id: string; name: string }[] }> {
+  const supabase = createServiceClient()
+  const clubId = await requireClubId()
+  const defaults = ['Class A', 'Class B', 'Class C']
+  // Fetch existing names so we only insert the ones that are missing
+  const { data: existing } = await supabase.from('member_classes').select('name').eq('club_id', clubId)
+  const existingNames = new Set((existing ?? []).map(r => r.name))
+  const toInsert = defaults
+    .filter(name => !existingNames.has(name))
+    .map((name, i) => ({ name, sort_order: (existing?.length ?? 0) + i, club_id: clubId }))
+  if (toInsert.length > 0) {
+    const { error } = await supabase.from('member_classes').insert(toInsert)
+    if (error) return { error: error.message }
+  }
+  // Return the full up-to-date list
+  const { data: all } = await supabase.from('member_classes').select('id, name').eq('club_id', clubId).order('sort_order')
+  revalidatePath('/admin/members')
+  return { classes: all ?? [] }
+}
+
+export async function renameMemberClass(id: string, name: string): Promise<{ error?: string }> {
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('member_classes')
+    .update({ name: name.trim() })
+    .eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/members')
+  return {}
+}
+
+export async function deleteMemberClass(id: string): Promise<{ error?: string }> {
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('member_classes')
+    .delete()
+    .eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/members')
+  return {}
+}
+
+export async function updateMemberEmail(memberId: string, newEmail: string): Promise<{ error?: string }> {
+  const supabase = createServiceClient()
+
+  // Capture the old email before overwriting it
+  const { data: { user: existing } } = await supabase.auth.admin.getUserById(memberId)
+  const oldEmail = existing?.email ?? null
+
+  // Update the canonical email in Supabase Auth (admin API — no verification required)
+  const { error } = await supabase.auth.admin.updateUserById(memberId, { email: newEmail })
+  if (error) return { error: error.message }
+
+  // Send notification to both old and new addresses (non-fatal)
+  if (oldEmail) {
+    try {
+      const clubId = await requireClubId()
+      const [{ data: profile }, { data: clubSettings }] = await Promise.all([
+        supabase.from('profiles').select('first_name, display_name').eq('id', memberId).single(),
+        supabase.from('club_settings').select('club_name').eq('club_id', clubId).single(),
+      ])
+      const firstName = profile?.first_name || profile?.display_name || 'there'
+      const clubName  = clubSettings?.club_name ?? 'the club'
+      await sendMemberEmailChanged({ oldEmail, newEmail, firstName, clubName })
+    } catch (err) {
+      console.error('[updateMemberEmail] failed to send notification:', err)
+    }
+  }
+
+  revalidatePath('/admin/members')
+  return {}
+}
+
+export async function sendPasswordReset(memberId: string): Promise<{ error?: string }> {
+  const service = createServiceClient()
+  const { data: { user }, error: userError } = await service.auth.admin.getUserById(memberId)
+  if (userError || !user?.email) return { error: userError?.message ?? 'No email on file' }
+
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpointhq.com'
+  const { error } = await service.auth.resetPasswordForEmail(user.email, {
+    redirectTo: `${base}/auth/callback`,
+  })
+  if (error) return { error: error.message }
+  return {}
+}
+
+export async function saveEnrollmentSettings(settings: {
+  approvalMode: 'admin_approval' | 'email_verification'
+  notifyNewApplication: boolean
+  notifyMemberActivates: boolean
+  notifyPaymentLinkExpires: boolean
+  notifyMembershipExpires: boolean
+  notifyRecipients: 'all' | 'owner' | 'none'
+}): Promise<{ error?: string }> {
+  const supabase = createServiceClient()
+  const clubId = await requireClubId()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const patch: any = {
+    approval_mode:               settings.approvalMode,
+    notify_new_application:      settings.notifyNewApplication,
+    notify_member_activates:     settings.notifyMemberActivates,
+    notify_payment_link_expires: settings.notifyPaymentLinkExpires,
+    notify_membership_expires:   settings.notifyMembershipExpires,
+    notify_recipients:           settings.notifyRecipients,
+  }
+  const { error } = await supabase
+    .from('club_settings')
+    .update(patch)
+    .eq('club_id', clubId)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/members')
+  return {}
+}
+
+export async function importMembers(
+  rows: { email: string; firstName: string; lastName: string }[],
+): Promise<{ invited: number; skipped: number; errors: string[] }> {
+  const supabase = createServiceClient()
+  const clubSlug = await requireClubSlug()
+  const clubId   = await requireClubId()
+
+  const { data: club } = await supabase
+    .from('clubs')
+    .select('name')
+    .eq('id', clubId)
+    .single()
+  const clubName = (club as { name: string } | null)?.name ?? 'your club'
+
+  let invited = 0
+  let skipped = 0
+  const errors: string[] = []
+
+  for (const row of rows) {
+    const email = row.email.trim().toLowerCase()
+    if (!email) continue
+
+    // Check if already a member
+    const { data: existing } = await supabase.auth.admin.listUsers()
+    const alreadyExists = existing?.users?.some(u => u.email?.toLowerCase() === email)
+    if (alreadyExists) {
+      skipped++
+      continue
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.auth.admin as any).inviteUserByEmail(email, {
+      data: {
+        first_name: row.firstName,
+        last_name:  row.lastName,
+        club_id:    clubId,
+        club_slug:  clubSlug,
+        club_name:  clubName,
+      },
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://focalpoint.club'}/${clubSlug}/onboarding/profile`,
+    })
+
+    if (error) {
+      errors.push(`${email}: ${error.message}`)
+    } else {
+      invited++
+    }
+  }
+
+  revalidatePath(`/${clubSlug}/admin/members`)
+  return { invited, skipped, errors }
+}
+
+export async function setMemberPreference(
+  memberId: string,
+  preference: PreferenceKey,
+  enabled: boolean,
+): Promise<{ error?: string }> {
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('profiles')
+    .update({ [preference]: enabled })
+    .eq('id', memberId)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/members')
+  return {}
+}
