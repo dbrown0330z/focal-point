@@ -24,6 +24,7 @@ import FormatClearIcon        from '@mui/icons-material/FormatClear'
 import KeyboardArrowDownIcon  from '@mui/icons-material/KeyboardArrowDown'
 import OpenInNewIcon          from '@mui/icons-material/OpenInNew'
 import { saveJoinPageContent } from './actions'
+import type { ManualMethod } from '@/app/[clubSlug]/(admin)/admin/dues-payment/actions'
 
 const EXEC_FONT_LORA   = 'Lora'
 const EXEC_FONT_NUNITO = 'Nunito'
@@ -60,6 +61,18 @@ const btnSx = {
   color: 'text.secondary', flexShrink: 0,
   '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
 } as const
+
+export type DuesSummary = {
+  annualAmount:    number | null
+  methods:         ManualMethod[]
+  chequePayableTo: string | null
+  chequeMail:      string | null
+  etransferEmail:  string | null
+  paypalLink:      string | null
+  venmoHandle:     string | null
+  cashappHandle:   string | null
+  zelleContact:    string | null
+}
 
 function ToolbarBtn({
   title, onMouseDown, active, children,
@@ -104,14 +117,131 @@ function DropdownBtn({
   )
 }
 
+// ── Method label map ─────────────────────────────────────────────────────────
+const METHOD_LABELS: Record<ManualMethod, string> = {
+  cheque:       'Cheque',
+  etransfer:    'e-Transfer',
+  'paypal-link': 'PayPal',
+  venmo:        'Venmo',
+  zelle:        'Zelle',
+  cashapp:      'Cash App',
+}
+
+function MethodDetail({ method, dues }: { method: ManualMethod; dues: DuesSummary }) {
+  const detail = (() => {
+    switch (method) {
+      case 'cheque':       return dues.chequePayableTo ? `Payable to "${dues.chequePayableTo}"` : null
+      case 'etransfer':    return dues.etransferEmail  ? dues.etransferEmail : null
+      case 'paypal-link':  return dues.paypalLink      ? dues.paypalLink : null
+      case 'venmo':        return dues.venmoHandle     ? dues.venmoHandle : null
+      case 'cashapp':      return dues.cashappHandle   ? dues.cashappHandle : null
+      case 'zelle':        return dues.zelleContact    ? dues.zelleContact : null
+    }
+  })()
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+      <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.primary' }}>
+        {METHOD_LABELS[method]}
+      </Typography>
+      {detail && (
+        <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>{detail}</Typography>
+      )}
+    </Box>
+  )
+}
+
+function DuesPanel({ dues, clubSlug }: { dues: DuesSummary; clubSlug: string }) {
+  const isFree = !dues.annualAmount
+  return (
+    <Box sx={{
+      width: 272,
+      flexShrink: 0,
+      border: '1px solid',
+      borderColor: 'divider',
+      borderRadius: 'var(--radius-lg)',
+      bgcolor: 'background.default',
+      overflow: 'hidden',
+    }}>
+      {/* Panel header */}
+      <Box sx={{
+        px: 2.5, py: 1.75,
+        borderBottom: '1px solid', borderColor: 'divider',
+        bgcolor: 'background.paper',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'text.secondary' }}>
+          Dues &amp; Payment
+        </Typography>
+        <Box
+          component="a"
+          href={`/${clubSlug}/admin/dues-payment`}
+          sx={{ fontSize: 11, color: 'var(--action-primary)', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}
+        >
+          Edit →
+        </Box>
+      </Box>
+
+      <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+
+        {/* Amount */}
+        <Box>
+          <Typography sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'text.secondary', mb: 0.75 }}>
+            Annual dues
+          </Typography>
+          {isFree ? (
+            <Typography sx={{ fontSize: 14, color: 'text.primary', fontWeight: 500 }}>
+              Free — no charge to join
+            </Typography>
+          ) : (
+            <Typography sx={{ fontSize: 18, color: 'text.primary', fontWeight: 700 }}>
+              ${dues.annualAmount!.toFixed(2)}
+              <Typography component="span" sx={{ fontSize: 12, color: 'text.secondary', fontWeight: 400, ml: 0.5 }}>/ year</Typography>
+            </Typography>
+          )}
+        </Box>
+
+        {/* Payment methods */}
+        {!isFree && (
+          <Box>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'text.secondary', mb: 1 }}>
+              Payment methods
+            </Typography>
+            {dues.methods.length === 0 ? (
+              <Typography sx={{ fontSize: 12, color: 'text.secondary', lineHeight: 1.6 }}>
+                No methods configured yet.{' '}
+                <Box component="a" href={`/${clubSlug}/admin/dues-payment`} sx={{ color: 'var(--action-primary)', textDecoration: 'underline' }}>
+                  Add one →
+                </Box>
+              </Typography>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {dues.methods.map(m => (
+                  <MethodDetail key={m} method={m} dues={dues} />
+                ))}
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {/* Footer note */}
+        <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.6, borderTop: '1px solid', borderColor: 'divider', pt: 2 }}>
+          This information is generated automatically on the public Join / Renew page below your intro text.
+        </Typography>
+      </Box>
+    </Box>
+  )
+}
+
 export default function JoinPageEditor({
   pageId: initialPageId,
   initialContent,
   clubSlug,
+  duesSummary,
 }: {
   pageId:         string | null
   initialContent: string
   clubSlug:       string
+  duesSummary:    DuesSummary
 }) {
   const editorRef     = useRef<HTMLDivElement>(null)
   const savedRangeRef = useRef<Range | null>(null)
@@ -169,282 +299,15 @@ export default function JoinPageEditor({
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
       {/* Header */}
-      <Box>
-        <Typography variant="h1" sx={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.015em', color: 'text.primary' }}>
-          Join / Renew Page
-        </Typography>
-        <Typography sx={{ mt: 0.5, fontSize: 13, color: 'text.secondary' }}>
-          Edit the introductory content shown on the public Join / Renew page. Payment instructions are generated automatically from your{' '}
-          <Box
-            component="a"
-            href={`/${clubSlug}/admin/dues-payment`}
-            sx={{ color: 'var(--action-primary)', textDecoration: 'underline', cursor: 'pointer' }}
-          >
-            Dues &amp; Payment settings
-          </Box>
-          .
-        </Typography>
-      </Box>
-
-      {/* Editor card */}
-      <Box sx={{
-        bgcolor: 'background.paper',
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
-      }}>
-
-        {/* Toolbar */}
-        <Box sx={{
-          display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.25,
-          px: 1.5, py: 0.75,
-          borderBottom: '1px solid', borderColor: 'divider',
-          bgcolor: 'background.default',
-        }}>
-          {/* Text style */}
-          <DropdownBtn
-            label={activeStyle}
-            title="Text style"
-            onMouseDown={e => { e.preventDefault(); setStyleAnchor(e.currentTarget) }}
-          />
-          <Menu
-            anchorEl={styleAnchor}
-            open={Boolean(styleAnchor)}
-            onClose={() => setStyleAnchor(null)}
-            slotProps={{ paper: { sx: { mt: 0.5 } }, list: MENU_FOCUS_PROPS }}
-          >
-            {TEXT_STYLES.map(s => (
-              <MenuItem
-                key={s.tag}
-                onMouseDown={e => {
-                  e.preventDefault()
-                  restoreSelection()
-                  document.execCommand('formatBlock', false, s.tag)
-                  setActiveStyle(s.label)
-                  setStyleAnchor(null)
-                  editorRef.current?.focus()
-                }}
-                sx={s.sx}
-              >
-                {s.label}
-              </MenuItem>
-            ))}
-          </Menu>
-
-          {divider}
-
-          {/* Font family */}
-          <DropdownBtn
-            label={activeFont}
-            title="Font family"
-            onMouseDown={e => { e.preventDefault(); setFontAnchor(e.currentTarget) }}
-          />
-          <Menu
-            anchorEl={fontAnchor}
-            open={Boolean(fontAnchor)}
-            onClose={() => setFontAnchor(null)}
-            slotProps={{ paper: { sx: { mt: 0.5 } }, list: MENU_FOCUS_PROPS }}
-          >
-            {FONT_FAMILIES.map(f => (
-              <MenuItem
-                key={f.value}
-                onMouseDown={e => {
-                  e.preventDefault()
-                  restoreSelection()
-                  document.execCommand('fontName', false, f.value)
-                  setActiveFont(f.label)
-                  setFontAnchor(null)
-                  editorRef.current?.focus()
-                }}
-              >
-                {f.label}
-              </MenuItem>
-            ))}
-          </Menu>
-
-          {divider}
-
-          <ToolbarBtn title="Bold" onMouseDown={() => exec('bold')}>
-            <FormatBoldIcon sx={{ fontSize: 16 }} />
-          </ToolbarBtn>
-          <ToolbarBtn title="Italic" onMouseDown={() => exec('italic')}>
-            <FormatItalicIcon sx={{ fontSize: 16 }} />
-          </ToolbarBtn>
-          <ToolbarBtn title="Underline" onMouseDown={() => exec('underline')}>
-            <FormatUnderlinedIcon sx={{ fontSize: 16 }} />
-          </ToolbarBtn>
-
-          {divider}
-
-          {/* Color */}
-          <DropdownBtn
-            label="Color"
-            title="Text color"
-            onMouseDown={e => { e.preventDefault(); setColorAnchor(e.currentTarget) }}
-          />
-          <Tooltip title="Text color" placement="top">
-            <Box
-              component="button"
-              onMouseDown={e => { e.preventDefault(); setColorAnchor(e.currentTarget as HTMLElement) }}
-              sx={{ ...btnSx, width: 28, height: 28 }}
-            >
-              <Box sx={{
-                width: 14, height: 4, bgcolor: 'currentColor',
-                borderRadius: 1, mt: 0.5,
-              }} />
-            </Box>
-          </Tooltip>
-          <Menu
-            anchorEl={colorAnchor}
-            open={Boolean(colorAnchor)}
-            onClose={() => setColorAnchor(null)}
-            slotProps={{ paper: { sx: { mt: 0.5 } }, list: MENU_FOCUS_PROPS }}
-          >
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 0.5, p: 1.5 }}>
-              {COLOR_PALETTE.map(c => (
-                <Box
-                  key={c}
-                  component="button"
-                  onMouseDown={e => {
-                    e.preventDefault()
-                    restoreSelection()
-                    document.execCommand('foreColor', false, c)
-                    setColorAnchor(null)
-                    editorRef.current?.focus()
-                  }}
-                  sx={{
-                    width: 20, height: 20, borderRadius: '3px',
-                    bgcolor: c, border: '1px solid rgba(0,0,0,0.12)',
-                    cursor: 'pointer', p: 0,
-                  }}
-                />
-              ))}
-            </Box>
-          </Menu>
-
-          {divider}
-
-          <ToolbarBtn title="Bulleted list" onMouseDown={() => exec('insertUnorderedList')}>
-            <FormatListBulletedIcon sx={{ fontSize: 16 }} />
-          </ToolbarBtn>
-          <ToolbarBtn title="Numbered list" onMouseDown={() => exec('insertOrderedList')}>
-            <FormatListNumberedIcon sx={{ fontSize: 16 }} />
-          </ToolbarBtn>
-
-          {divider}
-
-          <ToolbarBtn title="Align left"   onMouseDown={() => exec('justifyLeft')}>
-            <FormatAlignLeftIcon   sx={{ fontSize: 16 }} />
-          </ToolbarBtn>
-          <ToolbarBtn title="Align center" onMouseDown={() => exec('justifyCenter')}>
-            <FormatAlignCenterIcon sx={{ fontSize: 16 }} />
-          </ToolbarBtn>
-          <ToolbarBtn title="Align right"  onMouseDown={() => exec('justifyRight')}>
-            <FormatAlignRightIcon  sx={{ fontSize: 16 }} />
-          </ToolbarBtn>
-
-          {divider}
-
-          <ToolbarBtn
-            title="Insert link"
-            onMouseDown={() => {
-              restoreSelection()
-              const url = window.prompt('Enter URL:')
-              if (url) exec('createLink', url)
-            }}
-          >
-            <LinkIcon sx={{ fontSize: 16 }} />
-          </ToolbarBtn>
-          <ToolbarBtn title="Remove link" onMouseDown={() => exec('unlink')}>
-            <LinkOffIcon sx={{ fontSize: 16 }} />
-          </ToolbarBtn>
-
-          {divider}
-
-          <ToolbarBtn title="Clear formatting" onMouseDown={() => exec('removeFormat')}>
-            <FormatClearIcon sx={{ fontSize: 16 }} />
-          </ToolbarBtn>
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
+        <Box>
+          <Typography variant="h1" sx={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.015em', color: 'text.primary' }}>
+            Join / Renew Page
+          </Typography>
+          <Typography sx={{ mt: 0.5, fontSize: 13, color: 'text.secondary' }}>
+            Edit the welcome text shown at the top of the public Join / Renew page.
+          </Typography>
         </Box>
-
-        {/* Editable content */}
-        <Box
-          ref={editorRef}
-          contentEditable
-          suppressContentEditableWarning
-          onSelect={() => {
-            const sel = window.getSelection()
-            if (!sel || sel.rangeCount === 0) return
-            const range = sel.getRangeAt(0)
-            if (editorRef.current?.contains(range.commonAncestorContainer)) {
-              savedRangeRef.current = range.cloneRange()
-            }
-          }}
-          sx={{
-            minHeight: 320,
-            p: 3,
-            outline: 'none',
-            fontSize: 14,
-            lineHeight: 1.7,
-            color: 'text.primary',
-            fontFamily: CSS_FONT_NUNITO,
-            '& h1': { fontSize: 22, fontWeight: 700, mt: 2, mb: 1, fontFamily: CSS_FONT_LORA },
-            '& h2': { fontSize: 18, fontWeight: 600, mt: 1.5, mb: 0.75, fontFamily: CSS_FONT_LORA },
-            '& h3': { fontSize: 15, fontWeight: 600, mt: 1.5, mb: 0.5, fontFamily: CSS_FONT_LORA },
-            '& p':  { mt: 0, mb: 1 },
-            '& ul, & ol': { pl: 3, mb: 1 },
-            '& a':  { color: 'var(--action-primary)', textDecoration: 'underline' },
-          }}
-        />
-      </Box>
-
-      {/* Auto-generated note */}
-      <Box sx={{
-        bgcolor: 'var(--status-warning-bg, #FFFBE6)',
-        border: '1px solid',
-        borderColor: 'var(--status-warning, #A67C00)',
-        borderRadius: 'var(--radius-md)',
-        px: 2.5,
-        py: 2,
-      }}>
-        <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'var(--status-warning-text, #6B5000)', mb: 0.5 }}>
-          Payment instructions are auto-generated
-        </Typography>
-        <Typography sx={{ fontSize: 13, color: 'var(--status-warning-text, #6B5000)', lineHeight: 1.6 }}>
-          Below your intro text, the page automatically shows payment method instructions based on your{' '}
-          <Box
-            component="a"
-            href={`/${clubSlug}/admin/dues-payment`}
-            sx={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer', fontWeight: 600 }}
-          >
-            Dues &amp; Payment settings
-          </Box>
-          . No payment methods are shown until you configure them there.
-        </Typography>
-      </Box>
-
-      {/* Bottom bar */}
-      <Box sx={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        pt: 2, borderTop: '1px solid', borderColor: 'divider',
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Button
-            variant="contained"
-            onClick={handleSave}
-            disabled={saveStatus === 'saving'}
-            startIcon={saveStatus === 'saving' ? <CircularProgress size={14} color="inherit" /> : undefined}
-          >
-            {saveStatus === 'saving' ? 'Saving…' : 'Save'}
-          </Button>
-          {saveStatus === 'saved' && (
-            <Typography sx={{ fontSize: 13, color: 'var(--status-success)', fontWeight: 500 }}>Saved</Typography>
-          )}
-          {saveStatus === 'error' && (
-            <Typography sx={{ fontSize: 13, color: 'var(--status-error)', fontWeight: 500 }}>Error saving</Typography>
-          )}
-        </Box>
-
         <Button
           variant="outlined"
           color="secondary"
@@ -453,10 +316,235 @@ export default function JoinPageEditor({
           target="_blank"
           component="a"
           size="small"
-          sx={{ fontSize: 13 }}
+          sx={{ fontSize: 13, flexShrink: 0 }}
         >
           View page
         </Button>
+      </Box>
+
+      {/* Two-column layout: editor + dues panel */}
+      <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start' }}>
+
+        {/* Left — editor */}
+        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+          {/* Editor card */}
+          <Box sx={{
+            bgcolor: 'background.paper',
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 'var(--radius-lg)',
+            overflow: 'hidden',
+          }}>
+            {/* Toolbar */}
+            <Box sx={{
+              display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.25,
+              px: 1.5, py: 0.75,
+              borderBottom: '1px solid', borderColor: 'divider',
+              bgcolor: 'background.default',
+            }}>
+              <DropdownBtn
+                label={activeStyle}
+                title="Text style"
+                onMouseDown={e => { e.preventDefault(); setStyleAnchor(e.currentTarget) }}
+              />
+              <Menu
+                anchorEl={styleAnchor}
+                open={Boolean(styleAnchor)}
+                onClose={() => setStyleAnchor(null)}
+                slotProps={{ paper: { sx: { mt: 0.5 } }, list: MENU_FOCUS_PROPS }}
+              >
+                {TEXT_STYLES.map(s => (
+                  <MenuItem
+                    key={s.tag}
+                    onMouseDown={e => {
+                      e.preventDefault()
+                      restoreSelection()
+                      document.execCommand('formatBlock', false, s.tag)
+                      setActiveStyle(s.label)
+                      setStyleAnchor(null)
+                      editorRef.current?.focus()
+                    }}
+                    sx={s.sx}
+                  >
+                    {s.label}
+                  </MenuItem>
+                ))}
+              </Menu>
+
+              {divider}
+
+              <DropdownBtn
+                label={activeFont}
+                title="Font family"
+                onMouseDown={e => { e.preventDefault(); setFontAnchor(e.currentTarget) }}
+              />
+              <Menu
+                anchorEl={fontAnchor}
+                open={Boolean(fontAnchor)}
+                onClose={() => setFontAnchor(null)}
+                slotProps={{ paper: { sx: { mt: 0.5 } }, list: MENU_FOCUS_PROPS }}
+              >
+                {FONT_FAMILIES.map(f => (
+                  <MenuItem
+                    key={f.value}
+                    onMouseDown={e => {
+                      e.preventDefault()
+                      restoreSelection()
+                      document.execCommand('fontName', false, f.value)
+                      setActiveFont(f.label)
+                      setFontAnchor(null)
+                      editorRef.current?.focus()
+                    }}
+                  >
+                    {f.label}
+                  </MenuItem>
+                ))}
+              </Menu>
+
+              {divider}
+
+              <ToolbarBtn title="Bold"      onMouseDown={() => exec('bold')}>
+                <FormatBoldIcon sx={{ fontSize: 16 }} />
+              </ToolbarBtn>
+              <ToolbarBtn title="Italic"    onMouseDown={() => exec('italic')}>
+                <FormatItalicIcon sx={{ fontSize: 16 }} />
+              </ToolbarBtn>
+              <ToolbarBtn title="Underline" onMouseDown={() => exec('underline')}>
+                <FormatUnderlinedIcon sx={{ fontSize: 16 }} />
+              </ToolbarBtn>
+
+              {divider}
+
+              <DropdownBtn
+                label="Color"
+                title="Text color"
+                onMouseDown={e => { e.preventDefault(); setColorAnchor(e.currentTarget) }}
+              />
+              <Menu
+                anchorEl={colorAnchor}
+                open={Boolean(colorAnchor)}
+                onClose={() => setColorAnchor(null)}
+                slotProps={{ paper: { sx: { mt: 0.5 } }, list: MENU_FOCUS_PROPS }}
+              >
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 0.5, p: 1.5 }}>
+                  {COLOR_PALETTE.map(c => (
+                    <Box
+                      key={c}
+                      component="button"
+                      onMouseDown={e => {
+                        e.preventDefault()
+                        restoreSelection()
+                        document.execCommand('foreColor', false, c)
+                        setColorAnchor(null)
+                        editorRef.current?.focus()
+                      }}
+                      sx={{
+                        width: 20, height: 20, borderRadius: '3px',
+                        bgcolor: c, border: '1px solid rgba(0,0,0,0.12)',
+                        cursor: 'pointer', p: 0,
+                      }}
+                    />
+                  ))}
+                </Box>
+              </Menu>
+
+              {divider}
+
+              <ToolbarBtn title="Bulleted list" onMouseDown={() => exec('insertUnorderedList')}>
+                <FormatListBulletedIcon sx={{ fontSize: 16 }} />
+              </ToolbarBtn>
+              <ToolbarBtn title="Numbered list" onMouseDown={() => exec('insertOrderedList')}>
+                <FormatListNumberedIcon sx={{ fontSize: 16 }} />
+              </ToolbarBtn>
+
+              {divider}
+
+              <ToolbarBtn title="Align left"   onMouseDown={() => exec('justifyLeft')}>
+                <FormatAlignLeftIcon   sx={{ fontSize: 16 }} />
+              </ToolbarBtn>
+              <ToolbarBtn title="Align center" onMouseDown={() => exec('justifyCenter')}>
+                <FormatAlignCenterIcon sx={{ fontSize: 16 }} />
+              </ToolbarBtn>
+              <ToolbarBtn title="Align right"  onMouseDown={() => exec('justifyRight')}>
+                <FormatAlignRightIcon  sx={{ fontSize: 16 }} />
+              </ToolbarBtn>
+
+              {divider}
+
+              <ToolbarBtn
+                title="Insert link"
+                onMouseDown={() => {
+                  restoreSelection()
+                  const url = window.prompt('Enter URL:')
+                  if (url) exec('createLink', url)
+                }}
+              >
+                <LinkIcon sx={{ fontSize: 16 }} />
+              </ToolbarBtn>
+              <ToolbarBtn title="Remove link" onMouseDown={() => exec('unlink')}>
+                <LinkOffIcon sx={{ fontSize: 16 }} />
+              </ToolbarBtn>
+
+              {divider}
+
+              <ToolbarBtn title="Clear formatting" onMouseDown={() => exec('removeFormat')}>
+                <FormatClearIcon sx={{ fontSize: 16 }} />
+              </ToolbarBtn>
+            </Box>
+
+            {/* Editable content */}
+            <Box
+              ref={editorRef}
+              contentEditable
+              suppressContentEditableWarning
+              onSelect={() => {
+                const sel = window.getSelection()
+                if (!sel || sel.rangeCount === 0) return
+                const range = sel.getRangeAt(0)
+                if (editorRef.current?.contains(range.commonAncestorContainer)) {
+                  savedRangeRef.current = range.cloneRange()
+                }
+              }}
+              sx={{
+                minHeight: 240,
+                p: 3,
+                outline: 'none',
+                fontSize: 14,
+                lineHeight: 1.7,
+                color: 'text.primary',
+                fontFamily: CSS_FONT_NUNITO,
+                '& h1': { fontSize: 22, fontWeight: 700, mt: 2, mb: 1, fontFamily: CSS_FONT_LORA },
+                '& h2': { fontSize: 18, fontWeight: 600, mt: 1.5, mb: 0.75, fontFamily: CSS_FONT_LORA },
+                '& h3': { fontSize: 15, fontWeight: 600, mt: 1.5, mb: 0.5, fontFamily: CSS_FONT_LORA },
+                '& p':  { mt: 0, mb: 1 },
+                '& ul, & ol': { pl: 3, mb: 1 },
+                '& a':  { color: 'var(--action-primary)', textDecoration: 'underline' },
+              }}
+            />
+          </Box>
+
+          {/* Save bar */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              disabled={saveStatus === 'saving'}
+              startIcon={saveStatus === 'saving' ? <CircularProgress size={14} color="inherit" /> : undefined}
+            >
+              {saveStatus === 'saving' ? 'Saving…' : 'Save'}
+            </Button>
+            {saveStatus === 'saved' && (
+              <Typography sx={{ fontSize: 13, color: 'var(--status-success)', fontWeight: 500 }}>Saved</Typography>
+            )}
+            {saveStatus === 'error' && (
+              <Typography sx={{ fontSize: 13, color: 'var(--status-error)', fontWeight: 500 }}>Error saving</Typography>
+            )}
+          </Box>
+        </Box>
+
+        {/* Right — dues panel */}
+        <DuesPanel dues={duesSummary} clubSlug={clubSlug} />
       </Box>
     </Box>
   )
