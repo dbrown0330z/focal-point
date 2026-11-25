@@ -446,6 +446,7 @@ function AddPageFooter({ tabName, onClick }: { tabName: string; onClick: () => v
 function TabBlock({
   label, note, isLocked, isCalendar, isCustom, pageCount,
   expanded, onToggle, headerRightContent, dragHandleEl, children, footerEl,
+  onDragOver, onDrop, dragOverStyle,
 }: {
   label:               string
   note?:               string
@@ -459,13 +460,18 @@ function TabBlock({
   dragHandleEl?:       React.ReactNode
   children?:           React.ReactNode
   footerEl?:           React.ReactNode
+  onDragOver?:         (e: React.DragEvent) => void
+  onDrop?:             () => void
+  dragOverStyle?:      React.CSSProperties
 }) {
   const pageWord = pageCount === 1 ? 'page' : 'pages'
   return (
-    <div style={{
-      border: '1px solid var(--border-default)', borderRadius: 10, overflow: 'hidden',
-      background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-    }}>
+    <div onDragOver={onDragOver} onDrop={onDrop}
+      style={{
+        border: '1px solid var(--border-default)', borderRadius: 10, overflow: 'hidden',
+        background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        ...(dragOverStyle ?? {}),
+      }}>
       <div style={{
         display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: GRID_PAD,
         alignItems: 'center', minHeight: 56, background: TAB_HDR_BG,
@@ -516,7 +522,7 @@ function TabBlock({
 
 function CustomTabBlock({
   tab, pages, clubSlug, onDelete, onDeletePage, onChangeVis, onAddPage,
-  pending, dragHandleEl, dragOverStyle, onDragStart, onDragOver, onDragEnd, onDrop,
+  pending, dragHandleEl, dragOverStyle, onDragOver, onDrop,
   pageDragOver, onPageDragStart, onPageDragOver, onPageDragEnd, onPageDrop,
 }: {
   tab:           CustomTab
@@ -529,15 +535,13 @@ function CustomTabBlock({
   pending:       boolean
   dragHandleEl:      React.ReactNode
   dragOverStyle:     React.CSSProperties
-  onDragStart:       (e: React.DragEvent) => void
+  onDragOver:    (e: React.DragEvent) => void
+  onDrop:        () => void
   pageDragOver?:     string | null
   onPageDragStart?:  (e: React.DragEvent, id: string) => void
   onPageDragOver?:   (e: React.DragEvent, id: string) => void
   onPageDragEnd?:    () => void
   onPageDrop?:       (id: string) => void
-  onDragOver:    (e: React.DragEvent) => void
-  onDragEnd:     () => void
-  onDrop:        () => void
 }) {
   const [expanded, setExpanded] = useState(true)
   const count = pages.length
@@ -563,8 +567,7 @@ function CustomTabBlock({
           </span>
           <CustomChip />
         </div>
-        <div draggable onDragStart={onDragStart} onDragEnd={onDragEnd}
-          style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', color: 'var(--text-secondary)', cursor: 'grab', display: 'flex', touchAction: 'none' }}>
+        <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', color: 'var(--text-secondary)', display: 'flex' }}>
           {dragHandleEl}
         </div>
         <div />
@@ -814,13 +817,56 @@ export default function NavigationClient({
   const [newPageOpen, setNewPageOpen] = useState(false)
   const [newTabOpen,  setNewTabOpen]  = useState(false)
 
-  // Tab drag state
-  const tabDragIdx = useRef<number | null>(null)
-  const [tabDragOver, setTabDragOver] = useState<number | null>(null)
+  // Unified tab order (built-in + custom), persisted in localStorage
+  const BUILTIN_IDS = ['home', 'calendar', 'images', 'competitions', 'our-club']
+  const [tabOrder, setTabOrder] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [...BUILTIN_IDS, ...initialTabs.map(t => t.id)]
+    try {
+      const saved = JSON.parse(localStorage.getItem(`fp_nav_tabs_${clubId}`) ?? 'null')
+      if (Array.isArray(saved)) {
+        const all = new Set([...BUILTIN_IDS, ...initialTabs.map(t => t.id)])
+        const extra = [...all].filter(id => !saved.includes(id))
+        return [...saved.filter((id: string) => all.has(id)), ...extra]
+      }
+    } catch {}
+    return [...BUILTIN_IDS, ...initialTabs.map(t => t.id)]
+  })
+  // Sync when custom tabs are added/deleted
+  React.useEffect(() => {
+    setTabOrder(prev => {
+      const tabIds = tabs.map(t => t.id)
+      const validCustom = new Set(tabIds)
+      const filtered = prev.filter(id => BUILTIN_IDS.includes(id) || validCustom.has(id))
+      const toAdd = tabIds.filter(id => !prev.includes(id))
+      const next = toAdd.length > 0 ? [...filtered, ...toAdd] : filtered
+      localStorage.setItem(`fp_nav_tabs_${clubId}`, JSON.stringify(next))
+      return next
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabs.length])
 
-  const onTabDragStart = (e: React.DragEvent, idx: number) => { e.dataTransfer.setData('text/plain', ''); tabDragIdx.current = idx }
-  const onTabDragOver  = (e: React.DragEvent, idx: number) => { e.preventDefault(); setTabDragOver(idx) }
-  const onTabDragEnd   = () => { tabDragIdx.current = null; setTabDragOver(null) }
+  // Unified tab drag state
+  const tabDragId  = useRef<string | null>(null)
+  const [tabDragOver, setTabDragOver] = useState<string | null>(null)
+  const onTabDragStart = (e: React.DragEvent, id: string) => { e.dataTransfer.setData('text/plain', id); tabDragId.current = id }
+  const onTabDragOver  = (e: React.DragEvent, id: string) => { e.preventDefault(); setTabDragOver(id) }
+  const onTabDragEnd   = () => { tabDragId.current = null; setTabDragOver(null) }
+  const onTabDrop = async (toId: string) => {
+    const fromId = tabDragId.current
+    tabDragId.current = null; setTabDragOver(null)
+    if (!fromId || fromId === toId || fromId === 'home') return
+    const next = [...tabOrder]
+    const fi = next.indexOf(fromId); const ti = next.indexOf(toId)
+    if (fi === -1 || ti === -1) return
+    next.splice(fi, 1); next.splice(ti, 0, fromId)
+    const hi = next.indexOf('home'); if (hi > 0) { next.splice(hi, 1); next.unshift('home') }
+    setTabOrder(next)
+    localStorage.setItem(`fp_nav_tabs_${clubId}`, JSON.stringify(next))
+    const customIds = new Set(tabs.map(t => t.id))
+    const customOrder = next.filter(id => customIds.has(id))
+    const sb = createClient()
+    await Promise.all(customOrder.map((id, i) => sb.from('nav_custom_tabs').update({ sort_order: i }).eq('id', id)))
+  }
   // Page drag state
   const pageDragId   = useRef<string | null>(null)
   const [pageDragOver, setPageDragOver] = useState<string | null>(null)
@@ -852,18 +898,6 @@ export default function NavigationClient({
     await Promise.all(updated.map(p =>
       sb.from('nav_custom_pages').update({ sort_order: p.sort_order, tab_id: p.tab_id ?? null, parent_system: p.parent_system ?? null }).eq('id', p.id)
     ))
-  }
-
-  const onTabDrop      = async (toIdx: number) => {
-    const fromIdx = tabDragIdx.current
-    tabDragIdx.current = null; setTabDragOver(null)
-    if (fromIdx === null || fromIdx === toIdx) return
-    const reordered = [...tabs]
-    const [moved] = reordered.splice(fromIdx, 1)
-    reordered.splice(toIdx, 0, moved)
-    setTabs(reordered)
-    const sb = createClient()
-    await Promise.all(reordered.map((t, i) => sb.from('nav_custom_tabs').update({ sort_order: i }).eq('id', t.id)))
   }
 
   // DB operations
@@ -947,92 +981,86 @@ export default function NavigationClient({
       <ColumnHeaders />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-        {/* ── Home (locked, always first) ── */}
-        <TabBlock label="Home" pageCount={1} isLocked expanded onToggle={() => {}}
-          note="Always first"
-          dragHandleEl={<span style={{ opacity: 0.3 }}><LockIcon /></span>}
-        >
-          {HOME_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
-        </TabBlock>
-
-        {/* ── Calendar (single-page tab) ── */}
-        <TabBlock
-          label="Calendar" pageCount={0} isCalendar expanded onToggle={() => {}}
-          note="Single-page tab"
-          dragHandleEl={<HorizGrip />}
-          headerRightContent={
-            <BuiltinVisSelect value={builtinVis.calendar} onChange={v => changeBuiltinVis('calendar', v)} />
+        {tabOrder.map(tabId => {
+          const doh = tabDragOver === tabId ? { outline: '2px solid var(--action-primary)', outlineOffset: 2, borderRadius: 10 } as React.CSSProperties : {}
+          const grip = (id: string) => (
+            <span draggable onDragStart={e => onTabDragStart(e, id)} onDragEnd={onTabDragEnd}
+              style={{ cursor: 'grab', display: 'flex', touchAction: 'none', color: 'var(--text-secondary)' }}>
+              <HorizGrip />
+            </span>
+          )
+          if (tabId === 'home') return (
+            <TabBlock key="home" label="Home" pageCount={1} isLocked expanded onToggle={() => {}} note="Always first"
+              dragHandleEl={<span style={{ opacity: 0.3, display: 'flex' }}><LockIcon /></span>}>
+              {HOME_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
+            </TabBlock>
+          )
+          if (tabId === 'calendar') return (
+            <TabBlock key="calendar" label="Calendar" pageCount={0} isCalendar expanded onToggle={() => {}} note="Single-page tab"
+              dragHandleEl={grip('calendar')} dragOverStyle={doh}
+              onDragOver={e => onTabDragOver(e, 'calendar')} onDrop={() => onTabDrop('calendar')}
+              headerRightContent={<BuiltinVisSelect value={builtinVis.calendar} onChange={v => changeBuiltinVis('calendar', v)} />} />
+          )
+          if (tabId === 'images') {
+            const custom = pagesFor('images')
+            return (
+              <TabBlock key="images" label="Images" pageCount={IMAGES_PAGES.length + custom.length}
+                dragHandleEl={grip('images')} dragOverStyle={doh}
+                onDragOver={e => onTabDragOver(e, 'images')} onDrop={() => onTabDrop('images')}
+                expanded={imagesOpen} onToggle={() => setImagesOpen(o => !o)}
+                footerEl={<AddPageFooter tabName="Images" onClick={() => setNewPageOpen(true)} />}>
+                {IMAGES_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
+                {custom.map(p => <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={deletePage} onChangeVis={changeCustomPageVis} pending={pending}
+                  dragOverStyle={pageDragOver === p.id ? { outline: '2px solid var(--action-primary)', outlineOffset: -2 } : {}}
+                  onDragStart={e => onPageDragStart(e, p.id)} onDragOver={e => onPageDragOver(e, p.id)} onDragEnd={onPageDragEnd} onDrop={() => onPageDrop(p.id)} />)}
+              </TabBlock>
+            )
           }
-        />
-
-        {/* ── Images ── */}
-        {(() => {
-          const custom = pagesFor('images')
+          if (tabId === 'competitions') {
+            const custom = pagesFor('competitions')
+            return (
+              <TabBlock key="competitions" label="Competitions" pageCount={COMPETITIONS_PAGES.length + custom.length}
+                dragHandleEl={grip('competitions')} dragOverStyle={doh}
+                onDragOver={e => onTabDragOver(e, 'competitions')} onDrop={() => onTabDrop('competitions')}
+                expanded={competitionsOpen} onToggle={() => setCompetitionsOpen(o => !o)}
+                footerEl={<AddPageFooter tabName="Competitions" onClick={() => setNewPageOpen(true)} />}>
+                {COMPETITIONS_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
+                {custom.map(p => <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={deletePage} onChangeVis={changeCustomPageVis} pending={pending}
+                  dragOverStyle={pageDragOver === p.id ? { outline: '2px solid var(--action-primary)', outlineOffset: -2 } : {}}
+                  onDragStart={e => onPageDragStart(e, p.id)} onDragOver={e => onPageDragOver(e, p.id)} onDragEnd={onPageDragEnd} onDrop={() => onPageDrop(p.id)} />)}
+              </TabBlock>
+            )
+          }
+          if (tabId === 'our-club') {
+            const custom = pagesFor('our-club')
+            return (
+              <TabBlock key="our-club" label="Our Club" pageCount={OUR_CLUB_PAGES.length + custom.length}
+                dragHandleEl={grip('our-club')} dragOverStyle={doh}
+                onDragOver={e => onTabDragOver(e, 'our-club')} onDrop={() => onTabDrop('our-club')}
+                expanded={ourClubOpen} onToggle={() => setOurClubOpen(o => !o)}
+                footerEl={<AddPageFooter tabName="Our Club" onClick={() => setNewPageOpen(true)} />}>
+                {OUR_CLUB_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
+                {custom.map(p => <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={deletePage} onChangeVis={changeCustomPageVis} pending={pending}
+                  dragOverStyle={pageDragOver === p.id ? { outline: '2px solid var(--action-primary)', outlineOffset: -2 } : {}}
+                  onDragStart={e => onPageDragStart(e, p.id)} onDragOver={e => onPageDragOver(e, p.id)} onDragEnd={onPageDragEnd} onDrop={() => onPageDrop(p.id)} />)}
+              </TabBlock>
+            )
+          }
+          const tab = tabs.find(t => t.id === tabId)
+          if (!tab) return null
           return (
-            <TabBlock label="Images" pageCount={IMAGES_PAGES.length + custom.length}
-              dragHandleEl={<HorizGrip />} expanded={imagesOpen} onToggle={() => setImagesOpen(o => !o)}
-              footerEl={<AddPageFooter tabName="Images" onClick={() => setNewPageOpen(true)} />}
-            >
-              {IMAGES_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
-              {custom.map(p => <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={deletePage} onChangeVis={changeCustomPageVis} pending={pending}
-                dragOverStyle={pageDragOver === p.id ? { outline: '2px solid var(--action-primary)', outlineOffset: -2 } : {}}
-                onDragStart={e => onPageDragStart(e, p.id)} onDragOver={e => onPageDragOver(e, p.id)} onDragEnd={onPageDragEnd} onDrop={() => onPageDrop(p.id)} />)}
-            </TabBlock>
+            <CustomTabBlock
+              key={tab.id} tab={tab} pages={pagesForTab(tab.id)} clubSlug={clubSlug}
+              onDelete={deleteTab} onDeletePage={deletePage} onChangeVis={changeCustomPageVis}
+              onAddPage={() => setNewPageOpen(true)} pending={pending}
+              dragHandleEl={grip(tab.id)} dragOverStyle={doh}
+              onDragOver={e => onTabDragOver(e, tab.id)} onDrop={() => onTabDrop(tab.id)}
+              pageDragOver={pageDragOver}
+              onPageDragStart={onPageDragStart} onPageDragOver={onPageDragOver}
+              onPageDragEnd={onPageDragEnd} onPageDrop={onPageDrop}
+            />
           )
-        })()}
-
-        {/* ── Competitions ── */}
-        {(() => {
-          const custom = pagesFor('competitions')
-          return (
-            <TabBlock label="Competitions" pageCount={COMPETITIONS_PAGES.length + custom.length}
-              dragHandleEl={<HorizGrip />} expanded={competitionsOpen} onToggle={() => setCompetitionsOpen(o => !o)}
-              footerEl={<AddPageFooter tabName="Competitions" onClick={() => setNewPageOpen(true)} />}
-            >
-              {COMPETITIONS_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
-              {custom.map(p => <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={deletePage} onChangeVis={changeCustomPageVis} pending={pending}
-                dragOverStyle={pageDragOver === p.id ? { outline: '2px solid var(--action-primary)', outlineOffset: -2 } : {}}
-                onDragStart={e => onPageDragStart(e, p.id)} onDragOver={e => onPageDragOver(e, p.id)} onDragEnd={onPageDragEnd} onDrop={() => onPageDrop(p.id)} />)}
-            </TabBlock>
-          )
-        })()}
-
-        {/* ── Our Club ── */}
-        {(() => {
-          const custom = pagesFor('our-club')
-          return (
-            <TabBlock label="Our Club" pageCount={OUR_CLUB_PAGES.length + custom.length}
-              dragHandleEl={<HorizGrip />} expanded={ourClubOpen} onToggle={() => setOurClubOpen(o => !o)}
-              footerEl={<AddPageFooter tabName="Our Club" onClick={() => setNewPageOpen(true)} />}
-            >
-              {OUR_CLUB_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
-              {custom.map(p => <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={deletePage} onChangeVis={changeCustomPageVis} pending={pending}
-                dragOverStyle={pageDragOver === p.id ? { outline: '2px solid var(--action-primary)', outlineOffset: -2 } : {}}
-                onDragStart={e => onPageDragStart(e, p.id)} onDragOver={e => onPageDragOver(e, p.id)} onDragEnd={onPageDragEnd} onDrop={() => onPageDrop(p.id)} />)}
-            </TabBlock>
-          )
-        })()}
-
-        {/* ── Custom tabs ── */}
-        {tabs.map((tab, tabIdx) => (
-          <CustomTabBlock
-            key={tab.id} tab={tab} pages={pagesForTab(tab.id)} clubSlug={clubSlug}
-            onDelete={deleteTab} onDeletePage={deletePage} onChangeVis={changeCustomPageVis}
-            onAddPage={() => setNewPageOpen(true)} pending={pending}
-            dragHandleEl={<HorizGrip />}
-            dragOverStyle={tabDragOver === tabIdx ? { outline: '2px solid var(--action-primary)', outlineOffset: 2 } : {}}
-            onDragStart={e => onTabDragStart(e, tabIdx)}
-            onDragOver={e => onTabDragOver(e, tabIdx)}
-            onDragEnd={onTabDragEnd}
-            onDrop={() => onTabDrop(tabIdx)}
-            pageDragOver={pageDragOver}
-            onPageDragStart={onPageDragStart}
-            onPageDragOver={onPageDragOver}
-            onPageDragEnd={onPageDragEnd}
-            onPageDrop={onPageDrop}
-          />
-        ))}
+        })}
       </div>
 
       <NewPageDialogFull
