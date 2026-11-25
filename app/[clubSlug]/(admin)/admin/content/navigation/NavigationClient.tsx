@@ -378,14 +378,17 @@ function CustomPageRow({
   onDrop?:       () => void
 }) {
   return (
-    <div draggable onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDrop={onDrop}
+    <div onDragOver={onDragOver} onDrop={onDrop}
       style={{
         display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: '12px 20px 12px 12px',
         alignItems: 'center', minHeight: 60, borderTop: '1px solid var(--border-subtle)', background: '#fff',
         ...(dragOverStyle ?? {}),
       }}>
-      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)', cursor: 'grab' }}>
-        <span aria-label="Drag to reorder"><VertGrip /></span>
+      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+        <span draggable onDragStart={onDragStart} onDragEnd={onDragEnd}
+          aria-label="Drag to reorder" style={{ cursor: 'grab', display: 'flex', touchAction: 'none' }}>
+          <VertGrip />
+        </span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
         <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -539,7 +542,7 @@ function CustomTabBlock({
   const [expanded, setExpanded] = useState(true)
   const count = pages.length
   return (
-    <div draggable onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDrop={onDrop}
+    <div onDragOver={onDragOver} onDrop={onDrop}
       style={{ border: '1px solid var(--border-default)', borderRadius: 10, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', ...dragOverStyle }}>
       <div style={{
         display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: GRID_PAD,
@@ -560,7 +563,8 @@ function CustomTabBlock({
           </span>
           <CustomChip />
         </div>
-        <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', color: 'var(--text-secondary)', cursor: 'grab', display: 'flex' }}>
+        <div draggable onDragStart={onDragStart} onDragEnd={onDragEnd}
+          style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', color: 'var(--text-secondary)', cursor: 'grab', display: 'flex', touchAction: 'none' }}>
           {dragHandleEl}
         </div>
         <div />
