@@ -832,7 +832,7 @@ export default function NavigationClient({
     return [...BUILTIN_IDS, ...initialTabs.map(t => t.id)]
   })
   // Sync when custom tabs are added/deleted
-  React.useEffect(() => {
+  useEffect(() => {
     setTabOrder(prev => {
       const tabIds = tabs.map(t => t.id)
       const validCustom = new Set(tabIds)
