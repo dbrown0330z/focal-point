@@ -364,18 +364,26 @@ function BuiltinPageRow({
 
 function CustomPageRow({
   page, clubSlug, onDelete, onChangeVis, pending,
+  dragOverStyle, onDragStart, onDragOver, onDragEnd, onDrop,
 }: {
-  page:        CustomPage
-  clubSlug:    string
-  onDelete:    (id: string) => void
-  onChangeVis: (id: string, v: Visibility) => void
-  pending:     boolean
+  page:          CustomPage
+  clubSlug:      string
+  onDelete:      (id: string) => void
+  onChangeVis:   (id: string, v: Visibility) => void
+  pending:       boolean
+  dragOverStyle?: React.CSSProperties
+  onDragStart?:  (e: React.DragEvent) => void
+  onDragOver?:   (e: React.DragEvent) => void
+  onDragEnd?:    () => void
+  onDrop?:       () => void
 }) {
   return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: '12px 20px 12px 12px',
-      alignItems: 'center', minHeight: 60, borderTop: '1px solid var(--border-subtle)', background: '#fff',
-    }}>
+    <div draggable onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDrop={onDrop}
+      style={{
+        display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: '12px 20px 12px 12px',
+        alignItems: 'center', minHeight: 60, borderTop: '1px solid var(--border-subtle)', background: '#fff',
+        ...(dragOverStyle ?? {}),
+      }}>
       <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)', cursor: 'grab' }}>
         <span aria-label="Drag to reorder"><VertGrip /></span>
       </div>
@@ -506,6 +514,7 @@ function TabBlock({
 function CustomTabBlock({
   tab, pages, clubSlug, onDelete, onDeletePage, onChangeVis, onAddPage,
   pending, dragHandleEl, dragOverStyle, onDragStart, onDragOver, onDragEnd, onDrop,
+  pageDragOver, onPageDragStart, onPageDragOver, onPageDragEnd, onPageDrop,
 }: {
   tab:           CustomTab
   pages:         CustomPage[]
@@ -515,9 +524,14 @@ function CustomTabBlock({
   onChangeVis:   (id: string, v: Visibility) => void
   onAddPage:     () => void
   pending:       boolean
-  dragHandleEl:  React.ReactNode
-  dragOverStyle: React.CSSProperties
-  onDragStart:   () => void
+  dragHandleEl:      React.ReactNode
+  dragOverStyle:     React.CSSProperties
+  onDragStart:       (e: React.DragEvent) => void
+  pageDragOver?:     string | null
+  onPageDragStart?:  (e: React.DragEvent, id: string) => void
+  onPageDragOver?:   (e: React.DragEvent, id: string) => void
+  onPageDragEnd?:    () => void
+  onPageDrop?:       (id: string) => void
   onDragOver:    (e: React.DragEvent) => void
   onDragEnd:     () => void
   onDrop:        () => void
@@ -557,7 +571,13 @@ function CustomTabBlock({
         </div>
       </div>
       {expanded && pages.map(p => (
-        <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={onDeletePage} onChangeVis={onChangeVis} pending={pending} />
+        <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={onDeletePage} onChangeVis={onChangeVis} pending={pending}
+          dragOverStyle={pageDragOver === p.id ? { outline: '2px solid var(--action-primary)', outlineOffset: -2 } : {}}
+          onDragStart={onPageDragStart ? e => onPageDragStart(e, p.id) : undefined}
+          onDragOver={onPageDragOver ? e => onPageDragOver(e, p.id) : undefined}
+          onDragEnd={onPageDragEnd}
+          onDrop={onPageDrop ? () => onPageDrop(p.id) : undefined}
+        />
       ))}
       {expanded && count === 0 && (
         <div style={{ padding: '24px 20px', textAlign: 'center', borderTop: '1px dashed var(--border-default)', color: 'var(--text-tertiary)', fontSize: 13 }}>
@@ -794,9 +814,42 @@ export default function NavigationClient({
   const tabDragIdx = useRef<number | null>(null)
   const [tabDragOver, setTabDragOver] = useState<number | null>(null)
 
-  const onTabDragStart = (idx: number) => { tabDragIdx.current = idx }
+  const onTabDragStart = (e: React.DragEvent, idx: number) => { e.dataTransfer.setData('text/plain', ''); tabDragIdx.current = idx }
   const onTabDragOver  = (e: React.DragEvent, idx: number) => { e.preventDefault(); setTabDragOver(idx) }
   const onTabDragEnd   = () => { tabDragIdx.current = null; setTabDragOver(null) }
+  // Page drag state
+  const pageDragId   = useRef<string | null>(null)
+  const [pageDragOver, setPageDragOver] = useState<string | null>(null)
+  const onPageDragStart = (e: React.DragEvent, id: string) => { e.dataTransfer.setData('text/plain', ''); pageDragId.current = id }
+  const onPageDragOver  = (e: React.DragEvent, id: string) => { e.preventDefault(); setPageDragOver(id) }
+  const onPageDragEnd   = () => { pageDragId.current = null; setPageDragOver(null) }
+  const onPageDrop = async (toId: string) => {
+    const fromId = pageDragId.current
+    pageDragId.current = null; setPageDragOver(null)
+    if (!fromId || fromId === toId) return
+    const fromPage = pages.find(p => p.id === fromId)
+    const toPage   = pages.find(p => p.id === toId)
+    if (!fromPage || !toPage) return
+    const toParent: Pick<CustomPage, 'tab_id' | 'parent_system'> = toPage.tab_id
+      ? { tab_id: toPage.tab_id, parent_system: null }
+      : { tab_id: null, parent_system: toPage.parent_system }
+    const destGroup = pages
+      .filter(p => p.id !== fromId)
+      .filter(p => toPage.tab_id ? p.tab_id === toPage.tab_id : p.parent_system === toPage.parent_system)
+      .sort((a, b) => a.sort_order - b.sort_order)
+    const toIdx = destGroup.findIndex(p => p.id === toId)
+    destGroup.splice(toIdx, 0, { ...fromPage, ...toParent, sort_order: toIdx })
+    const updated = destGroup.map((p, i) => ({ ...p, sort_order: i }))
+    setPages(prev => {
+      const inDest = new Set(updated.map(u => u.id))
+      return [...prev.filter(p => !inDest.has(p.id)), ...updated]
+    })
+    const sb = createClient()
+    await Promise.all(updated.map(p =>
+      sb.from('nav_custom_pages').update({ sort_order: p.sort_order, tab_id: p.tab_id ?? null, parent_system: p.parent_system ?? null }).eq('id', p.id)
+    ))
+  }
+
   const onTabDrop      = async (toIdx: number) => {
     const fromIdx = tabDragIdx.current
     tabDragIdx.current = null; setTabDragOver(null)
@@ -918,7 +971,9 @@ export default function NavigationClient({
               footerEl={<AddPageFooter tabName="Images" onClick={() => setNewPageOpen(true)} />}
             >
               {IMAGES_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
-              {custom.map(p => <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={deletePage} onChangeVis={changeCustomPageVis} pending={pending} />)}
+              {custom.map(p => <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={deletePage} onChangeVis={changeCustomPageVis} pending={pending}
+                dragOverStyle={pageDragOver === p.id ? { outline: '2px solid var(--action-primary)', outlineOffset: -2 } : {}}
+                onDragStart={e => onPageDragStart(e, p.id)} onDragOver={e => onPageDragOver(e, p.id)} onDragEnd={onPageDragEnd} onDrop={() => onPageDrop(p.id)} />)}
             </TabBlock>
           )
         })()}
@@ -932,7 +987,9 @@ export default function NavigationClient({
               footerEl={<AddPageFooter tabName="Competitions" onClick={() => setNewPageOpen(true)} />}
             >
               {COMPETITIONS_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
-              {custom.map(p => <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={deletePage} onChangeVis={changeCustomPageVis} pending={pending} />)}
+              {custom.map(p => <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={deletePage} onChangeVis={changeCustomPageVis} pending={pending}
+                dragOverStyle={pageDragOver === p.id ? { outline: '2px solid var(--action-primary)', outlineOffset: -2 } : {}}
+                onDragStart={e => onPageDragStart(e, p.id)} onDragOver={e => onPageDragOver(e, p.id)} onDragEnd={onPageDragEnd} onDrop={() => onPageDrop(p.id)} />)}
             </TabBlock>
           )
         })()}
@@ -946,7 +1003,9 @@ export default function NavigationClient({
               footerEl={<AddPageFooter tabName="Our Club" onClick={() => setNewPageOpen(true)} />}
             >
               {OUR_CLUB_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
-              {custom.map(p => <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={deletePage} onChangeVis={changeCustomPageVis} pending={pending} />)}
+              {custom.map(p => <CustomPageRow key={p.id} page={p} clubSlug={clubSlug} onDelete={deletePage} onChangeVis={changeCustomPageVis} pending={pending}
+                dragOverStyle={pageDragOver === p.id ? { outline: '2px solid var(--action-primary)', outlineOffset: -2 } : {}}
+                onDragStart={e => onPageDragStart(e, p.id)} onDragOver={e => onPageDragOver(e, p.id)} onDragEnd={onPageDragEnd} onDrop={() => onPageDrop(p.id)} />)}
             </TabBlock>
           )
         })()}
@@ -959,10 +1018,15 @@ export default function NavigationClient({
             onAddPage={() => setNewPageOpen(true)} pending={pending}
             dragHandleEl={<HorizGrip />}
             dragOverStyle={tabDragOver === tabIdx ? { outline: '2px solid var(--action-primary)', outlineOffset: 2 } : {}}
-            onDragStart={() => onTabDragStart(tabIdx)}
+            onDragStart={e => onTabDragStart(e, tabIdx)}
             onDragOver={e => onTabDragOver(e, tabIdx)}
             onDragEnd={onTabDragEnd}
             onDrop={() => onTabDrop(tabIdx)}
+            pageDragOver={pageDragOver}
+            onPageDragStart={onPageDragStart}
+            onPageDragOver={onPageDragOver}
+            onPageDragEnd={onPageDragEnd}
+            onPageDrop={onPageDrop}
           />
         ))}
       </div>
