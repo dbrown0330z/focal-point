@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Fragment, useEffect, useRef, useState, useTransition } from 'react'
 import {
-  Alert, Button,
+  Alert, Button, CircularProgress,
   Dialog, DialogActions, DialogContent, DialogTitle,
   FormControl, FormControlLabel, FormLabel,
   MenuItem, Radio, RadioGroup,
@@ -87,6 +87,10 @@ type BuiltinPageDef = {
   visKey?:   'about' | 'calendar' | 'galleries' | 'join'
   enableKey?: 'resources' | 'galleries'
 }
+
+type SortableItem =
+  | { sortId: string; kind: 'builtin'; page: BuiltinPageDef }
+  | { sortId: string; kind: 'custom';  page: CustomPage }
 
 const HOME_PAGES: BuiltinPageDef[] = [{
   key: 'homepage', title: 'Homepage', hasDrag: false,
@@ -313,7 +317,7 @@ function ActionsCluster({
 // ── Builtin page row ──────────────────────────────────────────────────────────
 
 function BuiltinPageRow({
-  page, clubSlug, builtinVis, onChangeVis, onChangeEnabled, pending,
+  page, clubSlug, builtinVis, onChangeVis, onChangeEnabled, pending, dragHandleProps,
 }: {
   page:            BuiltinPageDef
   clubSlug:        string
@@ -321,6 +325,7 @@ function BuiltinPageRow({
   onChangeVis:     (key: 'about' | 'calendar', v: BuiltinVis) => void
   onChangeEnabled: (key: 'resources' | 'galleries', v: boolean) => void
   pending:         boolean
+  dragHandleProps?: Record<string, unknown>
 }) {
   const enabled = page.enableKey === 'resources' ? builtinVis.resourcesEnabled
     : page.enableKey === 'galleries' ? builtinVis.galleriesEnabled
@@ -341,8 +346,11 @@ function BuiltinPageRow({
       background: dimmed ? '#F3F4F6' : '#fff',
     }}>
       {/* Drag handle */}
-      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)', opacity: 0 }}>
-        <VertGrip />
+      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)', opacity: page.hasDrag ? 1 : 0 }}>
+        <span {...((dragHandleProps ?? {}) as React.HTMLAttributes<HTMLSpanElement>)}
+          style={{ touchAction: 'none', cursor: page.hasDrag ? 'grab' : 'default', display: 'flex' }}>
+          <VertGrip />
+        </span>
       </div>
       {/* Name + tooltip */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, opacity: dimmed ? 0.45 : 1 }}>
@@ -511,33 +519,72 @@ function PageGhost({ title }: { title: string }) {
   )
 }
 
-function SortablePageGroup({ customPages, clubSlug, onDelete, onChangeVis, onReorder, pending, activeDragId, overDragId }: {
-  customPages:  CustomPage[]
-  clubSlug:     string
-  onDelete:     (id: string) => void
-  onChangeVis:  (id: string, v: Visibility) => void
-  onReorder:    (reordered: CustomPage[]) => void
-  pending:      boolean
-  activeDragId: string | null
-  overDragId:   string | null
+function getGroupItems(
+  group:       string,
+  builtinDefs: BuiltinPageDef[],
+  customPages: CustomPage[],
+  pageOrders:  Record<string, string[]>,
+): SortableItem[] {
+  const order = pageOrders[group]
+  if (!order) {
+    const items: SortableItem[] = builtinDefs.map(p => ({ sortId: `builtin:${p.key}`, kind: 'builtin' as const, page: p }))
+    customPages.slice().sort((a, b) => a.sort_order - b.sort_order)
+      .forEach(p => items.push({ sortId: p.id, kind: 'custom' as const, page: p }))
+    return items
+  }
+  const bMap = Object.fromEntries(builtinDefs.map(p => [`builtin:${p.key}`, p]))
+  const cMap = Object.fromEntries(customPages.map(p => [p.id, p]))
+  const items: SortableItem[] = []
+  for (const sortId of order) {
+    if (sortId.startsWith('builtin:')) {
+      const bp = bMap[sortId]; if (bp) items.push({ sortId, kind: 'builtin', page: bp })
+    } else {
+      const cp = cMap[sortId]; if (cp) items.push({ sortId, kind: 'custom', page: cp })
+    }
+  }
+  for (const cp of customPages) {
+    if (!order.includes(cp.id)) items.push({ sortId: cp.id, kind: 'custom', page: cp })
+  }
+  return items
+}
+
+function SortablePageGroup({ items, clubSlug, onDeleteCustom, onChangeVis, pending, activeDragId, overDragId, builtinRowProps }: {
+  items:          SortableItem[]
+  clubSlug:       string
+  onDeleteCustom: (id: string) => void
+  onChangeVis:    (id: string, v: Visibility) => void
+  pending:        boolean
+  activeDragId:   string | null
+  overDragId:     string | null
+  builtinRowProps?: {
+    builtinVis:      BuiltinPageVisibility
+    onChangeVis:     (key: 'about' | 'calendar', v: BuiltinVis) => void
+    onChangeEnabled: (key: 'resources' | 'galleries', v: boolean) => void
+  }
 }) {
-  const sorted = [...customPages].sort((a, b) => a.sort_order - b.sort_order)
-  const ids = sorted.map(p => p.id)
+  const ids = items.map(i => i.sortId)
   const proj = (activeDragId && overDragId && activeDragId !== overDragId && ids.includes(activeDragId) && ids.includes(overDragId))
     ? arrayMove(ids, ids.indexOf(activeDragId), ids.indexOf(overDragId))
     : null
   const activeNewIdx = proj ? proj.indexOf(activeDragId!) : -1
-  if (sorted.length === 0) return null
+  if (items.length === 0) return null
   return (
     <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-      {sorted.map((p, sortIdx) => {
+      {items.map((item, sortIdx) => {
         const showLineBefore = proj !== null && activeNewIdx === 0 && sortIdx === 0
-        const showLineAfter  = proj !== null && activeNewIdx > 0 && proj[activeNewIdx - 1] === p.id
+        const showLineAfter  = proj !== null && activeNewIdx > 0 && proj[activeNewIdx - 1] === item.sortId
         return (
-          <SortablePage key={p.id} id={p.id}>
+          <SortablePage key={item.sortId} id={item.sortId}>
             {hProps => (<>
               {showLineBefore && <DropLine />}
-              <CustomPageRow page={p} clubSlug={clubSlug} onDelete={onDelete} onChangeVis={onChangeVis} pending={pending} dragHandleProps={hProps} />
+              {item.kind === 'builtin'
+                ? <BuiltinPageRow page={item.page} clubSlug={clubSlug}
+                    builtinVis={builtinRowProps!.builtinVis}
+                    onChangeVis={builtinRowProps!.onChangeVis}
+                    onChangeEnabled={builtinRowProps!.onChangeEnabled}
+                    pending={pending} dragHandleProps={hProps} />
+                : <CustomPageRow page={item.page} clubSlug={clubSlug} onDelete={onDeleteCustom}
+                    onChangeVis={onChangeVis} pending={pending} dragHandleProps={hProps} />}
               {showLineAfter && <DropLine />}
             </>)}
           </SortablePage>
@@ -627,11 +674,11 @@ function TabBlock({
 // ── Custom tab block ──────────────────────────────────────────────────────────
 
 function CustomTabBlock({
-  tab, pages, clubSlug, onDelete, onDeletePage, onChangeVis, onAddPage,
-  pending, dragHandleEl, dragOverStyle, onDragOver, onDrop, onReorder, activeDragId, overDragId,
+  tab, items, clubSlug, onDelete, onDeletePage, onChangeVis, onAddPage,
+  pending, dragHandleEl, dragOverStyle, onDragOver, onDrop, activeDragId, overDragId, builtinRowProps,
 }: {
   tab:           CustomTab
-  pages:         CustomPage[]
+  items:         SortableItem[]
   clubSlug:      string
   onDelete:      (id: string) => void
   onDeletePage:  (id: string) => void
@@ -642,12 +689,16 @@ function CustomTabBlock({
   dragOverStyle?:    React.CSSProperties
   onDragOver?:   (e: React.DragEvent) => void
   onDrop?:       () => void
-  onReorder:     (reordered: CustomPage[]) => void
   activeDragId?: string | null
   overDragId?:   string | null
+  builtinRowProps?: {
+    builtinVis:      BuiltinPageVisibility
+    onChangeVis:     (key: 'about' | 'calendar', v: BuiltinVis) => void
+    onChangeEnabled: (key: 'resources' | 'galleries', v: boolean) => void
+  }
 }) {
   const [expanded, setExpanded] = useState(true)
-  const count = pages.length
+  const count = items.length
   return (
     <div onDragOver={onDragOver} onDrop={onDrop}
       style={{ border: '1px solid var(--border-default)', borderRadius: 10, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', ...(dragOverStyle ?? {}) }}>
@@ -681,10 +732,11 @@ function CustomTabBlock({
         </div>
       </div>
       {expanded && (
-        <SortablePageGroup customPages={pages} clubSlug={clubSlug}
-          onDelete={onDeletePage} onChangeVis={onChangeVis}
-          onReorder={onReorder} pending={pending}
-          activeDragId={activeDragId ?? null} overDragId={overDragId ?? null} />
+        <SortablePageGroup items={items} clubSlug={clubSlug}
+          onDeleteCustom={onDeletePage} onChangeVis={onChangeVis}
+          pending={pending}
+          activeDragId={activeDragId ?? null} overDragId={overDragId ?? null}
+          builtinRowProps={builtinRowProps} />
       )}
       {expanded && count === 0 && (
         <div style={{ padding: '24px 20px', textAlign: 'center', borderTop: '1px dashed var(--border-default)', color: 'var(--text-tertiary)', fontSize: 13 }}>
@@ -938,12 +990,48 @@ export default function NavigationClient({
       const validCustom = new Set(tabIds)
       const filtered = prev.filter(id => BUILTIN_IDS.includes(id) || validCustom.has(id))
       const toAdd = tabIds.filter(id => !prev.includes(id))
-      const next = toAdd.length > 0 ? [...filtered, ...toAdd] : filtered
-      localStorage.setItem(`fp_nav_tabs_${clubId}`, JSON.stringify(next))
-      return next
+      return toAdd.length > 0 ? [...filtered, ...toAdd] : filtered
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabs.length])
+
+  // Combined page order per group (builtin + custom sortIds), deferred until publish
+  const [pageOrders, setPageOrders] = useState<Record<string, string[]>>(() => {
+    const tryLS = (key: string): string[] | null => {
+      if (typeof window === 'undefined') return null
+      try { return JSON.parse(localStorage.getItem(key) ?? 'null') } catch { return null }
+    }
+    const result: Record<string, string[]> = {}
+    const groups: Array<[string, BuiltinPageDef[]]> = [
+      ['images', IMAGES_PAGES],
+      ['competitions', COMPETITIONS_PAGES],
+      ['our-club', OUR_CLUB_PAGES],
+    ]
+    for (const [group, builtins] of groups) {
+      const saved = tryLS(`fp_nav_page_order_${clubId}_${group}`)
+      if (saved) { result[group] = saved; continue }
+      const customs = initialPages.filter(p => p.parent_system === (group as ParentSystem))
+        .sort((a, b) => a.sort_order - b.sort_order).map(p => p.id)
+      result[group] = [...builtins.map(p => `builtin:${p.key}`), ...customs]
+    }
+    for (const tab of initialTabs) {
+      const saved = tryLS(`fp_nav_page_order_${clubId}_${tab.id}`)
+      if (saved) { result[tab.id] = saved; continue }
+      result[tab.id] = initialPages.filter(p => p.tab_id === tab.id)
+        .sort((a, b) => a.sort_order - b.sort_order).map(p => p.id)
+    }
+    return result
+  })
+  const [isDirty,      setIsDirty]      = useState(false)
+  const [isPublishing, setIsPublishing] = useState(false)
+  const [publishedAt,  setPublishedAt]  = useState<Date | null>(null)
+
+  // Warn before unload when draft changes are pending
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => { if (isDirty) { e.preventDefault(); e.returnValue = '' } }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
 
   // Unified drag state (tabs and pages share one DndContext)
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
@@ -969,68 +1057,51 @@ export default function NavigationClient({
     if (sortableIds.includes(aId)) {
       if (!sortableIds.includes(oId)) return
       const fi = sortableIds.indexOf(aId); const ti = sortableIds.indexOf(oId)
-      const newSortable = arrayMove(sortableIds, fi, ti)
-      const next = ['home', ...newSortable]
-      setTabOrder(next)
-      localStorage.setItem(`fp_nav_tabs_${clubId}`, JSON.stringify(next))
-      const customIds = new Set(tabs.map(t => t.id))
-      const customOrder = newSortable.filter(id => customIds.has(id))
-      const sb = createClient()
-      await Promise.all(customOrder.map((id, i) => sb.from('nav_custom_tabs').update({ sort_order: i }).eq('id', id)))
+      setTabOrder(['home', ...arrayMove(sortableIds, fi, ti)])
+      setIsDirty(true)
       return
     }
-    // Page drag
-    const activePage = pages.find(p => p.id === aId)
-    const overPage   = pages.find(p => p.id === oId)
-    if (!activePage || !overPage) return
-    const aGroup = activePage.tab_id ?? activePage.parent_system
-    const oGroup = overPage.tab_id ?? overPage.parent_system
-    if (aGroup !== oGroup) return
-    const groupPages = pages.filter(p => (p.tab_id ?? p.parent_system) === aGroup)
-      .sort((a, b) => a.sort_order - b.sort_order)
-    const gIds = groupPages.map(p => p.id)
-    const fi = gIds.indexOf(aId); const ti = gIds.indexOf(oId)
+    // Page drag (sortId can be 'builtin:key' or UUID)
+    let aGroup: string | null = null
+    for (const [group, order] of Object.entries(pageOrders)) {
+      if (order.includes(aId)) { aGroup = group; break }
+    }
+    let oGroup: string | null = null
+    for (const [group, order] of Object.entries(pageOrders)) {
+      if (order.includes(oId)) { oGroup = group; break }
+    }
+    if (!aGroup || aGroup !== oGroup) return
+    const currentOrder = pageOrders[aGroup]
+    const fi = currentOrder.indexOf(aId); const ti = currentOrder.indexOf(oId)
     if (fi === -1 || ti === -1) return
-    const newOrder = arrayMove(groupPages, fi, ti).map((p, i) => ({ ...p, sort_order: i }))
-    onPagesReordered(newOrder)
-    const sb = createClient()
-    await Promise.all(newOrder.map(p => sb.from('nav_custom_pages').update({ sort_order: p.sort_order }).eq('id', p.id)))
+    setPageOrders(prev => ({ ...prev, [aGroup!]: arrayMove(currentOrder, fi, ti) }))
+    setIsDirty(true)
   }
-  function onPagesReordered(reordered: CustomPage[]) {
-    const ids = new Set(reordered.map(p => p.id))
-    setPages(prev => [...prev.filter(p => !ids.has(p.id)), ...reordered])
-  }
-
-  // DB operations
-  async function changeBuiltinVis(key: 'about' | 'calendar', value: BuiltinVis) {
+  function changeBuiltinVis(key: 'about' | 'calendar', value: BuiltinVis) {
     setBV(prev => ({ ...prev, [key]: value }))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = createClient() as any
-    const { data: existing } = await sb.from('club_settings').select('page_visibility').eq('club_id', clubId).single()
-    const current = (existing?.page_visibility as Record<string, unknown> | null) ?? {}
-    await sb.from('club_settings').update({ page_visibility: { ...current, [key]: value } }).eq('club_id', clubId)
+    setIsDirty(true)
   }
 
-  async function changePageEnabled(key: 'resources' | 'galleries', enabled: boolean) {
+  function changePageEnabled(key: 'resources' | 'galleries', enabled: boolean) {
     const stateKey = key === 'resources' ? 'resourcesEnabled' : 'galleriesEnabled'
     setBV(prev => ({ ...prev, [stateKey]: enabled }))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = createClient() as any
-    const { data: existing } = await sb.from('club_settings').select('page_visibility').eq('club_id', clubId).single()
-    const current = (existing?.page_visibility as Record<string, unknown> | null) ?? {}
-    await sb.from('club_settings').update({ page_visibility: { ...current, [`${key}_enabled`]: enabled } }).eq('club_id', clubId)
+    setIsDirty(true)
   }
 
-  async function changeCustomPageVis(id: string, v: Visibility) {
+  function changeCustomPageVis(id: string, v: Visibility) {
     setPages(prev => prev.map(p => p.id === id ? { ...p, visibility: v } : p))
-    const sb = createClient()
-    await sb.from('nav_custom_pages').update({ visibility: v, status: v === 'hidden' ? 'draft' : 'published' }).eq('id', id)
+    setIsDirty(true)
   }
 
   function deletePage(id: string) {
     startTrans(async () => {
       await createClient().from('nav_custom_pages').delete().eq('id', id)
       setPages(prev => prev.filter(p => p.id !== id))
+      setPageOrders(prev => {
+        const u = { ...prev }
+        for (const g of Object.keys(u)) u[g] = u[g].filter(s => s !== id)
+        return u
+      })
     })
   }
 
@@ -1039,7 +1110,60 @@ export default function NavigationClient({
       await createClient().from('nav_custom_tabs').delete().eq('id', id)
       setTabs(prev => prev.filter(t => t.id !== id))
       setPages(prev => prev.filter(p => p.tab_id !== id))
+      setPageOrders(prev => { const u = { ...prev }; delete u[id]; return u })
+      setTabOrder(prev => prev.filter(t => t !== id))
     })
+  }
+
+  async function publishChanges() {
+    setIsPublishing(true); setErr(null)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = createClient() as any
+      // 1. Builtin visibility + page orders
+      const { data: existing } = await sb.from('club_settings').select('page_visibility').eq('club_id', clubId).single()
+      const current = (existing?.page_visibility as Record<string, unknown> | null) ?? {}
+      await sb.from('club_settings').update({
+        page_visibility: {
+          ...current,
+          about:             builtinVis.about,
+          calendar:          builtinVis.calendar,
+          resources_enabled: builtinVis.resourcesEnabled,
+          galleries_enabled: builtinVis.galleriesEnabled,
+          nav_page_order:    pageOrders,
+        }
+      }).eq('club_id', clubId)
+      // 2. Custom page visibility + derived sort_order
+      const pageUpdates: { id: string; sort_order: number; visibility: Visibility; status: string }[] = []
+      for (const order of Object.values(pageOrders)) {
+        const customIds = order.filter((id: string) => !id.startsWith('builtin:'))
+        customIds.forEach((id: string, i: number) => {
+          const page = pages.find(p => p.id === id)
+          if (page) pageUpdates.push({ id: page.id, sort_order: i, visibility: page.visibility,
+            status: page.visibility === 'hidden' ? 'draft' : 'published' })
+        })
+      }
+      if (pageUpdates.length) await Promise.all(pageUpdates.map(u =>
+        sb.from('nav_custom_pages').update({ sort_order: u.sort_order, visibility: u.visibility, status: u.status }).eq('id', u.id)
+      ))
+      // 3. Custom tab sort_order
+      const sortableTabIds = tabOrder.filter(id => id !== 'home')
+      const customTabSet = new Set(tabs.map(t => t.id))
+      const customTabOrder = sortableTabIds.filter(id => customTabSet.has(id))
+      if (customTabOrder.length) await Promise.all(customTabOrder.map((id, i) =>
+        sb.from('nav_custom_tabs').update({ sort_order: i }).eq('id', id)
+      ))
+      // 4. Persist to localStorage
+      localStorage.setItem(`fp_nav_tabs_${clubId}`, JSON.stringify(tabOrder))
+      for (const [group, order] of Object.entries(pageOrders)) {
+        localStorage.setItem(`fp_nav_page_order_${clubId}_${group}`, JSON.stringify(order))
+      }
+      setIsDirty(false); setPublishedAt(new Date())
+    } catch {
+      setErr('Failed to publish. Please try again.')
+    } finally {
+      setIsPublishing(false)
+    }
   }
 
   const pagesFor = (ps: ParentSystem) => pages.filter(p => p.parent_system === ps)
@@ -1060,7 +1184,7 @@ export default function NavigationClient({
         <div>
           <h1 className="text-[22px] font-bold tracking-[-0.015em] text-content-primary">Site Pages &amp; Navigation</h1>
           <p className="mt-1 text-[13px] text-content-secondary" style={{ maxWidth: 560 }}>
-            Each block is a tab in the top bar. Drag a tab by its handle to reorder. Use the toggle on Resources and Club Galleries to show or hide them.
+            Each block is a tab in the top bar. Drag tabs and pages to reorder. Changes are saved as a draft — click Publish to make them live for members.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -1078,6 +1202,28 @@ export default function NavigationClient({
       </div>
 
       {err && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setErr(null)}>{err}</Alert>}
+
+      {(isDirty || publishedAt) && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 16px', marginBottom: 16,
+          background: isDirty ? '#FFF8E1' : '#E8F5E9',
+          border: `1px solid ${isDirty ? '#FFE082' : '#A5D6A7'}`,
+          borderRadius: 8,
+        }}>
+          <span style={{ fontSize: 13, color: isDirty ? '#5D4037' : '#2E7D32' }}>
+            {isDirty
+              ? 'You have unpublished changes — members see the last published version.'
+              : `Published · ${publishedAt!.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`}
+          </span>
+          {isDirty && (
+            <Button variant="contained" size="small" onClick={publishChanges} disabled={isPublishing}
+              startIcon={isPublishing ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : null}>
+              {isPublishing ? 'Publishing…' : 'Publish to live site'}
+            </Button>
+          )}
+        </div>
+      )}
 
       <ColumnHeaders />
 
@@ -1134,11 +1280,10 @@ export default function NavigationClient({
                             dragHandleEl={grip(hProps)}
                             expanded={imagesOpen} onToggle={() => setImagesOpen(o => !o)}
                             footerEl={<AddPageFooter tabName="Images" onClick={() => setNewPageOpen(true)} />}>
-                            {IMAGES_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
-                            <SortablePageGroup customPages={custom} clubSlug={clubSlug}
-                              onDelete={deletePage} onChangeVis={changeCustomPageVis}
-                              onReorder={onPagesReordered} pending={pending}
-                              activeDragId={activeDragId} overDragId={overDragId} />
+                            <SortablePageGroup items={getGroupItems('images', IMAGES_PAGES, custom, pageOrders)} clubSlug={clubSlug}
+                              onDeleteCustom={deletePage} onChangeVis={changeCustomPageVis}
+                              pending={pending} activeDragId={activeDragId} overDragId={overDragId}
+                              builtinRowProps={builtinRowProps} />
                           </TabBlock>
                           {showLineAfter && <DropLine />}
                         </>)}
@@ -1155,11 +1300,10 @@ export default function NavigationClient({
                             dragHandleEl={grip(hProps)}
                             expanded={competitionsOpen} onToggle={() => setCompetitionsOpen(o => !o)}
                             footerEl={<AddPageFooter tabName="Competitions" onClick={() => setNewPageOpen(true)} />}>
-                            {COMPETITIONS_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
-                            <SortablePageGroup customPages={custom} clubSlug={clubSlug}
-                              onDelete={deletePage} onChangeVis={changeCustomPageVis}
-                              onReorder={onPagesReordered} pending={pending}
-                              activeDragId={activeDragId} overDragId={overDragId} />
+                            <SortablePageGroup items={getGroupItems('competitions', COMPETITIONS_PAGES, custom, pageOrders)} clubSlug={clubSlug}
+                              onDeleteCustom={deletePage} onChangeVis={changeCustomPageVis}
+                              pending={pending} activeDragId={activeDragId} overDragId={overDragId}
+                              builtinRowProps={builtinRowProps} />
                           </TabBlock>
                           {showLineAfter && <DropLine />}
                         </>)}
@@ -1176,11 +1320,10 @@ export default function NavigationClient({
                             dragHandleEl={grip(hProps)}
                             expanded={ourClubOpen} onToggle={() => setOurClubOpen(o => !o)}
                             footerEl={<AddPageFooter tabName="Our Club" onClick={() => setNewPageOpen(true)} />}>
-                            {OUR_CLUB_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
-                            <SortablePageGroup customPages={custom} clubSlug={clubSlug}
-                              onDelete={deletePage} onChangeVis={changeCustomPageVis}
-                              onReorder={onPagesReordered} pending={pending}
-                              activeDragId={activeDragId} overDragId={overDragId} />
+                            <SortablePageGroup items={getGroupItems('our-club', OUR_CLUB_PAGES, custom, pageOrders)} clubSlug={clubSlug}
+                              onDeleteCustom={deletePage} onChangeVis={changeCustomPageVis}
+                              pending={pending} activeDragId={activeDragId} overDragId={overDragId}
+                              builtinRowProps={builtinRowProps} />
                           </TabBlock>
                           {showLineAfter && <DropLine />}
                         </>)}
@@ -1194,11 +1337,10 @@ export default function NavigationClient({
                       {hProps => (<>
                         {showLineBefore && <DropLine />}
                         <CustomTabBlock
-                          tab={tab} pages={pagesForTab(tab.id)} clubSlug={clubSlug}
+                          tab={tab} items={getGroupItems(tab.id, [], pagesForTab(tab.id), pageOrders)} clubSlug={clubSlug}
                           onDelete={deleteTab} onDeletePage={deletePage} onChangeVis={changeCustomPageVis}
                           onAddPage={() => setNewPageOpen(true)} pending={pending}
                           dragHandleEl={grip(hProps)}
-                          onReorder={onPagesReordered}
                           activeDragId={activeDragId} overDragId={overDragId}
                         />
                         {showLineAfter && <DropLine />}
@@ -1211,6 +1353,9 @@ export default function NavigationClient({
             <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
               {activeDragId && sortableIds.includes(activeDragId)
                 ? <TabGhost label={getLabel(activeDragId)} />
+                : activeDragId?.startsWith('builtin:')
+                ? <PageGhost title={[...IMAGES_PAGES, ...COMPETITIONS_PAGES, ...OUR_CLUB_PAGES]
+                    .find(p => p.key === activeDragId.replace('builtin:', ''))?.title ?? ''} />
                 : activeDragId
                 ? <PageGhost title={pages.find(p => p.id === activeDragId)?.title ?? ''} />
                 : null}
@@ -1221,12 +1366,21 @@ export default function NavigationClient({
 
       <NewPageDialogFull
         open={newPageOpen} tabs={tabs} pages={pages} clubId={clubId}
-        onPageCreated={page => setPages(prev => [...prev, page])}
+        onPageCreated={page => {
+          setPages(prev => [...prev, page])
+          const group = page.tab_id ?? page.parent_system ?? ''
+          if (group) setPageOrders(prev => ({ ...prev, [group]: [...(prev[group] ?? []), page.id] }))
+          setIsDirty(true)
+        }}
         onClose={() => setNewPageOpen(false)}
       />
       <NewTabDialog
         open={newTabOpen} tabs={tabs} clubId={clubId}
-        onTabCreated={tab => setTabs(prev => [...prev, tab])}
+        onTabCreated={tab => {
+          setTabs(prev => [...prev, tab])
+          setPageOrders(prev => ({ ...prev, [tab.id]: [] }))
+          setIsDirty(true)
+        }}
         onClose={() => setNewTabOpen(false)}
       />
     </div>
