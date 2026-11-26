@@ -4,10 +4,10 @@ import Link from 'next/link'
 import { Fragment, useEffect, useRef, useState, useTransition } from 'react'
 import {
   Alert, Button, CircularProgress,
-  Dialog, DialogActions, DialogContent, DialogTitle,
+  Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
   FormControl, FormControlLabel, FormLabel,
   MenuItem, Radio, RadioGroup,
-  Select, TextField,
+  Select, Switch, TextField,
 } from '@mui/material'
 import AddIcon           from '@mui/icons-material/Add'
 import ChevronRightIcon   from '@mui/icons-material/ChevronRight'
@@ -24,7 +24,7 @@ import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrate
 
 type PageType     = 'rich_text' | 'document_link' | 'external_link'
 type Visibility   = 'all_members' | 'members_only' | 'hidden'
-type BuiltinVis   = 'members_only' | 'public' | 'all_members'
+type BuiltinVis   = 'members_only' | 'public'
 type PageStatus   = 'draft' | 'published'
 type ParentSystem = 'calendar' | 'images' | 'competitions' | 'our-club'
 
@@ -122,8 +122,8 @@ const OUR_CLUB_PAGES: BuiltinPageDef[] = [
     tooltip: 'Customizable content page for describing your club.' },
   { key: 'member-directory', title: 'Member directory', hasDrag: true,                     editSlot: 'auto-generated',
     tooltip: 'List of club members and their contact details.' },
-  { key: 'resources',        title: 'Resources',        hasDrag: true, alwaysPublic: true, editSlot: 'manage', viewPath: '/our-club/resources', editPath: '/admin/resources',
-    tooltip: 'Documents, downloads, and links organized by category. Always visible to everyone — set permissions on individual items.' },
+  { key: 'resources',        title: 'Resources',        hasDrag: true, alwaysPublic: true, enableKey: 'resources', editSlot: 'manage', viewPath: '/our-club/resources', editPath: '/admin/resources',
+    tooltip: 'Documents, downloads, and links. Page is public by default — toggle to hide it from navigation. Set visibility on individual items.' },
   { key: 'club-galleries',   title: 'Club galleries',   hasDrag: true, enableKey: 'galleries', visKey: 'galleries', editSlot: 'manage', viewPath: '/our-club/galleries', editPath: '/admin/galleries',
     tooltip: 'Curated photo galleries created by admins.' },
   { key: 'join',             title: 'Join / Renew',     hasDrag: true, visKey: 'join',     editSlot: 'edit',   viewPath: '/our-club/join',     editPath: '/admin/content/join',
@@ -222,28 +222,6 @@ function CustomChip() {
   )
 }
 
-// ── ToggleSwitch ──────────────────────────────────────────────────────────────
-
-function ToggleSwitch({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
-  const navy = '#24467F'
-  const off  = '#B4BAC4'
-  return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: disabled ? 'default' : 'pointer' }}>
-      <span style={{ position: 'relative', display: 'inline-block', width: 40, height: 22, flexShrink: 0 }}>
-        <input type="checkbox" role="switch" aria-label={checked ? 'Visible' : 'Hidden'}
-          checked={checked} disabled={disabled}
-          onChange={e => onChange(e.target.checked)}
-          style={{ opacity: 0, position: 'absolute', inset: 0, margin: 0, zIndex: 1, width: '100%', height: '100%', cursor: disabled ? 'default' : 'pointer' }} />
-        <span style={{ display: 'block', borderRadius: 11, height: '100%', background: checked ? navy : off, transition: 'background .2s' }} />
-        <span style={{ position: 'absolute', top: 3, left: checked ? 21 : 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.2)', transition: 'left .2s' }} />
-      </span>
-      <span style={{ fontSize: 13, fontWeight: 500, color: checked ? navy : off, minWidth: 44, lineHeight: 1 }}>
-        {checked ? 'Visible' : 'Hidden'}
-      </span>
-    </label>
-  )
-}
-
 // ── Visibility selects ────────────────────────────────────────────────────────
 
 const selSx = {
@@ -254,9 +232,8 @@ const selSx = {
 function BuiltinVisSelect({ value, onChange }: { value: BuiltinVis; onChange: (v: BuiltinVis) => void }) {
   return (
     <Select size="small" value={value} onChange={e => onChange(e.target.value as BuiltinVis)} sx={selSx}>
-      <MenuItem value="all_members"  sx={{ fontSize: 13 }}>Members + public</MenuItem>
-      <MenuItem value="members_only" sx={{ fontSize: 13 }}>Members only</MenuItem>
       <MenuItem value="public"       sx={{ fontSize: 13 }}>Public</MenuItem>
+      <MenuItem value="members_only" sx={{ fontSize: 13 }}>Private</MenuItem>
     </Select>
   )
 }
@@ -264,9 +241,8 @@ function BuiltinVisSelect({ value, onChange }: { value: BuiltinVis; onChange: (v
 function CustomVisSelect({ value, onChange }: { value: Visibility; onChange: (v: Visibility) => void }) {
   return (
     <Select size="small" value={value} onChange={e => onChange(e.target.value as Visibility)} sx={selSx}>
-      <MenuItem value="all_members"  sx={{ fontSize: 13 }}>Members + public</MenuItem>
-      <MenuItem value="members_only" sx={{ fontSize: 13 }}>Members only</MenuItem>
-      <MenuItem value="hidden"       sx={{ fontSize: 13 }}>Hidden</MenuItem>
+      <MenuItem value="all_members"  sx={{ fontSize: 13 }}>Public</MenuItem>
+      <MenuItem value="members_only" sx={{ fontSize: 13 }}>Private</MenuItem>
     </Select>
   )
 }
@@ -369,13 +345,13 @@ function BuiltinPageRow({
       {/* Visibility */}
       <div style={{ opacity: dimmed ? 0.45 : 1, pointerEvents: dimmed ? 'none' : 'auto' }}>
         {page.alwaysPublic ? (
-          <span style={{ fontSize: 14, color: 'var(--text-secondary)', paddingLeft: 9 }}>Everyone</span>
+          <span style={{ fontSize: 14, color: 'var(--text-secondary)', paddingLeft: 9 }}>Public</span>
         ) : hasBuiltinVisSelect ? (
           <BuiltinVisSelect value={visValue} onChange={v => onChangeVis(page.visKey as 'about' | 'calendar', v)} />
         ) : page.visKey === 'join' ? (
           <BuiltinVisSelect value="public" onChange={() => {}} />
         ) : (
-          <span style={{ fontSize: 14, color: 'var(--text-secondary)', paddingLeft: 9 }}>Members only</span>
+          <span style={{ fontSize: 14, color: 'var(--text-secondary)', paddingLeft: 9 }}>Private</span>
         )}
       </div>
       {/* Actions */}
@@ -383,9 +359,10 @@ function BuiltinPageRow({
         editSlot={page.editSlot} viewPath={page.viewPath} editPath={page.editPath}
         clubSlug={clubSlug} dimmed={dimmed}
         toggleEl={page.enableKey ? (
-          <ToggleSwitch
+          <Switch
+            size="small"
             checked={enabled}
-            onChange={v => onChangeEnabled(page.enableKey!, v)}
+            onChange={e => onChangeEnabled(page.enableKey!, e.target.checked)}
             disabled={pending}
           />
         ) : undefined}
@@ -406,28 +383,41 @@ function CustomPageRow({
   pending:       boolean
   dragHandleProps?: Record<string, unknown>
 }) {
+  const isHidden = page.visibility === 'hidden'
   return (
     <div style={{
         display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: '12px 20px 12px 12px',
-        alignItems: 'center', minHeight: 60, borderTop: '1px solid var(--border-subtle)', background: '#fff',
+        alignItems: 'center', minHeight: 60, borderTop: '1px solid var(--border-subtle)',
+        background: isHidden ? '#F3F4F6' : '#fff',
       }}>
-      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)', opacity: isHidden ? 0.4 : 1 }}>
         <span {...(dragHandleProps as React.HTMLAttributes<HTMLSpanElement>)}
           aria-label="Drag to reorder" style={{ touchAction: 'none', cursor: 'grab', display: 'flex' }}>
           <VertGrip />
         </span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, opacity: isHidden ? 0.4 : 1 }}>
         <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {page.title}
         </span>
         <InfoTooltip text="Admin-created page." />
         <CustomChip />
       </div>
-      <CustomVisSelect value={page.visibility} onChange={v => onChangeVis(page.id, v)} />
+      <div style={{ opacity: isHidden ? 0.4 : 1 }}>
+        {!isHidden
+          ? <CustomVisSelect value={page.visibility} onChange={v => onChangeVis(page.id, v)} />
+          : <span style={{ fontSize: 13, color: 'var(--text-secondary)', paddingLeft: 9 }}>Hidden</span>}
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-        <div style={{ width: 116 }} />
-        <div style={{ width: 84 }}>
+        <div style={{ width: 116, display: 'flex', alignItems: 'center', paddingLeft: 8 }}>
+          <Switch
+            size="small"
+            checked={!isHidden}
+            onChange={e => onChangeVis(page.id, e.target.checked ? 'members_only' : 'hidden')}
+            disabled={pending}
+          />
+        </div>
+        <div style={{ width: 84, opacity: isHidden ? 0.4 : 1, pointerEvents: isHidden ? 'none' : 'auto' }}>
           <Button
             component="a" href={`/${clubSlug}/our-club/${page.slug}`} target="_blank" rel="noopener noreferrer"
             variant="outlined" color="secondary" size="small" fullWidth
@@ -876,8 +866,8 @@ function NewPageDialogFull({
         <FormControl size="small" fullWidth>
           <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Visibility</FormLabel>
           <Select value={vis} onChange={e => setVis(e.target.value as Visibility)} sx={{ fontSize: 13 }}>
-            <MenuItem value="all_members"  sx={{ fontSize: 13 }}>Members + public</MenuItem>
-            <MenuItem value="members_only" sx={{ fontSize: 13 }}>Members only</MenuItem>
+            <MenuItem value="all_members"  sx={{ fontSize: 13 }}>Public</MenuItem>
+            <MenuItem value="members_only" sx={{ fontSize: 13 }}>Private</MenuItem>
             <MenuItem value="hidden"       sx={{ fontSize: 13 }}>Hidden — do not show in navigation</MenuItem>
           </Select>
         </FormControl>
@@ -1046,9 +1036,10 @@ export default function NavigationClient({
     }
     return result
   })
-  const [isDirty,      setIsDirty]      = useState(false)
-  const [isPublishing, setIsPublishing] = useState(false)
-  const [publishedAt,  setPublishedAt]  = useState<Date | null>(null)
+  const [isDirty,        setIsDirty]        = useState(false)
+  const [isPublishing,   setIsPublishing]   = useState(false)
+  const [publishedAt,    setPublishedAt]    = useState<Date | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
   // Warn before unload when draft changes are pending
   useEffect(() => {
@@ -1225,21 +1216,30 @@ export default function NavigationClient({
 
       {(isDirty || publishedAt) && (
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
           padding: '10px 16px', marginBottom: 16,
           background: isDirty ? '#FFF8E1' : '#E8F5E9',
           border: `1px solid ${isDirty ? '#FFE082' : '#A5D6A7'}`,
           borderRadius: 8,
         }}>
-          <span style={{ fontSize: 13, color: isDirty ? '#5D4037' : '#2E7D32' }}>
+          <span style={{ fontSize: 13, color: isDirty ? '#5D4037' : '#2E7D32', lineHeight: 1.5 }}>
             {isDirty
-              ? 'You have unpublished changes — members see the last published version.'
+              ? <>All changes are saved automatically — click <strong>Publish changes</strong> to make them live for members.</>
               : `Published · ${publishedAt!.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`}
           </span>
           {isDirty && (
             <Button variant="contained" size="small" onClick={publishChanges} disabled={isPublishing}
-              startIcon={isPublishing ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : null}>
-              {isPublishing ? 'Publishing…' : 'Publish to live site'}
+              sx={{
+                flexShrink: 0, textTransform: 'none', fontSize: 13,
+                display: 'flex', alignItems: 'center', gap: 0.75,
+                background: 'var(--action-primary)',
+                boxShadow: '0 0 0 3px rgba(26,111,196,0.25)',
+                '&:hover': { background: 'var(--action-primary-hover)', boxShadow: '0 0 0 3px rgba(26,111,196,0.35)' },
+              }}>
+              {isPublishing
+                ? <CircularProgress size={14} sx={{ color: '#fff' }} />
+                : <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#FFCC00', flexShrink: 0 }} />}
+              {isPublishing ? 'Publishing…' : 'Publish changes ↑'}
             </Button>
           )}
         </div>
@@ -1290,7 +1290,7 @@ export default function NavigationClient({
                             expanded={calendarOpen} onToggle={() => setCalendarOpen(o => !o)}
                             footerEl={<AddPageFooter tabName="Calendar" onClick={() => setNewPageOpen(true)} />}>
                             <SortablePageGroup items={getGroupItems('calendar', CALENDAR_PAGES, calCustom, pageOrders)} clubSlug={clubSlug}
-                              onDeleteCustom={deletePage} onChangeVis={changeCustomPageVis}
+                              onDeleteCustom={id => setDeleteConfirmId(id)} onChangeVis={changeCustomPageVis}
                               pending={pending} activeDragId={activeDragId} overDragId={overDragId}
                               builtinRowProps={builtinRowProps} />
                           </TabBlock>
@@ -1310,7 +1310,7 @@ export default function NavigationClient({
                             expanded={imagesOpen} onToggle={() => setImagesOpen(o => !o)}
                             footerEl={<AddPageFooter tabName="Images" onClick={() => setNewPageOpen(true)} />}>
                             <SortablePageGroup items={getGroupItems('images', IMAGES_PAGES, custom, pageOrders)} clubSlug={clubSlug}
-                              onDeleteCustom={deletePage} onChangeVis={changeCustomPageVis}
+                              onDeleteCustom={id => setDeleteConfirmId(id)} onChangeVis={changeCustomPageVis}
                               pending={pending} activeDragId={activeDragId} overDragId={overDragId}
                               builtinRowProps={builtinRowProps} />
                           </TabBlock>
@@ -1330,7 +1330,7 @@ export default function NavigationClient({
                             expanded={competitionsOpen} onToggle={() => setCompetitionsOpen(o => !o)}
                             footerEl={<AddPageFooter tabName="Competitions" onClick={() => setNewPageOpen(true)} />}>
                             <SortablePageGroup items={getGroupItems('competitions', COMPETITIONS_PAGES, custom, pageOrders)} clubSlug={clubSlug}
-                              onDeleteCustom={deletePage} onChangeVis={changeCustomPageVis}
+                              onDeleteCustom={id => setDeleteConfirmId(id)} onChangeVis={changeCustomPageVis}
                               pending={pending} activeDragId={activeDragId} overDragId={overDragId}
                               builtinRowProps={builtinRowProps} />
                           </TabBlock>
@@ -1350,7 +1350,7 @@ export default function NavigationClient({
                             expanded={ourClubOpen} onToggle={() => setOurClubOpen(o => !o)}
                             footerEl={<AddPageFooter tabName="Our Club" onClick={() => setNewPageOpen(true)} />}>
                             <SortablePageGroup items={getGroupItems('our-club', OUR_CLUB_PAGES, custom, pageOrders)} clubSlug={clubSlug}
-                              onDeleteCustom={deletePage} onChangeVis={changeCustomPageVis}
+                              onDeleteCustom={id => setDeleteConfirmId(id)} onChangeVis={changeCustomPageVis}
                               pending={pending} activeDragId={activeDragId} overDragId={overDragId}
                               builtinRowProps={builtinRowProps} />
                           </TabBlock>
@@ -1367,7 +1367,7 @@ export default function NavigationClient({
                         {showLineBefore && <DropLine />}
                         <CustomTabBlock
                           tab={tab} items={getGroupItems(tab.id, [], pagesForTab(tab.id), pageOrders)} clubSlug={clubSlug}
-                          onDelete={deleteTab} onDeletePage={deletePage} onChangeVis={changeCustomPageVis}
+                          onDelete={deleteTab} onDeletePage={id => setDeleteConfirmId(id)} onChangeVis={changeCustomPageVis}
                           onAddPage={() => setNewPageOpen(true)} pending={pending}
                           dragHandleEl={grip(hProps)}
                           activeDragId={activeDragId} overDragId={overDragId}
@@ -1392,6 +1392,23 @@ export default function NavigationClient({
           </DndContext>
         )
       })()}
+
+      {/* Delete confirmation */}
+      <Dialog open={deleteConfirmId !== null} onClose={() => setDeleteConfirmId(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontSize: 16, fontWeight: 600 }}>Delete this page?</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ fontSize: 14 }}>
+            The page and all its content will be permanently removed. This cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteConfirmId(null)} variant="outlined" color="secondary" size="small">Cancel</Button>
+          <Button color="error" variant="contained" size="small"
+            onClick={() => { if (deleteConfirmId) deletePage(deleteConfirmId); setDeleteConfirmId(null) }}>
+            Delete page
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <NewPageDialogFull
         open={newPageOpen} tabs={tabs} pages={pages} clubId={clubId}
