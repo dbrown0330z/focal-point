@@ -9,8 +9,9 @@ import {
   MenuItem, Radio, RadioGroup,
   Select, TextField,
 } from '@mui/material'
-import AddIcon         from '@mui/icons-material/Add'
-import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+import AddIcon           from '@mui/icons-material/Add'
+import ChevronRightIcon   from '@mui/icons-material/ChevronRight'
+import DeleteOutlineIcon  from '@mui/icons-material/DeleteOutline'
 import { useParams }   from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { createPortal } from 'react-dom'
@@ -23,7 +24,7 @@ import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrate
 
 type PageType     = 'rich_text' | 'document_link' | 'external_link'
 type Visibility   = 'all_members' | 'members_only' | 'hidden'
-type BuiltinVis   = 'members_only' | 'public'
+type BuiltinVis   = 'members_only' | 'public' | 'all_members'
 type PageStatus   = 'draft' | 'published'
 type ParentSystem = 'calendar' | 'images' | 'competitions' | 'our-club'
 
@@ -83,7 +84,8 @@ type BuiltinPageDef = {
   viewPath?: string
   editPath?: string
   editSlot:  EditSlot
-  hasDrag:   boolean
+  hasDrag:      boolean
+  alwaysPublic?: boolean
   visKey?:   'about' | 'calendar' | 'galleries' | 'join'
   enableKey?: 'resources' | 'galleries'
 }
@@ -93,9 +95,15 @@ type SortableItem =
   | { sortId: string; kind: 'custom';  page: CustomPage }
 
 const HOME_PAGES: BuiltinPageDef[] = [{
-  key: 'homepage', title: 'Homepage', hasDrag: false,
-  tooltip:  'The landing page for signed-in members, with customizable content blocks.',
+  key: 'homepage', title: 'Homepage', hasDrag: false, alwaysPublic: true,
+  tooltip:  'Visible to everyone. Anonymous visitors see the public landing page; signed-in members see the activity hub and news feed.',
   viewPath: '/', editPath: '/admin/content/homepage', editSlot: 'edit',
+}]
+
+const CALENDAR_PAGES: BuiltinPageDef[] = [{
+  key: 'calendar-main', title: 'Calendar', hasDrag: false, alwaysPublic: true,
+  tooltip: 'The club calendar. Always visible to everyone, including public visitors.',
+  viewPath: '/calendar', editSlot: null,
 }]
 
 const IMAGES_PAGES: BuiltinPageDef[] = [
@@ -114,8 +122,8 @@ const OUR_CLUB_PAGES: BuiltinPageDef[] = [
     tooltip: 'Customizable content page for describing your club.' },
   { key: 'member-directory', title: 'Member directory', hasDrag: true,                     editSlot: 'auto-generated',
     tooltip: 'List of club members and their contact details.' },
-  { key: 'resources',        title: 'Resources',        hasDrag: true, enableKey: 'resources', editSlot: 'manage', viewPath: '/our-club/resources', editPath: '/admin/resources',
-    tooltip: 'Members-only documents, downloads, and links organized by category.' },
+  { key: 'resources',        title: 'Resources',        hasDrag: true, alwaysPublic: true, editSlot: 'manage', viewPath: '/our-club/resources', editPath: '/admin/resources',
+    tooltip: 'Documents, downloads, and links organized by category. Always visible to everyone — set permissions on individual items.' },
   { key: 'club-galleries',   title: 'Club galleries',   hasDrag: true, enableKey: 'galleries', visKey: 'galleries', editSlot: 'manage', viewPath: '/our-club/galleries', editPath: '/admin/galleries',
     tooltip: 'Curated photo galleries created by admins.' },
   { key: 'join',             title: 'Join / Renew',     hasDrag: true, visKey: 'join',     editSlot: 'edit',   viewPath: '/our-club/join',     editPath: '/admin/content/join',
@@ -246,6 +254,7 @@ const selSx = {
 function BuiltinVisSelect({ value, onChange }: { value: BuiltinVis; onChange: (v: BuiltinVis) => void }) {
   return (
     <Select size="small" value={value} onChange={e => onChange(e.target.value as BuiltinVis)} sx={selSx}>
+      <MenuItem value="all_members"  sx={{ fontSize: 13 }}>Members + public</MenuItem>
       <MenuItem value="members_only" sx={{ fontSize: 13 }}>Members only</MenuItem>
       <MenuItem value="public"       sx={{ fontSize: 13 }}>Public</MenuItem>
     </Select>
@@ -359,7 +368,9 @@ function BuiltinPageRow({
       </div>
       {/* Visibility */}
       <div style={{ opacity: dimmed ? 0.45 : 1, pointerEvents: dimmed ? 'none' : 'auto' }}>
-        {hasBuiltinVisSelect ? (
+        {page.alwaysPublic ? (
+          <span style={{ fontSize: 14, color: 'var(--text-secondary)', paddingLeft: 9 }}>Everyone</span>
+        ) : hasBuiltinVisSelect ? (
           <BuiltinVisSelect value={visValue} onChange={v => onChangeVis(page.visKey as 'about' | 'calendar', v)} />
         ) : page.visKey === 'join' ? (
           <BuiltinVisSelect value="public" onChange={() => {}} />
@@ -431,8 +442,8 @@ function CustomPageRow({
           <Button
             variant="text" color="error" size="small"
             onClick={() => onDelete(page.id)} disabled={pending}
-            sx={{ minWidth: 0, px: 0.75, py: 0.5, fontSize: 14, lineHeight: 1 }}
-          >×</Button>
+            sx={{ minWidth: 0, px: 0.75, py: 0.5 }}
+          ><DeleteOutlineIcon sx={{ fontSize: 18 }} /></Button>
         </div>
       </div>
     </div>
@@ -739,11 +750,23 @@ function CustomTabBlock({
           builtinRowProps={builtinRowProps} />
       )}
       {expanded && count === 0 && (
-        <div style={{ padding: '24px 20px', textAlign: 'center', borderTop: '1px dashed var(--border-default)', color: 'var(--text-tertiary)', fontSize: 13 }}>
-          No pages yet. Add one below — empty tabs are hidden from members.
+        <div style={{
+          padding: '32px 20px', textAlign: 'center', borderTop: '1px solid var(--border-default)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+        }}>
+          <Button variant="outlined" color="primary" size="small"
+            startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
+            onClick={onAddPage}>
+            Add a page
+          </Button>
+          <span style={{ fontSize: 13, color: 'var(--text-tertiary)', maxWidth: 340, lineHeight: 1.6 }}>
+            This tab won&apos;t appear in navigation until it has at least one page.
+            One page → clicking the tab goes straight there.
+            Multiple pages → clicking the tab opens a dropdown list.
+          </span>
         </div>
       )}
-      {expanded && <AddPageFooter tabName={tab.name} onClick={onAddPage} />}
+      {expanded && count > 0 && <AddPageFooter tabName={tab.name} onClick={onAddPage} />}
     </div>
   )
 }
@@ -1003,6 +1026,7 @@ export default function NavigationClient({
     }
     const result: Record<string, string[]> = {}
     const groups: Array<[string, BuiltinPageDef[]]> = [
+      ['calendar', CALENDAR_PAGES],
       ['images', IMAGES_PAGES],
       ['competitions', COMPETITIONS_PAGES],
       ['our-club', OUR_CLUB_PAGES],
@@ -1173,6 +1197,7 @@ export default function NavigationClient({
 
   // ── Builtin tab expanded states ───────────────────────────────────────────
 
+  const [calendarOpen,     setCalendarOpen]     = useState(true)
   const [imagesOpen,       setImagesOpen]       = useState(true)
   const [competitionsOpen, setCompetitionsOpen] = useState(true)
   const [ourClubOpen,      setOurClubOpen]      = useState(true)
@@ -1192,11 +1217,6 @@ export default function NavigationClient({
             startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
             onClick={() => setNewTabOpen(true)}>
             New tab
-          </Button>
-          <Button variant="contained" size="small"
-            startIcon={<AddIcon sx={{ fontSize: '16px !important' }} />}
-            onClick={() => setNewPageOpen(true)}>
-            New page
           </Button>
         </div>
       </div>
@@ -1259,17 +1279,26 @@ export default function NavigationClient({
                 {sortableIds.map((tabId, sortIdx) => {
                   const showLineBefore = proj !== null && activeNewIdx === 0 && sortIdx === 0
                   const showLineAfter  = proj !== null && activeNewIdx > 0 && proj[activeNewIdx - 1] === tabId
-                  if (tabId === 'calendar') return (
-                    <SortableTab key="calendar" id="calendar">
-                      {hProps => (<>
-                        {showLineBefore && <DropLine />}
-                        <TabBlock label="Calendar" pageCount={0} isCalendar expanded onToggle={() => {}} note="Single-page tab"
-                          dragHandleEl={grip(hProps)}
-                          headerRightContent={<BuiltinVisSelect value={builtinVis.calendar} onChange={v => changeBuiltinVis('calendar', v)} />} />
-                        {showLineAfter && <DropLine />}
-                      </>)}
-                    </SortableTab>
-                  )
+                  if (tabId === 'calendar') {
+                    const calCustom = pagesFor('calendar')
+                    return (
+                      <SortableTab key="calendar" id="calendar">
+                        {hProps => (<>
+                          {showLineBefore && <DropLine />}
+                          <TabBlock label="Calendar" pageCount={CALENDAR_PAGES.length + calCustom.length}
+                            dragHandleEl={grip(hProps)}
+                            expanded={calendarOpen} onToggle={() => setCalendarOpen(o => !o)}
+                            footerEl={<AddPageFooter tabName="Calendar" onClick={() => setNewPageOpen(true)} />}>
+                            <SortablePageGroup items={getGroupItems('calendar', CALENDAR_PAGES, calCustom, pageOrders)} clubSlug={clubSlug}
+                              onDeleteCustom={deletePage} onChangeVis={changeCustomPageVis}
+                              pending={pending} activeDragId={activeDragId} overDragId={overDragId}
+                              builtinRowProps={builtinRowProps} />
+                          </TabBlock>
+                          {showLineAfter && <DropLine />}
+                        </>)}
+                      </SortableTab>
+                    )
+                  }
                   if (tabId === 'images') {
                     const custom = pagesFor('images')
                     return (
@@ -1354,7 +1383,7 @@ export default function NavigationClient({
               {activeDragId && sortableIds.includes(activeDragId)
                 ? <TabGhost label={getLabel(activeDragId)} />
                 : activeDragId?.startsWith('builtin:')
-                ? <PageGhost title={[...IMAGES_PAGES, ...COMPETITIONS_PAGES, ...OUR_CLUB_PAGES]
+                ? <PageGhost title={[...CALENDAR_PAGES, ...IMAGES_PAGES, ...COMPETITIONS_PAGES, ...OUR_CLUB_PAGES]
                     .find(p => p.key === activeDragId.replace('builtin:', ''))?.title ?? ''} />
                 : activeDragId
                 ? <PageGhost title={pages.find(p => p.id === activeDragId)?.title ?? ''} />
