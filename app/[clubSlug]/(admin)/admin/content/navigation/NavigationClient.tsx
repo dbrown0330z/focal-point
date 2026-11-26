@@ -341,8 +341,8 @@ function BuiltinPageRow({
       background: dimmed ? '#F3F4F6' : '#fff',
     }}>
       {/* Drag handle */}
-      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)', opacity: page.hasDrag ? (dimmed ? 0.4 : 1) : 0, cursor: page.hasDrag ? 'grab' : 'default' }}>
-        {page.hasDrag && <span aria-label="Drag to reorder"><VertGrip /></span>}
+      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)', opacity: 0 }}>
+        <VertGrip />
       </div>
       {/* Name + tooltip */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, opacity: dimmed ? 0.45 : 1 }}>
@@ -511,60 +511,39 @@ function PageGhost({ title }: { title: string }) {
   )
 }
 
-function SortablePageGroup({ customPages, clubSlug, onDelete, onChangeVis, onReorder, pending }: {
+function SortablePageGroup({ customPages, clubSlug, onDelete, onChangeVis, onReorder, pending, activeDragId, overDragId }: {
   customPages:  CustomPage[]
   clubSlug:     string
   onDelete:     (id: string) => void
   onChangeVis:  (id: string, v: Visibility) => void
   onReorder:    (reordered: CustomPage[]) => void
   pending:      boolean
+  activeDragId: string | null
+  overDragId:   string | null
 }) {
-  const [activeId, setActiveId] = useState<string | null>(null)
-  const [overId, setOverId] = useState<string | null>(null)
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
   const sorted = [...customPages].sort((a, b) => a.sort_order - b.sort_order)
   const ids = sorted.map(p => p.id)
-  const proj = (activeId && overId && activeId !== overId && ids.includes(activeId) && ids.includes(overId))
-    ? arrayMove(ids, ids.indexOf(activeId), ids.indexOf(overId))
+  const proj = (activeDragId && overDragId && activeDragId !== overDragId && ids.includes(activeDragId) && ids.includes(overDragId))
+    ? arrayMove(ids, ids.indexOf(activeDragId), ids.indexOf(overDragId))
     : null
-  const activeNewIdx = proj ? proj.indexOf(activeId!) : -1
-  const activePage  = sorted.find(p => p.id === activeId)
-  async function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    setActiveId(null); setOverId(null)
-    if (!over || active.id === over.id) return
-    const fi = ids.indexOf(active.id as string); const ti = ids.indexOf(over.id as string)
-    if (fi === -1 || ti === -1) return
-    const newOrder = arrayMove(sorted, fi, ti).map((p, i) => ({ ...p, sort_order: i }))
-    onReorder(newOrder)
-    const sb = createClient()
-    await Promise.all(newOrder.map(p => sb.from('nav_custom_pages').update({ sort_order: p.sort_order }).eq('id', p.id)))
-  }
+  const activeNewIdx = proj ? proj.indexOf(activeDragId!) : -1
   if (sorted.length === 0) return null
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter}
-      onDragStart={e => setActiveId(e.active.id as string)}
-      onDragOver={e => setOverId(e.over?.id as string ?? null)}
-      onDragEnd={handleDragEnd}>
-      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-        {sorted.map((p, sortIdx) => {
-          const showLineBefore = proj !== null && activeNewIdx === 0 && sortIdx === 0
-          const showLineAfter  = proj !== null && activeNewIdx > 0 && proj[activeNewIdx - 1] === p.id
-          return (
-            <SortablePage key={p.id} id={p.id}>
-              {hProps => (<>
-                {showLineBefore && <DropLine />}
-                <CustomPageRow page={p} clubSlug={clubSlug} onDelete={onDelete} onChangeVis={onChangeVis} pending={pending} dragHandleProps={hProps} />
-                {showLineAfter && <DropLine />}
-              </>)}
-            </SortablePage>
-          )
-        })}
-      </SortableContext>
-      <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
-        {activePage ? <PageGhost title={activePage.title} /> : null}
-      </DragOverlay>
-    </DndContext>
+    <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+      {sorted.map((p, sortIdx) => {
+        const showLineBefore = proj !== null && activeNewIdx === 0 && sortIdx === 0
+        const showLineAfter  = proj !== null && activeNewIdx > 0 && proj[activeNewIdx - 1] === p.id
+        return (
+          <SortablePage key={p.id} id={p.id}>
+            {hProps => (<>
+              {showLineBefore && <DropLine />}
+              <CustomPageRow page={p} clubSlug={clubSlug} onDelete={onDelete} onChangeVis={onChangeVis} pending={pending} dragHandleProps={hProps} />
+              {showLineAfter && <DropLine />}
+            </>)}
+          </SortablePage>
+        )
+      })}
+    </SortableContext>
   )
 }
 
@@ -649,7 +628,7 @@ function TabBlock({
 
 function CustomTabBlock({
   tab, pages, clubSlug, onDelete, onDeletePage, onChangeVis, onAddPage,
-  pending, dragHandleEl, dragOverStyle, onDragOver, onDrop, onReorder,
+  pending, dragHandleEl, dragOverStyle, onDragOver, onDrop, onReorder, activeDragId, overDragId,
 }: {
   tab:           CustomTab
   pages:         CustomPage[]
@@ -664,6 +643,8 @@ function CustomTabBlock({
   onDragOver?:   (e: React.DragEvent) => void
   onDrop?:       () => void
   onReorder:     (reordered: CustomPage[]) => void
+  activeDragId?: string | null
+  overDragId?:   string | null
 }) {
   const [expanded, setExpanded] = useState(true)
   const count = pages.length
@@ -702,7 +683,8 @@ function CustomTabBlock({
       {expanded && (
         <SortablePageGroup customPages={pages} clubSlug={clubSlug}
           onDelete={onDeletePage} onChangeVis={onChangeVis}
-          onReorder={onReorder} pending={pending} />
+          onReorder={onReorder} pending={pending}
+          activeDragId={activeDragId ?? null} overDragId={overDragId ?? null} />
       )}
       {expanded && count === 0 && (
         <div style={{ padding: '24px 20px', textAlign: 'center', borderTop: '1px dashed var(--border-default)', color: 'var(--text-tertiary)', fontSize: 13 }}>
@@ -963,35 +945,56 @@ export default function NavigationClient({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabs.length])
 
-  // Unified tab drag state
-  const [activeTabId, setActiveTabId] = useState<string | null>(null)
-  const [overTabId, setOverTabId] = useState<string | null>(null)
-  const tabSensors = useSensors(
+  // Unified drag state (tabs and pages share one DndContext)
+  const [activeDragId, setActiveDragId] = useState<string | null>(null)
+  const [overDragId, setOverDragId] = useState<string | null>(null)
+  const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
-  function handleTabDragStart(event: DragStartEvent) {
-    setActiveTabId(event.active.id as string)
+  function handleDragStart(event: DragStartEvent) {
+    setActiveDragId(event.active.id as string)
   }
-  function handleTabDragOver(event: DragOverEvent) {
-    setOverTabId(event.over?.id as string ?? null)
+  function handleDragOver(event: DragOverEvent) {
+    setOverDragId(event.over?.id as string ?? null)
   }
-  async function handleTabDragEnd(event: DragEndEvent) {
+  async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
-    setActiveTabId(null); setOverTabId(null)
-    if (!over || active.id === over.id) return
+    const aId = active.id as string
+    const oId = over?.id as string ?? null
+    setActiveDragId(null); setOverDragId(null)
+    if (!oId || aId === oId) return
     const sortableIds = tabOrder.filter(id => id !== 'home')
-    const fi = sortableIds.indexOf(active.id as string)
-    const ti = sortableIds.indexOf(over.id as string)
+    // Tab drag
+    if (sortableIds.includes(aId)) {
+      if (!sortableIds.includes(oId)) return
+      const fi = sortableIds.indexOf(aId); const ti = sortableIds.indexOf(oId)
+      const newSortable = arrayMove(sortableIds, fi, ti)
+      const next = ['home', ...newSortable]
+      setTabOrder(next)
+      localStorage.setItem(`fp_nav_tabs_${clubId}`, JSON.stringify(next))
+      const customIds = new Set(tabs.map(t => t.id))
+      const customOrder = newSortable.filter(id => customIds.has(id))
+      const sb = createClient()
+      await Promise.all(customOrder.map((id, i) => sb.from('nav_custom_tabs').update({ sort_order: i }).eq('id', id)))
+      return
+    }
+    // Page drag
+    const activePage = pages.find(p => p.id === aId)
+    const overPage   = pages.find(p => p.id === oId)
+    if (!activePage || !overPage) return
+    const aGroup = activePage.tab_id ?? activePage.parent_system
+    const oGroup = overPage.tab_id ?? overPage.parent_system
+    if (aGroup !== oGroup) return
+    const groupPages = pages.filter(p => (p.tab_id ?? p.parent_system) === aGroup)
+      .sort((a, b) => a.sort_order - b.sort_order)
+    const gIds = groupPages.map(p => p.id)
+    const fi = gIds.indexOf(aId); const ti = gIds.indexOf(oId)
     if (fi === -1 || ti === -1) return
-    const newSortable = arrayMove(sortableIds, fi, ti)
-    const next = ['home', ...newSortable]
-    setTabOrder(next)
-    localStorage.setItem(`fp_nav_tabs_${clubId}`, JSON.stringify(next))
-    const customIds = new Set(tabs.map(t => t.id))
-    const customOrder = newSortable.filter(id => customIds.has(id))
+    const newOrder = arrayMove(groupPages, fi, ti).map((p, i) => ({ ...p, sort_order: i }))
+    onPagesReordered(newOrder)
     const sb = createClient()
-    await Promise.all(customOrder.map((id, i) => sb.from('nav_custom_tabs').update({ sort_order: i }).eq('id', id)))
+    await Promise.all(newOrder.map(p => sb.from('nav_custom_pages').update({ sort_order: p.sort_order }).eq('id', p.id)))
   }
   function onPagesReordered(reordered: CustomPage[]) {
     const ids = new Set(reordered.map(p => p.id))
@@ -1080,11 +1083,11 @@ export default function NavigationClient({
 
       {(() => {
         const sortableIds = tabOrder.filter(id => id !== 'home')
-        const proj = (activeTabId && overTabId && activeTabId !== overTabId
-          && sortableIds.includes(activeTabId) && sortableIds.includes(overTabId))
-          ? arrayMove(sortableIds, sortableIds.indexOf(activeTabId), sortableIds.indexOf(overTabId))
+        const proj = (activeDragId && overDragId && activeDragId !== overDragId
+          && sortableIds.includes(activeDragId) && sortableIds.includes(overDragId))
+          ? arrayMove(sortableIds, sortableIds.indexOf(activeDragId), sortableIds.indexOf(overDragId))
           : null
-        const activeNewIdx = proj ? proj.indexOf(activeTabId!) : -1
+        const activeNewIdx = proj ? proj.indexOf(activeDragId!) : -1
         const grip = (hProps: Record<string, unknown>) => (
           <span {...(hProps as React.HTMLAttributes<HTMLSpanElement>)}
             style={{ touchAction: 'none', cursor: 'grab', display: 'flex', color: 'var(--text-secondary)' }}>
@@ -1099,8 +1102,8 @@ export default function NavigationClient({
           return tabs.find(t => t.id === id)?.name ?? id
         }
         return (
-          <DndContext sensors={tabSensors} collisionDetection={closestCenter}
-            onDragStart={handleTabDragStart} onDragOver={handleTabDragOver} onDragEnd={handleTabDragEnd}>
+          <DndContext sensors={sensors} collisionDetection={closestCenter}
+            onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
             <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <TabBlock label="Home" pageCount={1} isLocked expanded onToggle={() => {}} note="Always first"
@@ -1134,7 +1137,8 @@ export default function NavigationClient({
                             {IMAGES_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
                             <SortablePageGroup customPages={custom} clubSlug={clubSlug}
                               onDelete={deletePage} onChangeVis={changeCustomPageVis}
-                              onReorder={onPagesReordered} pending={pending} />
+                              onReorder={onPagesReordered} pending={pending}
+                              activeDragId={activeDragId} overDragId={overDragId} />
                           </TabBlock>
                           {showLineAfter && <DropLine />}
                         </>)}
@@ -1154,7 +1158,8 @@ export default function NavigationClient({
                             {COMPETITIONS_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
                             <SortablePageGroup customPages={custom} clubSlug={clubSlug}
                               onDelete={deletePage} onChangeVis={changeCustomPageVis}
-                              onReorder={onPagesReordered} pending={pending} />
+                              onReorder={onPagesReordered} pending={pending}
+                              activeDragId={activeDragId} overDragId={overDragId} />
                           </TabBlock>
                           {showLineAfter && <DropLine />}
                         </>)}
@@ -1174,7 +1179,8 @@ export default function NavigationClient({
                             {OUR_CLUB_PAGES.map(p => <BuiltinPageRow key={p.key} page={p} {...builtinRowProps} />)}
                             <SortablePageGroup customPages={custom} clubSlug={clubSlug}
                               onDelete={deletePage} onChangeVis={changeCustomPageVis}
-                              onReorder={onPagesReordered} pending={pending} />
+                              onReorder={onPagesReordered} pending={pending}
+                              activeDragId={activeDragId} overDragId={overDragId} />
                           </TabBlock>
                           {showLineAfter && <DropLine />}
                         </>)}
@@ -1193,6 +1199,7 @@ export default function NavigationClient({
                           onAddPage={() => setNewPageOpen(true)} pending={pending}
                           dragHandleEl={grip(hProps)}
                           onReorder={onPagesReordered}
+                          activeDragId={activeDragId} overDragId={overDragId}
                         />
                         {showLineAfter && <DropLine />}
                       </>)}
@@ -1202,7 +1209,11 @@ export default function NavigationClient({
               </div>
             </SortableContext>
             <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
-              {activeTabId ? <TabGhost label={getLabel(activeTabId)} /> : null}
+              {activeDragId && sortableIds.includes(activeDragId)
+                ? <TabGhost label={getLabel(activeDragId)} />
+                : activeDragId
+                ? <PageGhost title={pages.find(p => p.id === activeDragId)?.title ?? ''} />
+                : null}
             </DragOverlay>
           </DndContext>
         )
