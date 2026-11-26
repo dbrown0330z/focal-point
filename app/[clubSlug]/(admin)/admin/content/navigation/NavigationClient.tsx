@@ -11,7 +11,7 @@ import {
 } from '@mui/material'
 import AddIcon           from '@mui/icons-material/Add'
 import ChevronRightIcon   from '@mui/icons-material/ChevronRight'
-import DeleteOutlineIcon  from '@mui/icons-material/DeleteOutline'
+import DeleteOutlineIcon  from '@mui/icons-material/DeleteOutlined'
 import { useParams }   from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { createPortal } from 'react-dom'
