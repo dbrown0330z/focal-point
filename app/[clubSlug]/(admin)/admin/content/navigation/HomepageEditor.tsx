@@ -2000,14 +2000,8 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
           {saveStatus === 'saving' && (
             <Typography sx={{ fontSize: 11, color: 'text.secondary', fontStyle: 'italic', mt: 0.25 }}>Saving…</Typography>
           )}
-          {saveStatus === 'saved' && (
-            <Typography sx={{ fontSize: 11, color: 'var(--status-success-text)', mt: 0.25 }}>✓ Published</Typography>
-          )}
           {saveStatus === 'error' && (
             <Typography sx={{ fontSize: 11, color: 'var(--status-error)', mt: 0.25 }}>Save failed — please try again.</Typography>
-          )}
-          {saveStatus === 'idle' && hasChanges && (
-            <Typography sx={{ fontSize: 11, color: 'var(--status-warning)', mt: 0.25 }}>Unpublished changes — click Publish changes to go live.</Typography>
           )}
         </Box>
         <Button variant="outlined" size="small"
@@ -2028,6 +2022,23 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
           {hasChanges ? 'Publish changes ↑' : 'Publish changes'}
         </Button>
       </Box>
+
+      {/* Publish banner */}
+      {(hasChanges || saveStatus === 'saved') && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 16,
+          padding: '10px 16px', marginBottom: 24,
+          background: hasChanges ? '#FFF8E1' : '#E8F5E9',
+          border: hasChanges ? '1px solid #FFE082' : '1px solid #A5D6A7',
+          borderRadius: 8,
+        }}>
+          <span style={{ fontSize: 13, color: hasChanges ? '#5D4037' : '#2E7D32', lineHeight: 1.5, flex: 1 }}>
+            {hasChanges
+              ? <>All changes are auto-saved as drafts — click <strong>Publish changes</strong> in the toolbar to make them live for members.</>
+              : '✓ Published successfully'}
+          </span>
+        </div>
+      )}
 
       {/* Two-column layout */}
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 670px', gap: 3, alignItems: 'start' }}>
