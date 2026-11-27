@@ -1097,9 +1097,16 @@ function BlockCard({
             </Typography>
           )}
           {issue && block.enabled && (
-            <Typography sx={{ fontSize: 11, color: '#8A5C00', mt: 0.5, lineHeight: 1.4 }}>
-              ⚠ {issue.message} — <Box component="span" onClick={onEdit} sx={{ textDecoration: 'underline', cursor: 'pointer' }}>edit to fix</Box>
-            </Typography>
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, mt: 0.75,
+              px: '7px', py: '3px', borderRadius: '4px',
+              background: 'rgba(166,100,0,0.10)', border: '1px solid rgba(166,100,0,0.28)' }}>
+              <Typography component="span" sx={{ fontSize: 11, fontWeight: 600, color: '#7A4800', lineHeight: 1 }}>⚠</Typography>
+              <Typography component="span" sx={{ fontSize: 11, color: '#7A4800', lineHeight: 1 }}>{issue.message}</Typography>
+              <Typography component="span" onClick={onEdit}
+                sx={{ fontSize: 11, fontWeight: 600, color: '#7A4800', textDecoration: 'underline', cursor: 'pointer', lineHeight: 1 }}>
+                Fix
+              </Typography>
+            </Box>
           )}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, flexShrink: 0 }}>
@@ -1708,6 +1715,90 @@ function PreviewBlock({ block, audience, t, compact, galleries }: { block: Conte
       )
     }
 
+    case 'competitions': {
+      const s = block.competitionsSettings!
+      const phaseOpen  = 'rgba(46,125,50,0.07)'
+      const openBorder = '#2E7D32'
+      const judgeBorder = '#A67C00'
+      return (
+        <PbSection t={t}>
+          <PbHeading t={t}>{s.heading || 'Competitions'}</PbHeading>
+
+          {/* Open competition */}
+          <div style={{ borderRadius: 8, border: `1px solid ${t.borderDefault}`, marginBottom: 10, overflow: 'hidden' }}>
+            <div style={{ background: phaseOpen, borderLeft: `3px solid ${openBorder}`, padding: '10px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: openBorder, flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: t.textPrimary, fontFamily: t.fontSans }}>Monthly Salon – June 2026</span>
+              </div>
+              <div style={{ fontSize: 11, color: '#2E7D32', marginTop: 4, fontFamily: t.fontSans, fontWeight: 600 }}>
+                Submissions open · Closes Jun 5 · 16 days left
+              </div>
+            </div>
+            <div style={{ padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${t.borderSubtle}` }}>
+              <span style={{ fontSize: 11, color: t.textSecondary, fontFamily: t.fontSans }}>3 categories · 0 of 3 submitted</span>
+              <span style={{ fontSize: 11, color: t.actionPrimary, fontFamily: t.fontSans, fontWeight: 600 }}>Submit →</span>
+            </div>
+          </div>
+
+          {/* Judging */}
+          <div style={{ borderRadius: 8, border: `1px solid ${t.borderSubtle}`, borderLeft: `3px solid ${judgeBorder}`, padding: '8px 14px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: t.textPrimary, fontFamily: t.fontSans }}>May 2026 — Judging in progress</div>
+              <div style={{ fontSize: 10, color: t.textTertiary, fontFamily: t.fontSans, marginTop: 2 }}>Results due Jun 1</div>
+            </div>
+            {s.showMemberResult && (
+              <span style={{ fontSize: 10, color: t.actionPrimary, fontFamily: t.fontSans }}>View results →</span>
+            )}
+          </div>
+
+          {s.showComingSoon && (
+            <div style={{ borderRadius: 8, border: `1px solid ${t.borderSubtle}`, padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: t.textSecondary, fontFamily: t.fontSans }}>Monthly Salon – July 2026</span>
+              <span style={{ fontSize: 10, color: t.textTertiary, fontFamily: t.fontSans }}>Opens Jul 22</span>
+            </div>
+          )}
+        </PbSection>
+      )
+    }
+
+    case 'news-posts': {
+      const s = block.newsPostsSettings ?? { heading: 'Latest news', count: 3, layout: 'list' as const }
+      const dummyPosts = [
+        { title: 'Competition results — April 2026',           date: 'Apr 30', excerpt: 'The scores are in! Congratulations to this month\'s winners across all three categories.' },
+        { title: 'Club meeting recap: gear & technique night', date: 'Apr 18', excerpt: 'Last Thursday\'s meeting covered macro photography techniques and a show-and-tell of members\' new gear.' },
+        { title: 'Field trip to Rockwood Park — June 7',      date: 'Apr 10', excerpt: 'Join us for a morning of landscape and wildlife photography. All skill levels welcome.' },
+        { title: 'Reminder: May submissions close May 31',    date: 'Apr 5',  excerpt: 'You have until the end of the month to submit up to 3 images per category.' },
+        { title: 'Welcome to our newest members',             date: 'Apr 1',  excerpt: 'Please join us in welcoming six new members who joined this month.' },
+      ].slice(0, Math.min(s.count, 5))
+
+      return (
+        <PbSection t={t}>
+          <PbHeading t={t}>{s.heading || 'Latest news'}</PbHeading>
+          {s.layout === 'cards' ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+              {dummyPosts.map((p, i) => (
+                <div key={i} style={{ background: t.surface1, borderRadius: 8, padding: '10px 12px', border: `1px solid ${t.borderSubtle}` }}>
+                  <div style={{ fontSize: 10, color: t.textTertiary, fontFamily: t.fontSans, marginBottom: 4 }}>{p.date}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: t.textPrimary, fontFamily: t.fontSans, lineHeight: 1.4, marginBottom: 4 }}>{p.title}</div>
+                  <div style={{ fontSize: 11, color: t.textSecondary, fontFamily: t.fontSans, lineHeight: 1.5 }}>{p.excerpt}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div>
+              {dummyPosts.map((p, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, padding: '7px 0', borderBottom: i < dummyPosts.length - 1 ? `1px solid ${t.borderSubtle}` : 'none' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: t.actionPrimary, fontFamily: t.fontSans, lineHeight: 1.4 }}>{p.title}</div>
+                  <div style={{ fontSize: 10, color: t.textTertiary, fontFamily: t.fontSans, flexShrink: 0 }}>{p.date}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </PbSection>
+      )
+    }
+
     case 'affiliations': {
       const s = block.affiliationsSettings!
       const items = s.affiliations.length > 0 ? s.affiliations : [
@@ -2096,10 +2187,10 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
 
         {/* Editor rail */}
         <Box>
-          <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'text.secondary', mb: 0.5 }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#5A6C82', mb: 0.5 }}>
             Content blocks
           </Typography>
-          <Typography sx={{ fontSize: 11, color: 'text.tertiary', mb: 1.5 }}>
+          <Typography sx={{ fontSize: 11, color: '#7E8EA3', mb: 1.5 }}>
             Drag to reorder · click Publish to make changes live
           </Typography>
 
