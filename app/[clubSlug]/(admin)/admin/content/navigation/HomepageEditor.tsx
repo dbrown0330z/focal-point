@@ -43,7 +43,7 @@ import {
   type CompetitionsSettings,
   type NewsPostsSettings,
 } from '@/lib/homepage/types'
-import { getSocialAccounts, addSocialAccount } from '@/lib/social-accounts/actions'
+import { addSocialAccount } from '@/lib/social-accounts/actions'
 import { PLATFORM_LIST, type SocialPlatform } from '@/lib/social-accounts/types'
 import type { AdminGalleryData, ClubMember } from '@/app/[clubSlug]/(admin)/admin/content/galleries/ClubGalleriesTab'
 import { WelcomeTemplatePicker } from '@/components/setup/WelcomeTemplatePicker'
@@ -690,7 +690,6 @@ const AFFILIATION_TYPE_LABELS: Record<string, string> = {
 
 function AffiliationsModalBody({ block, onChange }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void }) {
   const s = block.affiliationsSettings!
-  const [importStatus, setImportStatus] = useState<'idle' | 'all-present'>('idle')
   const [addPlatform, setAddPlatform] = useState<SocialPlatform>('instagram')
   const [addUrl, setAddUrl]           = useState('')
   const [addLabel, setAddLabel]       = useState('')
@@ -698,35 +697,11 @@ function AffiliationsModalBody({ block, onChange }: { block: ContentBlock; onCha
   const [addError, setAddError]       = useState<string | null>(null)
   const [showInlineAdd, setShowInlineAdd] = useState(false)
 
-  const addItem = () =>
-    onChange({ affiliationsSettings: { ...s, affiliations: [...s.affiliations, { id: crypto.randomUUID(), type: 'other' as AffiliationType, name: '', url: '' }] } })
-
   const setItem = (id: string, updates: Partial<Affiliation>) =>
     onChange({ affiliationsSettings: { ...s, affiliations: s.affiliations.map(a => a.id === id ? { ...a, ...updates } : a) } })
 
   const removeItem = (id: string) =>
     onChange({ affiliationsSettings: { ...s, affiliations: s.affiliations.filter(a => a.id !== id) } })
-
-  const handleImport = async () => {
-    setImportStatus('idle')
-    setShowInlineAdd(false)
-    const accts = await getSocialAccounts()
-    if (accts.length === 0) {
-      setShowInlineAdd(true)
-      return
-    }
-    const newEntries = accts
-      .filter(a => !s.affiliations.some(e => e.url === a.url))
-      .map(a => ({
-        id:   crypto.randomUUID(),
-        type: 'other' as AffiliationType,
-        name: a.platform === 'custom' ? (a.label || 'Custom') : a.platform.charAt(0).toUpperCase() + a.platform.slice(1),
-        url:  a.url,
-      }))
-    if (newEntries.length === 0) { setImportStatus('all-present'); return }
-    const merged = [...s.affiliations, ...newEntries]
-    onChange({ affiliationsSettings: { ...s, affiliations: merged, maxColumns: Math.min(6, Math.max(s.maxColumns, merged.length)) } })
-  }
 
   const handleAddSocialAccount = async () => {
     if (!addUrl.trim()) return
@@ -808,22 +783,8 @@ function AffiliationsModalBody({ block, onChange }: { block: ContentBlock; onCha
             )
           })}
 
-          {/* Import from Club Basics */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-            <Box component="button"
-              onClick={handleImport}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#1E4D8C', padding: '4px 0', textDecoration: 'underline', fontFamily: 'inherit' }}>
-              Import from Club Basics →
-            </Box>
-          </Box>
-          {importStatus === 'all-present' && (
-            <Typography sx={{ fontSize: 12, color: '#5A6C82', fontStyle: 'italic' }}>
-              All Club Basics accounts are already listed.
-            </Typography>
-          )}
-          {showInlineAdd && (
-            <Box sx={{ p: 1.5, background: '#EDF0F5', borderRadius: '6px', border: '1px solid #D8DDE7', display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#3E5066' }}>Add a social account</Typography>
+          {showInlineAdd ? (
+            <Box sx={{ p: 1.5, mt: 0.5, background: '#EDF0F5', borderRadius: '6px', border: '1px solid #D8DDE7', display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Select size="small" value={addPlatform} onChange={e => setAddPlatform(e.target.value as SocialPlatform)}
                   sx={{ fontSize: 13, flex: '0 0 140px', background: '#fff' }}>
@@ -842,18 +803,16 @@ function AffiliationsModalBody({ block, onChange }: { block: ContentBlock; onCha
                   sx={{ textTransform: 'none', fontSize: 12 }}>
                   {addSaving ? 'Adding…' : 'Add account'}
                 </Button>
-                <Button size="small" variant="outlined" color="secondary" onClick={() => setShowInlineAdd(false)}
+                <Button size="small" variant="outlined" color="secondary" onClick={() => { setShowInlineAdd(false); setAddUrl(''); setAddLabel(''); setAddPlatform('instagram') }}
                   sx={{ textTransform: 'none', fontSize: 12 }}>
                   Cancel
                 </Button>
               </Box>
             </Box>
-          )}
-
-          {s.affiliations.length < s.maxColumns && (
+          ) : (
             <Button startIcon={<AddIcon />} size="small" variant="outlined" color="secondary"
-              onClick={addItem} sx={{ alignSelf: 'flex-start', textTransform: 'none', fontSize: 13, mt: 0.5 }}>
-              Add entry
+              onClick={() => setShowInlineAdd(true)} sx={{ alignSelf: 'flex-start', textTransform: 'none', fontSize: 13, mt: 0.5 }}>
+              Add social account
             </Button>
           )}
         </Box>
