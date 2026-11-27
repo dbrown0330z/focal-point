@@ -14,7 +14,7 @@ const adminTheme = createTheme({
     error: {
       main:         '#D32F2F',
       light:        '#FDEEEE',
-      contrastText: '#7A1515',
+      contrastText: '#ffffff',
     },
     warning: {
       main:         '#A67C00',
