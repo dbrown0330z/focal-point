@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useRef, useState, useTransition } from 'react'
+import { Fragment, useMemo, useRef, useState, useTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   Box,
@@ -1047,7 +1047,7 @@ function getBlockSubtitle(block: ContentBlock): string | null {
 // ── BlockCard ──────────────────────────────────────────────────────────────────
 
 function BlockCard({
-  block, onToggle, onEdit, onRemove, onDragStart, onDragOver, galleries,
+  block, onToggle, onEdit, onRemove, onDragStart, onDragOver, galleries, issue,
 }: {
   block:       ContentBlock
   onToggle:    () => void
@@ -1056,6 +1056,7 @@ function BlockCard({
   onDragStart: () => void
   onDragOver:  (e: React.DragEvent) => void
   galleries?:  AdminGalleryData[]
+  issue?:      ValidationIssue
 }) {
   const displayName = block.label ?? BLOCK_DISPLAY_NAMES[block.type] ?? block.name
   const subtitle    = getBlockSubtitle(block)
@@ -1093,6 +1094,11 @@ function BlockCard({
           {subtitle && (
             <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.4, lineHeight: 1.45 }}>
               {subtitle}
+            </Typography>
+          )}
+          {issue && block.enabled && (
+            <Typography sx={{ fontSize: 11, color: '#8A5C00', mt: 0.5, lineHeight: 1.4 }}>
+              ⚠ {issue.message} — <Box component="span" onClick={onEdit} sx={{ textDecoration: 'underline', cursor: 'pointer' }}>edit to fix</Box>
             </Typography>
           )}
         </Box>
@@ -1896,7 +1902,6 @@ function LivePreview({ blocks, fullscreen = false, galleries }: { blocks: Conten
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', flex: fullscreen ? 1 : undefined }}>
-      {!fullscreen && <IssueStrip issues={issues} compact />}
       <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
         <Box sx={{ display: 'flex' }}>
           {(['visitor','member'] as AudienceFilter[]).map((a, i) => (
@@ -1977,6 +1982,12 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
   const [editingBlock,    setEditingBlock]    = useState<ContentBlock | null>(null)
   const [editOriginal,    setEditOriginal]    = useState<ContentBlock | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
+  const issueMap = useMemo(() => {
+    const map = new Map<string, ValidationIssue>()
+    getValidationIssues(blocks).forEach(i => map.set(i.blockId, i))
+    return map
+  }, [blocks])
 
   const openModal = (block: ContentBlock) => {
     setEditingBlock(block)
@@ -2068,13 +2079,13 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
         <div style={{
           display: 'flex', alignItems: 'center', gap: 16,
           padding: '10px 16px', marginBottom: 24,
-          background: hasChanges ? '#FFF8E1' : '#E8F5E9',
-          border: hasChanges ? '1px solid #FFE082' : '1px solid #A5D6A7',
+          background: hasChanges ? '#F7F8FA' : '#EDFAF0',
+          border: hasChanges ? '1px solid #D8DDE7' : '1px solid #A5D6A7',
           borderRadius: 8,
         }}>
-          <span style={{ fontSize: 13, color: hasChanges ? '#5D4037' : '#2E7D32', lineHeight: 1.5, flex: 1 }}>
+          <span style={{ fontSize: 13, color: hasChanges ? '#3E5066' : '#2E7D32', lineHeight: 1.5, flex: 1 }}>
             {hasChanges
-              ? <>All changes are auto-saved as drafts — click <strong>Publish changes</strong> in the toolbar to make them live for members.</>
+              ? <>Changes are auto-saved as drafts — click <strong>Publish changes</strong> in the toolbar to make them live for members.</>
               : '✓ Published successfully'}
           </span>
         </div>
@@ -2116,6 +2127,7 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
                             onDragStart={() => handleDragStart(i)}
                             onDragOver={e => handleDragOver(e, i)}
                             galleries={galleries}
+                            issue={issueMap.get(block.id)}
                           />
                         </Box>
                       </Fragment>
@@ -2169,6 +2181,7 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
                                 onDragStart={() => handleDragStart(i)}
                                 onDragOver={e => handleDragOver(e, i)}
                                 galleries={galleries}
+                                issue={issueMap.get(block.id)}
                               />
                             </Box>
                           </Fragment>

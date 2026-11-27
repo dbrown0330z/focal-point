@@ -12,11 +12,11 @@ export type DraftChecklist = {
 }
 
 // Light-mode palette — hardcoded to avoid OS dark-mode bleed into admin
-const BG     = '#FFF8E1'
-const BORDER = 'rgba(196,122,0,0.20)'
-const DOT    = '#C47A00'
-const TEXT   = '#5A4000'
-const MUTED  = '#8A6820'
+const BG     = '#FEF3EB'
+const BORDER = 'rgba(195,80,0,0.18)'
+const DOT    = '#C45000'
+const TEXT   = '#5A2800'
+const MUTED  = '#8A4820'
 
 function CheckIcon() {
   return (
@@ -50,8 +50,8 @@ function Item({ done, label, href }: { done: boolean; label: string; href: strin
         textDecoration: 'none',
         padding: '3px 8px',
         borderRadius: 20,
-        border: `1px solid ${done ? 'rgba(196,122,0,0.18)' : 'rgba(196,122,0,0.35)'}`,
-        background: done ? 'rgba(196,122,0,0.06)' : 'rgba(196,122,0,0.12)',
+        border: `1px solid ${done ? 'rgba(195,80,0,0.18)' : 'rgba(195,80,0,0.35)'}`,
+        background: done ? 'rgba(195,80,0,0.06)' : 'rgba(195,80,0,0.12)',
         opacity: done ? 0.7 : 1,
         whiteSpace: 'nowrap',
         cursor: 'pointer',
