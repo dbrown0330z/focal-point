@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Box,
   Button,
@@ -10,11 +11,9 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
-  FormControlLabel,
   Menu,
   MenuItem,
   TextField,
-  Switch,
   Tooltip,
   Typography,
 } from '@mui/material'
@@ -24,10 +23,12 @@ import FormatUnderlinedIcon   from '@mui/icons-material/FormatUnderlined'
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted'
 import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered'
 import FormatClearIcon        from '@mui/icons-material/FormatClear'
+import FormatColorTextIcon    from '@mui/icons-material/FormatColorText'
 import LinkIcon               from '@mui/icons-material/Link'
 import LinkOffIcon            from '@mui/icons-material/LinkOff'
+import UndoIcon               from '@mui/icons-material/Undo'
+import RedoIcon               from '@mui/icons-material/Redo'
 import KeyboardArrowDownIcon  from '@mui/icons-material/KeyboardArrowDown'
-import SaveIcon               from '@mui/icons-material/Save'
 import EditIcon               from '@mui/icons-material/Edit'
 import LocationOnIcon         from '@mui/icons-material/LocationOn'
 import EmailOutlinedIcon      from '@mui/icons-material/EmailOutlined'
@@ -37,19 +38,16 @@ import PublicIcon             from '@mui/icons-material/Public'
 import InstagramIcon          from '@mui/icons-material/Instagram'
 import FacebookIcon           from '@mui/icons-material/Facebook'
 import PaidOutlinedIcon       from '@mui/icons-material/PaidOutlined'
-import { createClient } from '@/lib/supabase/client'
+import { Popover }            from '@mui/material'
+import { createClient }       from '@/lib/supabase/client'
 import { saveAboutPanelFields, type AboutPanelFields } from './actions'
-import { useAdminTheme }  from '@/components/layout/AdminThemeContext'
+import PageEditorSheet        from '@/components/admin/PageEditorSheet'
 
 // ── Font stacks ───────────────────────────────────────────────────────────────
-// Use single font names for execCommand('fontName') — it sets the face=""
-// attribute, which the browser resolves; passing a fallback stack breaks it.
 const EXEC_FONT_LORA   = 'Lora'
 const EXEC_FONT_NUNITO = 'Nunito'
-
-// Full stacks used in CSS only
-const CSS_FONT_LORA   = "var(--font-lora, 'Lora', Georgia, serif)"
-const CSS_FONT_NUNITO = "var(--font-nunito, 'Nunito', system-ui, sans-serif)"
+const CSS_FONT_LORA    = "var(--font-lora, 'Lora', Georgia, serif)"
+const CSS_FONT_NUNITO  = "var(--font-nunito, 'Nunito', system-ui, sans-serif)"
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -84,7 +82,7 @@ const btnSx = {
   '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
 } as const
 
-// ── Public site token sets (for live-preview theming) ─────────────────────────
+// ── Public site token sets ────────────────────────────────────────────────────
 
 const SITE_LIGHT = {
   bg:              '#F5F5F5',
@@ -94,7 +92,6 @@ const SITE_LIGHT = {
   actionSecondary: '#5A7A96',
   borderDefault:   'rgba(0,0,0,0.14)',
   surface1:        '#ECECEC',
-  tableHead:       'rgba(0,0,0,0.04)',
 }
 const SITE_DARK = {
   bg:              '#141414',
@@ -104,59 +101,44 @@ const SITE_DARK = {
   actionSecondary: '#6EA8D8',
   borderDefault:   'rgba(255,255,255,0.12)',
   surface1:        '#1E1E1E',
-  tableHead:       'rgba(255,255,255,0.05)',
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────
 
-/** Toolbar button that uses onMouseDown+preventDefault to keep editor focused */
 function ToolbarBtn({
   title, onMouseDown, active, disabled, children,
 }: {
-  title: string
-  onMouseDown: () => void
-  active?: boolean
-  disabled?: boolean
-  children: React.ReactNode
+  title: string; onMouseDown: () => void; active?: boolean; disabled?: boolean; children: React.ReactNode
 }) {
   return (
     <Tooltip title={title} placement="top">
-      <Box
-        component="button"
-        disabled={disabled}
-        onMouseDown={e => { e.preventDefault(); onMouseDown() }}
+      <Box component="button" disabled={disabled} onMouseDown={e => { e.preventDefault(); onMouseDown() }}
         sx={{
           ...btnSx, width: 28, height: 28,
-          ...(active ? { bgcolor: 'action.selected', color: 'text.primary' } : {}),
+          ...(active   ? { bgcolor: 'action.selected', color: 'text.primary' } : {}),
           ...(disabled ? { opacity: 0.38, cursor: 'default', pointerEvents: 'none' } : {}),
-        }}
-      >
+        }}>
         {children}
       </Box>
     </Tooltip>
   )
 }
 
-function DropdownBtn({
-  label, title, onMouseDown,
-}: {
+function DropdownBtn({ label, title, onMouseDown }: {
   label: string; title: string
   onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => void
 }) {
   return (
     <Tooltip title={title} placement="top">
-      <Box component="button" onMouseDown={onMouseDown}
-        sx={{ ...btnSx, gap: 0.25, height: 28, px: 1 }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'inherit', lineHeight: 1 }}>
-          {label}
-        </Typography>
+      <Box component="button" onMouseDown={onMouseDown} sx={{ ...btnSx, gap: 0.25, height: 28, px: 1 }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'inherit', lineHeight: 1 }}>{label}</Typography>
         <KeyboardArrowDownIcon sx={{ fontSize: 14 }} />
       </Box>
     </Tooltip>
   )
 }
 
-// ── ClubInfo type ─────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type ClubInfo = {
   club_name:              string
@@ -188,22 +170,21 @@ export default function AboutPageEditor({
   pageId,
   initialContent,
   clubInfo,
+  clubSlug,
 }: {
   pageId:         string | null
   initialContent: string
   clubInfo:       ClubInfo | null
+  clubSlug:       string
 }) {
-  const { theme: adminTheme } = useAdminTheme()
+  const router = useRouter()
 
-  // Editor refs
   const editorRef     = useRef<HTMLDivElement>(null)
   const savedRangeRef = useRef<Range | null>(null)
 
-  // Save state
   const [, startSave]  = useTransition()
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
-  // Panel state
   const [panelInfo, setPanelInfo] = useState<ClubInfo>(clubInfo ?? {
     club_name: '', club_location: null, contact_email: null,
     website_url: null, facebook_url: null, instagram_url: null,
@@ -220,35 +201,24 @@ export default function AboutPageEditor({
   const [panelSaving, setPanelSaving] = useState(false)
   const [panelSaveError, setPanelSaveError] = useState<string | null>(null)
 
-  // Preview theme — always light (no toggle)
-  const previewTheme = 'light' as 'light' | 'dark'
-
-  // Toolbar dropdowns
   const [styleAnchor, setStyleAnchor] = useState<HTMLElement | null>(null)
   const [fontAnchor,  setFontAnchor]  = useState<HTMLElement | null>(null)
+  const [colorAnchor, setColorAnchor] = useState<HTMLElement | null>(null)
+  const [activeColor, setActiveColor] = useState('#000000')
   const [activeStyle, setActiveStyle] = useState('Normal text')
   const [activeFont,  setActiveFont]  = useState('Nunito')
 
-  // Link dialog
   const [linkDialogOpen, setLinkDialogOpen] = useState(false)
   const [linkUrl,   setLinkUrl]   = useState('')
   const [linkText,  setLinkText]  = useState('')
 
-  // ── Set initial content once on mount (avoids dangerouslySetInnerHTML
-  //    re-render clobbering the contentEditable DOM on every state change) ────
-
+  // ── Initial content ──────────────────────────────────────────────────────────
   useEffect(() => {
-    if (editorRef.current) {
-      editorRef.current.innerHTML = initialContent
-    }
-    // Only run on mount — intentionally no deps
+    if (editorRef.current) editorRef.current.innerHTML = initialContent
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── Document-level selection tracker ────────────────────────────────────────
-  // Runs continuously so savedRangeRef always holds the last selection *inside*
-  // the editor — even after focus leaves to a toolbar button.
-
+  // ── Selection tracking ───────────────────────────────────────────────────────
   useEffect(() => {
     const onSelectionChange = () => {
       const editor = editorRef.current
@@ -256,9 +226,8 @@ export default function AboutPageEditor({
       const sel = window.getSelection()
       if (sel && sel.rangeCount > 0) {
         const range = sel.getRangeAt(0)
-        if (editor.contains(range.commonAncestorContainer)) {
+        if (editor.contains(range.commonAncestorContainer))
           savedRangeRef.current = range.cloneRange()
-        }
       }
     }
     document.addEventListener('selectionchange', onSelectionChange)
@@ -266,7 +235,6 @@ export default function AboutPageEditor({
   }, [])
 
   // ── Selection restore ────────────────────────────────────────────────────────
-
   const restoreSelection = () => {
     const editor = editorRef.current
     if (!editor) return
@@ -285,12 +253,7 @@ export default function AboutPageEditor({
     }
   }
 
-
   // ── Exec wrappers ────────────────────────────────────────────────────────────
-  // All toolbar buttons use onMouseDown+preventDefault so focus never leaves
-  // the editor. restoreSelection() is still called as a belt-and-suspenders
-  // safeguard (needed when menus are involved).
-
   const exec = (cmd: string, value?: string) => {
     restoreSelection()
     document.execCommand(cmd, false, value ?? undefined)
@@ -305,39 +268,27 @@ export default function AboutPageEditor({
     editorRef.current?.focus()
   }
 
-  // Menu-driven commands: close menu first, then restore + exec in next tick
-  // (setTimeout lets MUI tear down its focus-trap before we touch the editor)
   const applyStyle = (tag: string, label: string) => {
-    setActiveStyle(label)
-    setStyleAnchor(null)
-    setTimeout(() => {
-      restoreSelection()
-      document.execCommand('formatBlock', false, tag)
-      editorRef.current?.focus()
-    }, 0)
+    setActiveStyle(label); setStyleAnchor(null)
+    setTimeout(() => { restoreSelection(); document.execCommand('formatBlock', false, tag); editorRef.current?.focus() }, 0)
   }
 
   const applyFont = (value: string, label: string) => {
-    setActiveFont(label)
-    setFontAnchor(null)
-    setTimeout(() => {
-      restoreSelection()
-      document.execCommand('fontName', false, value)
-      editorRef.current?.focus()
-    }, 0)
+    setActiveFont(label); setFontAnchor(null)
+    setTimeout(() => { restoreSelection(); document.execCommand('fontName', false, value); editorRef.current?.focus() }, 0)
   }
 
-
+  const applyColor = (color: string) => {
+    setActiveColor(color); setColorAnchor(null)
+    setTimeout(() => { restoreSelection(); document.execCommand('foreColor', false, color); editorRef.current?.focus() }, 0)
+  }
 
   // ── Link dialog ──────────────────────────────────────────────────────────────
-
   const openLinkDialog = () => {
     const sel = window.getSelection()
     if (sel && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0)
-      if (!range.collapsed) {
-        setLinkText(range.toString())
-      }
+      if (!range.collapsed) setLinkText(range.toString())
     }
     setLinkUrl('https://')
     setLinkDialogOpen(true)
@@ -366,9 +317,7 @@ export default function AboutPageEditor({
     editorRef.current?.focus()
   }
 
-
   // ── Save ─────────────────────────────────────────────────────────────────────
-
   const handleSave = () => {
     const html = editorRef.current?.innerHTML ?? ''
     setSaveStatus('saving')
@@ -384,6 +333,7 @@ export default function AboutPageEditor({
     })
   }
 
+  // ── Panel edit ───────────────────────────────────────────────────────────────
   const openPanelEdit = () => {
     setPanelForm({
       club_location:           panelInfo.club_location,
@@ -441,186 +391,129 @@ export default function AboutPageEditor({
     setPanelEditOpen(false)
   }
 
-  // ── Derived site tokens ───────────────────────────────────────────────────────
+  // ── Derived tokens ────────────────────────────────────────────────────────────
+  const tok = SITE_LIGHT
 
-  const tok = previewTheme === 'dark' ? SITE_DARK : SITE_LIGHT
-
-  // Live preview: when dialog is open, merge panelForm edits into preview
   const previewInfo: ClubInfo = panelEditOpen
     ? { ...panelInfo, ...(panelForm as Partial<ClubInfo>) }
     : panelInfo
 
-  // ── Editor content sx — text colours use live token values not MUI theme ─────
-
   const editorContentSx = {
-    fontFamily:  CSS_FONT_NUNITO,
-    fontSize:    16,
-    lineHeight:  1.8,
-    color:       tok.textPrimary,
-    outline:     'none',
-    cursor:      'text',
-    minHeight:   400,
-
-    // headings
+    fontFamily: CSS_FONT_NUNITO, fontSize: 16, lineHeight: 1.8, color: tok.textPrimary,
+    outline: 'none', cursor: 'text', minHeight: 400,
     '& h1': { fontFamily: CSS_FONT_LORA, fontSize: '1.7em',  fontWeight: 700, lineHeight: 1.25, mt: '1em', mb: '0.4em',  letterSpacing: '-0.02em', color: tok.textPrimary },
     '& h2': { fontFamily: CSS_FONT_LORA, fontSize: '1.3em',  fontWeight: 600, lineHeight: 1.3,  mt: '1em', mb: '0.35em', letterSpacing: '-0.01em', color: tok.textPrimary },
     '& h3': { fontFamily: CSS_FONT_LORA, fontSize: '1.05em', fontWeight: 600, lineHeight: 1.35, mt: '1em', mb: '0.3em',  color: tok.textPrimary },
-    '& h4': { fontFamily: CSS_FONT_LORA, fontSize: '1em',    fontWeight: 600, mt: '1em',        mb: '0.3em',             color: tok.textPrimary },
-
-    // body / inline
+    '& h4': { fontFamily: CSS_FONT_LORA, fontSize: '1em',    fontWeight: 600, mt: '1em',        mb: '0.3em', color: tok.textPrimary },
     '& p':       { fontFamily: CSS_FONT_NUNITO, margin: '0 0 0.8em', color: tok.textSecondary },
     '& strong':  { fontWeight: 700, color: tok.textPrimary },
     '& em':      { fontStyle: 'italic' },
-
-    // font face overrides (from execCommand fontName)
     [`& font[face="${EXEC_FONT_LORA}"]`]:   { fontFamily: CSS_FONT_LORA },
     [`& font[face="${EXEC_FONT_NUNITO}"]`]: { fontFamily: CSS_FONT_NUNITO },
-
-    // lists
     '& ul': { fontFamily: CSS_FONT_NUNITO, listStyleType: 'disc',    paddingLeft: '1.75em', margin: '0.5em 0 0.8em', color: tok.textSecondary },
     '& ol': { fontFamily: CSS_FONT_NUNITO, listStyleType: 'decimal', paddingLeft: '1.75em', margin: '0.5em 0 0.8em', color: tok.textSecondary },
     '& li': { display: 'list-item', lineHeight: 1.8, mb: '0.15em' },
-
-    // links
-    '& a': { color: tok.actionPrimary, textDecoration: 'underline', textUnderlineOffset: '2px' },
-
-    // blockquote
-    '& blockquote': {
-      borderLeft: `3px solid ${tok.borderDefault}`,
-      paddingLeft: '20px', marginLeft: 0,
-      color: tok.textSecondary, fontStyle: 'italic', margin: '16px 0',
-    },
-
-    // table — borders are set inline by buildTableEl / toggleTableBorders
+    '& a':  { color: tok.actionPrimary, textDecoration: 'underline', textUnderlineOffset: '2px' },
+    '& blockquote': { borderLeft: `3px solid ${tok.borderDefault}`, paddingLeft: '20px', marginLeft: 0, color: tok.textSecondary, fontStyle: 'italic', margin: '16px 0' },
     '& table': { borderCollapse: 'collapse', width: '100%', margin: '16px 0', fontSize: 14 },
     '& td':  { padding: '8px 12px', minWidth: '80px', verticalAlign: 'top', color: tok.textSecondary },
     '& th':  { padding: '8px 12px', minWidth: '80px', verticalAlign: 'top', fontWeight: 600, color: tok.textPrimary },
-
-    // HR
-    '& hr': { border: 'none', borderTop: `1px solid ${tok.borderDefault}`, margin: '24px 0' },
-
-    // images
+    '& hr':  { border: 'none', borderTop: `1px solid ${tok.borderDefault}`, margin: '24px 0' },
     '& img': { cursor: 'pointer', borderRadius: '4px', maxWidth: '100%', height: 'auto', display: 'block', margin: '12px 0' },
-
-    // placeholder
-    '&:empty::before': {
-      content: 'attr(data-placeholder)',
-      color: tok.textSecondary,
-      opacity: 0.5,
-      pointerEvents: 'none',
-    },
+    '&:empty::before': { content: 'attr(data-placeholder)', color: tok.textSecondary, opacity: 0.5, pointerEvents: 'none' },
   } as const
 
   // ── Render ────────────────────────────────────────────────────────────────────
-
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
-
-      {/* ── Page header ──────────────────────────────────────────────────────── */}
-      <Box sx={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        px: 3, py: 1.5, flexShrink: 0,
-        borderBottom: '1px solid', borderColor: 'divider',
-        bgcolor: 'background.paper',
-      }}>
-        <Box>
-          <Typography sx={{ fontSize: 16, fontWeight: 700, color: 'text.primary' }}>
-            About our club
-          </Typography>
-          <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.25 }}>
-            Editing page content
-          </Typography>
-        </Box>
-
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+    <PageEditorSheet
+      title="About our club"
+      backHref={`/${clubSlug}/admin/content/navigation`}
+      headerRight={
+        <>
           {saveStatus === 'saved' && (
             <Typography sx={{ fontSize: 13, color: 'success.main' }}>Saved</Typography>
           )}
           {saveStatus === 'error' && (
             <Typography sx={{ fontSize: 13, color: 'error.main' }}>Save failed</Typography>
           )}
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<SaveIcon sx={{ fontSize: '15px !important' }} />}
-            disabled={saveStatus === 'saving'}
-            onClick={handleSave}
-          >
+          <Button variant="outlined" color="secondary" size="small"
+            onClick={() => router.push(`/${clubSlug}/admin/content/navigation`)}>
+            Cancel
+          </Button>
+          <Button variant="contained" size="small"
+            disabled={saveStatus === 'saving'} onClick={handleSave}>
             {saveStatus === 'saving' ? 'Saving…' : 'Save'}
           </Button>
-        </Box>
-      </Box>
+        </>
+      }
+      toolbar={
+        <>
+          <ToolbarBtn title="Undo (Ctrl+Z)" onMouseDown={() => exec('undo')}><UndoIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Redo (Ctrl+Y)" onMouseDown={() => exec('redo')}><RedoIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
-      {/* ── Formatting toolbar ────────────────────────────────────────────────── */}
-      <Box sx={{
-        px: 1.5, py: 0.75,
-        display: 'flex', alignItems: 'center', gap: 0.25, flexWrap: 'wrap',
-        borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0,
-        bgcolor: t => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-      }}>
+          <DropdownBtn label={activeStyle} title="Text style"
+            onMouseDown={e => { e.preventDefault(); setStyleAnchor(e.currentTarget) }} />
+          <Menu anchorEl={styleAnchor} open={!!styleAnchor} onClose={() => setStyleAnchor(null)} {...MENU_FOCUS_PROPS}>
+            {TEXT_STYLES.map(s => (
+              <MenuItem key={s.tag} onClick={() => applyStyle(s.tag, s.label)} sx={s.sx}>{s.label}</MenuItem>
+            ))}
+          </Menu>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
-        {/* Text style */}
-        <DropdownBtn label={activeStyle} title="Text style"
-          onMouseDown={e => { e.preventDefault(); setStyleAnchor(e.currentTarget) }} />
-        <Menu anchorEl={styleAnchor} open={!!styleAnchor} onClose={() => setStyleAnchor(null)} {...MENU_FOCUS_PROPS}>
-          {TEXT_STYLES.map(s => (
-            <MenuItem key={s.tag} onClick={() => applyStyle(s.tag, s.label)} sx={s.sx}>{s.label}</MenuItem>
-          ))}
-        </Menu>
+          <DropdownBtn label={activeFont} title="Font"
+            onMouseDown={e => { e.preventDefault(); setFontAnchor(e.currentTarget) }} />
+          <Menu anchorEl={fontAnchor} open={!!fontAnchor} onClose={() => setFontAnchor(null)} {...MENU_FOCUS_PROPS}>
+            {FONT_FAMILIES.map(f => (
+              <MenuItem key={f.value} onClick={() => applyFont(f.value, f.label)}
+                sx={{ fontSize: 13, fontFamily: f.label === 'Lora' ? CSS_FONT_LORA : f.label === 'Nunito' ? CSS_FONT_NUNITO : f.value }}>
+                {f.label}
+              </MenuItem>
+            ))}
+          </Menu>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
+          <ToolbarBtn title="Bold"      onMouseDown={() => exec('bold')}>      <FormatBoldIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Italic"    onMouseDown={() => exec('italic')}>    <FormatItalicIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Underline" onMouseDown={() => exec('underline')}> <FormatUnderlinedIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
 
-        {/* Font family */}
-        <DropdownBtn label={activeFont} title="Font"
-          onMouseDown={e => { e.preventDefault(); setFontAnchor(e.currentTarget) }} />
-        <Menu anchorEl={fontAnchor} open={!!fontAnchor} onClose={() => setFontAnchor(null)} {...MENU_FOCUS_PROPS}>
-          {FONT_FAMILIES.map(f => (
-            <MenuItem key={f.value} onClick={() => applyFont(f.value, f.label)}
-              sx={{ fontSize: 13, fontFamily: f.label === 'Lora' ? CSS_FONT_LORA : f.label === 'Nunito' ? CSS_FONT_NUNITO : f.value }}>
-              {f.label}
-            </MenuItem>
-          ))}
-        </Menu>
+          <Tooltip title="Text colour" placement="top">
+            <Box component="button" onMouseDown={e => { e.preventDefault(); setColorAnchor(e.currentTarget) }}
+              sx={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '4px', border: 'none', bgcolor: 'transparent', cursor: 'pointer', color: 'text.secondary', gap: '2px', flexShrink: 0, '&:hover': { bgcolor: 'action.hover' } }}>
+              <FormatColorTextIcon sx={{ fontSize: 15 }} />
+              <Box sx={{ width: 14, height: 3, borderRadius: '1px', bgcolor: activeColor }} />
+            </Box>
+          </Tooltip>
+          <Popover open={!!colorAnchor} anchorEl={colorAnchor} onClose={() => setColorAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} {...MENU_FOCUS_PROPS}>
+            <Box sx={{ p: 1.5, display: 'grid', gridTemplateColumns: 'repeat(8, 20px)', gap: '6px' }}>
+              {COLOR_PALETTE.map(color => (
+                <Box key={color} component="button" onClick={() => applyColor(color)}
+                  sx={{ width: 20, height: 20, borderRadius: '3px', bgcolor: color, border: '1px solid rgba(0,0,0,0.15)', cursor: 'pointer', p: 0, outline: activeColor === color ? '2px solid' : 'none', outlineColor: 'primary.main', outlineOffset: '1px', '&:hover': { transform: 'scale(1.15)' } }} />
+              ))}
+            </Box>
+          </Popover>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
+          <ToolbarBtn title="Bullet list"   onMouseDown={() => exec('insertUnorderedList')}><FormatListBulletedIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Numbered list" onMouseDown={() => exec('insertOrderedList')}>  <FormatListNumberedIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
-        {/* B I U */}
-        <ToolbarBtn title="Bold"      onMouseDown={() => exec('bold')}>      <FormatBoldIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-        <ToolbarBtn title="Italic"    onMouseDown={() => exec('italic')}>    <FormatItalicIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-        <ToolbarBtn title="Underline" onMouseDown={() => exec('underline')}> <FormatUnderlinedIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Insert link" onMouseDown={openLinkDialog}><LinkIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Remove link" onMouseDown={() => exec('unlink')}><LinkOffIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
+          <ToolbarBtn title="Clear formatting" onMouseDown={clearFormatting}><FormatClearIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+        </>
+      }
+    >
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
-
-        {/* Lists */}
-        <ToolbarBtn title="Bullet list"   onMouseDown={() => exec('insertUnorderedList')}><FormatListBulletedIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-        <ToolbarBtn title="Numbered list" onMouseDown={() => exec('insertOrderedList')}>  <FormatListNumberedIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
-
-        {/* Link / Unlink */}
-        <ToolbarBtn title="Insert link"  onMouseDown={openLinkDialog}><LinkIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-        <ToolbarBtn title="Remove link"  onMouseDown={() => exec('unlink')}><LinkOffIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
-
-        {/* Clear formatting */}
-        <ToolbarBtn title="Clear formatting" onMouseDown={clearFormatting}><FormatClearIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-      </Box>
-
-      {/* ── Live-preview editor body ──────────────────────────────────────────── */}
-      {/* Background and text colours mirror the public site for the chosen theme */}
-      <Box sx={{
-        flex: 1,
-        overflow: 'auto',
-        bgcolor: tok.bg,
-        transition: 'background-color 0.2s',
-      }}>
+      {/* ── Live-preview editor body ───────────────────────────────────────── */}
+      <Box sx={{ bgcolor: tok.bg, transition: 'background-color 0.2s', minHeight: '100%' }}>
         <Box sx={{ maxWidth: 1140, mx: 'auto', py: 6, px: 4, display: 'flex', gap: 5, alignItems: 'flex-start' }}>
 
-          {/* ── Left: main content editor ──────────────────────────────────────── */}
+          {/* Left: main content editor */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            {/* Simulated page title — non-editable */}
             <Box sx={{ mb: 4, pointerEvents: 'none', userSelect: 'none' }}>
               <Box sx={{ fontFamily: CSS_FONT_LORA, fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.25, color: tok.textPrimary }}>
                 About our club
@@ -630,8 +523,6 @@ export default function AboutPageEditor({
               </Box>
               <Box sx={{ mt: 2, height: 1, bgcolor: tok.borderDefault }} />
             </Box>
-
-            {/* Editable content */}
             <Box
               ref={editorRef}
               component="div"
@@ -642,37 +533,31 @@ export default function AboutPageEditor({
             />
           </Box>
 
-          {/* ── Right: club details panel preview ──────────────────────────────── */}
+          {/* Right: club details panel */}
           <Box sx={{ width: 272, flexShrink: 0 }}>
             <Box sx={{
-              bgcolor: previewTheme === 'dark' ? tok.surface1 : '#FFFFFF',
+              bgcolor: '#FFFFFF',
               border: `1px solid ${tok.borderDefault}`,
               borderRadius: '12px',
               p: 2.5,
               position: 'sticky',
               top: 24,
             }}>
-              {/* Panel header */}
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: tok.textSecondary }}>
                   Club Details
                 </Typography>
-                <Box
-                  component="button"
-                  onClick={openPanelEdit}
-                  sx={{
-                    display: 'inline-flex', alignItems: 'center', gap: 0.5,
-                    fontSize: 12, color: tok.actionPrimary, border: 'none',
-                    bgcolor: 'transparent', cursor: 'pointer', p: '2px 6px',
-                    borderRadius: '4px', fontFamily: 'inherit',
-                    '&:hover': { textDecoration: 'underline' },
-                  }}
-                >
+                <Box component="button" onClick={openPanelEdit} sx={{
+                  display: 'inline-flex', alignItems: 'center', gap: 0.5,
+                  fontSize: 12, color: tok.actionPrimary, border: 'none',
+                  bgcolor: 'transparent', cursor: 'pointer', p: '2px 6px',
+                  borderRadius: '4px', fontFamily: 'inherit',
+                  '&:hover': { textDecoration: 'underline' },
+                }}>
                   <EditIcon sx={{ fontSize: 13 }} /> Edit
                 </Box>
               </Box>
 
-              {/* Panel rows */}
               {(() => {
                 const rows: { icon: React.ReactNode; text: string }[] = []
                 if (previewInfo.panel_show_location && previewInfo.club_location)
@@ -693,26 +578,19 @@ export default function AboutPageEditor({
                   if (previewInfo.join_fee)    parts.push(`Join fee: ${previewInfo.join_fee}`)
                   rows.push({ icon: <PaidOutlinedIcon sx={{ fontSize: 15 }} />, text: parts.join(' · ') })
                 }
-
-                if (rows.length === 0) {
-                  return (
-                    <Typography sx={{ fontSize: 12, color: tok.textSecondary, fontStyle: 'italic', mb: 1.5 }}>
-                      Club details coming soon
-                    </Typography>
-                  )
-                }
-
+                if (rows.length === 0) return (
+                  <Typography sx={{ fontSize: 12, color: tok.textSecondary, fontStyle: 'italic', mb: 1.5 }}>
+                    Club details coming soon
+                  </Typography>
+                )
                 return rows.map((row, i) => (
                   <Box key={i} sx={{ display: 'flex', gap: 1.25, mb: 1.25, alignItems: 'flex-start' }}>
                     <Box sx={{ color: tok.textSecondary, mt: '1px', flexShrink: 0 }}>{row.icon}</Box>
-                    <Typography sx={{ fontSize: 13, color: tok.textSecondary, lineHeight: 1.5 }}>
-                      {row.text}
-                    </Typography>
+                    <Typography sx={{ fontSize: 13, color: tok.textSecondary, lineHeight: 1.5 }}>{row.text}</Typography>
                   </Box>
                 ))
               })()}
 
-              {/* Social links */}
               {(previewInfo.website_url || (previewInfo.panel_show_instagram && previewInfo.instagram_url) || (previewInfo.panel_show_facebook && previewInfo.facebook_url)) && (
                 <Box sx={{ display: 'flex', gap: 0.75, mt: 1.5, flexWrap: 'wrap' }}>
                   {previewInfo.website_url && (
@@ -733,7 +611,6 @@ export default function AboutPageEditor({
                 </Box>
               )}
 
-              {/* Divider + CTA preview */}
               <Box sx={{ height: 1, bgcolor: tok.borderDefault, my: 2 }} />
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {previewInfo.panel_show_join_button && (
@@ -761,27 +638,21 @@ export default function AboutPageEditor({
         </Box>
       </Box>
 
-
-      {/* ── Link dialog ─────────────────────────────────────────────────────────────────────── */}
+      {/* ── Link dialog ──────────────────────────────────────────────────────── */}
       <Dialog open={linkDialogOpen} onClose={() => setLinkDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>Insert link</DialogTitle>
         <DialogContent sx={{ pt: '16px !important' }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField label="URL" size="small" fullWidth value={linkUrl}
-              onChange={e => setLinkUrl(e.target.value)}
-              placeholder="https://example.com" />
+              onChange={e => setLinkUrl(e.target.value)} placeholder="https://example.com" />
             <TextField label="Display text" size="small" fullWidth value={linkText}
-              onChange={e => setLinkText(e.target.value)}
-              placeholder="Leave blank to use URL" />
+              onChange={e => setLinkText(e.target.value)} placeholder="Leave blank to use URL" />
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button variant="outlined" color="secondary" onClick={() => setLinkDialogOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={confirmInsertLink}
-            disabled={!linkUrl.trim() || linkUrl === 'https://'}
-          >
+          <Button variant="contained" onClick={confirmInsertLink}
+            disabled={!linkUrl.trim() || linkUrl === 'https://'}>
             Insert link
           </Button>
         </DialogActions>
@@ -792,101 +663,64 @@ export default function AboutPageEditor({
         <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>Side panel settings</DialogTitle>
         <DialogContent sx={{ pt: '8px !important' }}>
           <Box>
-            {/* ── Buttons ── */}
             <Typography sx={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'text.secondary', mt: 1.5, mb: 0.5 }}>
               Buttons
             </Typography>
-
-            {/* Join us */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
               <Checkbox size="small" checked={panelForm.panel_show_join_button ?? true}
-                onChange={e => setPanelForm(p => ({ ...p, panel_show_join_button: e.target.checked }))}
-                sx={{ p: 0 }} />
+                onChange={e => setPanelForm(p => ({ ...p, panel_show_join_button: e.target.checked }))} sx={{ p: 0 }} />
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={{ fontSize: 13 }}>Show "Join us" button</Typography>
                 <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Visible to non-members only</Typography>
               </Box>
             </Box>
-
-            {/* Contact us */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
               <Checkbox size="small" checked={panelForm.panel_show_contact ?? true}
-                onChange={e => setPanelForm(p => ({ ...p, panel_show_contact: e.target.checked }))}
-                sx={{ p: 0 }} />
+                onChange={e => setPanelForm(p => ({ ...p, panel_show_contact: e.target.checked }))} sx={{ p: 0 }} />
               <Typography sx={{ fontSize: 13, flex: 1 }}>Show "Contact us" button</Typography>
             </Box>
 
-            {/* ── Details ── */}
             <Typography sx={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'text.secondary', mt: 2, mb: 0.5 }}>
               Details
             </Typography>
-
-            {/* Founded year */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
-              <Checkbox size="small" checked={panelForm.panel_show_founded_year ?? true}
-                onChange={e => setPanelForm(p => ({ ...p, panel_show_founded_year: e.target.checked }))}
-                sx={{ p: 0 }} />
-              <Typography sx={{ fontSize: 13, flex: 1 }}>Founded year</Typography>
-              <TextField size="small" type="number" placeholder="e.g. 1985"
-                sx={{ width: 130 }} value={panelForm.founded_year ?? ''}
-                onChange={e => setPanelForm(p => ({ ...p, founded_year: e.target.value ? parseInt(e.target.value) : null }))} />
-            </Box>
-
-            {/* Member count */}
+            {[
+              { label: 'Founded year', key: 'panel_show_founded_year' as const, field: 'founded_year' as const, type: 'number', placeholder: 'e.g. 1985', width: 130 },
+            ].map(({ label, key, field, type, placeholder, width }) => (
+              <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+                <Checkbox size="small" checked={(panelForm[key] as boolean) ?? true}
+                  onChange={e => setPanelForm(p => ({ ...p, [key]: e.target.checked }))} sx={{ p: 0 }} />
+                <Typography sx={{ fontSize: 13, flex: 1 }}>{label}</Typography>
+                <TextField size="small" type={type} placeholder={placeholder} sx={{ width }}
+                  value={(panelForm[field] as string | number | null) ?? ''}
+                  onChange={e => setPanelForm(p => ({
+                    ...p,
+                    [field]: type === 'number' ? (e.target.value ? parseInt(e.target.value) : null) : (e.target.value || null),
+                  } as AboutPanelFields))} />
+              </Box>
+            ))}
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
               <Checkbox size="small" checked={panelForm.panel_show_member_count ?? true}
-                onChange={e => setPanelForm(p => ({ ...p, panel_show_member_count: e.target.checked }))}
-                sx={{ p: 0, mt: 0.25 }} />
+                onChange={e => setPanelForm(p => ({ ...p, panel_show_member_count: e.target.checked }))} sx={{ p: 0, mt: 0.25 }} />
               <Box>
                 <Typography sx={{ fontSize: 13 }}>Member count</Typography>
                 <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Shows current active members automatically</Typography>
               </Box>
             </Box>
-
-            {/* Meeting schedule */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
-              <Checkbox size="small" checked={panelForm.panel_show_schedule ?? true}
-                onChange={e => setPanelForm(p => ({ ...p, panel_show_schedule: e.target.checked }))}
-                sx={{ p: 0 }} />
-              <Typography sx={{ fontSize: 13, flex: 1 }}>Meeting schedule</Typography>
-              <TextField size="small" placeholder="e.g. 1st Tuesday, 7 pm"
-                sx={{ width: 200 }} value={panelForm.meeting_schedule ?? ''}
-                onChange={e => setPanelForm(p => ({ ...p, meeting_schedule: e.target.value || null }))} />
-            </Box>
-
-            {/* Location */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
-              <Checkbox size="small" checked={panelForm.panel_show_location ?? true}
-                onChange={e => setPanelForm(p => ({ ...p, panel_show_location: e.target.checked }))}
-                sx={{ p: 0 }} />
-              <Typography sx={{ fontSize: 13, flex: 1 }}>Location</Typography>
-              <TextField size="small" placeholder="City, State"
-                sx={{ width: 200 }} value={panelForm.club_location ?? ''}
-                onChange={e => setPanelForm(p => ({ ...p, club_location: e.target.value || null }))} />
-            </Box>
-
-            {/* Instagram */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
-              <Checkbox size="small" checked={panelForm.panel_show_instagram ?? true}
-                onChange={e => setPanelForm(p => ({ ...p, panel_show_instagram: e.target.checked }))}
-                sx={{ p: 0 }} />
-              <Typography sx={{ fontSize: 13, flex: 1 }}>Instagram</Typography>
-              <TextField size="small" placeholder="https://instagram.com/…"
-                sx={{ width: 200 }} value={panelForm.instagram_url ?? ''}
-                onChange={e => setPanelForm(p => ({ ...p, instagram_url: e.target.value || null }))} />
-            </Box>
-
-            {/* Facebook */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
-              <Checkbox size="small" checked={panelForm.panel_show_facebook ?? true}
-                onChange={e => setPanelForm(p => ({ ...p, panel_show_facebook: e.target.checked }))}
-                sx={{ p: 0 }} />
-              <Typography sx={{ fontSize: 13, flex: 1 }}>Facebook</Typography>
-              <TextField size="small" placeholder="https://facebook.com/…"
-                sx={{ width: 200 }} value={panelForm.facebook_url ?? ''}
-                onChange={e => setPanelForm(p => ({ ...p, facebook_url: e.target.value || null }))} />
-            </Box>
-
+            {[
+              { label: 'Meeting schedule', key: 'panel_show_schedule' as const, field: 'meeting_schedule' as const, placeholder: 'e.g. 1st Tuesday, 7 pm' },
+              { label: 'Location',         key: 'panel_show_location' as const, field: 'club_location'    as const, placeholder: 'City, State' },
+              { label: 'Instagram',        key: 'panel_show_instagram' as const, field: 'instagram_url'   as const, placeholder: 'https://instagram.com/…' },
+              { label: 'Facebook',         key: 'panel_show_facebook' as const,  field: 'facebook_url'    as const, placeholder: 'https://facebook.com/…' },
+            ].map(({ label, key, field, placeholder }, idx, arr) => (
+              <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, ...(idx < arr.length - 1 ? { borderBottom: '1px solid', borderColor: 'divider' } : {}) }}>
+                <Checkbox size="small" checked={(panelForm[key] as boolean) ?? true}
+                  onChange={e => setPanelForm(p => ({ ...p, [key]: e.target.checked }))} sx={{ p: 0 }} />
+                <Typography sx={{ fontSize: 13, flex: 1 }}>{label}</Typography>
+                <TextField size="small" placeholder={placeholder} sx={{ width: 200 }}
+                  value={(panelForm[field] as string | null) ?? ''}
+                  onChange={e => setPanelForm(p => ({ ...p, [field]: e.target.value || null }))} />
+              </Box>
+            ))}
             {panelSaveError && (
               <Typography sx={{ fontSize: 13, color: 'error.main', mt: 1.5 }}>{panelSaveError}</Typography>
             )}
@@ -900,6 +734,6 @@ export default function AboutPageEditor({
         </DialogActions>
       </Dialog>
 
-    </Box>
+    </PageEditorSheet>
   )
 }

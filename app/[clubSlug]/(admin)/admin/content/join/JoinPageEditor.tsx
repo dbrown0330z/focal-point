@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Box,
   Button,
-  CircularProgress,
+  Divider,
   Menu,
   MenuItem,
   Tooltip,
@@ -22,9 +23,12 @@ import LinkIcon               from '@mui/icons-material/Link'
 import LinkOffIcon            from '@mui/icons-material/LinkOff'
 import FormatClearIcon        from '@mui/icons-material/FormatClear'
 import KeyboardArrowDownIcon  from '@mui/icons-material/KeyboardArrowDown'
+import UndoIcon               from '@mui/icons-material/Undo'
+import RedoIcon               from '@mui/icons-material/Redo'
 import OpenInNewIcon          from '@mui/icons-material/OpenInNew'
 import { saveJoinPageContent } from './actions'
 import type { ManualMethod } from '@/app/[clubSlug]/(admin)/admin/dues-payment/actions'
+import PageEditorSheet        from '@/components/admin/PageEditorSheet'
 
 const EXEC_FONT_LORA   = 'Lora'
 const EXEC_FONT_NUNITO = 'Nunito'
@@ -42,11 +46,6 @@ const FONT_FAMILIES = [
   { label: 'Lora',      value: EXEC_FONT_LORA },
   { label: 'Nunito',    value: EXEC_FONT_NUNITO },
   { label: 'Monospace', value: 'Courier New' },
-]
-
-const COLOR_PALETTE = [
-  '#000000', '#434343', '#666666', '#999999', '#b7b7b7', '#cccccc', '#d9d9d9', '#ffffff',
-  '#d32f2f', '#e65100', '#f9a825', '#2e7d32', '#0277bd', '#1565c0', '#6a1b9a', '#ad1457',
 ]
 
 const MENU_FOCUS_PROPS = {
@@ -117,7 +116,6 @@ function DropdownBtn({
   )
 }
 
-// ── Method label map ─────────────────────────────────────────────────────────
 const METHOD_LABELS: Record<ManualMethod, string> = {
   cheque:       'Cheque',
   etransfer:    'e-Transfer',
@@ -162,7 +160,6 @@ function DuesPanel({ dues, clubSlug }: { dues: DuesSummary; clubSlug: string }) 
       bgcolor: 'background.default',
       overflow: 'hidden',
     }}>
-      {/* Panel header */}
       <Box sx={{
         px: 2.5, py: 1.75,
         borderBottom: '1px solid', borderColor: 'divider',
@@ -182,8 +179,6 @@ function DuesPanel({ dues, clubSlug }: { dues: DuesSummary; clubSlug: string }) 
       </Box>
 
       <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-
-        {/* Amount */}
         <Box>
           <Typography sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'text.secondary', mb: 0.75 }}>
             Annual dues
@@ -200,7 +195,6 @@ function DuesPanel({ dues, clubSlug }: { dues: DuesSummary; clubSlug: string }) 
           )}
         </Box>
 
-        {/* Payment methods */}
         {!isFree && (
           <Box>
             <Typography sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'text.secondary', mb: 1 }}>
@@ -223,7 +217,6 @@ function DuesPanel({ dues, clubSlug }: { dues: DuesSummary; clubSlug: string }) 
           </Box>
         )}
 
-        {/* Footer note */}
         <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.6, borderTop: '1px solid', borderColor: 'divider', pt: 2 }}>
           This information is generated automatically on the public Join / Renew page below your intro text.
         </Typography>
@@ -243,6 +236,7 @@ export default function JoinPageEditor({
   clubSlug:       string
   duesSummary:    DuesSummary
 }) {
+  const router        = useRouter()
   const editorRef     = useRef<HTMLDivElement>(null)
   const savedRangeRef = useRef<Range | null>(null)
   const [pageId, setPageId] = useState(initialPageId)
@@ -252,7 +246,6 @@ export default function JoinPageEditor({
 
   const [styleAnchor, setStyleAnchor] = useState<HTMLElement | null>(null)
   const [fontAnchor,  setFontAnchor]  = useState<HTMLElement | null>(null)
-  const [colorAnchor, setColorAnchor] = useState<HTMLElement | null>(null)
   const [activeStyle, setActiveStyle] = useState('Normal text')
   const [activeFont,  setActiveFont]  = useState('Nunito')
 
@@ -291,261 +284,154 @@ export default function JoinPageEditor({
     })
   }
 
-  const divider = (
-    <Box sx={{ width: '1px', height: 18, bgcolor: 'divider', mx: 0.25, flexShrink: 0 }} />
-  )
-
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <PageEditorSheet
+      title="Join / Renew Page"
+      backHref={`/${clubSlug}/admin/content/navigation`}
+      headerRight={
+        <>
+          {saveStatus === 'saved' && (
+            <Typography sx={{ fontSize: 13, color: 'success.main' }}>Saved</Typography>
+          )}
+          {saveStatus === 'error' && (
+            <Typography sx={{ fontSize: 13, color: 'error.main' }}>Save failed</Typography>
+          )}
+          <Button
+            variant="outlined" color="secondary" size="small"
+            endIcon={<OpenInNewIcon sx={{ fontSize: 15 }} />}
+            href={`/${clubSlug}/our-club/join`}
+            target="_blank"
+            component="a"
+          >
+            View page
+          </Button>
+          <Button
+            variant="outlined" color="secondary" size="small"
+            onClick={() => router.push(`/${clubSlug}/admin/content/navigation`)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained" size="small"
+            disabled={saveStatus === 'saving'}
+            onClick={handleSave}
+          >
+            {saveStatus === 'saving' ? 'Saving…' : 'Save'}
+          </Button>
+        </>
+      }
+      toolbar={
+        <>
+          <ToolbarBtn title="Undo (Ctrl+Z)" onMouseDown={() => exec('undo')}><UndoIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Redo (Ctrl+Y)" onMouseDown={() => exec('redo')}><RedoIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
-        <Box>
-          <Typography variant="h1" sx={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.015em', color: 'text.primary' }}>
-            Join / Renew Page
-          </Typography>
-          <Typography sx={{ mt: 0.5, fontSize: 13, color: 'text.secondary' }}>
-            Edit the welcome text shown at the top of the public Join / Renew page.
-          </Typography>
-        </Box>
-        <Button
-          variant="outlined"
-          color="secondary"
-          endIcon={<OpenInNewIcon sx={{ fontSize: 15 }} />}
-          href={`/${clubSlug}/our-club/join`}
-          target="_blank"
-          component="a"
-          size="small"
-          sx={{ fontSize: 13, flexShrink: 0 }}
-        >
-          View page
-        </Button>
-      </Box>
-
-      {/* Two-column layout: editor + dues panel */}
-      <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start' }}>
-
-        {/* Left — editor */}
-        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-
-          {/* Editor card */}
-          <Box sx={{
-            bgcolor: 'background.paper',
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 'var(--radius-lg)',
-            overflow: 'hidden',
-          }}>
-            {/* Toolbar */}
-            <Box sx={{
-              display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.25,
-              px: 1.5, py: 0.75,
-              borderBottom: '1px solid', borderColor: 'divider',
-              bgcolor: 'background.default',
-            }}>
-              <DropdownBtn
-                label={activeStyle}
-                title="Text style"
-                onMouseDown={e => { e.preventDefault(); setStyleAnchor(e.currentTarget) }}
-              />
-              <Menu
-                anchorEl={styleAnchor}
-                open={Boolean(styleAnchor)}
-                onClose={() => setStyleAnchor(null)}
-                slotProps={{ paper: { sx: { mt: 0.5 } }, list: MENU_FOCUS_PROPS }}
-              >
-                {TEXT_STYLES.map(s => (
-                  <MenuItem
-                    key={s.tag}
-                    onMouseDown={e => {
-                      e.preventDefault()
-                      restoreSelection()
-                      document.execCommand('formatBlock', false, s.tag)
-                      setActiveStyle(s.label)
-                      setStyleAnchor(null)
-                      editorRef.current?.focus()
-                    }}
-                    sx={s.sx}
-                  >
-                    {s.label}
-                  </MenuItem>
-                ))}
-              </Menu>
-
-              {divider}
-
-              <DropdownBtn
-                label={activeFont}
-                title="Font family"
-                onMouseDown={e => { e.preventDefault(); setFontAnchor(e.currentTarget) }}
-              />
-              <Menu
-                anchorEl={fontAnchor}
-                open={Boolean(fontAnchor)}
-                onClose={() => setFontAnchor(null)}
-                slotProps={{ paper: { sx: { mt: 0.5 } }, list: MENU_FOCUS_PROPS }}
-              >
-                {FONT_FAMILIES.map(f => (
-                  <MenuItem
-                    key={f.value}
-                    onMouseDown={e => {
-                      e.preventDefault()
-                      restoreSelection()
-                      document.execCommand('fontName', false, f.value)
-                      setActiveFont(f.label)
-                      setFontAnchor(null)
-                      editorRef.current?.focus()
-                    }}
-                  >
-                    {f.label}
-                  </MenuItem>
-                ))}
-              </Menu>
-
-              {divider}
-
-              <ToolbarBtn title="Bold"      onMouseDown={() => exec('bold')}>
-                <FormatBoldIcon sx={{ fontSize: 16 }} />
-              </ToolbarBtn>
-              <ToolbarBtn title="Italic"    onMouseDown={() => exec('italic')}>
-                <FormatItalicIcon sx={{ fontSize: 16 }} />
-              </ToolbarBtn>
-              <ToolbarBtn title="Underline" onMouseDown={() => exec('underline')}>
-                <FormatUnderlinedIcon sx={{ fontSize: 16 }} />
-              </ToolbarBtn>
-
-              {divider}
-
-              <DropdownBtn
-                label="Color"
-                title="Text color"
-                onMouseDown={e => { e.preventDefault(); setColorAnchor(e.currentTarget) }}
-              />
-              <Menu
-                anchorEl={colorAnchor}
-                open={Boolean(colorAnchor)}
-                onClose={() => setColorAnchor(null)}
-                slotProps={{ paper: { sx: { mt: 0.5 } }, list: MENU_FOCUS_PROPS }}
-              >
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 0.5, p: 1.5 }}>
-                  {COLOR_PALETTE.map(c => (
-                    <Box
-                      key={c}
-                      component="button"
-                      onMouseDown={e => {
-                        e.preventDefault()
-                        restoreSelection()
-                        document.execCommand('foreColor', false, c)
-                        setColorAnchor(null)
-                        editorRef.current?.focus()
-                      }}
-                      sx={{
-                        width: 20, height: 20, borderRadius: '3px',
-                        bgcolor: c, border: '1px solid rgba(0,0,0,0.12)',
-                        cursor: 'pointer', p: 0,
-                      }}
-                    />
-                  ))}
-                </Box>
-              </Menu>
-
-              {divider}
-
-              <ToolbarBtn title="Bulleted list" onMouseDown={() => exec('insertUnorderedList')}>
-                <FormatListBulletedIcon sx={{ fontSize: 16 }} />
-              </ToolbarBtn>
-              <ToolbarBtn title="Numbered list" onMouseDown={() => exec('insertOrderedList')}>
-                <FormatListNumberedIcon sx={{ fontSize: 16 }} />
-              </ToolbarBtn>
-
-              {divider}
-
-              <ToolbarBtn title="Align left"   onMouseDown={() => exec('justifyLeft')}>
-                <FormatAlignLeftIcon   sx={{ fontSize: 16 }} />
-              </ToolbarBtn>
-              <ToolbarBtn title="Align center" onMouseDown={() => exec('justifyCenter')}>
-                <FormatAlignCenterIcon sx={{ fontSize: 16 }} />
-              </ToolbarBtn>
-              <ToolbarBtn title="Align right"  onMouseDown={() => exec('justifyRight')}>
-                <FormatAlignRightIcon  sx={{ fontSize: 16 }} />
-              </ToolbarBtn>
-
-              {divider}
-
-              <ToolbarBtn
-                title="Insert link"
-                onMouseDown={() => {
+          <DropdownBtn label={activeStyle} title="Text style"
+            onMouseDown={e => { e.preventDefault(); setStyleAnchor(e.currentTarget) }} />
+          <Menu anchorEl={styleAnchor} open={Boolean(styleAnchor)} onClose={() => setStyleAnchor(null)}
+            slotProps={{ list: MENU_FOCUS_PROPS }}>
+            {TEXT_STYLES.map(s => (
+              <MenuItem key={s.tag}
+                onMouseDown={e => {
+                  e.preventDefault()
                   restoreSelection()
-                  const url = window.prompt('Enter URL:')
-                  if (url) exec('createLink', url)
+                  document.execCommand('formatBlock', false, s.tag)
+                  setActiveStyle(s.label)
+                  setStyleAnchor(null)
+                  editorRef.current?.focus()
+                }}
+                sx={s.sx}
+              >
+                {s.label}
+              </MenuItem>
+            ))}
+          </Menu>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
+
+          <DropdownBtn label={activeFont} title="Font family"
+            onMouseDown={e => { e.preventDefault(); setFontAnchor(e.currentTarget) }} />
+          <Menu anchorEl={fontAnchor} open={Boolean(fontAnchor)} onClose={() => setFontAnchor(null)}
+            slotProps={{ list: MENU_FOCUS_PROPS }}>
+            {FONT_FAMILIES.map(f => (
+              <MenuItem key={f.value}
+                onMouseDown={e => {
+                  e.preventDefault()
+                  restoreSelection()
+                  document.execCommand('fontName', false, f.value)
+                  setActiveFont(f.label)
+                  setFontAnchor(null)
+                  editorRef.current?.focus()
                 }}
               >
-                <LinkIcon sx={{ fontSize: 16 }} />
-              </ToolbarBtn>
-              <ToolbarBtn title="Remove link" onMouseDown={() => exec('unlink')}>
-                <LinkOffIcon sx={{ fontSize: 16 }} />
-              </ToolbarBtn>
+                {f.label}
+              </MenuItem>
+            ))}
+          </Menu>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
-              {divider}
+          <ToolbarBtn title="Bold"      onMouseDown={() => exec('bold')}>      <FormatBoldIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Italic"    onMouseDown={() => exec('italic')}>    <FormatItalicIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Underline" onMouseDown={() => exec('underline')}> <FormatUnderlinedIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
-              <ToolbarBtn title="Clear formatting" onMouseDown={() => exec('removeFormat')}>
-                <FormatClearIcon sx={{ fontSize: 16 }} />
-              </ToolbarBtn>
-            </Box>
+          <ToolbarBtn title="Bulleted list" onMouseDown={() => exec('insertUnorderedList')}><FormatListBulletedIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Numbered list" onMouseDown={() => exec('insertOrderedList')}>  <FormatListNumberedIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
-            {/* Editable content */}
-            <Box
-              ref={editorRef}
-              contentEditable
-              suppressContentEditableWarning
-              onSelect={() => {
-                const sel = window.getSelection()
-                if (!sel || sel.rangeCount === 0) return
-                const range = sel.getRangeAt(0)
-                if (editorRef.current?.contains(range.commonAncestorContainer)) {
-                  savedRangeRef.current = range.cloneRange()
-                }
-              }}
-              sx={{
-                minHeight: 240,
-                p: 3,
-                outline: 'none',
-                fontSize: 14,
-                lineHeight: 1.7,
-                color: 'text.primary',
-                fontFamily: CSS_FONT_NUNITO,
-                '& h1': { fontSize: 22, fontWeight: 700, mt: 2, mb: 1, fontFamily: CSS_FONT_LORA },
-                '& h2': { fontSize: 18, fontWeight: 600, mt: 1.5, mb: 0.75, fontFamily: CSS_FONT_LORA },
-                '& h3': { fontSize: 15, fontWeight: 600, mt: 1.5, mb: 0.5, fontFamily: CSS_FONT_LORA },
-                '& p':  { mt: 0, mb: 1 },
-                '& ul, & ol': { pl: 3, mb: 1 },
-                '& a':  { color: 'var(--action-primary)', textDecoration: 'underline' },
-              }}
-            />
-          </Box>
+          <ToolbarBtn title="Align left"   onMouseDown={() => exec('justifyLeft')}>   <FormatAlignLeftIcon   sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Align center" onMouseDown={() => exec('justifyCenter')}> <FormatAlignCenterIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Align right"  onMouseDown={() => exec('justifyRight')}>  <FormatAlignRightIcon  sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
-          {/* Save bar */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Button
-              variant="contained"
-              onClick={handleSave}
-              disabled={saveStatus === 'saving'}
-              startIcon={saveStatus === 'saving' ? <CircularProgress size={14} color="inherit" /> : undefined}
-            >
-              {saveStatus === 'saving' ? 'Saving…' : 'Save'}
-            </Button>
-            {saveStatus === 'saved' && (
-              <Typography sx={{ fontSize: 13, color: 'var(--status-success)', fontWeight: 500 }}>Saved</Typography>
-            )}
-            {saveStatus === 'error' && (
-              <Typography sx={{ fontSize: 13, color: 'var(--status-error)', fontWeight: 500 }}>Error saving</Typography>
-            )}
-          </Box>
+          <ToolbarBtn title="Insert link" onMouseDown={() => {
+            restoreSelection()
+            const url = window.prompt('Enter URL:')
+            if (url) exec('createLink', url)
+          }}><LinkIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Remove link" onMouseDown={() => exec('unlink')}><LinkOffIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
+
+          <ToolbarBtn title="Clear formatting" onMouseDown={() => exec('removeFormat')}><FormatClearIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+        </>
+      }
+    >
+      {/* ── Body: editor + dues panel ──────────────────────────────────────── */}
+      <Box sx={{ maxWidth: 1140, mx: 'auto', py: 4, px: 3, display: 'flex', gap: 3, alignItems: 'flex-start' }}>
+
+        {/* Editor */}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Box
+            ref={editorRef}
+            contentEditable
+            suppressContentEditableWarning
+            onSelect={() => {
+              const sel = window.getSelection()
+              if (!sel || sel.rangeCount === 0) return
+              const range = sel.getRangeAt(0)
+              if (editorRef.current?.contains(range.commonAncestorContainer))
+                savedRangeRef.current = range.cloneRange()
+            }}
+            sx={{
+              minHeight: 400,
+              outline: 'none',
+              fontSize: 14,
+              lineHeight: 1.7,
+              color: 'text.primary',
+              fontFamily: CSS_FONT_NUNITO,
+              '& h1': { fontSize: 22, fontWeight: 700, mt: 2, mb: 1, fontFamily: CSS_FONT_LORA },
+              '& h2': { fontSize: 18, fontWeight: 600, mt: 1.5, mb: 0.75, fontFamily: CSS_FONT_LORA },
+              '& h3': { fontSize: 15, fontWeight: 600, mt: 1.5, mb: 0.5, fontFamily: CSS_FONT_LORA },
+              '& p':  { mt: 0, mb: 1 },
+              '& ul, & ol': { pl: 3, mb: 1 },
+              '& a':  { color: 'var(--action-primary)', textDecoration: 'underline' },
+            }}
+          />
         </Box>
 
-        {/* Right — dues panel */}
+        {/* Dues panel */}
         <DuesPanel dues={duesSummary} clubSlug={clubSlug} />
+
       </Box>
-    </Box>
+    </PageEditorSheet>
   )
 }

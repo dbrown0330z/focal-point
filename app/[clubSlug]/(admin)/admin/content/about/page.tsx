@@ -32,8 +32,9 @@ export default async function AdminAboutPage() {
   const admin    = createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminAny = admin as any
-  const ctx    = await getClubContext()
-  const clubId = ctx?.clubId
+  const ctx      = await getClubContext()
+  const clubId   = ctx?.clubId
+  const clubSlug = ctx?.clubSlug ?? ''
 
   const [{ data: pageRaw }, { data: settingsRaw }, { count: memberCount }] = await Promise.all([
     clubId
@@ -78,6 +79,7 @@ export default async function AdminAboutPage() {
       pageId={pageRaw?.id ?? null}
       initialContent={pageRaw?.content ?? '<p>Write something about your club here\u2026</p>'}
       clubInfo={clubInfo}
+      clubSlug={clubSlug}
     />
   )
 }
