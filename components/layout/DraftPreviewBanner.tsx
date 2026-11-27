@@ -88,11 +88,11 @@ export default function DraftPreviewBanner({ clubSlug }: { clubSlug: string }) {
             .
           </p>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            Use the{' '}
+            Configure your homepage, competitions, and content in the{' '}
             <Link href={`/${clubSlug}/admin`} style={{ color: 'var(--status-warning-text)', textDecoration: 'underline', fontWeight: 600 }}>
               admin area
-            </Link>{' '}
-            to configure your homepage, competitions, and content. When everything looks right, activate your site to open it up to members.
+            </Link>
+            . When everything looks right, activate your site there to open it up to members.
           </p>
         </div>
 
