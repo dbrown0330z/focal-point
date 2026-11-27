@@ -25,6 +25,7 @@ export default function MemberNav({
   pendingCount: _pendingCount,
   resourcesEnabled = true,
   galleriesEnabled = true,
+  navPageOrder,
 }: {
   clubSlug?:          string
   clubName?:          string
@@ -37,32 +38,69 @@ export default function MemberNav({
   pendingCount?:      number
   resourcesEnabled?:  boolean
   galleriesEnabled?:  boolean
+  navPageOrder?:      Record<string, string[]>
 }) {
   const base = `/${clubSlug}`
+
+  // Canonical sortId → nav link mapping
+  const BUILTIN_LINKS: Record<string, { href: string; label: string }> = {
+    'builtin:my-images':        { href: `${base}/library`,                    label: 'My library' },
+    'builtin:my-galleries':     { href: `${base}/library/galleries`,          label: 'My galleries' },
+    'builtin:comp-current':     { href: `${base}/competitions`,               label: 'Current' },
+    'builtin:comp-results':     { href: `${base}/competitions/results`,       label: 'Results' },
+    'builtin:comp-standings':   { href: `${base}/our-club/members/standings`, label: 'Standings' },
+    'builtin:about':            { href: `${base}/our-club/about`,             label: 'About our club' },
+    'builtin:member-directory': { href: `${base}/our-club/members`,          label: 'Member directory' },
+    'builtin:resources':        { href: `${base}/resources`,                 label: 'Resources' },
+    'builtin:club-galleries':   { href: `${base}/our-club/galleries`,        label: 'Club galleries' },
+    'builtin:join':             { href: `${base}/our-club/join`,             label: 'Join / Renew' },
+  }
+
+  // Apply nav_page_order for a group, falling back to default order
+  function orderedLinks(
+    group: string,
+    defaults: { href: string; label: string }[],
+    filterFn?: (sortId: string) => boolean,
+  ): { href: string; label: string }[] {
+    const order = navPageOrder?.[group]
+    if (!order?.length) return defaults
+    return order
+      .filter(id => id.startsWith('builtin:') && BUILTIN_LINKS[id])
+      .filter(id => !filterFn || filterFn(id))
+      .map(id => BUILTIN_LINKS[id])
+  }
 
   const topLinks = [
     { href: `${base}`,          label: 'Home' },
     { href: `${base}/calendar`, label: 'Calendar' },
   ]
 
-  const myImagesLinks = [
-    { href: `${base}/library`,           label: 'My library' },
-    { href: `${base}/library/galleries`, label: 'My galleries' },
-  ]
+  const myImagesLinks = orderedLinks('images', [
+    BUILTIN_LINKS['builtin:my-images'],
+    BUILTIN_LINKS['builtin:my-galleries'],
+  ])
 
-  const competitionsLinks = [
-    { href: `${base}/competitions`,                label: 'Current' },
-    { href: `${base}/competitions/results`,        label: 'Results' },
-    { href: `${base}/our-club/members/standings`,  label: 'Standings' },
-  ]
+  const competitionsLinks = orderedLinks('competitions', [
+    BUILTIN_LINKS['builtin:comp-current'],
+    BUILTIN_LINKS['builtin:comp-results'],
+    BUILTIN_LINKS['builtin:comp-standings'],
+  ])
 
-  const ourClubLinks = [
-    { href: `${base}/our-club/about`,    label: 'About our club' },
-    { href: `${base}/our-club/members`,  label: 'Member directory' },
-    ...(resourcesEnabled  ? [{ href: `${base}/resources`,        label: 'Resources' }]      : []),
-    ...(galleriesEnabled  ? [{ href: `${base}/our-club/galleries`, label: 'Club galleries' }] : []),
-    { href: `${base}/our-club/join`,     label: 'Join / Renew' },
-  ]
+  const ourClubLinks = orderedLinks(
+    'our-club',
+    [
+      BUILTIN_LINKS['builtin:about'],
+      BUILTIN_LINKS['builtin:member-directory'],
+      ...(resourcesEnabled ? [BUILTIN_LINKS['builtin:resources']]      : []),
+      ...(galleriesEnabled ? [BUILTIN_LINKS['builtin:club-galleries']]  : []),
+      BUILTIN_LINKS['builtin:join'],
+    ],
+    id => {
+      if (id === 'builtin:resources'     && !resourcesEnabled) return false
+      if (id === 'builtin:club-galleries' && !galleriesEnabled)  return false
+      return true
+    },
+  )
 
   const pathname = usePathname()
   const { theme, toggle } = useTheme()

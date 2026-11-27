@@ -94,6 +94,7 @@ export default async function MemberLayout({
           pendingCount={pendingCount ?? 0}
           resourcesEnabled={(clubSettings as any)?.page_visibility?.resources_enabled !== false}
           galleriesEnabled={(clubSettings as any)?.page_visibility?.galleries_enabled !== false}
+          navPageOrder={(clubSettings as any)?.page_visibility?.nav_page_order ?? undefined}
         />
         {!club?.is_published && membership?.role === 'admin' && (
           <DraftPreviewBanner clubSlug={clubSlug} />
