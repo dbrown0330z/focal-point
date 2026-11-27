@@ -64,8 +64,8 @@ const SLOT_LABEL: Record<ParentSystem, string>  = {
 }
 const NAV_MAX_SLOTS  = 6
 const MAX_CUSTOM_TABS = 2
-const GRID_COLS  = '32px minmax(0,1fr) 130px 160px auto'
-const GRID_GAP   = '20px'
+const GRID_COLS  = '28px minmax(0,1fr) 120px 150px 70px 130px'
+const GRID_GAP   = '24px'
 const GRID_PAD   = '0 20px 0 12px'
 const TAB_HDR_BG = '#EEF0F4'
 
@@ -247,50 +247,6 @@ function CustomVisSelect({ value, onChange }: { value: Visibility; onChange: (v:
   )
 }
 
-// ── Actions cluster ───────────────────────────────────────────────────────────
-
-function ActionsCluster({
-  viewPath, editPath, editSlot, clubSlug, dimmed,
-}: {
-  viewPath?: string
-  editPath?: string
-  editSlot:  EditSlot
-  clubSlug:  string
-  dimmed?:   boolean
-}) {
-  const dim: React.CSSProperties = dimmed ? { opacity: 0.45, pointerEvents: 'none' } : {}
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end' }}>
-      <div style={dim}>
-        {viewPath && (
-          <a href={`/${clubSlug}${viewPath}`} target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: 13, color: 'var(--action-primary)', textDecoration: 'none',
-              display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-            View <ExternalIcon />
-          </a>
-        )}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', ...dim }}>
-        {(editSlot === 'edit' || editSlot === 'manage') && editPath ? (
-          <Button component={Link} href={`/${clubSlug}${editPath}`}
-            variant="outlined" color="primary" size="small"
-            sx={{ fontSize: 12, py: 0.5, minWidth: 72 }}>
-            {editSlot === 'manage' ? 'Manage' : 'Edit'}
-          </Button>
-        ) : editSlot === 'auto-generated' ? (
-          <span style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
-            Auto-generated
-          </span>
-        ) : editSlot === 'user-generated' ? (
-          <span style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
-            User generated
-          </span>
-        ) : null}
-      </div>
-    </div>
-  )
-}
-
 // ── Builtin page row ──────────────────────────────────────────────────────────
 
 function BuiltinPageRow({
@@ -334,8 +290,8 @@ function BuiltinPageRow({
         <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)' }}>{page.title}</span>
         <InfoTooltip text={page.tooltip} />
       </div>
-      {/* Col 3 — toggle + label */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      {/* Col 3 — On/Off */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: dimmed ? 0.45 : 1 }}>
         {page.enableKey ? (
           <>
             <Switch size="small" checked={enabled}
@@ -346,28 +302,47 @@ function BuiltinPageRow({
             </span>
           </>
         ) : page.editSlot === 'user-generated' ? (
-          <span style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>Always on</span>
-        ) : page.alwaysPublic && page.editSlot === null ? (
-          <span style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>Admin managed</span>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>Always on</span>
         ) : null}
       </div>
       {/* Col 4 — Visibility */}
       <div style={{ opacity: dimmed ? 0.45 : 1, pointerEvents: dimmed ? 'none' : 'auto' }}>
         {page.alwaysPublic ? (
-          <span style={{ fontSize: 14, color: 'var(--text-secondary)', paddingLeft: 9 }}>Public</span>
+          <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Public</span>
         ) : hasBuiltinVisSelect ? (
           <BuiltinVisSelect value={visValue} onChange={v => onChangeVis(page.visKey as 'about' | 'calendar', v)} />
         ) : page.visKey === 'join' ? (
           <BuiltinVisSelect value="public" onChange={() => {}} />
         ) : (
-          <span style={{ fontSize: 14, color: 'var(--text-secondary)', paddingLeft: 9 }}>Members only</span>
+          <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Members only</span>
         )}
       </div>
-      {/* Col 5 — Actions */}
-      <ActionsCluster
-        editSlot={page.editSlot} viewPath={page.viewPath} editPath={page.editPath}
-        clubSlug={clubSlug} dimmed={dimmed}
-      />
+      {/* Col 5 — View link */}
+      <div style={{ opacity: dimmed ? 0.45 : 1, pointerEvents: dimmed ? 'none' : 'auto' }}>
+        {page.viewPath && (
+          <a href={`/${clubSlug}${page.viewPath}`} target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 13, color: 'var(--action-primary)', textDecoration: 'none',
+              display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            View <ExternalIcon />
+          </a>
+        )}
+      </div>
+      {/* Col 6 — Edit / Manage / status */}
+      <div style={{ opacity: dimmed ? 0.45 : 1, pointerEvents: dimmed ? 'none' : 'auto' }}>
+        {(page.editSlot === 'edit' || page.editSlot === 'manage') && page.editPath ? (
+          <Button component={Link} href={`/${clubSlug}${page.editPath}`}
+            variant="outlined" color="primary" size="small"
+            sx={{ fontSize: 12, py: 0.5 }}>
+            {page.editSlot === 'manage' ? 'Manage' : 'Edit'}
+          </Button>
+        ) : page.editSlot === 'auto-generated' ? (
+          <span style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-tertiary)' }}>Auto-generated</span>
+        ) : page.editSlot === 'user-generated' ? (
+          <span style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-tertiary)' }}>User generated</span>
+        ) : page.editSlot === null ? (
+          <span style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-tertiary)' }}>Admin managed</span>
+        ) : null}
+      </div>
     </div>
   )
 }
@@ -406,7 +381,7 @@ function CustomPageRow({
         <InfoTooltip text="Admin-created page." />
         <CustomChip />
       </div>
-      {/* Col 3 — toggle + label */}
+      {/* Col 3 — On/Off toggle */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <Switch size="small" checked={!isHidden}
           onChange={e => onChangeVis(page.id, e.target.checked ? 'members_only' : 'hidden')}
@@ -419,13 +394,16 @@ function CustomPageRow({
       <div style={{ opacity: isHidden ? 0.4 : 1, pointerEvents: isHidden ? 'none' : 'auto' }}>
         {!isHidden && <CustomVisSelect value={page.visibility} onChange={v => onChangeVis(page.id, v)} />}
       </div>
-      {/* Col 5 — actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end', opacity: isHidden ? 0.4 : 1, pointerEvents: isHidden ? 'none' : 'auto' }}>
+      {/* Col 5 — view link */}
+      <div style={{ opacity: isHidden ? 0.4 : 1, pointerEvents: isHidden ? 'none' : 'auto' }}>
         <a href={`/${clubSlug}/our-club/${page.slug}`} target="_blank" rel="noopener noreferrer"
           style={{ fontSize: 13, color: 'var(--action-primary)', textDecoration: 'none',
             display: 'inline-flex', alignItems: 'center', gap: 3 }}>
           View <ExternalIcon />
         </a>
+      </div>
+      {/* Col 6 — edit + delete */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: isHidden ? 0.4 : 1, pointerEvents: isHidden ? 'none' : 'auto' }}>
         <Button component={Link} href={`/${clubSlug}/admin/content/navigation/${page.id}`}
           variant="outlined" color="primary" size="small"
           sx={{ fontSize: 12, py: 0.5, minWidth: 56 }}>Edit</Button>
@@ -660,11 +638,13 @@ function TabBlock({
             {dragHandleEl}
           </div>
         )}
-        {/* Col 3 — toggle col (empty in header) */}
+        {/* Col 3 — on/off (empty in header) */}
         <div />
         {/* Col 4 — visibility */}
         <div>{headerRightContent}</div>
-        {/* Col 5 — empty */}
+        {/* Col 5 — view (empty in header) */}
+        <div />
+        {/* Col 6 — manage (empty in header) */}
         <div />
       </div>
       {expanded && children}
@@ -728,7 +708,8 @@ function CustomTabBlock({
         </div>
         <div />
         <div />
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div />
+        <div>
           <Button variant="outlined" color="secondary" size="small" onClick={() => onDelete(tab.id)} disabled={pending} sx={{ fontSize: 12, py: 0.5 }}>
             Delete
           </Button>
@@ -773,7 +754,8 @@ function ColumnHeaders() {
       <span style={lbl}>Tab / Page</span>
       <span style={lbl}>On / Off</span>
       <span style={lbl}>Visibility</span>
-      <span style={{ ...lbl, textAlign: 'right' }}>Actions</span>
+      <span style={lbl}>View</span>
+      <span style={lbl}>Manage</span>
     </div>
   )
 }
