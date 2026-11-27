@@ -35,7 +35,7 @@ export default async function AdminDashboardPage() {
     admin.from('club_memberships').select('id', { count: 'exact', head: true }).eq('club_id', clubId).in('membership_status', ['active', 'complimentary']),
     admin.from('competitions').select('id, title, status, closes_at').eq('club_id', clubId).in('status', ['open', 'judging']).is('deleted_at', null).order('created_at', { ascending: false }),
     admin.from('competitions').select('id, title, created_at').eq('club_id', clubId).is('deleted_at', null).order('created_at', { ascending: false }).limit(3),
-    admin.from('club_settings').select('membership_terms_reviewed').eq('club_id', clubId).single(),
+    admin.from('club_settings').select('membership_terms_reviewed, approval_mode').eq('club_id', clubId).single(),
     admin.from('clubs').select('verified_at').eq('id', clubId).single(),
     admin.from('club_memberships').select('user_id, created_at').eq('club_id', clubId).order('created_at', { ascending: false }).limit(3),
   ])
@@ -65,7 +65,8 @@ export default async function AdminDashboardPage() {
     trialEndDate = new Date(end).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
   }
 
-  const termsReviewed = clubSettings?.membership_terms_reviewed ?? true
+  const termsReviewed   = clubSettings?.membership_terms_reviewed ?? true
+  const isAdminApproval = (clubSettings as any)?.approval_mode === 'admin_approval'
 
   // Build merged activity feed
   type ActivityItem = { time: string; label: string; detail: string; dot: string; href: string }
@@ -108,7 +109,7 @@ export default async function AdminDashboardPage() {
   const activityFeed = activity.slice(0, 8)
 
   const stats = [
-    { label: 'Pending approvals', value: pendingCount ?? 0, href: `/${clubSlug}/admin/members`, urgent: (pendingCount ?? 0) > 0 },
+    ...(isAdminApproval ? [{ label: 'Pending approvals', value: pendingCount ?? 0, href: `/${clubSlug}/admin/members`, urgent: (pendingCount ?? 0) > 0 }] : []),
     { label: 'Active members', value: memberCount ?? 0, href: `/${clubSlug}/admin/members`, urgent: false },
     { label: 'Active competitions', value: activeCompetitions?.length ?? 0, href: `/${clubSlug}/admin/competitions`, urgent: false },
   ]
