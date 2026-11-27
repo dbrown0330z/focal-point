@@ -106,8 +106,8 @@ export default function DraftBanner({ checklist: initial }: { checklist: DraftCh
         {/* Text + checklist */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <span style={{ fontSize: 13, color: TEXT }}>
-            Your site is in <strong>draft mode</strong> — visitors see a coming soon page until you go live.
-            {' '}You can publish at any time; here&rsquo;s what&rsquo;s worth setting up first:
+            Your site is in <strong>setup mode</strong> — visitors see a coming soon page until you go live.
+            {' '}You can go live at any time; here&rsquo;s what&rsquo;s worth setting up first:
           </span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
             {items.map(item => (
@@ -129,7 +129,7 @@ export default function DraftBanner({ checklist: initial }: { checklist: DraftCh
             opacity: publishing ? 0.7 : 1, fontFamily: 'inherit',
           }}
         >
-          {publishing ? 'Publishing…' : 'Publish site →'}
+          {publishing ? 'Going live…' : 'Go live →'}
         </button>
       </div>
 

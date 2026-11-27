@@ -687,8 +687,9 @@ const AFFILIATION_TYPE_LABELS: Record<string, string> = {
   twitter: 'X / Twitter', vimeo: 'Vimeo', other: 'Other',
 }
 
-function AffiliationsModalBody({ block, onChange }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void }) {
+function AffiliationsModalBody({ block, onChange, clubSlug }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void; clubSlug?: string }) {
   const s = block.affiliationsSettings!
+  const [importMsg, setImportMsg] = useState<string | null>(null)
 
   const addItem = () =>
     onChange({ affiliationsSettings: { ...s, affiliations: [...s.affiliations, { id: crypto.randomUUID(), type: 'other' as AffiliationType, name: '', url: '' }] } })
@@ -699,6 +700,29 @@ function AffiliationsModalBody({ block, onChange }: { block: ContentBlock; onCha
   const removeItem = (id: string) =>
     onChange({ affiliationsSettings: { ...s, affiliations: s.affiliations.filter(a => a.id !== id) } })
 
+  const handleImport = async () => {
+    setImportMsg(null)
+    const accts = await getSocialAccounts()
+    if (accts.length === 0) {
+      setImportMsg('no-accounts')
+      return
+    }
+    const newEntries = accts
+      .filter(a => !s.affiliations.some(e => e.url === a.url))
+      .map(a => ({
+        id:   crypto.randomUUID(),
+        type: 'other' as AffiliationType,
+        name: a.platform === 'custom' ? (a.label || 'Custom') : a.platform.charAt(0).toUpperCase() + a.platform.slice(1),
+        url:  a.url,
+      }))
+    if (newEntries.length === 0) {
+      setImportMsg('all-present')
+      return
+    }
+    const merged = [...s.affiliations, ...newEntries]
+    onChange({ affiliationsSettings: { ...s, affiliations: merged, maxColumns: Math.min(6, Math.max(s.maxColumns, merged.length)) } })
+  }
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
       <FieldRow label="Max columns (1–6)">
@@ -706,9 +730,9 @@ function AffiliationsModalBody({ block, onChange }: { block: ContentBlock; onCha
           {[1,2,3,4,5,6].map(n => (
             <button key={n} onClick={() => onChange({ affiliationsSettings: { ...s, maxColumns: n } })} style={{
               width: 32, height: 30, cursor: 'pointer', borderRadius: 4,
-              border: `1px solid ${s.maxColumns === n ? 'var(--action-primary)' : 'var(--border-default)'}`,
-              background: s.maxColumns === n ? 'rgba(30,77,140,0.07)' : 'var(--surface-2)',
-              color: s.maxColumns === n ? 'var(--action-primary)' : 'var(--text-secondary)',
+              border: `1px solid ${s.maxColumns === n ? '#1E4D8C' : '#B0BACA'}`,
+              background: s.maxColumns === n ? 'rgba(30,77,140,0.07)' : '#FFFFFF',
+              color: s.maxColumns === n ? '#1E4D8C' : '#5A6C82',
               fontSize: 13, fontWeight: 600, transition: 'all 0.1s',
             }}>{n}</button>
           ))}
@@ -762,23 +786,33 @@ function AffiliationsModalBody({ block, onChange }: { block: ContentBlock; onCha
               </Box>
             )
           })}
-          <Box component="button"
-            onClick={async () => {
-              const accts = await getSocialAccounts()
-              const newEntries = accts
-                .filter(a => !s.affiliations.some(e => e.url === a.url))
-                .map(a => ({
-                  id:   crypto.randomUUID(),
-                  type: 'other' as AffiliationType,
-                  name: a.platform === 'custom' ? (a.label || 'Custom') : a.platform.charAt(0).toUpperCase() + a.platform.slice(1),
-                  url:  a.url,
-                }))
-              if (newEntries.length > 0)
-                onChange({ affiliationsSettings: { ...s, affiliations: [...s.affiliations, ...newEntries] } })
-            }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--action-primary)', padding: '4px 0', textDecoration: 'underline', marginBottom: 8 }}>
-            Import from Club Basics →
+
+          {/* Import from Club Basics */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+            <Box component="button"
+              onClick={handleImport}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#1E4D8C', padding: '4px 0', textDecoration: 'underline', fontFamily: 'inherit' }}>
+              Import from Club Basics →
+            </Box>
           </Box>
+          {importMsg === 'no-accounts' && (
+            <Box sx={{ p: 1.5, background: '#EDF0F5', borderRadius: '6px', border: '1px solid #D8DDE7' }}>
+              <Typography sx={{ fontSize: 12, color: '#3E5066' }}>
+                No social accounts configured in Club Basics yet.{' '}
+                {clubSlug && (
+                  <Box component="a" href={`/${clubSlug}/admin/club-defaults`} target="_blank" sx={{ color: '#1E4D8C', textDecoration: 'underline' }}>
+                    Add accounts →
+                  </Box>
+                )}
+              </Typography>
+            </Box>
+          )}
+          {importMsg === 'all-present' && (
+            <Typography sx={{ fontSize: 12, color: '#5A6C82', fontStyle: 'italic' }}>
+              All Club Basics accounts are already listed.
+            </Typography>
+          )}
+
           {s.affiliations.length < s.maxColumns && (
             <Button startIcon={<AddIcon />} size="small" variant="outlined" color="secondary"
               onClick={addItem} sx={{ alignSelf: 'flex-start', textTransform: 'none', fontSize: 13, mt: 0.5 }}>
@@ -907,7 +941,7 @@ function NewsPostsModalBody({ block, onChange }: { block: ContentBlock; onChange
 // ── Block edit modal ───────────────────────────────────────────────────────────
 
 function BlockEditModal({
-  block, onClose, onCancel, onUpdate, onRemove, galleries, members, clubName,
+  block, onClose, onCancel, onUpdate, onRemove, galleries, members, clubName, clubSlug,
 }: {
   block:     ContentBlock | null
   onClose:   () => void
@@ -917,6 +951,7 @@ function BlockEditModal({
   galleries: AdminGalleryData[]
   members:   ClubMember[]
   clubName:  string
+  clubSlug?: string
 }) {
   if (!block) return null
   const meta = MODAL_META[block.type] ?? { title: block.label ?? block.name, description: '' }
@@ -955,42 +990,34 @@ function BlockEditModal({
         {block.type === 'dual-panel'       && <DualPanelModalBody        block={block} onChange={onUpdate} />}
         {block.type === 'upcoming-events'  && <EventsModalBody           block={block} onChange={onUpdate} />}
         {block.type === 'custom-content'   && <CustomContentModalBody    block={block} onChange={onUpdate} />}
-        {block.type === 'affiliations'     && <AffiliationsModalBody     block={block} onChange={onUpdate} />}
+        {block.type === 'affiliations'     && <AffiliationsModalBody     block={block} onChange={onUpdate} clubSlug={clubSlug} />}
         {block.type === 'competitions'     && <CompetitionsModalBody     block={block} onChange={onUpdate} />}
         {block.type === 'news-posts'       && <NewsPostsModalBody        block={block} onChange={onUpdate} />}
       </DialogContent>
 
       {/* Visibility footer — shown for all non-fixed blocks */}
       {!block.fixed && (
-        <Box sx={{ px: 3, py: 1.5, borderTop: '1px solid', borderColor: 'divider', background: 'var(--surface-1)' }}>
-          <Box
-            component="label"
-            sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', userSelect: 'none' }}
-          >
-            <input
-              type="checkbox"
-              checked={block.visibleToAnonymous !== false}
-              onChange={e => onUpdate({ visibleToAnonymous: e.target.checked })}
-              style={{ width: 15, height: 15, accentColor: 'var(--action-primary)', cursor: 'pointer', flexShrink: 0 }}
-            />
-            <Box>
-              <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.primary', lineHeight: 1.2 }}>
-                Visible to visitors (not logged in)
-              </Typography>
-              <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.25 }}>
-                When unchecked, only logged-in members see this block
-              </Typography>
-            </Box>
-          </Box>
+        <Box sx={{ px: 3, py: 1.5, borderTop: '1px solid #D8DDE7', background: '#EDF0F5', display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography sx={{ fontSize: 13, fontWeight: 500, color: '#131F2E', flexShrink: 0 }}>Visibility</Typography>
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <Select
+              value={block.visibleToAnonymous !== false ? 'public' : 'members'}
+              onChange={e => onUpdate({ visibleToAnonymous: e.target.value === 'public' })}
+              sx={{ fontSize: 13, background: '#FFFFFF' }}
+            >
+              <MenuItem value="public"  sx={{ fontSize: 13 }}>Public</MenuItem>
+              <MenuItem value="members" sx={{ fontSize: 13 }}>Members only</MenuItem>
+            </Select>
+          </FormControl>
         </Box>
       )}
 
       <DialogActions sx={{ px: 3, py: 2, gap: 1, display: 'flex', alignItems: 'center' }}>
         <Typography sx={{ flex: 1, fontSize: 11, color: 'text.tertiary', lineHeight: 1.4 }}>
-          Click <strong>Publish changes</strong> in the toolbar to save to the live site.
+          Click <strong>Publish changes</strong> in the toolbar to make changes live.
         </Typography>
         <Button variant="outlined" color="secondary" onClick={onCancel} sx={{ textTransform: 'none', fontSize: 13 }}>Cancel</Button>
-        <Button variant="contained" onClick={onClose} sx={{ textTransform: 'none', fontSize: 13 }}>Done</Button>
+        <Button variant="contained" onClick={onClose} sx={{ textTransform: 'none', fontSize: 13 }}>Save</Button>
       </DialogActions>
     </Dialog>
   )
@@ -2181,6 +2208,7 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
         galleries={galleries}
         members={members}
         clubName={clubName}
+        clubSlug={clubSlug}
       />
 
       {/* Publish dialog */}
