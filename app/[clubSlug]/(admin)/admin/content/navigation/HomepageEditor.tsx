@@ -43,7 +43,8 @@ import {
   type CompetitionsSettings,
   type NewsPostsSettings,
 } from '@/lib/homepage/types'
-import { getSocialAccounts } from '@/lib/social-accounts/actions'
+import { getSocialAccounts, addSocialAccount } from '@/lib/social-accounts/actions'
+import { PLATFORM_LIST, type SocialPlatform } from '@/lib/social-accounts/types'
 import type { AdminGalleryData, ClubMember } from '@/app/[clubSlug]/(admin)/admin/content/galleries/ClubGalleriesTab'
 import { WelcomeTemplatePicker } from '@/components/setup/WelcomeTemplatePicker'
 
@@ -687,9 +688,15 @@ const AFFILIATION_TYPE_LABELS: Record<string, string> = {
   twitter: 'X / Twitter', vimeo: 'Vimeo', other: 'Other',
 }
 
-function AffiliationsModalBody({ block, onChange, clubSlug }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void; clubSlug?: string }) {
+function AffiliationsModalBody({ block, onChange }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void }) {
   const s = block.affiliationsSettings!
-  const [importMsg, setImportMsg] = useState<string | null>(null)
+  const [importStatus, setImportStatus] = useState<'idle' | 'all-present'>('idle')
+  const [addPlatform, setAddPlatform] = useState<SocialPlatform>('instagram')
+  const [addUrl, setAddUrl]           = useState('')
+  const [addLabel, setAddLabel]       = useState('')
+  const [addSaving, setAddSaving]     = useState(false)
+  const [addError, setAddError]       = useState<string | null>(null)
+  const [showInlineAdd, setShowInlineAdd] = useState(false)
 
   const addItem = () =>
     onChange({ affiliationsSettings: { ...s, affiliations: [...s.affiliations, { id: crypto.randomUUID(), type: 'other' as AffiliationType, name: '', url: '' }] } })
@@ -701,10 +708,11 @@ function AffiliationsModalBody({ block, onChange, clubSlug }: { block: ContentBl
     onChange({ affiliationsSettings: { ...s, affiliations: s.affiliations.filter(a => a.id !== id) } })
 
   const handleImport = async () => {
-    setImportMsg(null)
+    setImportStatus('idle')
+    setShowInlineAdd(false)
     const accts = await getSocialAccounts()
     if (accts.length === 0) {
-      setImportMsg('no-accounts')
+      setShowInlineAdd(true)
       return
     }
     const newEntries = accts
@@ -715,12 +723,25 @@ function AffiliationsModalBody({ block, onChange, clubSlug }: { block: ContentBl
         name: a.platform === 'custom' ? (a.label || 'Custom') : a.platform.charAt(0).toUpperCase() + a.platform.slice(1),
         url:  a.url,
       }))
-    if (newEntries.length === 0) {
-      setImportMsg('all-present')
-      return
-    }
+    if (newEntries.length === 0) { setImportStatus('all-present'); return }
     const merged = [...s.affiliations, ...newEntries]
     onChange({ affiliationsSettings: { ...s, affiliations: merged, maxColumns: Math.min(6, Math.max(s.maxColumns, merged.length)) } })
+  }
+
+  const handleAddSocialAccount = async () => {
+    if (!addUrl.trim()) return
+    setAddSaving(true); setAddError(null)
+    const result = await addSocialAccount(addPlatform, addUrl.trim(), addPlatform === 'custom' ? (addLabel.trim() || null) : null)
+    setAddSaving(false)
+    if (result.error) { setAddError(result.error); return }
+    if (result.account) {
+      const a = result.account
+      const name = a.platform === 'custom' ? (a.label || 'Custom') : a.platform.charAt(0).toUpperCase() + a.platform.slice(1)
+      const newEntry = { id: crypto.randomUUID(), type: 'other' as AffiliationType, name, url: a.url }
+      const merged = [...s.affiliations, newEntry]
+      onChange({ affiliationsSettings: { ...s, affiliations: merged, maxColumns: Math.min(6, Math.max(s.maxColumns, merged.length)) } })
+    }
+    setAddUrl(''); setAddLabel(''); setAddPlatform('instagram'); setShowInlineAdd(false)
   }
 
   return (
@@ -795,22 +816,38 @@ function AffiliationsModalBody({ block, onChange, clubSlug }: { block: ContentBl
               Import from Club Basics →
             </Box>
           </Box>
-          {importMsg === 'no-accounts' && (
-            <Box sx={{ p: 1.5, background: '#EDF0F5', borderRadius: '6px', border: '1px solid #D8DDE7' }}>
-              <Typography sx={{ fontSize: 12, color: '#3E5066' }}>
-                No social accounts configured in Club Basics yet.{' '}
-                {clubSlug && (
-                  <Box component="a" href={`/${clubSlug}/admin/club-defaults`} target="_blank" sx={{ color: '#1E4D8C', textDecoration: 'underline' }}>
-                    Add accounts →
-                  </Box>
-                )}
-              </Typography>
-            </Box>
-          )}
-          {importMsg === 'all-present' && (
+          {importStatus === 'all-present' && (
             <Typography sx={{ fontSize: 12, color: '#5A6C82', fontStyle: 'italic' }}>
               All Club Basics accounts are already listed.
             </Typography>
+          )}
+          {showInlineAdd && (
+            <Box sx={{ p: 1.5, background: '#EDF0F5', borderRadius: '6px', border: '1px solid #D8DDE7', display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#3E5066' }}>Add a social account</Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Select size="small" value={addPlatform} onChange={e => setAddPlatform(e.target.value as SocialPlatform)}
+                  sx={{ fontSize: 13, flex: '0 0 140px', background: '#fff' }}>
+                  {PLATFORM_LIST.map(p => <MenuItem key={p.value} value={p.value} sx={{ fontSize: 13 }}>{p.label}</MenuItem>)}
+                </Select>
+                <TextField size="small" value={addUrl} onChange={e => setAddUrl(e.target.value)}
+                  placeholder="https://…" sx={{ flex: 1, '& .MuiInputBase-root': { background: '#fff', fontSize: 13 } }} />
+              </Box>
+              {addPlatform === 'custom' && (
+                <TextField size="small" value={addLabel} onChange={e => setAddLabel(e.target.value)}
+                  placeholder="Display name" fullWidth sx={{ '& .MuiInputBase-root': { background: '#fff', fontSize: 13 } }} />
+              )}
+              {addError && <Typography sx={{ fontSize: 12, color: 'error.main' }}>{addError}</Typography>}
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button size="small" variant="contained" onClick={handleAddSocialAccount} disabled={addSaving || !addUrl.trim()}
+                  sx={{ textTransform: 'none', fontSize: 12 }}>
+                  {addSaving ? 'Adding…' : 'Add account'}
+                </Button>
+                <Button size="small" variant="outlined" color="secondary" onClick={() => setShowInlineAdd(false)}
+                  sx={{ textTransform: 'none', fontSize: 12 }}>
+                  Cancel
+                </Button>
+              </Box>
+            </Box>
           )}
 
           {s.affiliations.length < s.maxColumns && (
@@ -941,7 +978,7 @@ function NewsPostsModalBody({ block, onChange }: { block: ContentBlock; onChange
 // ── Block edit modal ───────────────────────────────────────────────────────────
 
 function BlockEditModal({
-  block, onClose, onCancel, onUpdate, onRemove, galleries, members, clubName, clubSlug,
+  block, onClose, onCancel, onUpdate, onRemove, galleries, members, clubName,
 }: {
   block:     ContentBlock | null
   onClose:   () => void
@@ -951,7 +988,6 @@ function BlockEditModal({
   galleries: AdminGalleryData[]
   members:   ClubMember[]
   clubName:  string
-  clubSlug?: string
 }) {
   if (!block) return null
   const meta = MODAL_META[block.type] ?? { title: block.label ?? block.name, description: '' }
@@ -990,7 +1026,7 @@ function BlockEditModal({
         {block.type === 'dual-panel'       && <DualPanelModalBody        block={block} onChange={onUpdate} />}
         {block.type === 'upcoming-events'  && <EventsModalBody           block={block} onChange={onUpdate} />}
         {block.type === 'custom-content'   && <CustomContentModalBody    block={block} onChange={onUpdate} />}
-        {block.type === 'affiliations'     && <AffiliationsModalBody     block={block} onChange={onUpdate} clubSlug={clubSlug} />}
+        {block.type === 'affiliations'     && <AffiliationsModalBody     block={block} onChange={onUpdate} />}
         {block.type === 'competitions'     && <CompetitionsModalBody     block={block} onChange={onUpdate} />}
         {block.type === 'news-posts'       && <NewsPostsModalBody        block={block} onChange={onUpdate} />}
       </DialogContent>
@@ -2208,7 +2244,6 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
         galleries={galleries}
         members={members}
         clubName={clubName}
-        clubSlug={clubSlug}
       />
 
       {/* Publish dialog */}

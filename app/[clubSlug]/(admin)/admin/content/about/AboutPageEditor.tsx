@@ -11,8 +11,10 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  FormControl,
   Menu,
   MenuItem,
+  Select,
   TextField,
   Tooltip,
   Typography,
@@ -41,8 +43,8 @@ import { createClient }       from '@/lib/supabase/client'
 import { saveAboutPanelFields, type AboutPanelFields } from './actions'
 import PageEditorSheet        from '@/components/admin/PageEditorSheet'
 import SocialAccountsModal    from '@/components/admin/SocialAccountsModal'
-import { updatePanelShownSocials } from '@/lib/social-accounts/actions'
-import { platformLabel, type SocialAccount } from '@/lib/social-accounts/types'
+import { updatePanelShownSocials, addSocialAccount } from '@/lib/social-accounts/actions'
+import { platformLabel, PLATFORM_LIST, type SocialAccount, type SocialPlatform } from '@/lib/social-accounts/types'
 
 // ── Font stacks ───────────────────────────────────────────────────────────────
 const EXEC_FONT_LORA   = 'Lora'
@@ -207,6 +209,28 @@ export default function AboutPageEditor({
   const [panelForm, setPanelForm] = useState<AboutPanelFields>({})
   const [panelSaving, setPanelSaving] = useState(false)
   const [panelSaveError, setPanelSaveError] = useState<string | null>(null)
+  const [addSocialPlatform, setAddSocialPlatform] = useState<SocialPlatform>('instagram')
+  const [addSocialUrl, setAddSocialUrl]           = useState('')
+  const [addSocialLabel, setAddSocialLabel]       = useState('')
+  const [addSocialSaving, setAddSocialSaving]     = useState(false)
+  const [addSocialError, setAddSocialError]       = useState<string | null>(null)
+  const [showSocialAddForm, setShowSocialAddForm] = useState(false)
+
+  const handleAddSocialInPanel = async () => {
+    if (!addSocialUrl.trim()) return
+    setAddSocialSaving(true); setAddSocialError(null)
+    const result = await addSocialAccount(
+      addSocialPlatform, addSocialUrl.trim(),
+      addSocialPlatform === 'custom' ? (addSocialLabel.trim() || null) : null,
+    )
+    setAddSocialSaving(false)
+    if (result.error) { setAddSocialError(result.error); return }
+    if (result.account) {
+      setSocialAccounts(prev => [...prev, result.account!])
+      setPanelShownIds(prev => [...prev, result.account!.id])
+    }
+    setAddSocialUrl(''); setAddSocialLabel(''); setAddSocialPlatform('instagram'); setShowSocialAddForm(false)
+  }
 
   const [styleAnchor, setStyleAnchor] = useState<HTMLElement | null>(null)
   const [fontAnchor,  setFontAnchor]  = useState<HTMLElement | null>(null)
@@ -693,6 +717,9 @@ export default function AboutPageEditor({
               <Checkbox size="small" checked={panelForm.panel_show_contact ?? true}
                 onChange={e => setPanelForm(p => ({ ...p, panel_show_contact: e.target.checked }))} sx={{ p: 0 }} />
               <Typography sx={{ fontSize: 13, flex: 1 }}>Show "Contact us" button</Typography>
+              <TextField size="small" placeholder="contact@yourclub.org" sx={{ width: 220 }}
+                value={(panelForm.contact_email as string | null) ?? ''}
+                onChange={e => setPanelForm(p => ({ ...p, contact_email: e.target.value || null }))} />
             </Box>
 
             <Typography sx={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'text.secondary', mt: 2, mb: 0.5 }}>
@@ -737,22 +764,46 @@ export default function AboutPageEditor({
             <Typography sx={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'text.secondary', mt: 2, mb: 0.75 }}>
               Social accounts
             </Typography>
-            {socialAccounts.length === 0 ? (
-              <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 1 }}>No social accounts configured yet.</Typography>
-            ) : (
-              socialAccounts.map(acct => (
-                <Box key={acct.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
-                  <Checkbox size="small" checked={panelShownIds.includes(acct.id)}
-                    onChange={e => setPanelShownIds(prev => e.target.checked ? [...prev, acct.id] : prev.filter(id => id !== acct.id))}
-                    sx={{ p: 0 }} />
-                  <Typography sx={{ fontSize: 13, flex: 1 }}>{platformLabel(acct.platform, acct.label)}</Typography>
+            {socialAccounts.map(acct => (
+              <Box key={acct.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+                <Checkbox size="small" checked={panelShownIds.includes(acct.id)}
+                  onChange={e => setPanelShownIds(prev => e.target.checked ? [...prev, acct.id] : prev.filter(id => id !== acct.id))}
+                  sx={{ p: 0 }} />
+                <Typography sx={{ fontSize: 13, flex: 1 }}>{platformLabel(acct.platform, acct.label)}</Typography>
+              </Box>
+            ))}
+            {showSocialAddForm ? (
+              <Box sx={{ p: 1.5, mt: 1, background: '#F7F8FA', borderRadius: '6px', border: '1px solid #D8DDE7', display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <FormControl size="small" sx={{ flex: '0 0 140px' }}>
+                    <Select value={addSocialPlatform} onChange={e => setAddSocialPlatform(e.target.value as SocialPlatform)}
+                      sx={{ fontSize: 13, background: '#fff' }}>
+                      {PLATFORM_LIST.map(p => <MenuItem key={p.value} value={p.value} sx={{ fontSize: 13 }}>{p.label}</MenuItem>)}
+                    </Select>
+                  </FormControl>
+                  <TextField size="small" value={addSocialUrl} onChange={e => setAddSocialUrl(e.target.value)}
+                    placeholder="https://…" sx={{ flex: 1, '& .MuiInputBase-root': { background: '#fff', fontSize: 13 } }} />
                 </Box>
-              ))
+                {addSocialPlatform === 'custom' && (
+                  <TextField size="small" value={addSocialLabel} onChange={e => setAddSocialLabel(e.target.value)}
+                    placeholder="Display name" fullWidth sx={{ '& .MuiInputBase-root': { background: '#fff', fontSize: 13 } }} />
+                )}
+                {addSocialError && <Typography sx={{ fontSize: 12, color: 'error.main' }}>{addSocialError}</Typography>}
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button size="small" variant="contained" onClick={handleAddSocialInPanel} disabled={addSocialSaving || !addSocialUrl.trim()}
+                    sx={{ textTransform: 'none', fontSize: 12 }}>
+                    {addSocialSaving ? 'Adding…' : 'Add account'}
+                  </Button>
+                  <Button size="small" variant="outlined" color="secondary" onClick={() => setShowSocialAddForm(false)}
+                    sx={{ textTransform: 'none', fontSize: 12 }}>Cancel</Button>
+                </Box>
+              </Box>
+            ) : (
+              <Button size="small" variant="outlined" color="secondary" sx={{ mt: 1 }}
+                onClick={() => setShowSocialAddForm(true)}>
+                + Add social account
+              </Button>
             )}
-            <Button size="small" variant="outlined" color="secondary" sx={{ mt: 1 }}
-              onClick={() => { setPanelEditOpen(false); setSocialModalOpen(true) }}>
-              Manage accounts in Club Basics
-            </Button>
             {panelSaveError && (
               <Typography sx={{ fontSize: 13, color: 'error.main', mt: 1.5 }}>{panelSaveError}</Typography>
             )}
