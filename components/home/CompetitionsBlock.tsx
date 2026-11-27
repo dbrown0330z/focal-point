@@ -358,7 +358,7 @@ export default async function CompetitionsBlock({
         /* Empty state */
         <div style={{ textAlign: 'center', padding: '32px 0' }}>
           <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
-            No competitions yet. Check back soon — your club admin will announce upcoming competitions here.
+            No competitions yet. Check back once the first competition is set up — this block will fill in automatically.
           </p>
         </div>
       ) : (

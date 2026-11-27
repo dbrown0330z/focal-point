@@ -476,7 +476,7 @@ export default async function DualPanelBlock({ clubSlug, clubId }: { clubSlug: s
           {cards.length === 0 ? (
             <div style={{ padding: '20px 0' }}>
               <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
-                No competitions open right now.
+                Competition activity will appear here once the first competition is underway.
                 {nextUp && nextUp.opens_at && (
                   <> {dn(nextUp)} opens {fmtDate(nextUp.opens_at)}.</>
                 )}

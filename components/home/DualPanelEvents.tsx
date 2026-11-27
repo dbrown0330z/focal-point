@@ -191,7 +191,7 @@ export default function DualPanelEvents({ events }: { events: CEvent[] }) {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   if (events.length === 0) {
-    return <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No upcoming events scheduled.</p>
+    return <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No upcoming events scheduled. Events added to the calendar will appear here.</p>
   }
 
   return (

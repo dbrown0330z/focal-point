@@ -88,7 +88,10 @@ export default function MemberNav({
 
         {/* Left: brand + nav links */}
         <nav className="flex items-center gap-6">
-          <span className="mr-2 text-sm font-semibold text-content-primary">
+          <span
+            className="mr-2 font-[family-name:var(--font-lora)]"
+            style={{ fontSize: 17, fontWeight: 700, color: 'var(--action-primary)', letterSpacing: '-0.01em', lineHeight: 1 }}
+          >
             {clubName}
           </span>
           {topLinks.map(({ href, label }) => (

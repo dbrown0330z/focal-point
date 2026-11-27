@@ -756,7 +756,18 @@ function NewsPostsBlock({
   posts:    { id: string; title: string; published_at: string | null; body: string }[]
   clubSlug: string
 }) {
-  if (posts.length === 0) return null
+  if (posts.length === 0) return (
+    <Section>
+      <div className="mx-auto w-full max-w-6xl px-4">
+        <SectionHeading>{settings.heading}</SectionHeading>
+        <div style={{ ...tintedBox, textAlign: 'center', padding: '28px 24px' }}>
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>
+            News and announcements will appear here once posts are published.
+          </p>
+        </div>
+      </div>
+    </Section>
+  )
 
   const excerpt = (html: string, maxLen = 160) => {
     const text = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -1171,7 +1182,16 @@ export default async function HomepageRenderer({
                 imageCount={galleryPreviewImageCount}
                 clubSlug={clubSlug}
               />
-            ) : null
+            ) : (
+              <Section key={block.id}>
+                <SectionHeading>Gallery preview</SectionHeading>
+                <div style={{ ...tintedBox, textAlign: 'center', padding: '28px 24px' }}>
+                  <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>
+                    A gallery preview will appear here once a gallery is selected in the homepage editor.
+                  </p>
+                </div>
+              </Section>
+            )
 
           case 'club-galleries':
             return block.clubGalleriesSettings ? (
@@ -1203,7 +1223,16 @@ export default async function HomepageRenderer({
                 settings={block.spotlightSettings}
                 stats={spotlightStats}
               />
-            ) : null
+            ) : (
+              <Section key={block.id}>
+                <SectionHeading>Member spotlight</SectionHeading>
+                <div style={{ ...tintedBox, textAlign: 'center', padding: '28px 24px' }}>
+                  <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>
+                    A featured member will be highlighted here once members join and participate in competitions.
+                  </p>
+                </div>
+              </Section>
+            )
 
           case 'competitions':
             return block.competitionsSettings ? (
