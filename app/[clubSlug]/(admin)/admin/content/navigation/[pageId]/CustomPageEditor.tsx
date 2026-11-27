@@ -43,9 +43,6 @@ import MoreHorizIcon          from '@mui/icons-material/MoreHoriz'
 import KeyboardArrowDownIcon  from '@mui/icons-material/KeyboardArrowDown'
 import UndoIcon               from '@mui/icons-material/Undo'
 import RedoIcon               from '@mui/icons-material/Redo'
-import LightModeIcon          from '@mui/icons-material/LightMode'
-import DarkModeIcon           from '@mui/icons-material/DarkMode'
-import ArrowBackIcon          from '@mui/icons-material/ArrowBack'
 import SearchIcon             from '@mui/icons-material/Search'
 import InsertDriveFileIcon    from '@mui/icons-material/InsertDriveFile'
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined'
@@ -57,7 +54,6 @@ import PageEditorSheet        from '@/components/admin/PageEditorSheet'
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Visibility = 'all_members' | 'members_only' | 'hidden'
-type Status     = 'draft' | 'published'
 type Doc        = { id: string; title: string; category: string | null }
 
 // ── Font / colour constants (same as AboutPageEditor) ─────────────────────────
@@ -153,7 +149,6 @@ export default function CustomPageEditor({
   initialTitle,
   initialContent,
   initialVisibility,
-  initialStatus,
   slug,
   clubSlug,
 }: {
@@ -162,7 +157,6 @@ export default function CustomPageEditor({
   initialTitle:      string
   initialContent:    string
   initialVisibility: Visibility
-  initialStatus:     Status
   slug:              string
   clubSlug:          string
 }) {
@@ -172,10 +166,7 @@ export default function CustomPageEditor({
   // ── Metadata state ──────────────────────────────────────────────────────────
   const [title,       setTitle]       = useState(initialTitle)
   const [visibility,  setVisibility]  = useState<Visibility>(initialVisibility)
-  const [status,      setStatus]      = useState<Status>(initialStatus)
   const [saveState,   setSaveState]   = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  const [publishing,  setPublishing]  = useState(false)
-
   // Refs so auto-save callback always reads latest values without stale closure
   const titleRef      = useRef(title)
   const visibilityRef = useRef(visibility)
@@ -185,8 +176,6 @@ export default function CustomPageEditor({
   const editorRef      = useRef<HTMLDivElement>(null)
   const imageRef       = useRef<HTMLInputElement>(null)
   const savedRangeRef  = useRef<Range | null>(null)
-  const [previewTheme, setPreviewTheme] = useState<'light' | 'dark'>('light')
-
   // ── Toolbar state ───────────────────────────────────────────────────────────
   const [styleAnchor, setStyleAnchor] = useState<HTMLElement | null>(null)
   const [fontAnchor,  setFontAnchor]  = useState<HTMLElement | null>(null)
@@ -270,19 +259,6 @@ export default function CustomPageEditor({
     setVisibility(val)
     visibilityRef.current = val
     triggerAutoSave()
-  }
-
-  // ── Publish / return to draft ───────────────────────────────────────────────
-  const handleTogglePublish = async () => {
-    const next: Status = status === 'draft' ? 'published' : 'draft'
-    setPublishing(true)
-    const supabase = createClient()
-    const { error } = await supabase
-      .from('nav_custom_pages')
-      .update({ status: next, updated_at: new Date().toISOString() })
-      .eq('id', pageId)
-    setPublishing(false)
-    if (!error) setStatus(next)
   }
 
   // ── Editor helpers (same as AboutPageEditor) ──────────────────────────────
@@ -427,7 +403,7 @@ export default function CustomPageEditor({
   )
 
   // ── Table ───────────────────────────────────────────────────────────────────
-  const tok = previewTheme === 'dark' ? SITE_DARK : SITE_LIGHT
+  const tok = SITE_LIGHT
 
   const buildTableEl = (rows: number, cols: number, borders: boolean) => {
     const table = document.createElement('table')
@@ -568,30 +544,19 @@ export default function CustomPageEditor({
       backHref={`/${clubSlug}/admin/content/navigation`}
       headerRight={
         <>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Typography sx={{ fontSize: 11, color: 'text.secondary', mr: 0.5, fontWeight: 500 }}>Preview</Typography>
-            <Tooltip title="Light mode">
-              <Box component="button" onMouseDown={e => { e.preventDefault(); setPreviewTheme('light') }}
-                sx={{ ...btnSx, width: 28, height: 28, ...(previewTheme === 'light' ? { bgcolor: 'action.selected', color: 'text.primary' } : {}) }}>
-                <LightModeIcon sx={{ fontSize: 16 }} />
-              </Box>
-            </Tooltip>
-            <Tooltip title="Dark mode">
-              <Box component="button" onMouseDown={e => { e.preventDefault(); setPreviewTheme('dark') }}
-                sx={{ ...btnSx, width: 28, height: 28, ...(previewTheme === 'dark' ? { bgcolor: 'action.selected', color: 'text.primary' } : {}) }}>
-                <DarkModeIcon sx={{ fontSize: 16 }} />
-              </Box>
-            </Tooltip>
-          </Box>
           <SaveIndicator />
           <Button variant="outlined" color="secondary" size="small"
             onClick={() => router.push(`/${clubSlug}/admin/content/navigation`)}>
             Cancel
           </Button>
+          <Button variant="outlined" color="secondary" size="small"
+            disabled={saveState === 'saving'} onClick={performSave}>
+            Save
+          </Button>
         </>
       }
       subBar={
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap', width: '100%' }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 2, flexWrap: 'wrap', width: '100%' }}>
           {/* Page title */}
           <Box sx={{ flex: '1 1 200px', maxWidth: 400 }}>
             <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -624,47 +589,12 @@ export default function CustomPageEditor({
             </Select>
           </Box>
 
-          {/* Status + actions */}
-          <Box sx={{ flex: '0 0 auto', ml: 'auto' }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Status
+          {/* Hidden notice */}
+          {visibility === 'hidden' && (
+            <Typography sx={{ fontSize: 12, color: 'text.secondary', pb: 0.5 }}>
+              This page is hidden. Turn on the visibility toggle on Navigation &amp; Pages to show it.
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Box sx={{
-                display: 'inline-flex', alignItems: 'center', gap: 0.75,
-                px: 1.5, py: 0.625, borderRadius: '999px', border: '1px solid',
-                ...(status === 'published'
-                  ? { bgcolor: 'var(--status-success-bg)', borderColor: 'var(--status-success)', color: 'var(--status-success-text)' }
-                  : { bgcolor: 'var(--surface-1)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }
-                ),
-              }}>
-                <Box sx={{
-                  width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                  bgcolor: status === 'published' ? 'var(--status-success)' : 'var(--text-disabled)',
-                }} />
-                <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'inherit', lineHeight: 1 }}>
-                  {status === 'published' ? 'Live' : 'Draft'}
-                </Typography>
-              </Box>
-
-              <Button variant="outlined" color="secondary" size="small"
-                disabled={saveState === 'saving'} onClick={performSave}>
-                Save
-              </Button>
-
-              {status === 'draft' ? (
-                <Button variant="contained" size="small"
-                  disabled={publishing} onClick={handleTogglePublish} sx={{ fontWeight: 700 }}>
-                  {publishing ? 'Publishing…' : 'Publish'}
-                </Button>
-              ) : (
-                <Button variant="outlined" color="secondary" size="small"
-                  disabled={publishing} onClick={handleTogglePublish}>
-                  {publishing ? 'Updating…' : 'Return to draft'}
-                </Button>
-              )}
-            </Box>
-          </Box>
+          )}
         </Box>
       }
       toolbar={
