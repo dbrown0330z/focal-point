@@ -42,7 +42,7 @@ function VisibilityChip({ value }: { value: string }) {
       padding: '3px 11px', borderRadius: 9999,
       fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase',
       background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(6px)',
-      border: '1px solid var(--border-default)', color: 'var(--text-secondary)', whiteSpace: 'nowrap',
+      border: '1px solid #B0BACA', color: '#5A6C82', whiteSpace: 'nowrap',
     }}>
       {VISIBILITY_CHIP_LABEL[value] ?? value}
     </span>
@@ -61,7 +61,7 @@ function Toggle({ on, onChange, id }: { on: boolean; onChange: (v: boolean) => v
       onClick={() => onChange(!on)}
       style={{
         width: 44, height: 24, borderRadius: 12,
-        background: on ? 'var(--action-primary)' : 'var(--border-strong)',
+        background: on ? '#1E4D8C' : '#7E8EA3',
         border: 'none', padding: 0, cursor: 'pointer',
         position: 'relative', transition: 'background 0.2s', flexShrink: 0,
       }}
@@ -153,69 +153,69 @@ function AdminShareModal({
           width: '100%',
           maxWidth: isMobile ? '100%' : 480,
           borderRadius: isMobile ? '20px 20px 0 0' : 20,
-          background: 'var(--surface-1)',
-          border: '1px solid var(--border-default)',
+          background: '#EDF0F5',
+          border: '1px solid #B0BACA',
           boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
           padding: '28px 24px 24px',
           paddingBottom: isMobile ? 'max(24px, env(safe-area-inset-bottom, 16px))' : 24,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
-          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 400, color: 'var(--text-primary)', margin: 0 }}>
+          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 400, color: '#131F2E', margin: 0 }}>
             Share &ldquo;{galleryName}&rdquo;
           </h2>
           <button type="button" onClick={onClose}
-            style={{ width: 32, height: 32, borderRadius: 8, border: 'none', flexShrink: 0, background: 'var(--surface-2)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            style={{ width: 32, height: 32, borderRadius: 8, border: 'none', flexShrink: 0, background: '#FFFFFF', color: '#5A6C82', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
           ><IconX size={14} /></button>
         </div>
 
         <p aria-live="polite" style={{
-          fontSize: 14, color: isDraft ? 'var(--action-primary)' : 'var(--text-secondary)',
+          fontSize: 14, color: isDraft ? '#1E4D8C' : '#5A6C82',
           fontWeight: isDraft ? 600 : 400, margin: '12px 0 20px', lineHeight: 1.4,
           transition: 'opacity 0.15s ease, color 0.2s ease', opacity: statusOpacity,
         }}>
           {displayedStatus}
         </p>
 
-        <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />
+        <hr style={{ border: 'none', borderTop: '1px solid #D8DDE7', margin: 0 }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '16px 0' }}>
-          <label htmlFor="s-toggle-members" style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}>
+          <label htmlFor="s-toggle-members" style={{ fontSize: 15, fontWeight: 600, color: '#131F2E', cursor: 'pointer' }}>
             Share with members
           </label>
           <Toggle id="s-toggle-members" on={membersOn} onChange={setMembersOn} />
         </div>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 13, color: '#5A6C82', margin: '0 0 16px', lineHeight: 1.5 }}>
           Visible on the Club Galleries page and available for homepage blocks.
         </p>
 
-        <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />
+        <hr style={{ border: 'none', borderTop: '1px solid #D8DDE7', margin: 0 }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '16px 0' }}>
-          <label htmlFor="s-toggle-public" style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}>
+          <label htmlFor="s-toggle-public" style={{ fontSize: 15, fontWeight: 600, color: '#131F2E', cursor: 'pointer' }}>
             Share with a public link
           </label>
           <Toggle id="s-toggle-public" on={publicOn} onChange={setPublicOn} />
         </div>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 13, color: '#5A6C82', margin: '0 0 16px', lineHeight: 1.5 }}>
           Anyone with the link can view this gallery — no login required.
         </p>
 
         <div style={{ overflow: 'hidden', maxHeight: publicOn ? 72 : 0, opacity: publicOn ? 1 : 0, transition: 'max-height 0.25s ease, opacity 0.2s ease' }}>
-          <div style={{ display: 'flex', background: 'var(--surface-2)', border: '1.5px solid var(--border-default)', borderRadius: 10, overflow: 'hidden', marginBottom: 16 }}>
+          <div style={{ display: 'flex', background: '#FFFFFF', border: '1.5px solid var(--border-default)', borderRadius: 10, overflow: 'hidden', marginBottom: 16 }}>
             <input readOnly value={galleryUrl}
-              style={{ flex: 1, padding: '10px 12px', background: 'transparent', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-code)' }}
+              style={{ flex: 1, padding: '10px 12px', background: 'transparent', border: 'none', outline: 'none', fontSize: 12, color: '#5A6C82', fontFamily: 'var(--font-code)' }}
             />
             <button type="button" onClick={handleCopy}
-              style={{ padding: '10px 16px', background: 'var(--surface-1)', border: 'none', borderLeft: '1.5px solid var(--border-default)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', color: copied ? 'var(--status-success)' : 'var(--text-primary)', cursor: 'pointer' }}
+              style={{ padding: '10px 16px', background: '#EDF0F5', border: 'none', borderLeft: '1.5px solid var(--border-default)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', color: copied ? '#2E7D32' : '#131F2E', cursor: 'pointer' }}
             >{copied ? '✓ Copied' : 'Copy link'}</button>
           </div>
         </div>
 
-        <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />
+        <hr style={{ border: 'none', borderTop: '1px solid #D8DDE7', margin: 0 }} />
 
         <button type="button" onClick={() => { onSave(deriveV()); onClose() }}
-          style={{ width: '100%', padding: '13px 0', borderRadius: 10, fontSize: 15, fontWeight: 700, background: 'var(--action-primary)', color: '#fff', border: 'none', cursor: 'pointer', marginTop: 20 }}
+          style={{ width: '100%', padding: '13px 0', borderRadius: 10, fontSize: 15, fontWeight: 700, background: '#1E4D8C', color: '#fff', border: 'none', cursor: 'pointer', marginTop: 20 }}
         >Done</button>
       </div>
     </div>
@@ -360,7 +360,7 @@ export default function AdminDynamicGalleryPage({
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
         <Link
           href={`/${clubSlug}/admin/content/navigation?tab=galleries`}
-          style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)', textDecoration: 'none' }}
+          style={{ fontSize: 14, fontWeight: 500, color: '#5A6C82', textDecoration: 'none' }}
         >
           ← Back to Galleries
         </Link>
@@ -370,8 +370,8 @@ export default function AdminDynamicGalleryPage({
           onClick={() => setShareOpen(true)}
           style={{
             padding: '6px 16px', borderRadius: 9999, fontSize: 13, fontWeight: 600,
-            background: 'var(--surface-2)', border: '1.5px solid var(--border-default)',
-            color: 'var(--text-primary)', cursor: 'pointer',
+            background: '#FFFFFF', border: '1.5px solid var(--border-default)',
+            color: '#131F2E', cursor: 'pointer',
           }}
         >
           Share
@@ -381,8 +381,8 @@ export default function AdminDynamicGalleryPage({
           title={visibility === 'draft' ? 'Publish gallery to preview it' : 'Preview gallery'}
           style={{
             padding: '6px 16px', borderRadius: 9999, fontSize: 13, fontWeight: 600,
-            background: 'var(--surface-2)', border: '1.5px solid var(--border-default)',
-            color: visibility === 'draft' ? 'var(--text-disabled)' : 'var(--text-primary)',
+            background: '#FFFFFF', border: '1.5px solid var(--border-default)',
+            color: visibility === 'draft' ? '#B0BACA' : '#131F2E',
             cursor: visibility === 'draft' ? 'not-allowed' : 'pointer',
             textDecoration: 'none',
             display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -397,7 +397,7 @@ export default function AdminDynamicGalleryPage({
           disabled={saving}
           style={{
             padding: '7px 22px', borderRadius: 9999, fontSize: 13, fontWeight: 700,
-            background: saving ? 'var(--border-default)' : 'var(--action-primary)',
+            background: saving ? '#B0BACA' : '#1E4D8C',
             color: '#fff', border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', gap: 6,
           }}
@@ -411,13 +411,13 @@ export default function AdminDynamicGalleryPage({
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
         <h1 style={{
           fontSize: 28, fontWeight: 700, fontFamily: 'var(--font-primary)',
-          letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0,
+          letterSpacing: '-0.02em', color: '#131F2E', margin: 0,
         }}>
           {gallery.name}
         </h1>
         <VisibilityChip value={visibility} />
       </div>
-      <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 24px' }}>
+      <p style={{ fontSize: 13, color: '#5A6C82', margin: '0 0 24px' }}>
         Curate images from competition submissions across all members. Adjust filters to update the preview — click Done to save.
       </p>
 
@@ -440,8 +440,8 @@ export default function AdminDynamicGalleryPage({
       {error && (
         <div style={{
           marginBottom: 20, padding: '10px 16px', borderRadius: 8,
-          background: 'var(--status-error-bg)', border: '1px solid var(--status-error)',
-          color: 'var(--status-error-text)', fontSize: 14,
+          background: '#FDEEEE', border: '1px solid var(--status-error)',
+          color: '#7A1515', fontSize: 14,
         }}>
           {error}
         </div>
@@ -449,11 +449,11 @@ export default function AdminDynamicGalleryPage({
 
       {/* ── Preview header ── */}
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 }}>
-        <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Preview</p>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
+        <p style={{ fontSize: 15, fontWeight: 700, color: '#131F2E', margin: 0 }}>Preview</p>
+        <p style={{ fontSize: 13, color: '#5A6C82', margin: 0 }}>
           {preview.length} photo{preview.length !== 1 ? 's' : ''}
           {removedIds.size > 0 && (
-            <span style={{ color: 'var(--text-tertiary)' }}>
+            <span style={{ color: '#7E8EA3' }}>
               {' '}· {removedIds.size} manually removed
             </span>
           )}
@@ -462,20 +462,20 @@ export default function AdminDynamicGalleryPage({
 
       {/* ── Preview grid ── */}
       {images.length === 0 ? (
-        <div style={{ padding: '60px 24px', borderRadius: 14, background: 'var(--surface-1)', border: '1px solid var(--border-default)', textAlign: 'center' }}>
-          <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 8px' }}>
+        <div style={{ padding: '60px 24px', borderRadius: 14, background: '#EDF0F5', border: '1px solid #B0BACA', textAlign: 'center' }}>
+          <p style={{ fontSize: 16, fontWeight: 600, color: '#5A6C82', margin: '0 0 8px' }}>
             No competition submissions yet
           </p>
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>
+          <p style={{ fontSize: 13, color: '#7E8EA3', margin: 0 }}>
             Club galleries are populated from scored competition entries.
           </p>
         </div>
       ) : preview.length === 0 ? (
-        <div style={{ padding: '60px 24px', borderRadius: 14, background: 'var(--surface-1)', border: '1px solid var(--border-default)', textAlign: 'center' }}>
-          <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 8px' }}>
+        <div style={{ padding: '60px 24px', borderRadius: 14, background: '#EDF0F5', border: '1px solid #B0BACA', textAlign: 'center' }}>
+          <p style={{ fontSize: 16, fontWeight: 600, color: '#5A6C82', margin: '0 0 8px' }}>
             No photos match your current filters
           </p>
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>
+          <p style={{ fontSize: 13, color: '#7E8EA3', margin: 0 }}>
             Try adjusting the score, member, category, or year filters.
           </p>
         </div>

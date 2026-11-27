@@ -314,7 +314,7 @@ export default function AdminDocumentsClient({
                   textAlign: 'center',
                   cursor: 'pointer',
                   transition: 'border-color 0.15s',
-                  '&:hover': { borderColor: 'var(--action-primary)' },
+                  '&:hover': { borderColor: '#1E4D8C' },
                 }}
               >
                 <input
@@ -368,7 +368,7 @@ export default function AdminDocumentsClient({
             {/* Description */}
             <Box>
               <FormLabel sx={{ display: 'block', mb: 0.75, fontSize: '13px', fontWeight: 500 }}>
-                Description <span style={{ fontWeight: 400, color: 'var(--text-secondary)' }}>(optional)</span>
+                Description <span style={{ fontWeight: 400, color: '#5A6C82' }}>(optional)</span>
               </FormLabel>
               <OutlinedInput
                 fullWidth
@@ -384,7 +384,7 @@ export default function AdminDocumentsClient({
             {/* Category */}
             <Box>
               <FormLabel sx={{ display: 'block', mb: 0.75, fontSize: '13px', fontWeight: 500 }}>
-                Category <span style={{ fontWeight: 400, color: 'var(--text-secondary)' }}>(optional)</span>
+                Category <span style={{ fontWeight: 400, color: '#5A6C82' }}>(optional)</span>
               </FormLabel>
               <Select
                 fullWidth

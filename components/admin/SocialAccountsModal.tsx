@@ -257,7 +257,7 @@ function PickBody({
         <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.5 }}>
           {'Manage the full list of social accounts in '}
           <Box component="a" href={`/${clubSlug}/admin/settings`}
-            sx={{ color: 'var(--action-primary)', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}>
+            sx={{ color: '#1E4D8C', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}>
             Club Basics
           </Box>
         </Typography>

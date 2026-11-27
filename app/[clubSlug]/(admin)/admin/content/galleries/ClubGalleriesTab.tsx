@@ -78,7 +78,7 @@ function Toggle({ on, onChange, id }: { on: boolean; onChange: (v: boolean) => v
       onClick={() => onChange(!on)}
       style={{
         width: 44, height: 24, borderRadius: 12,
-        background: on ? 'var(--action-primary)' : 'var(--border-strong)',
+        background: on ? '#1E4D8C' : '#7E8EA3',
         border: 'none', padding: 0, cursor: 'pointer',
         position: 'relative', transition: 'background 0.2s', flexShrink: 0,
       }}
@@ -194,15 +194,15 @@ function AdminShareModal({
           width: '100%',
           maxWidth: isMobile ? '100%' : 480,
           borderRadius: isMobile ? '20px 20px 0 0' : 20,
-          background: 'var(--surface-1)',
-          border: '1px solid var(--border-default)',
+          background: '#EDF0F5',
+          border: '1px solid #B0BACA',
           boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
           padding: '28px 24px 24px',
           paddingBottom: isMobile ? 'max(24px, env(safe-area-inset-bottom, 16px))' : 24,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
-          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 400, color: 'var(--text-primary)', margin: 0 }}>
+          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 400, color: '#131F2E', margin: 0 }}>
             Share &ldquo;{gallery.name}&rdquo;
           </h2>
           <button
@@ -210,7 +210,7 @@ function AdminShareModal({
             onClick={onClose}
             style={{
               width: 32, height: 32, borderRadius: 8, border: 'none', flexShrink: 0,
-              background: 'var(--surface-2)', color: 'var(--text-secondary)',
+              background: '#FFFFFF', color: '#5A6C82',
               display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
             }}
           >
@@ -222,7 +222,7 @@ function AdminShareModal({
           aria-live="polite"
           style={{
             fontSize: 14,
-            color:      isDraft ? 'var(--action-primary)' : 'var(--text-secondary)',
+            color:      isDraft ? '#1E4D8C' : '#5A6C82',
             fontWeight: isDraft ? 600 : 400,
             margin: '12px 0 20px', lineHeight: 1.4,
             transition: 'opacity 0.15s ease, color 0.2s ease',
@@ -232,29 +232,29 @@ function AdminShareModal({
           {displayedStatus}
         </p>
 
-        <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />
+        <hr style={{ border: 'none', borderTop: '1px solid #D8DDE7', margin: 0 }} />
 
         {/* Members toggle */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '16px 0' }}>
-          <label htmlFor="admin-toggle-members" style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}>
+          <label htmlFor="admin-toggle-members" style={{ fontSize: 15, fontWeight: 600, color: '#131F2E', cursor: 'pointer' }}>
             Share with members
           </label>
           <Toggle id="admin-toggle-members" on={membersOn} onChange={setMembersOn} />
         </div>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 13, color: '#5A6C82', margin: '0 0 16px', lineHeight: 1.5 }}>
           Visible on the Club Galleries page and available for homepage blocks.
         </p>
 
-        <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />
+        <hr style={{ border: 'none', borderTop: '1px solid #D8DDE7', margin: 0 }} />
 
         {/* Public toggle */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '16px 0' }}>
-          <label htmlFor="admin-toggle-public" style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}>
+          <label htmlFor="admin-toggle-public" style={{ fontSize: 15, fontWeight: 600, color: '#131F2E', cursor: 'pointer' }}>
             Share with a public link
           </label>
           <Toggle id="admin-toggle-public" on={publicOn} onChange={setPublicOn} />
         </div>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 13, color: '#5A6C82', margin: '0 0 16px', lineHeight: 1.5 }}>
           Anyone with the link can view this gallery — no login required.
         </p>
 
@@ -268,7 +268,7 @@ function AdminShareModal({
         }}>
           <div style={{
             display: 'flex',
-            background: 'var(--surface-2)',
+            background: '#FFFFFF',
             border: '1.5px solid var(--border-default)',
             borderRadius: 10,
             overflow: 'hidden',
@@ -280,7 +280,7 @@ function AdminShareModal({
               style={{
                 flex: 1, padding: '10px 12px',
                 background: 'transparent', border: 'none', outline: 'none',
-                fontSize: 12, color: 'var(--text-secondary)',
+                fontSize: 12, color: '#5A6C82',
                 fontFamily: 'var(--font-code)',
               }}
             />
@@ -289,10 +289,10 @@ function AdminShareModal({
               onClick={handleCopy}
               style={{
                 padding: '10px 16px',
-                background: 'var(--surface-1)', border: 'none',
+                background: '#EDF0F5', border: 'none',
                 borderLeft: '1.5px solid var(--border-default)',
                 fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
-                color: copied ? 'var(--status-success)' : 'var(--text-primary)',
+                color: copied ? '#2E7D32' : '#131F2E',
                 cursor: 'pointer',
               }}
             >
@@ -301,7 +301,7 @@ function AdminShareModal({
           </div>
         </div>
 
-        <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: 0 }} />
+        <hr style={{ border: 'none', borderTop: '1px solid #D8DDE7', margin: 0 }} />
 
         <button
           type="button"
@@ -310,7 +310,7 @@ function AdminShareModal({
           style={{
             width: '100%', padding: '13px 0', borderRadius: 10,
             fontSize: 15, fontWeight: 700,
-            background: saving ? 'var(--border-default)' : 'var(--action-primary)',
+            background: saving ? '#B0BACA' : '#1E4D8C',
             color: '#fff', border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
             marginTop: 20,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -374,14 +374,14 @@ function NewGalleryModal({
         style={{
           width: '100%', maxWidth: 480,
           borderRadius: 20,
-          background: 'var(--surface-1)',
-          border: '1px solid var(--border-default)',
+          background: '#EDF0F5',
+          border: '1px solid #B0BACA',
           padding: '28px 28px 24px',
         }}
       >
         <p style={{
           fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
-          textTransform: 'uppercase', color: 'var(--action-primary)',
+          textTransform: 'uppercase', color: '#1E4D8C',
           margin: '0 0 16px',
         }}>
           New Gallery
@@ -397,18 +397,18 @@ function NewGalleryModal({
           style={{
             width: '100%', padding: '13px 16px',
             borderRadius: 10, border: '1.5px solid var(--action-primary)',
-            background: 'var(--surface-2)', fontSize: 16, fontWeight: 500,
-            color: 'var(--text-primary)', outline: 'none',
+            background: '#FFFFFF', fontSize: 16, fontWeight: 500,
+            color: '#131F2E', outline: 'none',
             boxSizing: 'border-box', marginBottom: 20,
           }}
         />
 
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 13, color: '#5A6C82', margin: '0 0 20px', lineHeight: 1.5 }}>
           You&apos;ll set up filters to curate photos from competition submissions.
         </p>
 
         {error && (
-          <p style={{ fontSize: 13, color: 'var(--status-error)', marginBottom: 16 }}>{error}</p>
+          <p style={{ fontSize: 13, color: '#D32F2F', marginBottom: 16 }}>{error}</p>
         )}
 
         <div style={{ display: 'flex', gap: 10 }}>
@@ -419,7 +419,7 @@ function NewGalleryModal({
             style={{
               flex: 1, padding: '12px 0', borderRadius: 10,
               fontSize: 15, fontWeight: 700,
-              background: !name.trim() || saving ? 'var(--border-default)' : 'var(--action-primary)',
+              background: !name.trim() || saving ? '#B0BACA' : '#1E4D8C',
               color: '#fff', border: 'none',
               cursor: !name.trim() || saving ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -434,7 +434,7 @@ function NewGalleryModal({
             disabled={saving}
             style={{
               padding: '12px 22px', borderRadius: 10, fontSize: 15, fontWeight: 600,
-              background: 'var(--surface-2)', color: 'var(--text-secondary)',
+              background: '#FFFFFF', color: '#5A6C82',
               border: '1.5px solid var(--border-default)', cursor: 'pointer',
             }}
           >
@@ -542,8 +542,8 @@ function GalleryCard({
     <div style={{
       borderRadius: 16,
       overflow:     'hidden',
-      background:   'var(--surface-2)',
-      border:       '1px solid var(--border-default)',
+      background:   '#FFFFFF',
+      border:       '1px solid #B0BACA',
       display:      'flex',
       flexDirection: 'column',
     }}>
@@ -568,9 +568,9 @@ function GalleryCard({
           <div style={{
             width: '100%', height: '100%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--surface-0)',
+            background: '#F7F8FA',
           }}>
-            <span style={{ fontSize: 13, color: 'var(--text-disabled)' }}>No images</span>
+            <span style={{ fontSize: 13, color: '#B0BACA' }}>No images</span>
           </div>
         )}
         {/* Visibility badge */}
@@ -600,8 +600,8 @@ function GalleryCard({
               style={{
                 width: '100%', padding: '3px 8px',
                 borderRadius: 6, border: '1.5px solid var(--action-primary)',
-                background: 'var(--surface-1)',
-                fontSize: 16, fontWeight: 700, color: 'var(--text-primary)',
+                background: '#EDF0F5',
+                fontSize: 16, fontWeight: 700, color: '#131F2E',
                 outline: 'none', boxSizing: 'border-box',
                 fontFamily: 'inherit',
               }}
@@ -610,7 +610,7 @@ function GalleryCard({
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <a href={editUrl} style={{ textDecoration: 'none', flex: 1, minWidth: 0 }}>
                 <p style={{
-                  fontSize: 16, fontWeight: 700, color: 'var(--text-primary)',
+                  fontSize: 16, fontWeight: 700, color: '#131F2E',
                   lineHeight: 1.2, margin: 0,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
@@ -624,19 +624,19 @@ function GalleryCard({
                 style={{
                   flexShrink: 0, border: 'none', background: 'none',
                   padding: 4, cursor: 'pointer', borderRadius: 4,
-                  color: 'var(--text-tertiary)', lineHeight: 0,
+                  color: '#7E8EA3', lineHeight: 0,
                   opacity: renaming ? 0.3 : 0.5,
                   transition: 'opacity 0.15s, color 0.15s',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'var(--text-primary)' }}
-                onMouseLeave={e => { e.currentTarget.style.opacity = renaming ? '0.3' : '0.5'; e.currentTarget.style.color = 'var(--text-tertiary)' }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#131F2E' }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = renaming ? '0.3' : '0.5'; e.currentTarget.style.color = '#7E8EA3' }}
                 disabled={renaming}
               >
                 <IconPencil size={13} />
               </button>
             </div>
           )}
-          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginTop: 5 }}>
+          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#5A6C82', marginTop: 5 }}>
             {gallery.imageCount} photo{gallery.imageCount !== 1 ? 's' : ''}
           </p>
         </div>
@@ -647,11 +647,11 @@ function GalleryCard({
             style={{
               flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 13, fontWeight: 600,
               background: 'transparent', border: '1.5px solid var(--border-default)',
-              color: 'var(--text-primary)', cursor: 'pointer', textDecoration: 'none',
+              color: '#131F2E', cursor: 'pointer', textDecoration: 'none',
               textAlign: 'center', display: 'block',
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface-1)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-default)'; (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#7E8EA3'; (e.currentTarget as HTMLElement).style.background = '#EDF0F5' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#B0BACA'; (e.currentTarget as HTMLElement).style.background = 'transparent' }}
           >
             Edit
           </a>
@@ -661,10 +661,10 @@ function GalleryCard({
             style={{
               flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 13, fontWeight: 600,
               background: 'transparent', border: '1.5px solid var(--border-default)',
-              color: 'var(--text-primary)', cursor: 'pointer',
+              color: '#131F2E', cursor: 'pointer',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.background = 'var(--surface-1)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'transparent' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#7E8EA3'; e.currentTarget.style.background = '#EDF0F5' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#B0BACA'; e.currentTarget.style.background = 'transparent' }}
           >
             Share
           </button>
@@ -675,11 +675,11 @@ function GalleryCard({
             style={{
               width: 34, height: 34, borderRadius: 8,
               background: 'transparent', border: '1.5px solid var(--border-default)',
-              color: 'var(--status-error)', cursor: 'pointer',
+              color: '#D32F2F', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--status-error-bg)'; e.currentTarget.style.borderColor = 'var(--status-error)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border-default)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#FDEEEE'; e.currentTarget.style.borderColor = '#D32F2F' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#B0BACA' }}
           >
             <IconX size={15} />
           </button>
@@ -786,18 +786,18 @@ export default function ClubGalleriesTab({
               minHeight:      260,
               transition:     'border-color 0.15s, background 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--action-primary)'; e.currentTarget.style.background = 'rgba(30,77,140,0.04)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'transparent' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#1E4D8C'; e.currentTarget.style.background = 'rgba(30,77,140,0.04)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#B0BACA'; e.currentTarget.style.background = 'transparent' }}
           >
             <div style={{
               width: 44, height: 44, borderRadius: '50%',
               border: '1.5px dashed var(--border-strong)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--text-tertiary)',
+              color: '#7E8EA3',
             }}>
               <AddIcon sx={{ fontSize: 22 }} />
             </div>
-            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#5A6C82' }}>
               New Gallery
             </span>
           </button>

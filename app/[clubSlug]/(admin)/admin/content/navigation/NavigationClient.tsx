@@ -187,7 +187,7 @@ function InfoTooltip({ text }: { text: string }) {
         type="button" aria-label="More information"
         onMouseEnter={show} onMouseLeave={() => setOpen(false)}
         onFocus={show} onBlur={() => setOpen(false)}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-tertiary)', display: 'inline-flex', lineHeight: 1 }}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#7E8EA3', display: 'inline-flex', lineHeight: 1 }}
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12.01" y2="8"/><polyline points="11 12 12 12 12 16"/>
@@ -216,7 +216,7 @@ function CustomChip() {
     <span style={{
       display: 'inline-flex', alignItems: 'center', padding: '2px 6px',
       fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-      background: '#F1F3F6', color: 'var(--text-secondary)',
+      background: '#F1F3F6', color: '#5A6C82',
       border: '1px solid #C9CED6', borderRadius: 4, flexShrink: 0,
     }}>Custom</span>
   )
@@ -275,11 +275,11 @@ function BuiltinPageRow({
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: '12px 20px 12px 12px',
-      alignItems: 'center', minHeight: 60, borderTop: '1px solid var(--border-subtle)',
+      alignItems: 'center', minHeight: 60, borderTop: '1px solid #D8DDE7',
       background: dimmed ? '#F3F4F6' : '#fff',
     }}>
       {/* Drag handle */}
-      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)', opacity: page.hasDrag ? 1 : 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'center', color: '#5A6C82', opacity: page.hasDrag ? 1 : 0 }}>
         <span {...((dragHandleProps ?? {}) as React.HTMLAttributes<HTMLSpanElement>)}
           style={{ touchAction: 'none', cursor: page.hasDrag ? 'grab' : 'default', display: 'flex' }}>
           <VertGrip />
@@ -287,7 +287,7 @@ function BuiltinPageRow({
       </div>
       {/* Name + tooltip */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, opacity: dimmed ? 0.45 : 1 }}>
-        <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)' }}>{page.title}</span>
+        <span style={{ fontSize: 15, fontWeight: 500, color: '#131F2E' }}>{page.title}</span>
         <InfoTooltip text={page.tooltip} />
       </div>
       {/* Col 3 — On/Off */}
@@ -297,31 +297,31 @@ function BuiltinPageRow({
             <Switch size="small" checked={enabled}
               onChange={e => onChangeEnabled(page.enableKey!, e.target.checked)}
               disabled={pending} />
-            <span style={{ fontSize: 12, color: enabled ? 'var(--text-secondary)' : 'var(--text-disabled)', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 12, color: enabled ? '#5A6C82' : '#B0BACA', whiteSpace: 'nowrap' }}>
               {enabled ? 'Visible' : 'Hidden'}
             </span>
           </>
         ) : page.editSlot === 'user-generated' ? (
-          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>Always on</span>
+          <span style={{ fontSize: 12, color: '#7E8EA3', whiteSpace: 'nowrap' }}>Always on</span>
         ) : null}
       </div>
       {/* Col 4 — Visibility */}
       <div style={{ opacity: dimmed ? 0.45 : 1, pointerEvents: dimmed ? 'none' : 'auto' }}>
         {page.alwaysPublic ? (
-          <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Public</span>
+          <span style={{ fontSize: 14, color: '#5A6C82' }}>Public</span>
         ) : hasBuiltinVisSelect ? (
           <BuiltinVisSelect value={visValue} onChange={v => onChangeVis(page.visKey as 'about' | 'calendar', v)} />
         ) : page.visKey === 'join' ? (
           <BuiltinVisSelect value="public" onChange={() => {}} />
         ) : (
-          <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Members only</span>
+          <span style={{ fontSize: 14, color: '#5A6C82' }}>Members only</span>
         )}
       </div>
       {/* Col 5 — View link */}
       <div style={{ opacity: dimmed ? 0.45 : 1, pointerEvents: dimmed ? 'none' : 'auto' }}>
         {page.viewPath && (
           <a href={`/${clubSlug}${page.viewPath}`} target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: 13, color: 'var(--action-primary)', textDecoration: 'none',
+            style={{ fontSize: 13, color: '#1E4D8C', textDecoration: 'none',
               display: 'inline-flex', alignItems: 'center', gap: 3 }}>
             View <ExternalIcon />
           </a>
@@ -336,11 +336,11 @@ function BuiltinPageRow({
             {page.editSlot === 'manage' ? 'Manage' : 'Edit'}
           </Button>
         ) : page.editSlot === 'auto-generated' ? (
-          <span style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-tertiary)' }}>Auto-generated</span>
+          <span style={{ fontSize: 12, fontStyle: 'italic', color: '#7E8EA3' }}>Auto-generated</span>
         ) : page.editSlot === 'user-generated' ? (
-          <span style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-tertiary)' }}>User generated</span>
+          <span style={{ fontSize: 12, fontStyle: 'italic', color: '#7E8EA3' }}>User generated</span>
         ) : page.editSlot === null ? (
-          <span style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-tertiary)' }}>Admin managed</span>
+          <span style={{ fontSize: 12, fontStyle: 'italic', color: '#7E8EA3' }}>Admin managed</span>
         ) : null}
       </div>
     </div>
@@ -363,11 +363,11 @@ function CustomPageRow({
   return (
     <div style={{
         display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: '12px 20px 12px 12px',
-        alignItems: 'center', minHeight: 60, borderTop: '1px solid var(--border-subtle)',
+        alignItems: 'center', minHeight: 60, borderTop: '1px solid #D8DDE7',
         background: isHidden ? '#F3F4F6' : '#fff',
       }}>
       {/* Col 1 — drag */}
-      <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--text-secondary)', opacity: isHidden ? 0.4 : 1 }}>
+      <div style={{ display: 'flex', justifyContent: 'center', color: '#5A6C82', opacity: isHidden ? 0.4 : 1 }}>
         <span {...(dragHandleProps as React.HTMLAttributes<HTMLSpanElement>)}
           aria-label="Drag to reorder" style={{ touchAction: 'none', cursor: 'grab', display: 'flex' }}>
           <VertGrip />
@@ -375,7 +375,7 @@ function CustomPageRow({
       </div>
       {/* Col 2 — name */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, opacity: isHidden ? 0.4 : 1 }}>
-        <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 15, fontWeight: 500, color: '#131F2E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {page.title}
         </span>
         <InfoTooltip text="Admin-created page." />
@@ -386,7 +386,7 @@ function CustomPageRow({
         <Switch size="small" checked={!isHidden}
           onChange={e => onChangeVis(page.id, e.target.checked ? 'members_only' : 'hidden')}
           disabled={pending} />
-        <span style={{ fontSize: 12, color: isHidden ? 'var(--text-disabled)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 12, color: isHidden ? '#B0BACA' : '#5A6C82', whiteSpace: 'nowrap' }}>
           {isHidden ? 'Hidden' : 'Visible'}
         </span>
       </div>
@@ -397,7 +397,7 @@ function CustomPageRow({
       {/* Col 5 — view link */}
       <div style={{ opacity: isHidden ? 0.4 : 1, pointerEvents: isHidden ? 'none' : 'auto' }}>
         <a href={`/${clubSlug}/our-club/${page.slug}`} target="_blank" rel="noopener noreferrer"
-          style={{ fontSize: 13, color: 'var(--action-primary)', textDecoration: 'none',
+          style={{ fontSize: 13, color: '#1E4D8C', textDecoration: 'none',
             display: 'inline-flex', alignItems: 'center', gap: 3 }}>
           View <ExternalIcon />
         </a>
@@ -425,8 +425,8 @@ function AddPageFooter({ tabName, onClick }: { tabName: string; onClick: () => v
       type="button" onClick={onClick}
       style={{
         display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px',
-        background: 'none', border: 'none', borderTop: '1px solid var(--border-subtle)',
-        cursor: 'pointer', color: 'var(--action-primary)', fontSize: 13, fontWeight: 500,
+        background: 'none', border: 'none', borderTop: '1px solid #D8DDE7',
+        cursor: 'pointer', color: '#1E4D8C', fontSize: 13, fontWeight: 500,
         width: '100%', textAlign: 'left',
       }}
     >
@@ -452,13 +452,13 @@ function SortableTab({ id, disabled = false, children }: {
 function TabGhost({ label }: { label: string }) {
   return (
     <div style={{
-      border: '1px solid var(--border-default)', borderRadius: 10,
+      border: '1px solid #B0BACA', borderRadius: 10,
       background: '#fff',
       boxShadow: '0 8px 24px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08)',
       padding: '10px 16px', opacity: 0.92,
       transform: 'rotate(1deg)', cursor: 'grabbing',
       display: 'flex', alignItems: 'center', gap: 8,
-      color: 'var(--text-primary)', fontSize: 14, fontWeight: 500,
+      color: '#131F2E', fontSize: 14, fontWeight: 500,
     }}>
       <HorizGrip />{label}
     </div>
@@ -466,7 +466,7 @@ function TabGhost({ label }: { label: string }) {
 }
 
 function DropLine() {
-  return <div style={{ height: 3, background: 'var(--status-success)', borderRadius: 2, margin: '2px 8px' }} />
+  return <div style={{ height: 3, background: '#2E7D32', borderRadius: 2, margin: '2px 8px' }} />
 }
 
 // ── Sortable page + page group (dnd-kit) ─────────────────────────────────────
@@ -490,7 +490,7 @@ function PageGhost({ title }: { title: string }) {
       padding: '8px 16px', opacity: 0.92,
       transform: 'rotate(0.5deg)', cursor: 'grabbing',
       display: 'flex', alignItems: 'center', gap: 8,
-      color: 'var(--text-primary)', fontSize: 14, fontWeight: 500,
+      color: '#131F2E', fontSize: 14, fontWeight: 500,
     }}>
       <VertGrip />{title}
     </div>
@@ -599,42 +599,42 @@ function TabBlock({
   return (
     <div onDragOver={onDragOver} onDrop={onDrop}
       style={{
-        border: '1px solid var(--border-default)', borderRadius: 10, overflow: 'hidden',
+        border: '1px solid #B0BACA', borderRadius: 10, overflow: 'hidden',
         background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         ...(dragOverStyle ?? {}),
       }}>
       <div style={{
         display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: GRID_PAD,
         alignItems: 'center', minHeight: 56, background: TAB_HDR_BG,
-        borderBottom: expanded && !isCalendar ? '1px solid var(--border-default)' : 'none',
+        borderBottom: expanded && !isCalendar ? '1px solid #B0BACA' : 'none',
         borderRadius: expanded && !isCalendar ? '10px 10px 0 0' : 10,
         position: 'relative',
       }}>
         {/* Col 1 — caret / lock */}
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           {isLocked ? (
-            <span style={{ color: 'var(--text-tertiary)', display: 'flex', opacity: 0.6 }}><LockIcon /></span>
+            <span style={{ color: '#7E8EA3', display: 'flex', opacity: 0.6 }}><LockIcon /></span>
           ) : !isCalendar ? (
             <button type="button" onClick={onToggle} aria-label={expanded ? 'Collapse' : 'Expand'}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', borderRadius: 4 }}>
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#7E8EA3', display: 'flex', alignItems: 'center', borderRadius: 4 }}>
               <ChevronRightIcon sx={{ fontSize: 18, transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }} />
             </button>
           ) : null}
         </div>
         {/* Col 2 — name + count */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{label}</span>
+          <span style={{ fontSize: 16, fontWeight: 600, color: '#131F2E', whiteSpace: 'nowrap' }}>{label}</span>
           {!isCalendar && (
-            <span style={{ fontSize: 14, color: 'var(--text-tertiary)', fontWeight: 400 }}>
+            <span style={{ fontSize: 14, color: '#7E8EA3', fontWeight: 400 }}>
               ({pageCount} {pageWord})
             </span>
           )}
           {isCustom && <CustomChip />}
-          {note && <span style={{ fontSize: 13, fontStyle: 'italic', color: 'var(--text-tertiary)' }}>{note}</span>}
+          {note && <span style={{ fontSize: 13, fontStyle: 'italic', color: '#7E8EA3' }}>{note}</span>}
         </div>
         {/* Centered drag handle */}
         {dragHandleEl && (
-          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', color: 'var(--text-secondary)', display: 'flex', cursor: 'grab' }}>
+          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', color: '#5A6C82', display: 'flex', cursor: 'grab' }}>
             {dragHandleEl}
           </div>
         )}
@@ -683,27 +683,27 @@ function CustomTabBlock({
   const count = items.length
   return (
     <div onDragOver={onDragOver} onDrop={onDrop}
-      style={{ border: '1px solid var(--border-default)', borderRadius: 10, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', ...(dragOverStyle ?? {}) }}>
+      style={{ border: '1px solid #B0BACA', borderRadius: 10, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', ...(dragOverStyle ?? {}) }}>
       <div style={{
         display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: GRID_PAD,
         alignItems: 'center', minHeight: 56, background: TAB_HDR_BG,
-        borderBottom: expanded ? '1px solid var(--border-default)' : 'none',
+        borderBottom: expanded ? '1px solid #B0BACA' : 'none',
         borderRadius: expanded ? '10px 10px 0 0' : 10, position: 'relative',
       }}>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <button type="button" onClick={() => setExpanded(e => !e)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', borderRadius: 4 }}>
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#7E8EA3', display: 'flex', alignItems: 'center', borderRadius: 4 }}>
             <ChevronRightIcon sx={{ fontSize: 18, transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }} />
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>{tab.name}</span>
-          <span style={{ fontSize: 14, color: 'var(--text-tertiary)', fontWeight: 400 }}>
+          <span style={{ fontSize: 16, fontWeight: 600, color: '#131F2E' }}>{tab.name}</span>
+          <span style={{ fontSize: 14, color: '#7E8EA3', fontWeight: 400 }}>
             ({count} {count === 1 ? 'page' : 'pages'})
           </span>
           <CustomChip />
         </div>
-        <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', color: 'var(--text-secondary)', display: 'flex' }}>
+        <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', color: '#5A6C82', display: 'flex' }}>
           {dragHandleEl}
         </div>
         <div />
@@ -724,7 +724,7 @@ function CustomTabBlock({
       )}
       {expanded && count === 0 && (
         <div style={{
-          padding: '32px 20px', textAlign: 'center', borderTop: '1px solid var(--border-default)',
+          padding: '32px 20px', textAlign: 'center', borderTop: '1px solid #B0BACA',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
         }}>
           <Button variant="outlined" color="primary" size="small"
@@ -732,7 +732,7 @@ function CustomTabBlock({
             onClick={onAddPage}>
             Add a page
           </Button>
-          <span style={{ fontSize: 13, color: 'var(--text-tertiary)', maxWidth: 340, lineHeight: 1.6 }}>
+          <span style={{ fontSize: 13, color: '#7E8EA3', maxWidth: 340, lineHeight: 1.6 }}>
             This tab won&apos;t appear in navigation until it has at least one page.
             One page → clicking the tab goes straight there.
             Multiple pages → clicking the tab opens a dropdown list.
@@ -747,7 +747,7 @@ function CustomTabBlock({
 // ── Column header row ─────────────────────────────────────────────────────────
 
 function ColumnHeaders() {
-  const lbl = { fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-tertiary)' }
+  const lbl = { fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: '#7E8EA3' }
   return (
     <div style={{ display: 'grid', gridTemplateColumns: GRID_COLS, gap: GRID_GAP, padding: '0 20px 0 12px', alignItems: 'center', marginBottom: 8 }}>
       <div />
@@ -820,7 +820,7 @@ function NewPageDialogFull({
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>New page</DialogTitle>
       <DialogContent sx={{ pt: '16px !important', display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-        {err && <p className="text-[12px] m-0" style={{ color: 'var(--status-error)' }}>{err}</p>}
+        {err && <p className="text-[12px] m-0" style={{ color: '#D32F2F' }}>{err}</p>}
         <FormControl size="small" fullWidth>
           <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Tab</FormLabel>
           <Select value={section} onChange={e => setSection(e.target.value)} sx={{ fontSize: 13 }}>
@@ -839,11 +839,11 @@ function NewPageDialogFull({
           <FormLabel sx={{ fontSize: 13, fontWeight: 600, mb: 0.75 }}>Page type</FormLabel>
           <RadioGroup value={type} onChange={e => setType(e.target.value as PageType)}>
             <FormControlLabel value="rich_text"     control={<Radio size="small" />} sx={{ alignItems: 'center', mb: 0.5 }}
-              label={<span><strong style={{ fontSize: 13 }}>Rich text</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— formatted content</span></span>} />
+              label={<span><strong style={{ fontSize: 13 }}>Rich text</strong> <span style={{ fontSize: 12, color: '#5A6C82' }}>— formatted content</span></span>} />
             <FormControlLabel value="document_link" control={<Radio size="small" />} sx={{ alignItems: 'center', mb: 0.5 }}
-              label={<span><strong style={{ fontSize: 13 }}>Document link</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— links to a file in Resources</span></span>} />
+              label={<span><strong style={{ fontSize: 13 }}>Document link</strong> <span style={{ fontSize: 12, color: '#5A6C82' }}>— links to a file in Resources</span></span>} />
             <FormControlLabel value="external_link" control={<Radio size="small" />} sx={{ alignItems: 'center' }}
-              label={<span><strong style={{ fontSize: 13 }}>External link</strong> <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— opens in a new tab</span></span>} />
+              label={<span><strong style={{ fontSize: 13 }}>External link</strong> <span style={{ fontSize: 12, color: '#5A6C82' }}>— opens in a new tab</span></span>} />
           </RadioGroup>
         </FormControl>
         {type === 'external_link' && (
@@ -905,9 +905,9 @@ function NewTabDialog({
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
       <DialogTitle sx={{ fontSize: 15, fontWeight: 600 }}>New tab</DialogTitle>
       <DialogContent sx={{ pt: '16px !important', display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {err && <p className="text-[12px] m-0" style={{ color: 'var(--status-error)' }}>{err}</p>}
+        {err && <p className="text-[12px] m-0" style={{ color: '#D32F2F' }}>{err}</p>}
         {atMax ? (
-          <p className="text-[13px] m-0" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-[13px] m-0" style={{ color: '#5A6C82' }}>
             Maximum of {MAX_CUSTOM_TABS} custom tabs reached. Add pages to an existing tab instead.
           </p>
         ) : (
@@ -917,7 +917,7 @@ function NewTabDialog({
               value={tabName} onChange={e => setTabName(e.target.value.slice(0, 20))}
               helperText={`${tabName.length}/20 — shown in the main navigation bar`}
               onKeyDown={e => e.key === 'Enter' && tabName.trim() && !saving && handleCreate()} />
-            <p className="text-[12px] m-0" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[12px] m-0" style={{ color: '#5A6C82' }}>
               The new tab won&apos;t be visible to members until you add at least one published page to it.
             </p>
           </>
@@ -1218,9 +1218,9 @@ export default function NavigationClient({
               sx={{
                 flexShrink: 0, textTransform: 'none', fontSize: 13,
                 display: 'flex', alignItems: 'center', gap: 0.75,
-                background: 'var(--action-primary)',
+                background: '#1E4D8C',
                 boxShadow: '0 0 0 3px rgba(26,111,196,0.25)',
-                '&:hover': { background: 'var(--action-primary-hover)', boxShadow: '0 0 0 3px rgba(26,111,196,0.35)' },
+                '&:hover': { background: '#163A6B', boxShadow: '0 0 0 3px rgba(26,111,196,0.35)' },
               }}>
               {isPublishing
                 ? <CircularProgress size={14} sx={{ color: '#fff' }} />
@@ -1242,7 +1242,7 @@ export default function NavigationClient({
         const activeNewIdx = proj ? proj.indexOf(activeDragId!) : -1
         const grip = (hProps: Record<string, unknown>) => (
           <span {...(hProps as React.HTMLAttributes<HTMLSpanElement>)}
-            style={{ touchAction: 'none', cursor: 'grab', display: 'flex', color: 'var(--text-secondary)' }}>
+            style={{ touchAction: 'none', cursor: 'grab', display: 'flex', color: '#5A6C82' }}>
             <HorizGrip />
           </span>
         )

@@ -542,7 +542,7 @@ export default function DuesPaymentClient({
                         {discountCategories.map(({ label, amount }, i) => (
                           <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.25, py: 0.75, bgcolor: 'rgba(0,0,0,0.03)', borderRadius: 1.25 }}>
                             <Typography sx={{ fontSize: 13, fontWeight: 500, flex: 1, color: '#131F2E' }}>{label}</Typography>
-                            <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'var(--action-primary)' }}>
+                            <Typography sx={{ fontSize: 13, fontWeight: 500, color: '#1E4D8C' }}>
                               {amount != null ? `-$${amount}` : 'no discount'}
                             </Typography>
                             <IconButton size="small" onClick={() => removeCategory(i)} sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}>
@@ -580,7 +580,7 @@ export default function DuesPaymentClient({
                       </Box>
                     ) : (
                       <Button variant="text" size="small" onClick={() => setShowAddForm(true)}
-                        sx={{ fontSize: 12, color: 'var(--action-primary)', textTransform: 'none', px: 0.5 }}>
+                        sx={{ fontSize: 12, color: '#1E4D8C', textTransform: 'none', px: 0.5 }}>
                         + Add another
                       </Button>
                     )}

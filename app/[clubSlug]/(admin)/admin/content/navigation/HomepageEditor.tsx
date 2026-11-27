@@ -205,7 +205,7 @@ function useHomepageEditor(initialBlocks: ContentBlock[], clubSlug: string, rout
 function DragGrip({ disabled }: { disabled?: boolean }) {
   return (
     <span style={{
-      color: 'var(--text-tertiary)', opacity: disabled ? 0.25 : 0.55,
+      color: '#7E8EA3', opacity: disabled ? 0.25 : 0.55,
       cursor: disabled ? 'default' : 'grab', flexShrink: 0,
       display: 'flex', alignItems: 'center',
     }}>
@@ -229,8 +229,8 @@ function IconTrash() {
 function InsertionLine() {
   return (
     <div style={{ position: 'relative', height: 2, margin: '2px 0', flexShrink: 0 }}>
-      <div style={{ position: 'absolute', inset: 0, background: 'var(--action-primary)', borderRadius: 1 }} />
-      <div style={{ position: 'absolute', left: -1, top: '50%', transform: 'translateY(-50%)', width: 8, height: 8, borderRadius: '50%', background: 'var(--action-primary)' }} />
+      <div style={{ position: 'absolute', inset: 0, background: '#1E4D8C', borderRadius: 1 }} />
+      <div style={{ position: 'absolute', left: -1, top: '50%', transform: 'translateY(-50%)', width: 8, height: 8, borderRadius: '50%', background: '#1E4D8C' }} />
     </div>
   )
 }
@@ -326,7 +326,7 @@ function WelcomeModalBody({ block, onChange, clubName }: { block: ContentBlock; 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
       <Box sx={{ p: 1.5, background: 'rgba(30,77,140,0.05)', borderRadius: '4px', border: '1px solid rgba(30,77,140,0.12)' }}>
-        <Typography sx={{ fontSize: 12, color: 'var(--action-primary)', fontWeight: 500 }}>
+        <Typography sx={{ fontSize: 12, color: '#1E4D8C', fontWeight: 500 }}>
           Logged-in members see a compact "Welcome back" greeting automatically — no separate config needed.
         </Typography>
       </Box>
@@ -444,8 +444,8 @@ function ClubGalleriesModalBody({ block, onChange, galleries }: { block: Content
                 sx={{
                   display: 'flex', alignItems: 'center', gap: 1.5,
                   px: 1.5, py: 1, borderRadius: '6px',
-                  border: `1px solid ${checked ? 'var(--action-primary)' : 'var(--border-default)'}`,
-                  background: checked ? 'rgba(30,77,140,0.05)' : 'var(--surface-2)',
+                  border: `1px solid ${checked ? '#1E4D8C' : '#B0BACA'}`,
+                  background: checked ? 'rgba(30,77,140,0.05)' : '#FFFFFF',
                   cursor: disabled ? 'not-allowed' : 'pointer',
                   opacity: disabled ? 0.45 : 1,
                   transition: 'all 0.1s',
@@ -453,8 +453,8 @@ function ClubGalleriesModalBody({ block, onChange, galleries }: { block: Content
               >
                 <Box sx={{
                   width: 16, height: 16, borderRadius: '3px', flexShrink: 0,
-                  border: `2px solid ${checked ? 'var(--action-primary)' : 'var(--border-default)'}`,
-                  background: checked ? 'var(--action-primary)' : 'transparent',
+                  border: `2px solid ${checked ? '#1E4D8C' : '#B0BACA'}`,
+                  background: checked ? '#1E4D8C' : 'transparent',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   {checked && <span style={{ color: '#fff', fontSize: 10, fontWeight: 700, lineHeight: 1 }}>✓</span>}
@@ -509,9 +509,9 @@ function SpotlightModalBody({ block, onChange, members }: {
           {(['automatic', 'manual'] as SpotlightSettings['mode'][]).map(m => (
             <button key={m} onClick={() => onChange({ spotlightSettings: { ...s, mode: m } })} style={{
               flex: 1, padding: '7px 0', cursor: 'pointer', borderRadius: 4,
-              border: `1px solid ${s.mode === m ? 'var(--action-primary)' : 'var(--border-default)'}`,
-              background: s.mode === m ? 'rgba(30,77,140,0.07)' : 'var(--surface-2)',
-              color: s.mode === m ? 'var(--action-primary)' : 'var(--text-secondary)',
+              border: `1px solid ${s.mode === m ? '#1E4D8C' : '#B0BACA'}`,
+              background: s.mode === m ? 'rgba(30,77,140,0.07)' : '#FFFFFF',
+              color: s.mode === m ? '#1E4D8C' : '#5A6C82',
               fontSize: 13, fontWeight: 500, textTransform: 'capitalize', transition: 'all 0.1s',
             }}>{m}</button>
           ))}
@@ -561,9 +561,9 @@ function DualPanelModalBody({ block, onChange }: { block: ContentBlock; onChange
         {([3, 4, 5, 6] as const).map(n => (
           <button key={n} onClick={() => onChange({ dualPanelSettings: { eventCount: n } })} style={{
             width: 32, height: 30, cursor: 'pointer', borderRadius: 4,
-            border: `1px solid ${s.eventCount === n ? 'var(--action-primary)' : 'var(--border-default)'}`,
-            background: s.eventCount === n ? 'rgba(30,77,140,0.07)' : 'var(--surface-2)',
-            color: s.eventCount === n ? 'var(--action-primary)' : 'var(--text-secondary)',
+            border: `1px solid ${s.eventCount === n ? '#1E4D8C' : '#B0BACA'}`,
+            background: s.eventCount === n ? 'rgba(30,77,140,0.07)' : '#FFFFFF',
+            color: s.eventCount === n ? '#1E4D8C' : '#5A6C82',
             fontSize: 13, fontWeight: 600, transition: 'all 0.1s',
           }}>{n}</button>
         ))}
@@ -901,9 +901,9 @@ function CompetitionsModalBody({ block, onChange }: { block: ContentBlock; onCha
             {([2, 3, 4] as (2 | 3 | 4)[]).map(n => (
               <button key={n} onClick={() => set('topImageCount', n)} style={{
                 width: 36, height: 30, cursor: 'pointer', borderRadius: 4,
-                border: `1px solid ${s.topImageCount === n ? 'var(--action-primary)' : 'var(--border-default)'}`,
-                background: s.topImageCount === n ? 'rgba(30,77,140,0.07)' : 'var(--surface-2)',
-                color: s.topImageCount === n ? 'var(--action-primary)' : 'var(--text-secondary)',
+                border: `1px solid ${s.topImageCount === n ? '#1E4D8C' : '#B0BACA'}`,
+                background: s.topImageCount === n ? 'rgba(30,77,140,0.07)' : '#FFFFFF',
+                color: s.topImageCount === n ? '#1E4D8C' : '#5A6C82',
                 fontSize: 13, fontWeight: 600, transition: 'all 0.1s',
               }}>{n}</button>
             ))}
@@ -926,9 +926,9 @@ function CompetitionsModalBody({ block, onChange }: { block: ContentBlock; onCha
           {([1, 2, 3] as (1 | 2 | 3)[]).map(n => (
             <button key={n} onClick={() => set('maxOpenShown', n)} style={{
               width: 36, height: 30, cursor: 'pointer', borderRadius: 4,
-              border: `1px solid ${s.maxOpenShown === n ? 'var(--action-primary)' : 'var(--border-default)'}`,
-              background: s.maxOpenShown === n ? 'rgba(30,77,140,0.07)' : 'var(--surface-2)',
-              color: s.maxOpenShown === n ? 'var(--action-primary)' : 'var(--text-secondary)',
+              border: `1px solid ${s.maxOpenShown === n ? '#1E4D8C' : '#B0BACA'}`,
+              background: s.maxOpenShown === n ? 'rgba(30,77,140,0.07)' : '#FFFFFF',
+              color: s.maxOpenShown === n ? '#1E4D8C' : '#5A6C82',
               fontSize: 13, fontWeight: 600, transition: 'all 0.1s',
             }}>{n}</button>
           ))}
@@ -1107,23 +1107,23 @@ function BlockCard({
       onDragStart={block.fixed || !block.enabled ? undefined : e => { e.stopPropagation(); onDragStart() }}
       onDragOver={block.fixed  || !block.enabled ? undefined : onDragOver}
       sx={{
-        border: '1px solid var(--border-default)',
+        border: '1px solid #B0BACA',
         borderRadius: '6px',
-        background: 'var(--surface-2)',
+        background: '#FFFFFF',
         opacity: block.enabled ? 1 : 0.6,
         transition: 'opacity 0.15s',
-        '&:hover': { borderColor: 'var(--border-strong)' },
+        '&:hover': { borderColor: '#7E8EA3' },
       }}
     >
       <Box sx={{ px: 1.5, py: 1.25, display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
         {block.fixed
-          ? <span style={{ display: 'flex', color: 'var(--text-tertiary)', opacity: 0.45, flexShrink: 0, paddingTop: 1 }}><LockOutlinedIcon sx={{ fontSize: 15 }} /></span>
+          ? <span style={{ display: 'flex', color: '#7E8EA3', opacity: 0.45, flexShrink: 0, paddingTop: 1 }}><LockOutlinedIcon sx={{ fontSize: 15 }} /></span>
           : <Box sx={{ flexShrink: 0, pt: '1px', opacity: block.enabled ? 1 : 0.3, pointerEvents: block.enabled ? 'auto' : 'none' }}><DragGrip /></Box>
         }
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, flexWrap: 'wrap' }}>
             {block.type === 'custom-content' && (
-              <Typography component="span" sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--action-primary)', background: 'rgba(26,111,196,0.10)', borderRadius: '3px', px: '5px', py: '1px', flexShrink: 0, lineHeight: '16px' }}>
+              <Typography component="span" sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#1E4D8C', background: 'rgba(26,111,196,0.10)', borderRadius: '3px', px: '5px', py: '1px', flexShrink: 0, lineHeight: '16px' }}>
                 Custom
               </Typography>
             )}
@@ -1140,7 +1140,7 @@ function BlockCard({
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, flexShrink: 0 }}>
           {onRemove && (
             <Tooltip title="Remove block">
-              <IconButton size="small" onClick={onRemove} sx={{ color: 'var(--text-tertiary)', mt: '-2px', '&:hover': { color: 'var(--status-error)' } }}>
+              <IconButton size="small" onClick={onRemove} sx={{ color: '#7E8EA3', mt: '-2px', '&:hover': { color: '#D32F2F' } }}>
                 <IconTrash />
               </IconButton>
             </Tooltip>
@@ -1153,7 +1153,7 @@ function BlockCard({
           {!block.fixed && (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px', ml: 0.5 }}>
               <Switch checked={block.enabled} onChange={onToggle} size="small" />
-              <Typography sx={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', color: block.enabled ? 'var(--action-primary)' : 'var(--text-tertiary)', lineHeight: 1 }}>
+              <Typography sx={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', color: block.enabled ? '#1E4D8C' : '#7E8EA3', lineHeight: 1 }}>
                 {block.enabled ? 'ON' : 'OFF'}
               </Typography>
             </Box>
@@ -1867,25 +1867,25 @@ function IssueStrip({ issues, compact }: { issues: ValidationIssue[]; compact: b
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: compact ? 0.5 : 1, mb: compact ? 1 : 2 }}>
       {!compact && warnings.length > 0 && (
-        <Box sx={{ px: 2, py: 1.25, borderRadius: '6px', background: 'var(--status-warning-bg)', border: '1px solid rgba(166,124,0,0.22)' }}>
-          <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'var(--status-warning-text)', mb: 0.75, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <Box sx={{ px: 2, py: 1.25, borderRadius: '6px', background: '#FFFBE6', border: '1px solid rgba(166,124,0,0.22)' }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#6B5000', mb: 0.75, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             ⚠ {warnings.length} issue{warnings.length > 1 ? 's' : ''} to fix before publishing
           </Typography>
           {warnings.map(w => (
             <Box key={w.blockId} sx={{ mb: 0.5 }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'var(--status-warning-text)' }}>{w.label} — {w.message}</Typography>
-              <Typography sx={{ fontSize: 11, color: 'var(--status-warning-text)', opacity: 0.85 }}>{w.fix}</Typography>
+              <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#6B5000' }}>{w.label} — {w.message}</Typography>
+              <Typography sx={{ fontSize: 11, color: '#6B5000', opacity: 0.85 }}>{w.fix}</Typography>
             </Box>
           ))}
         </Box>
       )}
       {compact && warnings.length > 0 && (
-        <Box sx={{ px: 1.5, py: 1, borderRadius: '6px', background: 'var(--status-warning-bg)', border: '1px solid rgba(166,124,0,0.22)', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-          <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'var(--status-warning-text)', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box sx={{ px: 1.5, py: 1, borderRadius: '6px', background: '#FFFBE6', border: '1px solid rgba(166,124,0,0.22)', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#6B5000', display: 'flex', alignItems: 'center', gap: 0.5 }}>
             ⚠ {warnings.length} issue{warnings.length > 1 ? 's' : ''} need attention
           </Typography>
           {warnings.map(w => (
-            <Typography key={w.blockId} sx={{ fontSize: 11, color: 'var(--status-warning-text)', opacity: 0.9 }}>
+            <Typography key={w.blockId} sx={{ fontSize: 11, color: '#6B5000', opacity: 0.9 }}>
               · <strong>{w.label}</strong>: {w.message}
             </Typography>
           ))}
@@ -1893,13 +1893,13 @@ function IssueStrip({ issues, compact }: { issues: ValidationIssue[]; compact: b
       )}
       {!compact && infos.length > 0 && (
         <Box sx={{ px: 2, py: 1.25, borderRadius: '6px', background: 'rgba(30,77,140,0.05)', border: '1px solid rgba(30,77,140,0.15)' }}>
-          <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'var(--action-primary)', mb: 0.75, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#1E4D8C', mb: 0.75, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             ℹ Image gallery sources
           </Typography>
           {infos.map(i => (
             <Box key={i.blockId} sx={{ mb: 0.5 }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'var(--action-primary)' }}>{i.label} — {i.message}</Typography>
-              <Typography sx={{ fontSize: 11, color: 'var(--text-secondary)' }}>{i.fix}</Typography>
+              <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#1E4D8C' }}>{i.label} — {i.message}</Typography>
+              <Typography sx={{ fontSize: 11, color: '#5A6C82' }}>{i.fix}</Typography>
             </Box>
           ))}
         </Box>
@@ -1923,14 +1923,14 @@ function LivePreview({ blocks, fullscreen = false, galleries }: { blocks: Conten
   // Use individual border properties instead of the `border` shorthand so we can
   // suppress the left border on the right segment without mixing shorthand/longhand.
   const segBtn = (active: boolean, noLeft = false): React.CSSProperties => {
-    const bc = active ? '#556070' : 'var(--border-default)'
+    const bc = active ? '#556070' : '#B0BACA'
     return {
       fontFamily: 'var(--font-inter, system-ui)', fontSize: 12, fontWeight: 500,
       padding: '4px 12px', cursor: 'pointer',
       borderTop: `1px solid ${bc}`, borderRight: `1px solid ${bc}`,
       borderBottom: `1px solid ${bc}`, borderLeft: noLeft ? 'none' : `1px solid ${bc}`,
-      background: active ? '#556070' : 'var(--surface-2)',
-      color: active ? '#fff' : 'var(--text-secondary)',
+      background: active ? '#556070' : '#FFFFFF',
+      color: active ? '#fff' : '#5A6C82',
       transition: 'all 0.1s',
     }
   }
@@ -1948,24 +1948,24 @@ function LivePreview({ blocks, fullscreen = false, galleries }: { blocks: Conten
         </Box>
         {audience === 'member' ? (
           <Tooltip title={colorMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
-            <button onClick={() => setColorMode(m => m === 'dark' ? 'light' : 'dark')} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', border: '1px solid var(--border-default)', borderRadius: 6, background: 'var(--surface-2)', color: 'var(--text-secondary)', padding: '4px 10px', fontSize: 12, fontWeight: 500, transition: 'border-color 0.1s' }}>
+            <button onClick={() => setColorMode(m => m === 'dark' ? 'light' : 'dark')} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', border: '1px solid #B0BACA', borderRadius: 6, background: '#FFFFFF', color: '#5A6C82', padding: '4px 10px', fontSize: 12, fontWeight: 500, transition: 'border-color 0.1s' }}>
               {colorMode === 'dark' ? <MoonIcon /> : <SunIcon />}
               {colorMode === 'dark' ? 'Dark' : 'Light'}
             </button>
           </Tooltip>
         ) : (
           <Tooltip title="Visitor view is always dark mode">
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5, border: '1px solid var(--border-subtle)', borderRadius: 6, background: 'var(--surface-1)', color: 'var(--text-tertiary)', padding: '4px 10px', fontSize: 12, fontWeight: 500, opacity: 0.7, cursor: 'default' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, border: '1px solid #D8DDE7', borderRadius: 6, background: '#EDF0F5', color: '#7E8EA3', padding: '4px 10px', fontSize: 12, fontWeight: 500, opacity: 0.7, cursor: 'default' }}>
               <MoonIcon /> Dark
             </span>
           </Tooltip>
         )}
         <Box sx={{ flex: 1 }} />
         <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Tooltip title="Desktop"><IconButton size="small" onClick={() => setDevice('desktop')} sx={{ color: device === 'desktop' ? 'var(--action-primary)' : 'text.secondary' }}>
+          <Tooltip title="Desktop"><IconButton size="small" onClick={() => setDevice('desktop')} sx={{ color: device === 'desktop' ? '#1E4D8C' : 'text.secondary' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21 2H3a2 2 0 00-2 2v12a2 2 0 002 2h7v2H8v2h8v-2h-2v-2h7a2 2 0 002-2V4a2 2 0 00-2-2zm0 14H3V4h18v12z"/></svg>
           </IconButton></Tooltip>
-          <Tooltip title="Mobile"><IconButton size="small" onClick={() => setDevice('mobile')} sx={{ color: device === 'mobile' ? 'var(--action-primary)' : 'text.secondary' }}>
+          <Tooltip title="Mobile"><IconButton size="small" onClick={() => setDevice('mobile')} sx={{ color: device === 'mobile' ? '#1E4D8C' : 'text.secondary' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
           </IconButton></Tooltip>
         </Box>
@@ -1973,14 +1973,14 @@ function LivePreview({ blocks, fullscreen = false, galleries }: { blocks: Conten
       {fullscreen && <IssueStrip issues={issues} compact={false} />}
       {compact ? (
         /* Compact: no fixed height — blocks render inline and page scrolls */
-        <Box sx={{ border: '1px solid var(--border-default)', borderRadius: '8px', overflow: 'hidden', background: t.surface2, display: 'flex', justifyContent: device === 'mobile' ? 'center' : undefined }}>
+        <Box sx={{ border: '1px solid #B0BACA', borderRadius: '8px', overflow: 'hidden', background: t.surface2, display: 'flex', justifyContent: device === 'mobile' ? 'center' : undefined }}>
           <Box sx={{ width: device === 'mobile' ? 375 : '100%', background: t.surface2 }}>
             {blocks.map(b => <PreviewBlock key={b.id} block={b} audience={audience} t={t} compact={compact} galleries={galleries} />)}
           </Box>
         </Box>
       ) : (
         /* Fullscreen: full-height browser chrome with internal scroll */
-        <Box sx={{ border: '1px solid var(--border-default)', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <Box sx={{ border: '1px solid #B0BACA', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}>
           <Box sx={{ px: 1.5, py: 0.875, flexShrink: 0, background: effectiveMode === 'dark' ? '#1C1C1E' : '#E8E8ED', borderBottom: `1px solid ${effectiveMode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.10)'}`, display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Box sx={{ display: 'flex', gap: '5px' }}>
               {['#FF5F57','#FFBD2E','#28CA41'].map(c => <span key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c, display: 'block' }} />)}
@@ -2082,21 +2082,21 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
             <Typography sx={{ fontSize: 11, color: 'text.secondary', fontStyle: 'italic', mt: 0.25 }}>Saving…</Typography>
           )}
           {saveStatus === 'error' && (
-            <Typography sx={{ fontSize: 11, color: 'var(--status-error)', mt: 0.25 }}>Save failed — please try again.</Typography>
+            <Typography sx={{ fontSize: 11, color: '#D32F2F', mt: 0.25 }}>Save failed — please try again.</Typography>
           )}
         </Box>
         <Button variant="outlined" size="small"
           onClick={() => window.open(`/${clubSlug}`, '_blank')}
-          sx={{ textTransform: 'none', fontSize: 13, borderColor: 'var(--border-default)', color: 'text.secondary', '&:hover': { borderColor: 'var(--border-strong)' } }}>
+          sx={{ textTransform: 'none', fontSize: 13, borderColor: '#B0BACA', color: 'text.secondary', '&:hover': { borderColor: '#7E8EA3' } }}>
           Preview
         </Button>
         <Button variant="contained" size="small" disabled={!hasChanges || isPending} onClick={() => setShowPublish(true)}
           sx={{
             textTransform: 'none', fontSize: 13, display: 'flex', alignItems: 'center', gap: 0.75,
             ...(hasChanges ? {
-              background: 'var(--action-primary)',
+              background: '#1E4D8C',
               boxShadow: '0 0 0 3px rgba(26,111,196,0.25)',
-              '&:hover': { background: 'var(--action-primary-hover)', boxShadow: '0 0 0 3px rgba(26,111,196,0.35)' },
+              '&:hover': { background: '#163A6B', boxShadow: '0 0 0 3px rgba(26,111,196,0.35)' },
             } : {}),
           }}>
           {hasChanges && <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#FFCC00', flexShrink: 0 }} />}
@@ -2190,11 +2190,11 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
                   {hiddenBlocks.length > 0 && (
                     <>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-                        <Box sx={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
-                        <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', flexShrink: 0 }}>
+                        <Box sx={{ flex: 1, height: '1px', background: '#D8DDE7' }} />
+                        <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#7E8EA3', flexShrink: 0 }}>
                           Hidden
                         </Typography>
-                        <Box sx={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+                        <Box sx={{ flex: 1, height: '1px', background: '#D8DDE7' }} />
                       </Box>
                       {hiddenBlocks.map((block, localJ) => {
                         const i = firstHiddenIdx + localJ
@@ -2261,12 +2261,12 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
                 </Typography>
 
                 {pubWarnings.length > 0 && (
-                  <Box sx={{ p: 2, borderRadius: '6px', background: 'var(--status-warning-bg)', border: '1px solid rgba(166,124,0,0.22)' }}>
-                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'var(--status-warning-text)', mb: 1 }}>
+                  <Box sx={{ p: 2, borderRadius: '6px', background: '#FFFBE6', border: '1px solid rgba(166,124,0,0.22)' }}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#6B5000', mb: 1 }}>
                       ⚠ {pubWarnings.length} block{pubWarnings.length > 1 ? 's have' : ' has'} no content configured
                     </Typography>
                     {pubWarnings.map(w => (
-                      <Typography key={w.blockId} sx={{ fontSize: 12, color: 'var(--status-warning-text)', mb: 0.5, lineHeight: 1.5 }}>
+                      <Typography key={w.blockId} sx={{ fontSize: 12, color: '#6B5000', mb: 0.5, lineHeight: 1.5 }}>
                         · <strong>{w.label}</strong> — will display with sample placeholder content until you update it and republish.
                       </Typography>
                     ))}
@@ -2275,7 +2275,7 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
 
                 {hasGalleryBlocks && (
                   <Box sx={{ p: 2, borderRadius: '6px', background: 'rgba(30,77,140,0.05)', border: '1px solid rgba(30,77,140,0.15)' }}>
-                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'var(--action-primary)', mb: 0.5 }}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#1E4D8C', mb: 0.5 }}>
                       ℹ Gallery blocks
                     </Typography>
                     <Typography sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.55 }}>
@@ -2285,8 +2285,8 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
                 )}
 
                 {pubWarnings.length === 0 && (
-                  <Box sx={{ px: 2, py: 1.25, borderRadius: '6px', background: 'var(--status-success-bg)', border: '1px solid rgba(46,125,50,0.20)' }}>
-                    <Typography sx={{ fontSize: 13, color: 'var(--status-success-text)', fontWeight: 500 }}>
+                  <Box sx={{ px: 2, py: 1.25, borderRadius: '6px', background: '#EDFAF0', border: '1px solid rgba(46,125,50,0.20)' }}>
+                    <Typography sx={{ fontSize: 13, color: '#174A1A', fontWeight: 500 }}>
                       ✓ All blocks are configured and ready to publish.
                     </Typography>
                   </Box>
@@ -2315,8 +2315,8 @@ export default function HomepageEditor({ initialBlocks, galleries = [], members 
                   This block will be removed from the homepage layout.
                 </Typography>
                 {hasContent && (
-                  <Box sx={{ px: 2, py: 1.5, borderRadius: '6px', background: 'var(--status-warning-bg)', border: '1px solid rgba(166,124,0,0.22)' }}>
-                    <Typography sx={{ fontSize: 13, color: 'var(--status-warning-text)', lineHeight: 1.55 }}>
+                  <Box sx={{ px: 2, py: 1.5, borderRadius: '6px', background: '#FFFBE6', border: '1px solid rgba(166,124,0,0.22)' }}>
+                    <Typography sx={{ fontSize: 13, color: '#6B5000', lineHeight: 1.55 }}>
                       ⚠ Any content you have written in this block will be permanently deleted and cannot be recovered.
                     </Typography>
                   </Box>
