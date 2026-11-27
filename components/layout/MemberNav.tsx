@@ -23,23 +23,31 @@ export default function MemberNav({
   customPages: _customPages,
   customTabs: _customTabs,
   pendingCount: _pendingCount,
+  resourcesEnabled = true,
+  galleriesEnabled = true,
 }: {
-  clubSlug?:    string
-  clubName?:    string
-  displayName:  string
-  email:        string
-  role:         string | null
-  avatarUrl?:   string | null
-  customPages?: unknown[]
-  customTabs?:  unknown[]
-  pendingCount?: number
+  clubSlug?:          string
+  clubName?:          string
+  displayName:        string
+  email:              string
+  role:               string | null
+  avatarUrl?:         string | null
+  customPages?:       unknown[]
+  customTabs?:        unknown[]
+  pendingCount?:      number
+  resourcesEnabled?:  boolean
+  galleriesEnabled?:  boolean
 }) {
   const base = `/${clubSlug}`
 
   const topLinks = [
-    { href: `${base}`,             label: 'Home' },
-    { href: `${base}/calendar`,    label: 'Calendar' },
-    { href: `${base}/library`,     label: 'My Images' },
+    { href: `${base}`,          label: 'Home' },
+    { href: `${base}/calendar`, label: 'Calendar' },
+  ]
+
+  const myImagesLinks = [
+    { href: `${base}/library`,           label: 'My library' },
+    { href: `${base}/library/galleries`, label: 'My galleries' },
   ]
 
   const competitionsLinks = [
@@ -48,27 +56,34 @@ export default function MemberNav({
   ]
 
   const ourClubLinks = [
-    { href: `${base}/our-club/about`, label: 'About our club' },
-    { href: `${base}/our-club/join`,  label: 'Join / Renew' },
+    { href: `${base}/our-club/about`,             label: 'About our club' },
+    { href: `${base}/our-club/join`,              label: 'Join / Renew' },
+    { href: `${base}/our-club/members`,           label: 'Member directory' },
+    { href: `${base}/our-club/members/standings`, label: 'Standings' },
+    ...(galleriesEnabled ? [{ href: `${base}/our-club/galleries`, label: 'Club galleries' }] : []),
   ]
 
   const pathname = usePathname()
   const { theme, toggle } = useTheme()
-  const [open, setOpen] = useState(false)
-  const [compOpen, setCompOpen] = useState(false)
-  const [ourClubOpen, setOurClubOpen] = useState(false)
-  const menuRef    = useRef<HTMLDivElement>(null)
+  const [userOpen,     setUserOpen]     = useState(false)
+  const [myImgOpen,    setMyImgOpen]    = useState(false)
+  const [compOpen,     setCompOpen]     = useState(false)
+  const [ourClubOpen,  setOurClubOpen]  = useState(false)
+  const userRef    = useRef<HTMLDivElement>(null)
+  const myImgRef   = useRef<HTMLDivElement>(null)
   const compRef    = useRef<HTMLDivElement>(null)
   const ourClubRef = useRef<HTMLDivElement>(null)
 
+
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (menuRef.current    && !menuRef.current.contains(e.target as Node))    setOpen(false)
+      if (userRef.current    && !userRef.current.contains(e.target as Node))    setUserOpen(false)
+      if (myImgRef.current   && !myImgRef.current.contains(e.target as Node))   setMyImgOpen(false)
       if (compRef.current    && !compRef.current.contains(e.target as Node))    setCompOpen(false)
       if (ourClubRef.current && !ourClubRef.current.contains(e.target as Node)) setOurClubOpen(false)
     }
     function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') { setOpen(false); setCompOpen(false); setOurClubOpen(false) }
+      if (e.key === 'Escape') { setUserOpen(false); setMyImgOpen(false); setCompOpen(false); setOurClubOpen(false) }
     }
     document.addEventListener('mousedown', handleClick)
     document.addEventListener('keydown', handleKey)
@@ -79,8 +94,9 @@ export default function MemberNav({
   }, [])
 
   const initials = getInitials(displayName)
-  const isCompActive    = pathname.startsWith('/competitions')
-  const isOurClubActive = pathname.startsWith('/our-club')
+  const isMyImagesActive = pathname.startsWith(`/${clubSlug}/library`)
+  const isCompActive     = pathname.startsWith(`/${clubSlug}/competitions`)
+  const isOurClubActive  = pathname.startsWith(`/${clubSlug}/our-club`)
 
   return (
     <header className="border-b border-border-default bg-surface-2">
@@ -108,6 +124,40 @@ export default function MemberNav({
             </Link>
           ))}
 
+          {/* My Images dropdown */}
+          <div className="relative" ref={myImgRef}>
+            <button
+              onClick={() => setMyImgOpen(o => !o)}
+              className={`flex items-center gap-1 text-sm transition-colors ${
+                isMyImagesActive
+                  ? 'font-medium text-content-primary'
+                  : 'text-content-secondary hover:text-content-primary'
+              }`}
+              aria-expanded={myImgOpen}
+            >
+              My Images
+              <svg className={`h-3 w-3 transition-transform ${myImgOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {myImgOpen && (
+              <div className="absolute left-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-xl border border-border-default bg-surface-2 shadow-lg">
+                {myImagesLinks.map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMyImgOpen(false)}
+                    className={`flex items-center px-4 py-2.5 text-sm transition-colors hover:bg-surface-1 ${
+                      pathname === href ? 'font-medium text-content-primary' : 'text-content-secondary'
+                    }`}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Competitions dropdown */}
           <div className="relative" ref={compRef}>
             <button
@@ -120,16 +170,10 @@ export default function MemberNav({
               aria-expanded={compOpen}
             >
               Competitions
-              <svg
-                className={`h-3 w-3 transition-transform ${compOpen ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className={`h-3 w-3 transition-transform ${compOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-
             {compOpen && (
               <div className="absolute left-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-border-default bg-surface-2 shadow-lg">
                 {competitionsLinks.map(({ href, label }) => (
@@ -138,13 +182,9 @@ export default function MemberNav({
                     href={href}
                     onClick={() => setCompOpen(false)}
                     className={`flex items-center px-4 py-2.5 text-sm transition-colors hover:bg-surface-1 ${
-                      href === '/competitions'
-                        ? pathname === '/competitions'
-                          ? 'font-medium text-content-primary'
-                          : 'text-content-secondary'
-                        : pathname.startsWith(href)
-                          ? 'font-medium text-content-primary'
-                          : 'text-content-secondary'
+                      pathname === href || pathname.startsWith(href + '/')
+                        ? 'font-medium text-content-primary'
+                        : 'text-content-secondary'
                     }`}
                   >
                     {label}
@@ -166,18 +206,12 @@ export default function MemberNav({
               aria-expanded={ourClubOpen}
             >
               Our Club
-              <svg
-                className={`h-3 w-3 transition-transform ${ourClubOpen ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className={`h-3 w-3 transition-transform ${ourClubOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-
             {ourClubOpen && (
-              <div className="absolute left-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-xl border border-border-default bg-surface-2 shadow-lg">
+              <div className="absolute left-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-border-default bg-surface-2 shadow-lg">
                 {ourClubLinks.map(({ href, label }) => (
                   <Link
                     key={href}
@@ -195,14 +229,28 @@ export default function MemberNav({
               </div>
             )}
           </div>
+
+          {/* Resources — only when admin-enabled */}
+          {resourcesEnabled && (
+            <Link
+              href={`${base}/resources`}
+              className={`text-sm transition-colors ${
+                pathname.startsWith(`${base}/resources`)
+                  ? 'font-medium text-content-primary'
+                  : 'text-content-secondary hover:text-content-primary'
+              }`}
+            >
+              Resources
+            </Link>
+          )}
         </nav>
 
         {/* Right: avatar + dropdown */}
-        <div className="relative" ref={menuRef}>
+        <div className="relative" ref={userRef}>
           <button
-            onClick={() => setOpen(o => !o)}
+            onClick={() => setUserOpen(o => !o)}
             className="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-surface-1 transition-colors"
-            aria-expanded={open}
+            aria-expanded={userOpen}
             aria-haspopup="true"
           >
             {/* Initials circle */}
@@ -211,14 +259,14 @@ export default function MemberNav({
             </span>
             {/* Chevron */}
             <svg
-              className={`h-3.5 w-3.5 text-content-tertiary transition-transform ${open ? 'rotate-180' : ''}`}
+              className={`h-3.5 w-3.5 text-content-tertiary transition-transform ${userOpen ? 'rotate-180' : ''}`}
               fill="none" stroke="currentColor" viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
 
-          {open && (
+          {userOpen && (
             <div className="absolute right-0 top-full z-50 mt-1.5 w-60 overflow-hidden rounded-xl border border-border-default bg-surface-2 shadow-lg">
 
               {/* User identity */}
@@ -231,7 +279,7 @@ export default function MemberNav({
               <div className="py-1">
                 <Link
                   href={`${base}/profile`}
-                  onClick={() => setOpen(false)}
+                  onClick={() => setUserOpen(false)}
                   className="flex items-center px-4 py-2 text-sm text-content-primary hover:bg-surface-1 transition-colors"
                 >
                   Profile
@@ -240,7 +288,7 @@ export default function MemberNav({
                 {role === 'admin' && (
                   <Link
                     href={`${base}/admin`}
-                    onClick={() => setOpen(false)}
+                    onClick={() => setUserOpen(false)}
                     className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-action-primary hover:bg-surface-1 transition-colors"
                   >
                     <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

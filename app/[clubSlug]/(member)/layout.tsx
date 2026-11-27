@@ -45,9 +45,10 @@ export default async function MemberLayout({
       .select('display_name, avatar_url')
       .eq('id', user.id)
       .single(),
-    admin
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (admin as any)
       .from('club_settings')
-      .select('club_name')
+      .select('club_name, page_visibility')
       .eq('club_id', clubId)
       .single(),
     admin
@@ -83,7 +84,7 @@ export default async function MemberLayout({
       <div className="flex min-h-screen flex-col">
         <MemberNav
           clubSlug={clubSlug}
-          clubName={clubSettings?.club_name ?? 'Focal Point'}
+          clubName={(clubSettings as any)?.club_name ?? 'Focal Point'}
           displayName={profile?.display_name ?? ''}
           email={user.email ?? ''}
           role={membership?.role ?? null}
@@ -91,6 +92,8 @@ export default async function MemberLayout({
           customPages={customPages ?? []}
           customTabs={customTabs ?? []}
           pendingCount={pendingCount ?? 0}
+          resourcesEnabled={(clubSettings as any)?.page_visibility?.resources_enabled !== false}
+          galleriesEnabled={(clubSettings as any)?.page_visibility?.galleries_enabled !== false}
         />
         {!club?.is_published && membership?.role === 'admin' && (
           <DraftPreviewBanner clubSlug={clubSlug} />
