@@ -19,7 +19,7 @@ export default function DraftPreviewBanner({ clubSlug }: { clubSlug: string }) {
       }}>
         <EyeIcon />
         <span style={{ fontSize: 14, color: 'var(--status-warning-text)', fontWeight: 500 }}>
-          Admin preview — members can&rsquo;t see this yet.
+          Admin preview — your site isn&rsquo;t active yet. Members see a coming soon page.
         </span>
         <button
           onClick={() => setCollapsed(false)}
@@ -77,18 +77,22 @@ export default function DraftPreviewBanner({ clubSlug }: { clubSlug: string }) {
               fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
               color: 'var(--status-warning-text)', opacity: 0.75,
             }}>
-              Not published
+              Site not yet active
             </span>
           </div>
           <p style={{ margin: '0 0 4px', fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.6 }}>
-            <strong>This is exactly what your members will see</strong> when they sign in — once you publish. Only you can view it right now.
+            You&rsquo;re previewing the member site — only admins can see this right now. Members who visit this URL see a{' '}
+            <Link href={`/${clubSlug}`} target="_blank" style={{ color: 'var(--status-warning-text)', textDecoration: 'underline', fontWeight: 600 }}>
+              coming soon page
+            </Link>
+            .
           </p>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            Use your{' '}
+            Use the{' '}
             <Link href={`/${clubSlug}/admin`} style={{ color: 'var(--status-warning-text)', textDecoration: 'underline', fontWeight: 600 }}>
               admin area
             </Link>{' '}
-            to set up your homepage, schedule competitions, and manage content. Changes you make there will appear here.
+            to configure your homepage, competitions, and content. When everything looks right, activate your site to open it up to members.
           </p>
         </div>
 
