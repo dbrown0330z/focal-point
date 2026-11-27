@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 
+type SocialAccountRow = { id: string; platform: string; url: string; label: string | null; sort_order: number }
+
+
 type ClubInfo = {
   club_name:              string
   club_location:          string | null
   contact_email:          string | null
   website_url:            string | null
-  facebook_url:           string | null
-  instagram_url:          string | null
   annual_dues:            string | null
   join_fee:               string | null
   meeting_schedule:       string | null
@@ -20,8 +21,7 @@ type ClubInfo = {
   panel_show_member_count: boolean
   panel_show_schedule:     boolean
   panel_show_location:     boolean
-  panel_show_instagram:    boolean
-  panel_show_facebook:     boolean
+  panel_shown_social_ids:  string[]
   panel_show_join_button:  boolean
   panel_show_contact:      boolean
 }
@@ -209,12 +209,14 @@ export default function AboutClient({
   html,
   isLoggedIn,
   info,
+  socialAccounts,
 }: {
-  clubName:    string
-  clubSlug:    string
-  html:        string | null
-  isLoggedIn:  boolean
-  info:        ClubInfo
+  clubName:        string
+  clubSlug:        string
+  html:            string | null
+  isLoggedIn:      boolean
+  info:            ClubInfo
+  socialAccounts:  SocialAccountRow[]
 }) {
   const [askOpen, setAskOpen] = useState(false)
 
@@ -225,8 +227,7 @@ export default function AboutClient({
     (info.panel_show_schedule && info.meeting_schedule) ||
     info.annual_dues || info.join_fee || info.contact_email ||
     info.website_url ||
-    (info.panel_show_instagram && info.instagram_url) ||
-    (info.panel_show_facebook && info.facebook_url)
+    socialAccounts.some((a: SocialAccountRow) => info.panel_shown_social_ids.includes(a.id))
 
   return (
     <>
@@ -354,7 +355,7 @@ export default function AboutClient({
             )}
 
             {/* Links */}
-            {(info.website_url || (info.panel_show_instagram && info.instagram_url) || (info.panel_show_facebook && info.facebook_url)) && (
+            {(info.website_url || socialAccounts.some((a: SocialAccountRow) => info.panel_shown_social_ids.includes(a.id))) && (
               <div className="py-2.5">
                 <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-content-tertiary">Links</p>
                 <div className="flex flex-wrap gap-2">
@@ -364,20 +365,15 @@ export default function AboutClient({
                       <WebIcon /> Website
                     </a>
                   )}
-                  {info.panel_show_instagram && info.instagram_url && (
-                    <a
-                      href={info.instagram_url.startsWith('http') ? info.instagram_url : `https://instagram.com/${info.instagram_url}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 rounded-lg border border-border-default px-3 py-1.5 text-xs font-medium text-content-secondary hover:border-border-strong hover:text-content-primary transition-colors">
-                      <InstagramIcon /> Instagram
-                    </a>
-                  )}
-                  {info.panel_show_facebook && info.facebook_url && (
-                    <a href={info.facebook_url} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 rounded-lg border border-border-default px-3 py-1.5 text-xs font-medium text-content-secondary hover:border-border-strong hover:text-content-primary transition-colors">
-                      <FacebookIcon /> Facebook
-                    </a>
-                  )}
+                  {socialAccounts
+                    .filter(a => info.panel_shown_social_ids.includes(a.id))
+                    .map(acct => (
+                      <a key={acct.id} href={acct.url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 rounded-lg border border-border-default px-3 py-1.5 text-xs font-medium text-content-secondary hover:border-border-strong hover:text-content-primary transition-colors">
+                        {acct.platform === 'custom' ? (acct.label || 'Link') : (acct.platform.charAt(0).toUpperCase() + acct.platform.slice(1))}
+                      </a>
+                    ))
+                  }
                 </div>
               </div>
             )}

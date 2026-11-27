@@ -183,12 +183,7 @@ function TogRow({ label, on, onChange, onDesc, offDesc, narrow, labelExtra, chil
   labelExtra?: React.ReactNode; children?: React.ReactNode
 }) {
   const c = useContext(ThemeCtx)
-  const switchSx = {
-    '& .MuiSwitch-switchBase.Mui-checked': { color: '#fff' },
-    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-      backgroundColor: c.accent, opacity: 1,
-    },
-  }
+
   const lc = on ? c.textBody : c.dimLabel
   const dc = on ? c.textMuted : c.dimDesc
   const desc = (on ? 'On — ' : 'Off — ') + (on ? onDesc : offDesc)
@@ -203,7 +198,7 @@ function TogRow({ label, on, onChange, onDesc, offDesc, narrow, labelExtra, chil
           <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: dc, maxWidth: '56ch' }}>{desc}</div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-start', paddingTop: 2 }}>
-          <Switch size="small" sx={switchSx} checked={on} onChange={e => onChange(e.target.checked)} />
+          <Switch size="small" checked={on} onChange={e => onChange(e.target.checked)} />
         </div>
       </div>
       {children}

@@ -1,12 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireClubId } from '@/lib/club-context'
+import { requireClubId, getClubContext } from '@/lib/club-context'
 import ClubDefaultsClient from './ClubDefaultsClient'
 
 export default async function ClubDefaultsPage() {
   const supabase = await createClient()
   const admin = createServiceClient()
-  const clubId = await requireClubId()
+  const ctx = await getClubContext()
+  const clubId = ctx?.clubId ?? ''
+  const clubSlug = ctx?.clubSlug ?? ''
 
   const [{ data: settingsRow }, { data: locations }] = await Promise.all([
     admin.from('club_settings').select('*').eq('club_id', clubId).single(),
@@ -32,8 +34,6 @@ export default async function ClubDefaultsPage() {
     membership_terms_file_path:  row?.membership_terms_file_path  ?? null,
     membership_terms_file_name:  row?.membership_terms_file_name  ?? null,
     website_url:                 row?.website_url                 ?? '',
-    facebook_url:                row?.facebook_url                ?? '',
-    instagram_url:               row?.instagram_url               ?? '',
     join_open:                   row?.join_open                   ?? true,
   }
 
@@ -41,6 +41,7 @@ export default async function ClubDefaultsPage() {
     <ClubDefaultsClient
       settings={settings}
       locations={locations ?? []}
+      clubSlug={clubSlug}
     />
   )
 }

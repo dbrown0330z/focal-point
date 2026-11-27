@@ -1,6 +1,8 @@
-import { createServiceClient } from '@/lib/supabase/service'
-import { getClubContext } from '@/lib/club-context'
-import AboutPageEditor from './AboutPageEditor'
+import { createServiceClient }  from '@/lib/supabase/service'
+import { getClubContext }        from '@/lib/club-context'
+import AboutPageEditor           from './AboutPageEditor'
+import { getSocialAccounts }     from '@/lib/social-accounts/actions'
+import type { SocialAccount }    from '@/lib/social-accounts/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,16 +28,20 @@ type ClubInfo = {
   panel_show_facebook:     boolean
   panel_show_join_button:  boolean
   panel_show_contact:      boolean
+  panel_shown_social_ids:  string[]
 }
 
 export default async function AdminAboutPage() {
-  const admin  = createServiceClient()
-  const ctx    = await getClubContext()
-  const clubId = ctx?.clubId
+  const admin    = createServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminAny = admin as any
+  const ctx      = await getClubContext()
+  const clubId   = ctx?.clubId
+  const clubSlug = ctx?.clubSlug ?? ''
 
-  const [{ data: pageRaw }, { data: settingsRaw }, { count: memberCount }] = await Promise.all([
+  const [{ data: pageRaw }, { data: settingsRaw }, { count: memberCount }, socialAccounts] = await Promise.all([
     clubId
-      ? (admin.from('pages').select('id, content').eq('slug', 'about').eq('club_id', clubId).maybeSingle() as unknown as Promise<{ data: { id: string; content: string | null } | null }>)
+      ? (adminAny.from('pages').select('id, content').eq('slug', 'about').eq('club_id', clubId).maybeSingle() as Promise<{ data: { id: string; content: string | null } | null }>)
       : Promise.resolve({ data: null }),
     clubId
       ? (admin.from('club_settings').select(
@@ -45,6 +51,7 @@ export default async function AdminAboutPage() {
     clubId
       ? admin.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'member')
       : Promise.resolve({ count: null }),
+    getSocialAccounts(),
   ] as const)
 
   const clubInfo: ClubInfo = {
@@ -69,13 +76,23 @@ export default async function AdminAboutPage() {
     panel_show_facebook:     settingsRaw?.panel_show_facebook    ?? false,
     panel_show_join_button:  settingsRaw?.panel_show_join_button ?? true,
     panel_show_contact:      settingsRaw?.panel_show_contact     ?? true,
+    panel_shown_social_ids:  settingsRaw?.panel_shown_social_ids  ?? [],
   }
 
   return (
     <AboutPageEditor
       pageId={pageRaw?.id ?? null}
-      initialContent={pageRaw?.content ?? '<p>Write something about your club here\u2026</p>'}
+      initialContent={pageRaw?.content ?? [
+        '<h2>Who we are</h2>',
+        '<p>We’re a community of photographers who share a passion for the craft — from beginners picking up a camera for the first time to experienced shooters with years behind the lens. Whatever your skill level, you’ll find a welcoming and supportive group here.</p>',
+        '<h2>What we do</h2>',
+        '<p>Our club meets regularly for monthly competitions, guest presentations, and critique sessions. We also run field trips, workshops, and social events throughout the year — a mix of learning, fun, and time spent making photographs together.</p>',
+        '<h2>Who we’re for</h2>',
+        '<p>Any photographer, any gear, any genre. Landscape, portrait, street, wildlife, macro — whatever you shoot, you’ll find kindred spirits here.</p>',
+      ].join('')}
       clubInfo={clubInfo}
+      socialAccounts={socialAccounts}
+      clubSlug={clubSlug}
     />
   )
 }

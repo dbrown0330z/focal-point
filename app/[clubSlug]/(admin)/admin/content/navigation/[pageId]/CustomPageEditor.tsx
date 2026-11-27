@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
-import Link from 'next/link'
+import { useEffect, useRef, useState, useCallback, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Box,
   Button,
@@ -43,20 +43,17 @@ import MoreHorizIcon          from '@mui/icons-material/MoreHoriz'
 import KeyboardArrowDownIcon  from '@mui/icons-material/KeyboardArrowDown'
 import UndoIcon               from '@mui/icons-material/Undo'
 import RedoIcon               from '@mui/icons-material/Redo'
-import LightModeIcon          from '@mui/icons-material/LightMode'
-import DarkModeIcon           from '@mui/icons-material/DarkMode'
-import ArrowBackIcon          from '@mui/icons-material/ArrowBack'
 import SearchIcon             from '@mui/icons-material/Search'
 import InsertDriveFileIcon    from '@mui/icons-material/InsertDriveFile'
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined'
 import SyncIcon               from '@mui/icons-material/Sync'
 import { createClient }       from '@/lib/supabase/client'
 import { useAdminTheme }      from '@/components/layout/AdminThemeContext'
+import PageEditorSheet        from '@/components/admin/PageEditorSheet'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Visibility = 'all_members' | 'members_only' | 'hidden'
-type Status     = 'draft' | 'published'
 type Doc        = { id: string; title: string; category: string | null }
 
 // ── Font / colour constants (same as AboutPageEditor) ─────────────────────────
@@ -152,30 +149,25 @@ export default function CustomPageEditor({
   initialTitle,
   initialContent,
   initialVisibility,
-  initialStatus,
   slug,
   clubSlug,
-  onBack,
 }: {
   pageId:            string
   menuLabel:         string
   initialTitle:      string
   initialContent:    string
   initialVisibility: Visibility
-  initialStatus:     Status
   slug:              string
   clubSlug:          string
-  onBack?:           () => void
 }) {
+  const router = useRouter()
   const { theme: adminTheme } = useAdminTheme()
 
   // ── Metadata state ──────────────────────────────────────────────────────────
   const [title,       setTitle]       = useState(initialTitle)
   const [visibility,  setVisibility]  = useState<Visibility>(initialVisibility)
-  const [status,      setStatus]      = useState<Status>(initialStatus)
   const [saveState,   setSaveState]   = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  const [publishing,  setPublishing]  = useState(false)
-
+  const [isDirty, setIsDirty] = useState(false)
   // Refs so auto-save callback always reads latest values without stale closure
   const titleRef      = useRef(title)
   const visibilityRef = useRef(visibility)
@@ -185,8 +177,6 @@ export default function CustomPageEditor({
   const editorRef      = useRef<HTMLDivElement>(null)
   const imageRef       = useRef<HTMLInputElement>(null)
   const savedRangeRef  = useRef<Range | null>(null)
-  const [previewTheme, setPreviewTheme] = useState<'light' | 'dark'>('light')
-
   // ── Toolbar state ───────────────────────────────────────────────────────────
   const [styleAnchor, setStyleAnchor] = useState<HTMLElement | null>(null)
   const [fontAnchor,  setFontAnchor]  = useState<HTMLElement | null>(null)
@@ -250,6 +240,7 @@ export default function CustomPageEditor({
       })
       .eq('id', pageId)
     setSaveState(error ? 'error' : 'saved')
+    if (!error) setIsDirty(false)
     setTimeout(() => setSaveState('idle'), 2500)
   }, [pageId])
 
@@ -270,19 +261,6 @@ export default function CustomPageEditor({
     setVisibility(val)
     visibilityRef.current = val
     triggerAutoSave()
-  }
-
-  // ── Publish / return to draft ───────────────────────────────────────────────
-  const handleTogglePublish = async () => {
-    const next: Status = status === 'draft' ? 'published' : 'draft'
-    setPublishing(true)
-    const supabase = createClient()
-    const { error } = await supabase
-      .from('nav_custom_pages')
-      .update({ status: next, updated_at: new Date().toISOString() })
-      .eq('id', pageId)
-    setPublishing(false)
-    if (!error) setStatus(next)
   }
 
   // ── Editor helpers (same as AboutPageEditor) ──────────────────────────────
@@ -427,7 +405,7 @@ export default function CustomPageEditor({
   )
 
   // ── Table ───────────────────────────────────────────────────────────────────
-  const tok = previewTheme === 'dark' ? SITE_DARK : SITE_LIGHT
+  const tok = SITE_LIGHT
 
   const buildTableEl = (rows: number, cols: number, borders: boolean) => {
     const table = document.createElement('table')
@@ -563,65 +541,26 @@ export default function CustomPageEditor({
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: onBack ? '100vh' : 'calc(100vh - 56px)', overflow: 'hidden' }}>
-
-      {/* ── Top bar: back nav + metadata + status ─────────────────────────── */}
-      <Box sx={{
-        flexShrink: 0, borderBottom: '1px solid', borderColor: 'divider',
-        bgcolor: 'background.paper', px: 3, py: 2,
-      }}>
-
-        {/* Row 1: back nav + preview toggle + save indicator */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          {onBack ? (
-            <Button
-              startIcon={<ArrowBackIcon sx={{ fontSize: 16 }} />}
-              variant="text"
-              color="secondary"
-              size="small"
-              onClick={onBack}
-              sx={{ fontWeight: 500, px: 1 }}
-            >
-              Back to Pages
-            </Button>
-          ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Link
-                href={`/${clubSlug}/admin/content/navigation`}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', color: 'inherit' }}
-              >
-                <ArrowBackIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Navigation &amp; Pages</Typography>
-              </Link>
-              <Typography sx={{ fontSize: 13, color: 'text.disabled' }}>/</Typography>
-              <Typography sx={{ fontSize: 13, color: 'text.primary', fontWeight: 500 }}>{menuLabel}</Typography>
-            </Box>
-          )}
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Typography sx={{ fontSize: 11, color: 'text.secondary', mr: 0.5, fontWeight: 500 }}>Preview</Typography>
-              <Tooltip title="Light mode">
-                <Box component="button" onMouseDown={e => { e.preventDefault(); setPreviewTheme('light') }}
-                  sx={{ ...btnSx, width: 28, height: 28, ...(previewTheme === 'light' ? { bgcolor: 'action.selected', color: 'text.primary' } : {}) }}>
-                  <LightModeIcon sx={{ fontSize: 16 }} />
-                </Box>
-              </Tooltip>
-              <Tooltip title="Dark mode">
-                <Box component="button" onMouseDown={e => { e.preventDefault(); setPreviewTheme('dark') }}
-                  sx={{ ...btnSx, width: 28, height: 28, ...(previewTheme === 'dark' ? { bgcolor: 'action.selected', color: 'text.primary' } : {}) }}>
-                  <DarkModeIcon sx={{ fontSize: 16 }} />
-                </Box>
-              </Tooltip>
-            </Box>
-            <SaveIndicator />
-          </Box>
-        </Box>
-
-        {/* Row 2: metadata controls — all use label-above-control for consistent top alignment */}
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
-
-          {/* Page display title */}
+    <PageEditorSheet
+      title={menuLabel}
+      isDirty={isDirty}
+      backHref={`/${clubSlug}/admin/content/navigation`}
+      headerRight={
+        <>
+          <SaveIndicator />
+          <Button variant="outlined" color="secondary" size="small"
+            onClick={() => router.push(`/${clubSlug}/admin/content/navigation`)}>
+            Cancel
+          </Button>
+          <Button variant="contained" size="small"
+            disabled={saveState === 'saving'} onClick={performSave}>
+            Save
+          </Button>
+        </>
+      }
+      subBar={
+        <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 2, flexWrap: 'wrap', width: '100%' }}>
+          {/* Page title */}
           <Box sx={{ flex: '1 1 200px', maxWidth: 400 }}>
             <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Page title
@@ -653,149 +592,94 @@ export default function CustomPageEditor({
             </Select>
           </Box>
 
-          {/* Status + actions */}
-          <Box sx={{ flex: '0 0 auto', ml: 'auto' }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Status
+          {/* Hidden notice */}
+          {visibility === 'hidden' && (
+            <Typography sx={{ fontSize: 12, color: 'text.secondary', pb: 0.5 }}>
+              This page is hidden. Turn on the visibility toggle on Navigation &amp; Pages to show it.
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Box sx={{
-                display: 'inline-flex', alignItems: 'center', gap: 0.75,
-                px: 1.5, py: 0.625, borderRadius: '999px', border: '1px solid',
-                ...(status === 'published'
-                  ? { bgcolor: 'var(--status-success-bg)', borderColor: 'var(--status-success)', color: 'var(--status-success-text)' }
-                  : { bgcolor: 'var(--surface-1)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }
-                ),
-              }}>
-                <Box sx={{
-                  width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                  bgcolor: status === 'published' ? 'var(--status-success)' : 'var(--text-disabled)',
-                }} />
-                <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'inherit', lineHeight: 1 }}>
-                  {status === 'published' ? 'Live' : 'Draft'}
-                </Typography>
-              </Box>
-
-              <Button
-                variant="outlined"
-                color="secondary"
-                size="small"
-                disabled={saveState === 'saving'}
-                onClick={performSave}
-              >
-                Save
-              </Button>
-
-              {status === 'draft' ? (
-                <Button
-                  variant="contained"
-                  size="small"
-                  disabled={publishing}
-                  onClick={handleTogglePublish}
-                  sx={{ fontWeight: 700 }}
-                >
-                  {publishing ? 'Publishing…' : 'Publish'}
-                </Button>
-              ) : (
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  size="small"
-                  disabled={publishing}
-                  onClick={handleTogglePublish}
-                >
-                  {publishing ? 'Updating…' : 'Return to draft'}
-                </Button>
-              )}
-            </Box>
-          </Box>
+          )}
         </Box>
-      </Box>
+      }
+      toolbar={
+        <>
+          <ToolbarBtn title="Undo (Ctrl+Z)" onMouseDown={() => exec('undo')}><UndoIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Redo (Ctrl+Y)" onMouseDown={() => exec('redo')}><RedoIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
-      {/* ── Formatting toolbar ────────────────────────────────────────────── */}
-      <Box sx={{
-        px: 1.5, py: 0.75,
-        display: 'flex', alignItems: 'center', gap: 0.25, flexWrap: 'wrap',
-        borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0,
-        bgcolor: t => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-      }}>
-        <ToolbarBtn title="Undo (Ctrl+Z)" onMouseDown={() => exec('undo')}><UndoIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-        <ToolbarBtn title="Redo (Ctrl+Y)" onMouseDown={() => exec('redo')}><RedoIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
+          <DropdownBtn label={activeStyle} title="Text style"
+            onMouseDown={e => { e.preventDefault(); setStyleAnchor(e.currentTarget) }} />
+          <Menu anchorEl={styleAnchor} open={!!styleAnchor} onClose={() => setStyleAnchor(null)} {...MENU_FOCUS_PROPS}>
+            {TEXT_STYLES.map(s => <MenuItem key={s.tag} onClick={() => applyStyle(s.tag, s.label)} sx={s.sx}>{s.label}</MenuItem>)}
+          </Menu>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
-        <DropdownBtn label={activeStyle} title="Text style"
-          onMouseDown={e => { e.preventDefault(); setStyleAnchor(e.currentTarget) }} />
-        <Menu anchorEl={styleAnchor} open={!!styleAnchor} onClose={() => setStyleAnchor(null)} {...MENU_FOCUS_PROPS}>
-          {TEXT_STYLES.map(s => <MenuItem key={s.tag} onClick={() => applyStyle(s.tag, s.label)} sx={s.sx}>{s.label}</MenuItem>)}
-        </Menu>
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
-
-        <DropdownBtn label={activeFont} title="Font"
-          onMouseDown={e => { e.preventDefault(); setFontAnchor(e.currentTarget) }} />
-        <Menu anchorEl={fontAnchor} open={!!fontAnchor} onClose={() => setFontAnchor(null)} {...MENU_FOCUS_PROPS}>
-          {FONT_FAMILIES.map(f => (
-            <MenuItem key={f.value} onClick={() => applyFont(f.value, f.label)}
-              sx={{ fontSize: 13, fontFamily: f.label === 'Lora' ? CSS_FONT_LORA : f.label === 'Nunito' ? CSS_FONT_NUNITO : f.value }}>
-              {f.label}
-            </MenuItem>
-          ))}
-        </Menu>
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
-
-        <ToolbarBtn title="Bold"      onMouseDown={() => exec('bold')}>      <FormatBoldIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-        <ToolbarBtn title="Italic"    onMouseDown={() => exec('italic')}>    <FormatItalicIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-        <ToolbarBtn title="Underline" onMouseDown={() => exec('underline')}> <FormatUnderlinedIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-
-        <Tooltip title="Text colour" placement="top">
-          <Box component="button" onMouseDown={e => { e.preventDefault(); setColorAnchor(e.currentTarget) }}
-            sx={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '4px', border: 'none', bgcolor: 'transparent', cursor: 'pointer', color: 'text.secondary', gap: '2px', flexShrink: 0, '&:hover': { bgcolor: 'action.hover' } }}>
-            <FormatColorTextIcon sx={{ fontSize: 15 }} />
-            <Box sx={{ width: 14, height: 3, borderRadius: '1px', bgcolor: activeColor }} />
-          </Box>
-        </Tooltip>
-        <Popover open={!!colorAnchor} anchorEl={colorAnchor} onClose={() => setColorAnchor(null)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} {...MENU_FOCUS_PROPS}>
-          <Box sx={{ p: 1.5, display: 'grid', gridTemplateColumns: 'repeat(8, 20px)', gap: '6px' }}>
-            {COLOR_PALETTE.map(color => (
-              <Box key={color} component="button" onClick={() => applyColor(color)}
-                sx={{ width: 20, height: 20, borderRadius: '3px', bgcolor: color, border: '1px solid rgba(0,0,0,0.15)', cursor: 'pointer', p: 0, outline: activeColor === color ? '2px solid' : 'none', outlineColor: 'primary.main', outlineOffset: '1px', '&:hover': { transform: 'scale(1.15)' } }} />
+          <DropdownBtn label={activeFont} title="Font"
+            onMouseDown={e => { e.preventDefault(); setFontAnchor(e.currentTarget) }} />
+          <Menu anchorEl={fontAnchor} open={!!fontAnchor} onClose={() => setFontAnchor(null)} {...MENU_FOCUS_PROPS}>
+            {FONT_FAMILIES.map(f => (
+              <MenuItem key={f.value} onClick={() => applyFont(f.value, f.label)}
+                sx={{ fontSize: 13, fontFamily: f.label === 'Lora' ? CSS_FONT_LORA : f.label === 'Nunito' ? CSS_FONT_NUNITO : f.value }}>
+                {f.label}
+              </MenuItem>
             ))}
-          </Box>
-        </Popover>
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
+          </Menu>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
-        <ToolbarBtn title="Bullet list"   onMouseDown={() => exec('insertUnorderedList')}><FormatListBulletedIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-        <ToolbarBtn title="Numbered list" onMouseDown={() => exec('insertOrderedList')}>  <FormatListNumberedIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
+          <ToolbarBtn title="Bold"      onMouseDown={() => exec('bold')}>      <FormatBoldIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Italic"    onMouseDown={() => exec('italic')}>    <FormatItalicIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Underline" onMouseDown={() => exec('underline')}> <FormatUnderlinedIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
 
-        <ToolbarBtn title="Insert image" onMouseDown={() => imageRef.current?.click()}><InsertPhotoIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-        <ToolbarBtn title="Insert link"  onMouseDown={openLinkDialog}><LinkIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-        <input ref={imageRef} type="file" accept="image/*" hidden onChange={handleInsertImage} />
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
+          <Tooltip title="Text colour" placement="top">
+            <Box component="button" onMouseDown={e => { e.preventDefault(); setColorAnchor(e.currentTarget) }}
+              sx={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '4px', border: 'none', bgcolor: 'transparent', cursor: 'pointer', color: 'text.secondary', gap: '2px', flexShrink: 0, '&:hover': { bgcolor: 'action.hover' } }}>
+              <FormatColorTextIcon sx={{ fontSize: 15 }} />
+              <Box sx={{ width: 14, height: 3, borderRadius: '1px', bgcolor: activeColor }} />
+            </Box>
+          </Tooltip>
+          <Popover open={!!colorAnchor} anchorEl={colorAnchor} onClose={() => setColorAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} {...MENU_FOCUS_PROPS}>
+            <Box sx={{ p: 1.5, display: 'grid', gridTemplateColumns: 'repeat(8, 20px)', gap: '6px' }}>
+              {COLOR_PALETTE.map(color => (
+                <Box key={color} component="button" onClick={() => applyColor(color)}
+                  sx={{ width: 20, height: 20, borderRadius: '3px', bgcolor: color, border: '1px solid rgba(0,0,0,0.15)', cursor: 'pointer', p: 0, outline: activeColor === color ? '2px solid' : 'none', outlineColor: 'primary.main', outlineOffset: '1px', '&:hover': { transform: 'scale(1.15)' } }} />
+              ))}
+            </Box>
+          </Popover>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
-        <ToolbarBtn title="Clear formatting" onMouseDown={clearFormatting}><FormatClearIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
-        <Tooltip title="More options" placement="top">
-          <Box component="button" onMouseDown={e => { e.preventDefault(); setMoreAnchor(e.currentTarget as HTMLElement) }} sx={{ ...btnSx, width: 28, height: 28 }}>
-            <MoreHorizIcon sx={{ fontSize: 16 }} />
-          </Box>
-        </Tooltip>
-        <Menu anchorEl={moreAnchor} open={!!moreAnchor} onClose={() => setMoreAnchor(null)} {...MENU_FOCUS_PROPS}>
-          <MenuItem onClick={insertBlockquote} sx={{ fontSize: 13, gap: 1.5 }}>
-            <FormatQuoteIcon sx={{ fontSize: 18, color: 'text.secondary' }} /> Block quote
-          </MenuItem>
-          <MenuItem onClick={insertHR} sx={{ fontSize: 13, gap: 1.5 }}>
-            <HorizontalRuleIcon sx={{ fontSize: 18, color: 'text.secondary' }} /> Horizontal rule
-          </MenuItem>
-          <MenuItem onClick={() => { setMoreAnchor(null); setTimeout(() => setTableDialogOpen(true), 50) }} sx={{ fontSize: 13, gap: 1.5 }}>
-            <TableChartIcon sx={{ fontSize: 18, color: 'text.secondary' }} /> Insert table…
-          </MenuItem>
-        </Menu>
-      </Box>
+          <ToolbarBtn title="Bullet list"   onMouseDown={() => exec('insertUnorderedList')}><FormatListBulletedIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Numbered list" onMouseDown={() => exec('insertOrderedList')}>  <FormatListNumberedIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
+
+          <ToolbarBtn title="Insert image" onMouseDown={() => imageRef.current?.click()}><InsertPhotoIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Insert link"  onMouseDown={openLinkDialog}><LinkIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <input ref={imageRef} type="file" accept="image/*" hidden onChange={handleInsertImage} />
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
+
+          <ToolbarBtn title="Clear formatting" onMouseDown={clearFormatting}><FormatClearIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <Tooltip title="More options" placement="top">
+            <Box component="button" onMouseDown={e => { e.preventDefault(); setMoreAnchor(e.currentTarget as HTMLElement) }} sx={{ ...btnSx, width: 28, height: 28 }}>
+              <MoreHorizIcon sx={{ fontSize: 16 }} />
+            </Box>
+          </Tooltip>
+          <Menu anchorEl={moreAnchor} open={!!moreAnchor} onClose={() => setMoreAnchor(null)} {...MENU_FOCUS_PROPS}>
+            <MenuItem onClick={insertBlockquote} sx={{ fontSize: 13, gap: 1.5 }}>
+              <FormatQuoteIcon sx={{ fontSize: 18, color: 'text.secondary' }} /> Block quote
+            </MenuItem>
+            <MenuItem onClick={insertHR} sx={{ fontSize: 13, gap: 1.5 }}>
+              <HorizontalRuleIcon sx={{ fontSize: 18, color: 'text.secondary' }} /> Horizontal rule
+            </MenuItem>
+            <MenuItem onClick={() => { setMoreAnchor(null); setTimeout(() => setTableDialogOpen(true), 50) }} sx={{ fontSize: 13, gap: 1.5 }}>
+              <TableChartIcon sx={{ fontSize: 18, color: 'text.secondary' }} /> Insert table…
+            </MenuItem>
+          </Menu>
+        </>
+      }
+    >
 
       {/* ── Editor body ───────────────────────────────────────────────────── */}
       <Box sx={{ flex: 1, overflow: 'auto', bgcolor: tok.bg, transition: 'background-color 0.2s' }}>
         <Box sx={{ maxWidth: 800, mx: 'auto', py: 6, px: 4 }}>
-          {/* Simulated page title — mirrors what the public page will show */}
           <Box sx={{ mb: 4, pointerEvents: 'none', userSelect: 'none' }}>
             <Box sx={{ fontFamily: CSS_FONT_LORA, fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.25, color: tok.textPrimary }}>
               {title || menuLabel}
@@ -803,14 +687,13 @@ export default function CustomPageEditor({
             <Box sx={{ mt: 2, height: 1, bgcolor: tok.borderDefault }} />
           </Box>
 
-          {/* Editable content area */}
           <Box
             ref={editorRef}
             component="div"
             contentEditable
             suppressContentEditableWarning
             data-placeholder="Start writing your page content…"
-            onInput={triggerAutoSave}
+            onInput={() => { setIsDirty(true); triggerAutoSave() }}
             onClick={handleEditorClick}
             sx={editorContentSx}
           />
@@ -958,6 +841,6 @@ export default function CustomPageEditor({
         </DialogActions>
       </Dialog>
 
-    </Box>
+    </PageEditorSheet>
   )
 }

@@ -18,7 +18,7 @@ export default async function EditCustomPagePage({
 
   const { data: page, error } = await admin
     .from('nav_custom_pages')
-    .select('id, title, slug, visibility, status, content, page_type, updated_at')
+    .select('id, title, slug, visibility, content, page_type, updated_at')
     .eq('id', pageId)
     .single()
 
@@ -32,7 +32,6 @@ export default async function EditCustomPagePage({
       initialTitle={page.title}
       initialContent={page.content ?? ''}
       initialVisibility={page.visibility as 'all_members' | 'members_only' | 'hidden'}
-      initialStatus={page.status as 'draft' | 'published'}
       slug={page.slug}
       clubSlug={clubSlug}
     />
