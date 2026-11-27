@@ -1,6 +1,8 @@
-import { createServiceClient } from '@/lib/supabase/service'
-import { getClubContext } from '@/lib/club-context'
-import AboutPageEditor from './AboutPageEditor'
+import { createServiceClient }  from '@/lib/supabase/service'
+import { getClubContext }        from '@/lib/club-context'
+import AboutPageEditor           from './AboutPageEditor'
+import { getSocialAccounts }     from '@/lib/social-accounts/actions'
+import type { SocialAccount }    from '@/lib/social-accounts/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +28,7 @@ type ClubInfo = {
   panel_show_facebook:     boolean
   panel_show_join_button:  boolean
   panel_show_contact:      boolean
+  panel_shown_social_ids:  string[]
 }
 
 export default async function AdminAboutPage() {
@@ -36,7 +39,7 @@ export default async function AdminAboutPage() {
   const clubId   = ctx?.clubId
   const clubSlug = ctx?.clubSlug ?? ''
 
-  const [{ data: pageRaw }, { data: settingsRaw }, { count: memberCount }] = await Promise.all([
+  const [{ data: pageRaw }, { data: settingsRaw }, { count: memberCount }, socialAccounts] = await Promise.all([
     clubId
       ? (adminAny.from('pages').select('id, content').eq('slug', 'about').eq('club_id', clubId).maybeSingle() as Promise<{ data: { id: string; content: string | null } | null }>)
       : Promise.resolve({ data: null }),
@@ -48,6 +51,7 @@ export default async function AdminAboutPage() {
     clubId
       ? admin.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'member')
       : Promise.resolve({ count: null }),
+    getSocialAccounts(),
   ] as const)
 
   const clubInfo: ClubInfo = {
@@ -72,6 +76,7 @@ export default async function AdminAboutPage() {
     panel_show_facebook:     settingsRaw?.panel_show_facebook    ?? false,
     panel_show_join_button:  settingsRaw?.panel_show_join_button ?? true,
     panel_show_contact:      settingsRaw?.panel_show_contact     ?? true,
+    panel_shown_social_ids:  settingsRaw?.panel_shown_social_ids  ?? [],
   }
 
   return (
@@ -86,6 +91,7 @@ export default async function AdminAboutPage() {
         '<p>Any photographer, any gear, any genre. Landscape, portrait, street, wildlife, macro — whatever you shoot, you’ll find kindred spirits here.</p>',
       ].join('')}
       clubInfo={clubInfo}
+      socialAccounts={socialAccounts}
       clubSlug={clubSlug}
     />
   )

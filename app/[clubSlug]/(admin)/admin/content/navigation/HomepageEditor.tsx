@@ -43,6 +43,7 @@ import {
   type CompetitionsSettings,
   type NewsPostsSettings,
 } from '@/lib/homepage/types'
+import { getSocialAccounts } from '@/lib/social-accounts/actions'
 import type { AdminGalleryData, ClubMember } from '@/app/[clubSlug]/(admin)/admin/content/galleries/ClubGalleriesTab'
 import { WelcomeTemplatePicker } from '@/components/setup/WelcomeTemplatePicker'
 
@@ -761,6 +762,23 @@ function AffiliationsModalBody({ block, onChange }: { block: ContentBlock; onCha
               </Box>
             )
           })}
+          <Box component="button"
+            onClick={async () => {
+              const accts = await getSocialAccounts()
+              const newEntries = accts
+                .filter(a => !s.affiliations.some(e => e.url === a.url))
+                .map(a => ({
+                  id:   crypto.randomUUID(),
+                  type: 'other' as AffiliationType,
+                  name: a.platform === 'custom' ? (a.label || 'Custom') : a.platform.charAt(0).toUpperCase() + a.platform.slice(1),
+                  url:  a.url,
+                }))
+              if (newEntries.length > 0)
+                onChange({ affiliationsSettings: { ...s, affiliations: [...s.affiliations, ...newEntries] } })
+            }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--action-primary)', padding: '4px 0', textDecoration: 'underline', marginBottom: 8 }}>
+            Import from Club Basics →
+          </Box>
           {s.affiliations.length < s.maxColumns && (
             <Button startIcon={<AddIcon />} size="small" variant="outlined" color="secondary"
               onClick={addItem} sx={{ alignSelf: 'flex-start', textTransform: 'none', fontSize: 13, mt: 0.5 }}>

@@ -23,6 +23,7 @@ export type AboutPanelFields = {
   panel_show_facebook?:     boolean
   panel_show_join_button?:  boolean
   panel_show_contact?:      boolean
+  panel_shown_social_ids?:  string[]
 }
 
 export async function saveAboutPanelFields(data: AboutPanelFields): Promise<{ error?: string }> {

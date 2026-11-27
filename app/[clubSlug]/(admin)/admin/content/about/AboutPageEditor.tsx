@@ -35,13 +35,14 @@ import EmailOutlinedIcon      from '@mui/icons-material/EmailOutlined'
 import CalendarMonthIcon      from '@mui/icons-material/CalendarMonth'
 import GroupsIcon             from '@mui/icons-material/Groups'
 import PublicIcon             from '@mui/icons-material/Public'
-import InstagramIcon          from '@mui/icons-material/Instagram'
-import FacebookIcon           from '@mui/icons-material/Facebook'
 import PaidOutlinedIcon       from '@mui/icons-material/PaidOutlined'
 import { Popover }            from '@mui/material'
 import { createClient }       from '@/lib/supabase/client'
 import { saveAboutPanelFields, type AboutPanelFields } from './actions'
 import PageEditorSheet        from '@/components/admin/PageEditorSheet'
+import SocialAccountsModal    from '@/components/admin/SocialAccountsModal'
+import { updatePanelShownSocials } from '@/lib/social-accounts/actions'
+import { platformLabel, type SocialAccount } from '@/lib/social-accounts/types'
 
 // ── Font stacks ───────────────────────────────────────────────────────────────
 const EXEC_FONT_LORA   = 'Lora'
@@ -145,8 +146,6 @@ type ClubInfo = {
   club_location:          string | null
   contact_email:          string | null
   website_url:            string | null
-  facebook_url:           string | null
-  instagram_url:          string | null
   annual_dues:            string | null
   join_fee:               string | null
   meeting_schedule:       string | null
@@ -162,6 +161,7 @@ type ClubInfo = {
   panel_show_facebook:     boolean
   panel_show_join_button:  boolean
   panel_show_contact:      boolean
+  panel_shown_social_ids:  string[]
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -170,12 +170,14 @@ export default function AboutPageEditor({
   pageId,
   initialContent,
   clubInfo,
+  socialAccounts: initialSocialAccounts,
   clubSlug,
 }: {
-  pageId:         string | null
-  initialContent: string
-  clubInfo:       ClubInfo | null
-  clubSlug:       string
+  pageId:          string | null
+  initialContent:  string
+  clubInfo:        ClubInfo | null
+  socialAccounts:  SocialAccount[]
+  clubSlug:        string
 }) {
   const router = useRouter()
 
@@ -185,10 +187,13 @@ export default function AboutPageEditor({
   const [, startSave]  = useTransition()
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [isDirty, setIsDirty] = useState(false)
+  const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>(initialSocialAccounts)
+  const [socialModalOpen, setSocialModalOpen] = useState(false)
+  const [panelShownIds, setPanelShownIds] = useState<string[]>(clubInfo?.panel_shown_social_ids ?? [])
 
   const [panelInfo, setPanelInfo] = useState<ClubInfo>(clubInfo ?? {
     club_name: '', club_location: null, contact_email: null,
-    website_url: null, facebook_url: null, instagram_url: null,
+    website_url: null,
     annual_dues: null, join_fee: null, meeting_schedule: null,
     meeting_notes: null, founded_year: null, member_count_actual: null,
     join_open: true,
@@ -196,6 +201,7 @@ export default function AboutPageEditor({
     panel_show_schedule: false, panel_show_location: false,
     panel_show_instagram: false, panel_show_facebook: false,
     panel_show_join_button: true, panel_show_contact: true,
+    panel_shown_social_ids: [],
   })
   const [panelEditOpen, setPanelEditOpen] = useState(false)
   const [panelForm, setPanelForm] = useState<AboutPanelFields>({})
@@ -346,8 +352,6 @@ export default function AboutPageEditor({
       meeting_notes:           panelInfo.meeting_notes,
       founded_year:            panelInfo.founded_year,
       website_url:             panelInfo.website_url,
-      facebook_url:            panelInfo.facebook_url,
-      instagram_url:           panelInfo.instagram_url,
       join_open:               panelInfo.join_open,
       panel_show_founded_year: panelInfo.panel_show_founded_year,
       panel_show_member_count: panelInfo.panel_show_member_count,
@@ -378,18 +382,18 @@ export default function AboutPageEditor({
       meeting_notes:           panelForm.meeting_notes           ?? prev.meeting_notes,
       founded_year:            panelForm.founded_year            ?? prev.founded_year,
       website_url:             panelForm.website_url             ?? prev.website_url,
-      facebook_url:            panelForm.facebook_url            ?? prev.facebook_url,
-      instagram_url:           panelForm.instagram_url           ?? prev.instagram_url,
       join_open:               panelForm.join_open               ?? prev.join_open,
       panel_show_founded_year: panelForm.panel_show_founded_year ?? prev.panel_show_founded_year,
       panel_show_member_count: panelForm.panel_show_member_count ?? prev.panel_show_member_count,
       panel_show_schedule:     panelForm.panel_show_schedule     ?? prev.panel_show_schedule,
       panel_show_location:     panelForm.panel_show_location     ?? prev.panel_show_location,
-      panel_show_instagram:    panelForm.panel_show_instagram    ?? prev.panel_show_instagram,
-      panel_show_facebook:     panelForm.panel_show_facebook     ?? prev.panel_show_facebook,
+      panel_show_instagram:    prev.panel_show_instagram,
+      panel_show_facebook:     prev.panel_show_facebook,
       panel_show_join_button:  panelForm.panel_show_join_button  ?? prev.panel_show_join_button,
       panel_show_contact:      panelForm.panel_show_contact      ?? prev.panel_show_contact,
+      panel_shown_social_ids:  panelShownIds,
     }))
+    await updatePanelShownSocials(panelShownIds)
     setPanelEditOpen(false)
   }
 
@@ -595,23 +599,18 @@ export default function AboutPageEditor({
                 ))
               })()}
 
-              {(previewInfo.website_url || (previewInfo.panel_show_instagram && previewInfo.instagram_url) || (previewInfo.panel_show_facebook && previewInfo.facebook_url)) && (
+              {(previewInfo.website_url || panelShownIds.length > 0) && (
                 <Box sx={{ display: 'flex', gap: 0.75, mt: 1.5, flexWrap: 'wrap' }}>
                   {previewInfo.website_url && (
                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 12, color: tok.actionPrimary }}>
                       <PublicIcon sx={{ fontSize: 14 }} /> Website
                     </Box>
                   )}
-                  {previewInfo.panel_show_instagram && previewInfo.instagram_url && (
-                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 12, color: tok.actionPrimary }}>
-                      <InstagramIcon sx={{ fontSize: 14 }} /> Instagram
+                  {socialAccounts.filter(a => panelShownIds.includes(a.id)).map(acct => (
+                    <Box key={acct.id} sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 12, color: tok.actionPrimary }}>
+                      {platformLabel(acct.platform, acct.label)}
                     </Box>
-                  )}
-                  {previewInfo.panel_show_facebook && previewInfo.facebook_url && (
-                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 12, color: tok.actionPrimary }}>
-                      <FacebookIcon sx={{ fontSize: 14 }} /> Facebook
-                    </Box>
-                  )}
+                  ))}
                 </Box>
               )}
 
@@ -641,6 +640,18 @@ export default function AboutPageEditor({
 
         </Box>
       </Box>
+
+      {/* ── Social accounts modal */}
+      <SocialAccountsModal
+        open={socialModalOpen}
+        onClose={() => setSocialModalOpen(false)}
+        mode="pick"
+        accounts={socialAccounts}
+        clubSlug={clubSlug}
+        selectedIds={panelShownIds}
+        onSelectionSave={ids => { setPanelShownIds(ids); setSocialModalOpen(false) }}
+        onAccountsChange={setSocialAccounts}
+      />
 
       {/* ── Link dialog ──────────────────────────────────────────────────────── */}
       <Dialog open={linkDialogOpen} onClose={() => setLinkDialogOpen(false)} maxWidth="sm" fullWidth>
@@ -723,26 +734,25 @@ export default function AboutPageEditor({
                   onChange={e => setPanelForm(p => ({ ...p, [field]: e.target.value || null }))} />
               </Box>
             ))}
-            {/* Social checkboxes — URLs managed in Club Basics */}
-            {([
-              { label: 'Instagram', key: 'panel_show_instagram' as const },
-              { label: 'Facebook',  key: 'panel_show_facebook'  as const },
-            ] as const).map(({ label, key }, idx, arr) => (
-              <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, ...(idx < arr.length - 1 ? { borderBottom: '1px solid', borderColor: 'divider' } : {}) }}>
-                <Checkbox size="small" checked={(panelForm[key] as boolean) ?? true}
-                  onChange={e => setPanelForm(p => ({ ...p, [key]: e.target.checked }))} sx={{ p: 0 }} />
-                <Typography sx={{ fontSize: 13, flex: 1 }}>{label}</Typography>
-              </Box>
-            ))}
-            <Box sx={{ mt: 1, p: 1.5, borderRadius: '6px', bgcolor: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)' }}>
-              <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.5 }}>
-                {'Social media URLs are managed in '}
-                <Box component="a" href={`/${clubSlug}/admin/settings`}
-                  sx={{ color: 'var(--action-primary)', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}>
-                  Club Basics
+            <Typography sx={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'text.secondary', mt: 2, mb: 0.75 }}>
+              Social accounts
+            </Typography>
+            {socialAccounts.length === 0 ? (
+              <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 1 }}>No social accounts configured yet.</Typography>
+            ) : (
+              socialAccounts.map(acct => (
+                <Box key={acct.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+                  <Checkbox size="small" checked={panelShownIds.includes(acct.id)}
+                    onChange={e => setPanelShownIds(prev => e.target.checked ? [...prev, acct.id] : prev.filter(id => id !== acct.id))}
+                    sx={{ p: 0 }} />
+                  <Typography sx={{ fontSize: 13, flex: 1 }}>{platformLabel(acct.platform, acct.label)}</Typography>
                 </Box>
-              </Typography>
-            </Box>
+              ))
+            )}
+            <Button size="small" variant="outlined" color="secondary" sx={{ mt: 1 }}
+              onClick={() => { setPanelEditOpen(false); setSocialModalOpen(true) }}>
+              Manage accounts in Club Basics
+            </Button>
             {panelSaveError && (
               <Typography sx={{ fontSize: 13, color: 'error.main', mt: 1.5 }}>{panelSaveError}</Typography>
             )}

@@ -312,6 +312,14 @@ export default function JoinPageEditor({
 
         {/* Editor */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
+          {/* Page title */}
+          <Typography sx={{
+            fontFamily: "var(--font-lora, 'Lora', Georgia, serif)",
+            fontSize: 32, fontWeight: 700, letterSpacing: '-0.02em',
+            color: '#1A1A1A', mb: 3, lineHeight: 1.2,
+          }}>
+            Join / Renew
+          </Typography>
           <Box
             ref={editorRef}
             contentEditable

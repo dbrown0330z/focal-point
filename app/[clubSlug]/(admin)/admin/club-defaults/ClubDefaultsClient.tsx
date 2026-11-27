@@ -34,6 +34,8 @@ import FormatItalicIcon       from '@mui/icons-material/FormatItalic'
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted'
 import HorizontalRuleIcon     from '@mui/icons-material/HorizontalRule'
 import { TrashBtn } from '@/components/ui/TrashBtn'
+import SocialAccountsModal from '@/components/admin/SocialAccountsModal'
+import type { SocialAccount } from '@/lib/social-accounts/types'
 import { useUnsavedChanges } from '@/components/admin/UnsavedChangesProvider'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -46,6 +48,7 @@ import {
   uploadTermsFile,
   removeTermsFile,
 } from './actions'
+import { getSocialAccounts } from '@/lib/social-accounts/actions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -65,8 +68,6 @@ type Settings = {
   membership_terms_file_path: string | null
   membership_terms_file_name: string | null
   website_url: string
-  facebook_url: string
-  instagram_url: string
   join_open: boolean
 }
 
@@ -114,6 +115,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
           {hint}
         </FormHelperText>
       )}
+
     </Box>
   )
 }
@@ -630,15 +632,21 @@ function MapEmbed({ lat, lon }: { lat: number; lon: number }) {
 export default function ClubDefaultsClient({
   settings: initial,
   locations: initialLocations,
+  clubSlug,
 }: {
-  settings: Settings
+  settings:  Settings
   locations: Location[]
+  clubSlug:  string
 }) {
   // ── Club settings form ───────────────────────────────────────────────────
   const [s, setS] = useState(initial)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
   const [savePending, startSave] = useTransition()
+  const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>([])
+  const [socialModalOpen, setSocialModalOpen] = useState(false)
   const { isDirty, markDirty, markClean, registerSave } = useUnsavedChanges()
+
+  useEffect(() => { getSocialAccounts().then(setSocialAccounts) }, [])
 
   // Keep a current ref so the modal's save callback never goes stale
   const handleSaveRef = useRef<() => void>(() => {})
@@ -660,8 +668,6 @@ export default function ClubDefaultsClient({
         timezone:           s.timezone,
         season_start_month: s.season_start_month,
         website_url:        s.website_url || null,
-        facebook_url:       s.facebook_url || null,
-        instagram_url:      s.instagram_url || null,
         join_open:          s.join_open,
       })
       setSaveStatus(result.error ? 'error' : 'saved')
@@ -755,6 +761,7 @@ export default function ClubDefaultsClient({
   const tf = { size: 'small' as const, fullWidth: true }
 
   return (
+    <>
     <Box sx={{ pb: '80px' }}>
 
       {/* ── Club Identity ────────────────────────────────────────────────── */}
@@ -816,14 +823,26 @@ export default function ClubDefaultsClient({
         </Field>
         <Divider sx={{ my: '20px' }} />
 
-        <Field label="Instagram" hint="Handle only, without @.">
-          <TextField {...tf} value={s.instagram_url} onChange={e => set('instagram_url', e.target.value)} placeholder="yourclubname"
-            slotProps={{ input: { startAdornment: <InputAdornment position="start"><Typography sx={{ fontSize: 13, color: 'text.disabled' }}>@</Typography></InputAdornment> } }} />
-        </Field>
-        <Divider sx={{ my: '20px' }} />
-
-        <Field label="Facebook" hint="Full Facebook Page URL.">
-          <TextField {...tf} value={s.facebook_url} onChange={e => set('facebook_url', e.target.value)} placeholder="https://facebook.com/yourclubpage" />
+        <Field label="Social accounts" hint="These appear on your About page panel and can be linked from your homepage.">
+          {socialAccounts.length > 0 ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mb: 1.5 }}>
+              {socialAccounts.map(acct => (
+                <Box key={acct.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1.5, py: 1, borderRadius: '6px', border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 500 }}>
+                      {acct.platform === 'custom' ? (acct.label || 'Custom') : (acct.platform.charAt(0).toUpperCase() + acct.platform.slice(1))}
+                    </Typography>
+                    <Typography sx={{ fontSize: 11, color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }}>{acct.url}</Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          ) : (
+            <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 1 }}>No social accounts configured.</Typography>
+          )}
+          <Button variant="outlined" color="secondary" size="small" onClick={() => setSocialModalOpen(true)}>
+            Manage social accounts
+          </Button>
         </Field>
         <Divider sx={{ my: '20px' }} />
 
@@ -993,5 +1012,14 @@ export default function ClubDefaultsClient({
       </Box>
 
     </Box>
+      <SocialAccountsModal
+        open={socialModalOpen}
+        onClose={() => setSocialModalOpen(false)}
+        mode="manage"
+        accounts={socialAccounts}
+        clubSlug={clubSlug}
+        onAccountsChange={setSocialAccounts}
+      />
+    </>
   )
 }

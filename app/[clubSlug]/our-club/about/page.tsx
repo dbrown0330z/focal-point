@@ -1,7 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient }       from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getClubContext } from '@/lib/club-context'
-import AboutClient from './AboutClient'
+import { getClubContext }      from '@/lib/club-context'
+import AboutClient             from './AboutClient'
+import { getSocialAccounts }   from '@/lib/social-accounts/actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,8 +11,6 @@ type ClubInfo = {
   club_location:          string | null
   contact_email:          string | null
   website_url:            string | null
-  facebook_url:           string | null
-  instagram_url:          string | null
   annual_dues:            string | null
   join_fee:               string | null
   meeting_schedule:       string | null
@@ -23,8 +22,7 @@ type ClubInfo = {
   panel_show_member_count: boolean
   panel_show_schedule:     boolean
   panel_show_location:     boolean
-  panel_show_instagram:    boolean
-  panel_show_facebook:     boolean
+  panel_shown_social_ids:  string[]
   panel_show_join_button:  boolean
   panel_show_contact:      boolean
 }
@@ -42,11 +40,12 @@ export default async function AboutPage() {
     { data: settingsRaw },
     { data: pageRaw },
     { count: memberCount },
+    socialAccounts,
   ] = await Promise.all([
     supabase.auth.getUser(),
     clubId
       ? (admin.from('club_settings').select(
-          'club_name, club_location, contact_email, website_url, facebook_url, instagram_url, annual_dues, join_fee, meeting_schedule, meeting_notes, founded_year, join_open, panel_show_founded_year, panel_show_member_count, panel_show_schedule, panel_show_location, panel_show_instagram, panel_show_facebook, panel_show_join_button, panel_show_contact'
+          'club_name, club_location, contact_email, website_url, annual_dues, join_fee, meeting_schedule, meeting_notes, founded_year, join_open, panel_show_founded_year, panel_show_member_count, panel_show_schedule, panel_show_location, panel_show_join_button, panel_show_contact, panel_shown_social_ids'
         ).eq('club_id', clubId).single() as unknown as Promise<{ data: ClubInfo | null }>)
       : Promise.resolve({ data: null }),
     clubId
@@ -55,6 +54,7 @@ export default async function AboutPage() {
     clubId
       ? admin.from('club_memberships').select('id', { count: 'exact', head: true }).eq('club_id', clubId).eq('membership_status', 'active')
       : Promise.resolve({ count: null }),
+    getSocialAccounts(),
   ] as const)
 
   const clubName   = settingsRaw?.club_name ?? 'Our Camera Club'
@@ -67,8 +67,6 @@ export default async function AboutPage() {
     club_location:          settingsRaw?.club_location          ?? null,
     contact_email:          settingsRaw?.contact_email          ?? null,
     website_url:            settingsRaw?.website_url            ?? null,
-    facebook_url:           settingsRaw?.facebook_url           ?? null,
-    instagram_url:          settingsRaw?.instagram_url          ?? null,
     annual_dues:            settingsRaw?.annual_dues            ?? null,
     join_fee:               settingsRaw?.join_fee               ?? null,
     meeting_schedule:       settingsRaw?.meeting_schedule       ?? null,
@@ -80,8 +78,7 @@ export default async function AboutPage() {
     panel_show_member_count: settingsRaw?.panel_show_member_count ?? false,
     panel_show_schedule:     settingsRaw?.panel_show_schedule    ?? false,
     panel_show_location:     settingsRaw?.panel_show_location    ?? false,
-    panel_show_instagram:    settingsRaw?.panel_show_instagram   ?? false,
-    panel_show_facebook:     settingsRaw?.panel_show_facebook    ?? false,
+    panel_shown_social_ids:  (settingsRaw?.panel_shown_social_ids ?? []) as string[],
     panel_show_join_button:  settingsRaw?.panel_show_join_button ?? true,
     panel_show_contact:      settingsRaw?.panel_show_contact     ?? true,
   }
@@ -93,6 +90,7 @@ export default async function AboutPage() {
       html={html}
       isLoggedIn={isLoggedIn}
       info={info}
+      socialAccounts={socialAccounts}
     />
   )
 }
