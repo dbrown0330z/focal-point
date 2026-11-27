@@ -51,16 +51,17 @@ export default function MemberNav({
   ]
 
   const competitionsLinks = [
-    { href: `${base}/competitions`,         label: 'Current Competition' },
-    { href: `${base}/competitions/results`, label: 'Results' },
+    { href: `${base}/competitions`,                label: 'Current' },
+    { href: `${base}/competitions/results`,        label: 'Results' },
+    { href: `${base}/our-club/members/standings`,  label: 'Standings' },
   ]
 
   const ourClubLinks = [
-    { href: `${base}/our-club/about`,             label: 'About our club' },
-    { href: `${base}/our-club/join`,              label: 'Join / Renew' },
-    { href: `${base}/our-club/members`,           label: 'Member directory' },
-    { href: `${base}/our-club/members/standings`, label: 'Standings' },
-    ...(galleriesEnabled ? [{ href: `${base}/our-club/galleries`, label: 'Club galleries' }] : []),
+    { href: `${base}/our-club/about`,    label: 'About our club' },
+    { href: `${base}/our-club/members`,  label: 'Member directory' },
+    ...(resourcesEnabled  ? [{ href: `${base}/resources`,        label: 'Resources' }]      : []),
+    ...(galleriesEnabled  ? [{ href: `${base}/our-club/galleries`, label: 'Club galleries' }] : []),
+    { href: `${base}/our-club/join`,     label: 'Join / Renew' },
   ]
 
   const pathname = usePathname()
@@ -230,19 +231,6 @@ export default function MemberNav({
             )}
           </div>
 
-          {/* Resources — only when admin-enabled */}
-          {resourcesEnabled && (
-            <Link
-              href={`${base}/resources`}
-              className={`text-sm transition-colors ${
-                pathname.startsWith(`${base}/resources`)
-                  ? 'font-medium text-content-primary'
-                  : 'text-content-secondary hover:text-content-primary'
-              }`}
-            >
-              Resources
-            </Link>
-          )}
         </nav>
 
         {/* Right: avatar + dropdown */}
