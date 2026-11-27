@@ -42,7 +42,13 @@ export default async function AdminJoinPage() {
   return (
     <JoinPageEditor
       pageId={pageResult.data?.id ?? null}
-      initialContent={pageResult.data?.content ?? '<p>Welcome! We\'d love to have you as a member of our club. Here\'s everything you need to know about joining or renewing your membership.</p>'}
+      initialContent={pageResult.data?.content ?? [
+        '<p>We’d love to have you as part of our club. Whether you’re just getting started in photography or looking to join a community of fellow enthusiasts, membership gives you access to everything we offer year-round — competitions, workshops, field trips, and more.</p>',
+        '<h2>New members</h2>',
+        '<p>Complete the form below to apply. Once approved, you’ll receive access to the member area along with details for all upcoming events and competitions.</p>',
+        '<h2>Renewing members</h2>',
+        '<p>Use the same form to renew your annual membership. If you’re unsure whether your membership is current, check your member profile or contact us and we’ll be happy to help.</p>',
+      ].join('')}
       clubSlug={ctx?.clubSlug ?? ''}
       duesSummary={duesSummary}
     />

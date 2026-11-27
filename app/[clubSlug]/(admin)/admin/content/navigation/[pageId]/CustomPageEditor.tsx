@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Box,
@@ -167,6 +167,7 @@ export default function CustomPageEditor({
   const [title,       setTitle]       = useState(initialTitle)
   const [visibility,  setVisibility]  = useState<Visibility>(initialVisibility)
   const [saveState,   setSaveState]   = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [isDirty, setIsDirty] = useState(false)
   // Refs so auto-save callback always reads latest values without stale closure
   const titleRef      = useRef(title)
   const visibilityRef = useRef(visibility)
@@ -239,6 +240,7 @@ export default function CustomPageEditor({
       })
       .eq('id', pageId)
     setSaveState(error ? 'error' : 'saved')
+    if (!error) setIsDirty(false)
     setTimeout(() => setSaveState('idle'), 2500)
   }, [pageId])
 
@@ -541,6 +543,7 @@ export default function CustomPageEditor({
   return (
     <PageEditorSheet
       title={menuLabel}
+      isDirty={isDirty}
       backHref={`/${clubSlug}/admin/content/navigation`}
       headerRight={
         <>
@@ -549,7 +552,7 @@ export default function CustomPageEditor({
             onClick={() => router.push(`/${clubSlug}/admin/content/navigation`)}>
             Cancel
           </Button>
-          <Button variant="outlined" color="secondary" size="small"
+          <Button variant="contained" size="small"
             disabled={saveState === 'saving'} onClick={performSave}>
             Save
           </Button>
@@ -690,7 +693,7 @@ export default function CustomPageEditor({
             contentEditable
             suppressContentEditableWarning
             data-placeholder="Start writing your page content…"
-            onInput={triggerAutoSave}
+            onInput={() => { setIsDirty(true); triggerAutoSave() }}
             onClick={handleEditorClick}
             sx={editorContentSx}
           />

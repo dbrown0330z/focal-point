@@ -25,33 +25,22 @@ import FormatClearIcon        from '@mui/icons-material/FormatClear'
 import KeyboardArrowDownIcon  from '@mui/icons-material/KeyboardArrowDown'
 import UndoIcon               from '@mui/icons-material/Undo'
 import RedoIcon               from '@mui/icons-material/Redo'
-import OpenInNewIcon          from '@mui/icons-material/OpenInNew'
+import InfoOutlinedIcon       from '@mui/icons-material/InfoOutlined'
 import { saveJoinPageContent } from './actions'
 import type { ManualMethod } from '@/app/[clubSlug]/(admin)/admin/dues-payment/actions'
 import PageEditorSheet        from '@/components/admin/PageEditorSheet'
 
-const EXEC_FONT_LORA   = 'Lora'
-const EXEC_FONT_NUNITO = 'Nunito'
-const CSS_FONT_LORA    = "var(--font-lora, 'Lora', Georgia, serif)"
-const CSS_FONT_NUNITO  = "var(--font-nunito, 'Nunito', system-ui, sans-serif)"
+const CSS_FONT_LORA = "var(--font-lora, 'Lora', Georgia, serif)"
 
 const TEXT_STYLES = [
-  { label: 'Normal text', tag: 'p',  sx: { fontSize: 13, fontFamily: CSS_FONT_NUNITO } },
+  { label: 'Normal text', tag: 'p',  sx: { fontSize: 13, fontFamily: CSS_FONT_LORA } },
   { label: 'Heading 1',   tag: 'h1', sx: { fontSize: 20, fontWeight: 700, fontFamily: CSS_FONT_LORA } },
   { label: 'Heading 2',   tag: 'h2', sx: { fontSize: 16, fontWeight: 600, fontFamily: CSS_FONT_LORA } },
   { label: 'Heading 3',   tag: 'h3', sx: { fontSize: 14, fontWeight: 600, fontFamily: CSS_FONT_LORA } },
 ]
 
-const FONT_FAMILIES = [
-  { label: 'Lora',      value: EXEC_FONT_LORA },
-  { label: 'Nunito',    value: EXEC_FONT_NUNITO },
-  { label: 'Monospace', value: 'Courier New' },
-]
-
 const MENU_FOCUS_PROPS = {
-  disableAutoFocus: true,
-  disableEnforceFocus: true,
-  disableRestoreFocus: true,
+  disableAutoFocus: true, disableEnforceFocus: true, disableRestoreFocus: true,
 } as const
 
 const btnSx = {
@@ -73,43 +62,26 @@ export type DuesSummary = {
   zelleContact:    string | null
 }
 
-function ToolbarBtn({
-  title, onMouseDown, active, children,
-}: {
-  title: string
-  onMouseDown: () => void
-  active?: boolean
-  children: React.ReactNode
+function ToolbarBtn({ title, onMouseDown, active, children }: {
+  title: string; onMouseDown: () => void; active?: boolean; children: React.ReactNode
 }) {
   return (
     <Tooltip title={title} placement="top">
-      <Box
-        component="button"
-        onMouseDown={e => { e.preventDefault(); onMouseDown() }}
-        sx={{
-          ...btnSx, width: 28, height: 28,
-          ...(active ? { bgcolor: 'action.selected', color: 'text.primary' } : {}),
-        }}
-      >
+      <Box component="button" onMouseDown={e => { e.preventDefault(); onMouseDown() }}
+        sx={{ ...btnSx, width: 28, height: 28, ...(active ? { bgcolor: 'action.selected', color: 'text.primary' } : {}) }}>
         {children}
       </Box>
     </Tooltip>
   )
 }
 
-function DropdownBtn({
-  label, title, onMouseDown,
-}: {
-  label: string; title: string
-  onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => void
+function DropdownBtn({ label, title, onMouseDown }: {
+  label: string; title: string; onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => void
 }) {
   return (
     <Tooltip title={title} placement="top">
-      <Box component="button" onMouseDown={onMouseDown}
-        sx={{ ...btnSx, gap: 0.25, height: 28, px: 1 }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'inherit', lineHeight: 1 }}>
-          {label}
-        </Typography>
+      <Box component="button" onMouseDown={onMouseDown} sx={{ ...btnSx, gap: 0.25, height: 28, px: 1 }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'inherit', lineHeight: 1 }}>{label}</Typography>
         <KeyboardArrowDownIcon sx={{ fontSize: 14 }} />
       </Box>
     </Tooltip>
@@ -117,33 +89,25 @@ function DropdownBtn({
 }
 
 const METHOD_LABELS: Record<ManualMethod, string> = {
-  cheque:       'Cheque',
-  etransfer:    'e-Transfer',
-  'paypal-link': 'PayPal',
-  venmo:        'Venmo',
-  zelle:        'Zelle',
-  cashapp:      'Cash App',
+  cheque: 'Cheque', etransfer: 'e-Transfer', 'paypal-link': 'PayPal',
+  venmo: 'Venmo', zelle: 'Zelle', cashapp: 'Cash App',
 }
 
 function MethodDetail({ method, dues }: { method: ManualMethod; dues: DuesSummary }) {
   const detail = (() => {
     switch (method) {
-      case 'cheque':       return dues.chequePayableTo ? `Payable to "${dues.chequePayableTo}"` : null
-      case 'etransfer':    return dues.etransferEmail  ? dues.etransferEmail : null
-      case 'paypal-link':  return dues.paypalLink      ? dues.paypalLink : null
-      case 'venmo':        return dues.venmoHandle     ? dues.venmoHandle : null
-      case 'cashapp':      return dues.cashappHandle   ? dues.cashappHandle : null
-      case 'zelle':        return dues.zelleContact    ? dues.zelleContact : null
+      case 'cheque':      return dues.chequePayableTo ? `Payable to "${dues.chequePayableTo}"` : null
+      case 'etransfer':   return dues.etransferEmail  || null
+      case 'paypal-link': return dues.paypalLink      || null
+      case 'venmo':       return dues.venmoHandle     || null
+      case 'cashapp':     return dues.cashappHandle   || null
+      case 'zelle':       return dues.zelleContact    || null
     }
   })()
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-      <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.primary' }}>
-        {METHOD_LABELS[method]}
-      </Typography>
-      {detail && (
-        <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>{detail}</Typography>
-      )}
+      <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.primary' }}>{METHOD_LABELS[method]}</Typography>
+      {detail && <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>{detail}</Typography>}
     </Box>
   )
 }
@@ -152,73 +116,68 @@ function DuesPanel({ dues, clubSlug }: { dues: DuesSummary; clubSlug: string }) 
   const isFree = !dues.annualAmount
   return (
     <Box sx={{
-      width: 272,
-      flexShrink: 0,
-      border: '1px solid',
-      borderColor: 'divider',
-      borderRadius: 'var(--radius-lg)',
-      bgcolor: 'background.default',
-      overflow: 'hidden',
+      width: 272, flexShrink: 0,
+      bgcolor: '#FFFFFF',
+      border: '1px solid rgba(0,0,0,0.14)',
+      borderRadius: '12px',
+      p: 2.5,
+      position: 'sticky', top: 24,
     }}>
-      <Box sx={{
-        px: 2.5, py: 1.75,
-        borderBottom: '1px solid', borderColor: 'divider',
-        bgcolor: 'background.paper',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'text.secondary' }}>
           Dues &amp; Payment
         </Typography>
-        <Box
-          component="a"
-          href={`/${clubSlug}/admin/dues-payment`}
-          sx={{ fontSize: 11, color: 'var(--action-primary)', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}
-        >
+        <Box component="a" href={`/${clubSlug}/admin/dues-payment`}
+          sx={{ fontSize: 12, color: 'var(--action-primary)', textDecoration: 'none', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 0.5, '&:hover': { textDecoration: 'underline' } }}>
           Edit →
         </Box>
       </Box>
 
-      <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-        <Box>
-          <Typography sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'text.secondary', mb: 0.75 }}>
-            Annual dues
+      {/* Amount */}
+      <Box sx={{ mb: 1.5 }}>
+        <Typography sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'text.secondary', mb: 0.75 }}>
+          Annual dues
+        </Typography>
+        {isFree ? (
+          <Typography sx={{ fontSize: 14, color: 'text.primary', fontWeight: 500 }}>Free — no charge to join</Typography>
+        ) : (
+          <Typography sx={{ fontSize: 18, color: 'text.primary', fontWeight: 700 }}>
+            ${dues.annualAmount!.toFixed(2)}
+            <Typography component="span" sx={{ fontSize: 12, color: 'text.secondary', fontWeight: 400, ml: 0.5 }}>/ year</Typography>
           </Typography>
-          {isFree ? (
-            <Typography sx={{ fontSize: 14, color: 'text.primary', fontWeight: 500 }}>
-              Free — no charge to join
-            </Typography>
-          ) : (
-            <Typography sx={{ fontSize: 18, color: 'text.primary', fontWeight: 700 }}>
-              ${dues.annualAmount!.toFixed(2)}
-              <Typography component="span" sx={{ fontSize: 12, color: 'text.secondary', fontWeight: 400, ml: 0.5 }}>/ year</Typography>
-            </Typography>
-          )}
-        </Box>
-
-        {!isFree && (
-          <Box>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'text.secondary', mb: 1 }}>
-              Payment methods
-            </Typography>
-            {dues.methods.length === 0 ? (
-              <Typography sx={{ fontSize: 12, color: 'text.secondary', lineHeight: 1.6 }}>
-                No methods configured yet.{' '}
-                <Box component="a" href={`/${clubSlug}/admin/dues-payment`} sx={{ color: 'var(--action-primary)', textDecoration: 'underline' }}>
-                  Add one →
-                </Box>
-              </Typography>
-            ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {dues.methods.map(m => (
-                  <MethodDetail key={m} method={m} dues={dues} />
-                ))}
-              </Box>
-            )}
-          </Box>
         )}
+      </Box>
 
-        <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.6, borderTop: '1px solid', borderColor: 'divider', pt: 2 }}>
-          This information is generated automatically on the public Join / Renew page below your intro text.
+      {/* Payment methods */}
+      {!isFree && dues.methods.length > 0 && (
+        <Box sx={{ mb: 1.5 }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'text.secondary', mb: 1 }}>
+            Payment methods
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {dues.methods.map(m => <MethodDetail key={m} method={m} dues={dues} />)}
+          </Box>
+        </Box>
+      )}
+      {!isFree && dues.methods.length === 0 && (
+        <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: 1.5 }}>No payment methods configured yet.</Typography>
+      )}
+
+      {/* Admin note */}
+      <Box sx={{
+        mt: 1.5, p: 1.5, borderRadius: '8px',
+        bgcolor: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)',
+        display: 'flex', gap: 1, alignItems: 'flex-start',
+      }}>
+        <InfoOutlinedIcon sx={{ fontSize: 14, color: 'text.secondary', flexShrink: 0, mt: '1px' }} />
+        <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.5 }}>
+          This panel is auto-generated from your{' '}
+          <Box component="a" href={`/${clubSlug}/admin/dues-payment`}
+            sx={{ color: 'var(--action-primary)', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}>
+            Dues &amp; Payment settings
+          </Box>
+          {' '}— edit amounts and methods there.
         </Typography>
       </Box>
     </Box>
@@ -240,27 +199,26 @@ export default function JoinPageEditor({
   const editorRef     = useRef<HTMLDivElement>(null)
   const savedRangeRef = useRef<Range | null>(null)
   const [pageId, setPageId] = useState(initialPageId)
+  const [isDirty, setIsDirty] = useState(false)
 
   const [, startSave]  = useTransition()
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   const [styleAnchor, setStyleAnchor] = useState<HTMLElement | null>(null)
-  const [fontAnchor,  setFontAnchor]  = useState<HTMLElement | null>(null)
   const [activeStyle, setActiveStyle] = useState('Normal text')
-  const [activeFont,  setActiveFont]  = useState('Nunito')
 
   useEffect(() => {
     if (editorRef.current) editorRef.current.innerHTML = initialContent
-  }, [initialContent])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const restoreSelection = () => {
     if (!savedRangeRef.current || !editorRef.current) return
     const sel = window.getSelection()
     if (!sel) return
     sel.removeAllRanges()
-    if (editorRef.current.contains(savedRangeRef.current.commonAncestorContainer)) {
+    if (editorRef.current.contains(savedRangeRef.current.commonAncestorContainer))
       sel.addRange(savedRangeRef.current)
-    }
   }
 
   const exec = (cmd: string, val?: string) => {
@@ -278,6 +236,7 @@ export default function JoinPageEditor({
         setSaveStatus('error')
       } else {
         setSaveStatus('saved')
+        setIsDirty(false)
         if (res.newPageId) setPageId(res.newPageId)
       }
       setTimeout(() => setSaveStatus('idle'), 2500)
@@ -288,34 +247,16 @@ export default function JoinPageEditor({
     <PageEditorSheet
       title="Join / Renew Page"
       backHref={`/${clubSlug}/admin/content/navigation`}
+      isDirty={isDirty}
       headerRight={
         <>
-          {saveStatus === 'saved' && (
-            <Typography sx={{ fontSize: 13, color: 'success.main' }}>Saved</Typography>
-          )}
-          {saveStatus === 'error' && (
-            <Typography sx={{ fontSize: 13, color: 'error.main' }}>Save failed</Typography>
-          )}
-          <Button
-            variant="outlined" color="secondary" size="small"
-            endIcon={<OpenInNewIcon sx={{ fontSize: 15 }} />}
-            href={`/${clubSlug}/our-club/join`}
-            target="_blank"
-            component="a"
-          >
-            View page
-          </Button>
-          <Button
-            variant="outlined" color="secondary" size="small"
-            onClick={() => router.push(`/${clubSlug}/admin/content/navigation`)}
-          >
+          {saveStatus === 'saved' && <Typography sx={{ fontSize: 13, color: 'success.main' }}>Saved</Typography>}
+          {saveStatus === 'error' && <Typography sx={{ fontSize: 13, color: 'error.main' }}>Save failed</Typography>}
+          <Button variant="outlined" color="secondary" size="small"
+            onClick={() => router.push(`/${clubSlug}/admin/content/navigation`)}>
             Cancel
           </Button>
-          <Button
-            variant="contained" size="small"
-            disabled={saveStatus === 'saving'}
-            onClick={handleSave}
-          >
+          <Button variant="contained" size="small" disabled={saveStatus === 'saving'} onClick={handleSave}>
             {saveStatus === 'saving' ? 'Saving…' : 'Save'}
           </Button>
         </>
@@ -340,31 +281,7 @@ export default function JoinPageEditor({
                   setStyleAnchor(null)
                   editorRef.current?.focus()
                 }}
-                sx={s.sx}
-              >
-                {s.label}
-              </MenuItem>
-            ))}
-          </Menu>
-          <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
-
-          <DropdownBtn label={activeFont} title="Font family"
-            onMouseDown={e => { e.preventDefault(); setFontAnchor(e.currentTarget) }} />
-          <Menu anchorEl={fontAnchor} open={Boolean(fontAnchor)} onClose={() => setFontAnchor(null)}
-            slotProps={{ list: MENU_FOCUS_PROPS }}>
-            {FONT_FAMILIES.map(f => (
-              <MenuItem key={f.value}
-                onMouseDown={e => {
-                  e.preventDefault()
-                  restoreSelection()
-                  document.execCommand('fontName', false, f.value)
-                  setActiveFont(f.label)
-                  setFontAnchor(null)
-                  editorRef.current?.focus()
-                }}
-              >
-                {f.label}
-              </MenuItem>
+                sx={s.sx}>{s.label}</MenuItem>
             ))}
           </Menu>
           <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
@@ -383,11 +300,7 @@ export default function JoinPageEditor({
           <ToolbarBtn title="Align right"  onMouseDown={() => exec('justifyRight')}>  <FormatAlignRightIcon  sx={{ fontSize: 16 }} /></ToolbarBtn>
           <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
-          <ToolbarBtn title="Insert link" onMouseDown={() => {
-            restoreSelection()
-            const url = window.prompt('Enter URL:')
-            if (url) exec('createLink', url)
-          }}><LinkIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
+          <ToolbarBtn title="Insert link" onMouseDown={() => { restoreSelection(); const url = window.prompt('Enter URL:'); if (url) exec('createLink', url) }}><LinkIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
           <ToolbarBtn title="Remove link" onMouseDown={() => exec('unlink')}><LinkOffIcon sx={{ fontSize: 16 }} /></ToolbarBtn>
           <Divider orientation="vertical" flexItem sx={{ mx: 0.75, my: 0.75 }} />
 
@@ -395,7 +308,6 @@ export default function JoinPageEditor({
         </>
       }
     >
-      {/* ── Body: editor + dues panel ──────────────────────────────────────── */}
       <Box sx={{ maxWidth: 1140, mx: 'auto', py: 4, px: 3, display: 'flex', gap: 3, alignItems: 'flex-start' }}>
 
         {/* Editor */}
@@ -411,19 +323,19 @@ export default function JoinPageEditor({
               if (editorRef.current?.contains(range.commonAncestorContainer))
                 savedRangeRef.current = range.cloneRange()
             }}
+            onInput={() => setIsDirty(true)}
             sx={{
-              minHeight: 400,
-              outline: 'none',
-              fontSize: 14,
-              lineHeight: 1.7,
-              color: 'text.primary',
-              fontFamily: CSS_FONT_NUNITO,
-              '& h1': { fontSize: 22, fontWeight: 700, mt: 2, mb: 1, fontFamily: CSS_FONT_LORA },
-              '& h2': { fontSize: 18, fontWeight: 600, mt: 1.5, mb: 0.75, fontFamily: CSS_FONT_LORA },
-              '& h3': { fontSize: 15, fontWeight: 600, mt: 1.5, mb: 0.5, fontFamily: CSS_FONT_LORA },
-              '& p':  { mt: 0, mb: 1 },
-              '& ul, & ol': { pl: 3, mb: 1 },
-              '& a':  { color: 'var(--action-primary)', textDecoration: 'underline' },
+              minHeight: 400, outline: 'none',
+              fontFamily: CSS_FONT_LORA,
+              fontSize: 16, lineHeight: 1.8, color: '#1A1A1A',
+              '& h1': { fontFamily: CSS_FONT_LORA, fontSize: '1.7em',  fontWeight: 700, lineHeight: 1.25, mt: '1em', mb: '0.4em',  letterSpacing: '-0.02em', color: '#1A1A1A' },
+              '& h2': { fontFamily: CSS_FONT_LORA, fontSize: '1.3em',  fontWeight: 600, lineHeight: 1.3,  mt: '1em', mb: '0.35em', letterSpacing: '-0.01em', color: '#1A1A1A' },
+              '& h3': { fontFamily: CSS_FONT_LORA, fontSize: '1.05em', fontWeight: 600, lineHeight: 1.35, mt: '1em', mb: '0.3em',  color: '#1A1A1A' },
+              '& p':  { fontFamily: CSS_FONT_LORA, margin: '0 0 0.9em', color: '#696969', lineHeight: 1.8 },
+              '& ul, & ol': { fontFamily: CSS_FONT_LORA, paddingLeft: '1.75em', margin: '0.5em 0 0.8em', color: '#696969' },
+              '& li': { display: 'list-item', lineHeight: 1.8, mb: '0.15em' },
+              '& a':  { color: '#1A6FC4', textDecoration: 'underline', textUnderlineOffset: '2px' },
+              '& strong': { fontWeight: 700, color: '#1A1A1A' },
             }}
           />
         </Box>

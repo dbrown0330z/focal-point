@@ -47,7 +47,7 @@ import PageEditorSheet        from '@/components/admin/PageEditorSheet'
 const EXEC_FONT_LORA   = 'Lora'
 const EXEC_FONT_NUNITO = 'Nunito'
 const CSS_FONT_LORA    = "var(--font-lora, 'Lora', Georgia, serif)"
-const CSS_FONT_NUNITO  = "var(--font-nunito, 'Nunito', system-ui, sans-serif)"
+const CSS_FONT_NUNITO  = "var(--font-lora, 'Lora', Georgia, serif)"
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -184,6 +184,7 @@ export default function AboutPageEditor({
 
   const [, startSave]  = useTransition()
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [isDirty, setIsDirty] = useState(false)
 
   const [panelInfo, setPanelInfo] = useState<ClubInfo>(clubInfo ?? {
     club_name: '', club_location: null, contact_email: null,
@@ -329,6 +330,7 @@ export default function AboutPageEditor({
         ? await sbAny.from('pages').update({ content: html, updated_at: new Date().toISOString() }).eq('id', pageId)
         : await sbAny.from('pages').insert({ slug: 'about', title: 'About our club', content: html })
       setSaveStatus(res.error ? 'error' : 'saved')
+      if (!res.error) setIsDirty(false)
       setTimeout(() => setSaveStatus('idle'), 2500)
     })
   }
@@ -427,6 +429,7 @@ export default function AboutPageEditor({
   return (
     <PageEditorSheet
       title="About our club"
+      isDirty={isDirty}
       backHref={`/${clubSlug}/admin/content/navigation`}
       headerRight={
         <>
@@ -509,7 +512,7 @@ export default function AboutPageEditor({
     >
 
       {/* ── Live-preview editor body ───────────────────────────────────────── */}
-      <Box sx={{ bgcolor: tok.bg, transition: 'background-color 0.2s', minHeight: '100%' }}>
+      <Box sx={{ bgcolor: '#FFFFFF', minHeight: '100%' }}>
         <Box sx={{ maxWidth: 1140, mx: 'auto', py: 6, px: 4, display: 'flex', gap: 5, alignItems: 'flex-start' }}>
 
           {/* Left: main content editor */}
@@ -528,6 +531,7 @@ export default function AboutPageEditor({
               component="div"
               contentEditable
               suppressContentEditableWarning
+              onInput={() => setIsDirty(true)}
               data-placeholder="Start writing about your club…"
               sx={editorContentSx}
             />
@@ -709,10 +713,8 @@ export default function AboutPageEditor({
             {[
               { label: 'Meeting schedule', key: 'panel_show_schedule' as const, field: 'meeting_schedule' as const, placeholder: 'e.g. 1st Tuesday, 7 pm' },
               { label: 'Location',         key: 'panel_show_location' as const, field: 'club_location'    as const, placeholder: 'City, State' },
-              { label: 'Instagram',        key: 'panel_show_instagram' as const, field: 'instagram_url'   as const, placeholder: 'https://instagram.com/…' },
-              { label: 'Facebook',         key: 'panel_show_facebook' as const,  field: 'facebook_url'    as const, placeholder: 'https://facebook.com/…' },
-            ].map(({ label, key, field, placeholder }, idx, arr) => (
-              <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, ...(idx < arr.length - 1 ? { borderBottom: '1px solid', borderColor: 'divider' } : {}) }}>
+  ].map(({ label, key, field, placeholder }, idx) => (
+              <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
                 <Checkbox size="small" checked={(panelForm[key] as boolean) ?? true}
                   onChange={e => setPanelForm(p => ({ ...p, [key]: e.target.checked }))} sx={{ p: 0 }} />
                 <Typography sx={{ fontSize: 13, flex: 1 }}>{label}</Typography>
@@ -721,6 +723,26 @@ export default function AboutPageEditor({
                   onChange={e => setPanelForm(p => ({ ...p, [field]: e.target.value || null }))} />
               </Box>
             ))}
+            {/* Social checkboxes — URLs managed in Club Basics */}
+            {([
+              { label: 'Instagram', key: 'panel_show_instagram' as const },
+              { label: 'Facebook',  key: 'panel_show_facebook'  as const },
+            ] as const).map(({ label, key }, idx, arr) => (
+              <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1, ...(idx < arr.length - 1 ? { borderBottom: '1px solid', borderColor: 'divider' } : {}) }}>
+                <Checkbox size="small" checked={(panelForm[key] as boolean) ?? true}
+                  onChange={e => setPanelForm(p => ({ ...p, [key]: e.target.checked }))} sx={{ p: 0 }} />
+                <Typography sx={{ fontSize: 13, flex: 1 }}>{label}</Typography>
+              </Box>
+            ))}
+            <Box sx={{ mt: 1, p: 1.5, borderRadius: '6px', bgcolor: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)' }}>
+              <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.5 }}>
+                {'Social media URLs are managed in '}
+                <Box component="a" href={`/${clubSlug}/admin/settings`}
+                  sx={{ color: 'var(--action-primary)', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}>
+                  Club Basics
+                </Box>
+              </Typography>
+            </Box>
             {panelSaveError && (
               <Typography sx={{ fontSize: 13, color: 'error.main', mt: 1.5 }}>{panelSaveError}</Typography>
             )}
