@@ -10,14 +10,16 @@ export async function saveNavPageVisibility(
   const supabase = createServiceClient()
   const clubId = await requireClubId()
 
-  const { data: existing } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+  const { data: existing } = await sb
     .from('club_settings')
     .select('page_visibility')
     .eq('club_id', clubId)
     .single()
 
   const current = (existing?.page_visibility as Record<string, unknown> | null) ?? {}
-  const { error } = await supabase
+  const { error } = await sb
     .from('club_settings')
     .update({ page_visibility: { ...current, ...visibility } })
     .eq('club_id', clubId)
