@@ -87,6 +87,19 @@ export async function uploadClubLogo(formData: FormData): Promise<{ error?: stri
   return { url: publicUrl }
 }
 
+export async function removeClubLogo(): Promise<{ error?: string }> {
+  const supabase = createServiceClient()
+  const clubId = await requireClubId()
+  const { error } = await supabase
+    .from('club_settings')
+    .update({ logo_path: null })
+    .eq('club_id', clubId)
+  if (error) return { error: error.message }
+  revalidatePath(PATH)
+  revalidatePath('/', 'layout')
+  return {}
+}
+
 export async function addMeetingLocation(name: string, address: string | null): Promise<{ error?: string; id?: string }> {
   const supabase = createServiceClient()
   const clubId = await requireClubId()

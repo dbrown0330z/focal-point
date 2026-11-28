@@ -40,6 +40,7 @@ import { useUnsavedChanges } from '@/components/admin/UnsavedChangesProvider'
 import {
   saveClubSettings,
   uploadClubLogo,
+  removeClubLogo,
   addMeetingLocation,
   updateMeetingLocation,
   deleteMeetingLocation,
@@ -505,8 +506,9 @@ function MembershipTermsSection({ settings, onUpdate }: {
 
 // ─── Logo upload ──────────────────────────────────────────────────────────────
 
-function LogoUpload({ current, onUploaded }: { current: string | null; onUploaded: (url: string) => void }) {
+function LogoUpload({ current, onUploaded, onRemoved }: { current: string | null; onUploaded: (url: string) => void; onRemoved: () => void }) {
   const [uploading, setUploading] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const ref = useRef<HTMLInputElement>(null)
 
@@ -526,15 +528,33 @@ function LogoUpload({ current, onUploaded }: { current: string | null; onUploade
     setUploading(false)
   }
 
+  async function handleRemove() {
+    setRemoving(true); setErr(null)
+    const result = await removeClubLogo()
+    if (result.error) {
+      setErr(result.error)
+      setRemoving(false)
+      return
+    }
+    onRemoved()
+    setRemoving(false)
+  }
+
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
       {current && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={current} alt="Club logo" style={{ height: 44, objectFit: 'contain', borderRadius: 4, border: '1px solid var(--border-default)' }} />
       )}
-      <Button variant="outlined" color="secondary" size="small" disabled={uploading} onClick={() => ref.current?.click()}>
+      <Button variant="outlined" color="secondary" size="small" disabled={uploading || removing} onClick={() => ref.current?.click()}>
         {uploading ? 'Uploading…' : current ? 'Replace logo' : 'Upload logo'}
       </Button>
+      {current && (
+        <Button variant="text" color="error" size="small" disabled={uploading || removing} onClick={handleRemove}
+          sx={{ minWidth: 0 }}>
+          {removing ? 'Removing…' : 'Remove'}
+        </Button>
+      )}
       <input ref={ref} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden" onChange={handleFile} />
       {err && <Typography variant="caption" color="error">{err}</Typography>}
     </Box>
@@ -807,7 +827,7 @@ export default function ClubDefaultsClient({
         <Divider sx={{ my: '20px' }} />
 
         <Field label="Club logo" hint="Displayed on the member site and in communications.">
-          <LogoUpload current={s.logo_path} onUploaded={url => set('logo_path', url)} />
+          <LogoUpload current={s.logo_path} onUploaded={url => set('logo_path', url)} onRemoved={() => set('logo_path', null)} />
         </Field>
         <Divider sx={{ my: '20px' }} />
 
