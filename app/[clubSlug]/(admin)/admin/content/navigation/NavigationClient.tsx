@@ -14,7 +14,7 @@ import ChevronRightIcon   from '@mui/icons-material/ChevronRight'
 import DeleteOutlineIcon  from '@mui/icons-material/DeleteOutlined'
 import { useParams }   from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { revalidateNavCache } from './actions'
+import { saveNavPageVisibility } from './actions'
 import { createPortal } from 'react-dom'
 import { type AdminGalleryData, type ClubMember } from '../galleries/ClubGalleriesTab'
 import { DndContext, DragOverlay, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -1123,28 +1123,16 @@ export default function NavigationClient({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sb = createClient() as any
 
-      // 1. Builtin visibility + page orders + tab order — merge into page_visibility via browser client
-      const { data: existing } = await sb
-        .from('club_settings').select('page_visibility').eq('club_id', clubId).single()
-      const current = (existing?.page_visibility as Record<string, unknown> | null) ?? {}
-      const { error: visError } = await sb
-        .from('club_settings')
-        .update({
-          page_visibility: {
-            ...current,
-            about:             builtinVis.about,
-            calendar:          builtinVis.calendar,
-            resources_enabled: builtinVis.resourcesEnabled,
-            galleries_enabled: builtinVis.galleriesEnabled,
-            nav_page_order:    pageOrders,
-            nav_tab_order:     tabOrder,
-          },
-        })
-        .eq('club_id', clubId)
-      if (visError) throw new Error(visError.message)
-
-      // Revalidate server-side cache so member layout picks up changes immediately
-      await revalidateNavCache()
+      // 1. Builtin visibility + page orders + tab order — via service-client server action
+      const { error: visError } = await saveNavPageVisibility({
+        about:             builtinVis.about,
+        calendar:          builtinVis.calendar,
+        resources_enabled: builtinVis.resourcesEnabled,
+        galleries_enabled: builtinVis.galleriesEnabled,
+        nav_page_order:    pageOrders,
+        nav_tab_order:     tabOrder,
+      })
+      if (visError) throw new Error(visError)
 
       // 2. Custom page visibility + derived sort_order
       const pageUpdates: { id: string; sort_order: number; visibility: Visibility; status: string }[] = []

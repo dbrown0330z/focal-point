@@ -77,10 +77,11 @@ export async function uploadClubLogo(formData: FormData): Promise<{ error?: stri
   const { data: { publicUrl } } = supabase.storage.from('club-assets').getPublicUrl(path)
 
   const clubId = await requireClubId()
-  await supabase
+  const { error: dbErr } = await supabase
     .from('club_settings')
     .update({ logo_path: publicUrl })
     .eq('club_id', clubId)
+  if (dbErr) return { error: dbErr.message }
 
   revalidatePath(PATH)
   revalidatePath('/', 'layout')

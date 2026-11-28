@@ -18,7 +18,6 @@ import {
   Paper,
   Select,
   Stack,
-  InputAdornment,
   TextField,
   Tooltip,
   Typography,
@@ -808,17 +807,6 @@ export default function ClubDefaultsClient({
         </Field>
         <Divider sx={{ my: '20px' }} />
 
-        <Field label="Notifications from address" hint="The From: address used when sending bulk emails and judge invitations.">
-          <TextField
-            {...tf}
-            value={s.from_email?.includes('@') ? s.from_email.split('@')[0] : (s.from_email ?? '')}
-            onChange={e => set('from_email', e.target.value ? `${e.target.value}@${process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'focalpointhq.com'}` : '')}
-            placeholder="hello"
-            slotProps={{ input: { endAdornment: <InputAdornment position="end"><Typography sx={{ fontSize: 13, color: 'text.disabled', userSelect: 'none' }}>@{process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'focalpointhq.com'}</Typography></InputAdornment> } }}
-          />
-        </Field>
-        <Divider sx={{ my: '20px' }} />
-
         <Field label="Timezone" hint="Used for competition deadlines and scheduling.">
           <Select {...tf} value={s.timezone} onChange={e => set('timezone', e.target.value)} sx={{ fontSize: 14 }}>
             {TIMEZONES.map(tz => <MenuItem key={tz} value={tz} sx={{ fontSize: 14 }}>{tz}</MenuItem>)}
@@ -863,31 +851,6 @@ export default function ClubDefaultsClient({
           <Button variant="outlined" color="secondary" size="small" onClick={() => setSocialModalOpen(true)}>
             Manage social accounts
           </Button>
-        </Field>
-        <Divider sx={{ my: '20px' }} />
-
-        <Field label="Applications open" hint="Toggles the Join button on the About page and application flow.">
-          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
-            <Box
-              component="button"
-              type="button"
-              onClick={() => set('join_open', !s.join_open)}
-              sx={{
-                display: 'flex', alignItems: 'center', width: 40, height: 22, borderRadius: 11,
-                px: '2px', border: 'none', cursor: 'pointer', transition: 'background 0.2s',
-                bgcolor: s.join_open ? 'primary.main' : 'action.disabledBackground',
-              }}
-            >
-              <Box sx={{
-                width: 18, height: 18, borderRadius: '50%', bgcolor: 'background.paper',
-                boxShadow: 1, transition: 'transform 0.2s',
-                transform: s.join_open ? 'translateX(18px)' : 'translateX(0)',
-              }} />
-            </Box>
-            <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-              {s.join_open ? 'Open — visitors can apply' : 'Closed — application button hidden'}
-            </Typography>
-          </Box>
         </Field>
 
       </Paper>
