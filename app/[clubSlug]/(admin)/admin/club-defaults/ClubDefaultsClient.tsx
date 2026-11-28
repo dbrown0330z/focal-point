@@ -18,7 +18,6 @@ import {
   Paper,
   Select,
   Stack,
-  InputAdornment,
   TextField,
   Tooltip,
   Typography,
@@ -805,17 +804,6 @@ export default function ClubDefaultsClient({
 
         <Field label="Contact email" hint="Public contact address used in membership terms and member communications.">
           <TextField {...tf} type="email" value={s.contact_email} onChange={e => set('contact_email', e.target.value)} placeholder="info@yourclub.org" />
-        </Field>
-        <Divider sx={{ my: '20px' }} />
-
-        <Field label="Notifications from address" hint="The From: address used when sending bulk emails and judge invitations.">
-          <TextField
-            {...tf}
-            value={s.from_email?.includes('@') ? s.from_email.split('@')[0] : (s.from_email ?? '')}
-            onChange={e => set('from_email', e.target.value ? `${e.target.value}@${process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'focalpointhq.com'}` : '')}
-            placeholder="hello"
-            slotProps={{ input: { endAdornment: <InputAdornment position="end"><Typography sx={{ fontSize: 13, color: 'text.disabled', userSelect: 'none' }}>@{process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'focalpointhq.com'}</Typography></InputAdornment> } }}
-          />
         </Field>
         <Divider sx={{ my: '20px' }} />
 
