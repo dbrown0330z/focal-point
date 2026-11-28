@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -14,6 +15,7 @@ export default async function MemberLayout({
   children: React.ReactNode
   params: Promise<{ clubSlug: string }>
 }) {
+  noStore()
   const { clubSlug } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

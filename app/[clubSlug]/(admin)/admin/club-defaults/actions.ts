@@ -83,6 +83,7 @@ export async function uploadClubLogo(formData: FormData): Promise<{ error?: stri
     .eq('club_id', clubId)
 
   revalidatePath(PATH)
+  revalidatePath('/', 'layout')
   return { url: publicUrl }
 }
 
