@@ -864,31 +864,6 @@ export default function ClubDefaultsClient({
             Manage social accounts
           </Button>
         </Field>
-        <Divider sx={{ my: '20px' }} />
-
-        <Field label="Applications open" hint="Toggles the Join button on the About page and application flow.">
-          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
-            <Box
-              component="button"
-              type="button"
-              onClick={() => set('join_open', !s.join_open)}
-              sx={{
-                display: 'flex', alignItems: 'center', width: 40, height: 22, borderRadius: 11,
-                px: '2px', border: 'none', cursor: 'pointer', transition: 'background 0.2s',
-                bgcolor: s.join_open ? 'primary.main' : 'action.disabledBackground',
-              }}
-            >
-              <Box sx={{
-                width: 18, height: 18, borderRadius: '50%', bgcolor: 'background.paper',
-                boxShadow: 1, transition: 'transform 0.2s',
-                transform: s.join_open ? 'translateX(18px)' : 'translateX(0)',
-              }} />
-            </Box>
-            <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-              {s.join_open ? 'Open — visitors can apply' : 'Closed — application button hidden'}
-            </Typography>
-          </Box>
-        </Field>
 
       </Paper>
 
