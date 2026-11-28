@@ -213,7 +213,7 @@ function ActivateDialog({
               opacity: publishing ? 0.7 : 1, fontFamily: 'inherit',
             }}
           >
-            {publishing ? 'Activating…' : 'Activate site →'}
+            {publishing ? 'Activating…' : 'Activate member site →'}
           </button>
         </div>
       </div>
@@ -298,7 +298,7 @@ export default function DraftBanner({ checklist: initial }: { checklist: DraftCh
               opacity: publishing ? 0.7 : 1, fontFamily: 'inherit',
             }}
           >
-            Activate site →
+            Activate member site →
           </button>
         </div>
 
