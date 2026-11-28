@@ -802,6 +802,11 @@ export default function ClubDefaultsClient({
         </Field>
         <Divider sx={{ my: '20px' }} />
 
+        <Field label="Contact email" hint="Public contact address used in membership terms and member communications.">
+          <TextField {...tf} type="email" value={s.contact_email} onChange={e => set('contact_email', e.target.value)} placeholder="info@yourclub.org" />
+        </Field>
+        <Divider sx={{ my: '20px' }} />
+
         <Field label="Timezone" hint="Used for competition deadlines and scheduling.">
           <Select {...tf} value={s.timezone} onChange={e => set('timezone', e.target.value)} sx={{ fontSize: 14 }}>
             {TIMEZONES.map(tz => <MenuItem key={tz} value={tz} sx={{ fontSize: 14 }}>{tz}</MenuItem>)}
