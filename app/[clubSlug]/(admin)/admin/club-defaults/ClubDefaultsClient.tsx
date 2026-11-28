@@ -37,9 +37,9 @@ import { TrashBtn } from '@/components/ui/TrashBtn'
 import SocialAccountsModal from '@/components/admin/SocialAccountsModal'
 import type { SocialAccount } from '@/lib/social-accounts/types'
 import { useUnsavedChanges } from '@/components/admin/UnsavedChangesProvider'
-import { createClient } from '@/lib/supabase/client'
 import {
   saveClubSettings,
+  uploadClubLogo,
   addMeetingLocation,
   updateMeetingLocation,
   deleteMeetingLocation,
@@ -514,15 +514,15 @@ function LogoUpload({ current, onUploaded }: { current: string | null; onUploade
     const file = e.target.files?.[0]
     if (!file) return
     setUploading(true); setErr(null)
-    const supabase = createClient()
-    const ext = file.name.split('.').pop()
-    const path = `logo/club-logo.${ext}`
-    const { error: upErr } = await supabase.storage.from('club-assets').upload(path, file, { upsert: true })
-    if (upErr) { setErr(upErr.message); setUploading(false); return }
-    const { data: { publicUrl } } = supabase.storage.from('club-assets').getPublicUrl(path)
-    await supabase.from('club_settings').update({ logo_path: publicUrl })
-      .neq('id', '00000000-0000-0000-0000-000000000000')
-    onUploaded(publicUrl)
+    const fd = new FormData()
+    fd.set('logo', file)
+    const result = await uploadClubLogo(fd)
+    if (result.error || !result.url) {
+      setErr(result.error ?? 'Upload failed')
+      setUploading(false)
+      return
+    }
+    onUploaded(result.url)
     setUploading(false)
   }
 
