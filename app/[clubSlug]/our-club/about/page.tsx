@@ -59,7 +59,14 @@ export default async function AboutPage() {
 
   const clubName   = settingsRaw?.club_name ?? 'Our Camera Club'
   const clubSlug   = ctx?.clubSlug ?? ''
-  const html       = pageRaw?.content ?? null
+  const html       = pageRaw?.content ?? [
+    '<h2>Who we are</h2>',
+    '<p>We’re a community of photographers who share a passion for the craft — from beginners picking up a camera for the first time to experienced shooters with years behind the lens. Whatever your skill level, you’ll find a welcoming and supportive group here.</p>',
+    '<h2>What we do</h2>',
+    '<p>Our club meets regularly for monthly competitions, guest presentations, and critique sessions. We also run field trips, workshops, and social events throughout the year — a mix of learning, fun, and time spent making photographs together.</p>',
+    '<h2>Who we’re for</h2>',
+    '<p>Any photographer, any gear, any genre. Landscape, portrait, street, wildlife, macro — whatever you shoot, you’ll find kindred spirits here.</p>',
+  ].join('')
   const isLoggedIn = Boolean(user)
 
   const info: ClubInfo = {
