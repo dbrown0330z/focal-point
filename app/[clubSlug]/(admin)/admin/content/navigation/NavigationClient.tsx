@@ -14,6 +14,7 @@ import ChevronRightIcon   from '@mui/icons-material/ChevronRight'
 import DeleteOutlineIcon  from '@mui/icons-material/DeleteOutlined'
 import { useParams }   from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { publishNavSettings } from './actions'
 import { createPortal } from 'react-dom'
 import { type AdminGalleryData, type ClubMember } from '../galleries/ClubGalleriesTab'
 import { DndContext, DragOverlay, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -1121,19 +1122,20 @@ export default function NavigationClient({
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sb = createClient() as any
-      // 1. Builtin visibility + page orders
-      const { data: existing } = await sb.from('club_settings').select('page_visibility').eq('club_id', clubId).single()
-      const current = (existing?.page_visibility as Record<string, unknown> | null) ?? {}
-      await sb.from('club_settings').update({
-        page_visibility: {
-          ...current,
+
+      // 1. Builtin visibility + page orders + tab order — via server action (handles revalidation)
+      const result = await publishNavSettings({
+        pageVisibilityPatch: {
           about:             builtinVis.about,
           calendar:          builtinVis.calendar,
           resources_enabled: builtinVis.resourcesEnabled,
           galleries_enabled: builtinVis.galleriesEnabled,
           nav_page_order:    pageOrders,
-        }
-      }).eq('club_id', clubId)
+          nav_tab_order:     tabOrder,
+        },
+      })
+      if (result.error) throw new Error(result.error)
+
       // 2. Custom page visibility + derived sort_order
       const pageUpdates: { id: string; sort_order: number; visibility: Visibility; status: string }[] = []
       for (const order of Object.values(pageOrders)) {
@@ -1147,6 +1149,7 @@ export default function NavigationClient({
       if (pageUpdates.length) await Promise.all(pageUpdates.map(u =>
         sb.from('nav_custom_pages').update({ sort_order: u.sort_order, visibility: u.visibility, status: u.status }).eq('id', u.id)
       ))
+
       // 3. Custom tab sort_order
       const sortableTabIds = tabOrder.filter(id => id !== 'home')
       const customTabSet = new Set(tabs.map(t => t.id))
@@ -1154,11 +1157,13 @@ export default function NavigationClient({
       if (customTabOrder.length) await Promise.all(customTabOrder.map((id, i) =>
         sb.from('nav_custom_tabs').update({ sort_order: i }).eq('id', id)
       ))
-      // 4. Persist to localStorage
+
+      // 4. Mirror to localStorage for optimistic reads
       localStorage.setItem(`fp_nav_tabs_${clubId}`, JSON.stringify(tabOrder))
       for (const [group, order] of Object.entries(pageOrders)) {
         localStorage.setItem(`fp_nav_page_order_${clubId}_${group}`, JSON.stringify(order))
       }
+
       setIsDirty(false); setPublishedAt(new Date())
     } catch {
       setErr('Failed to publish. Please try again.')

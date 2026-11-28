@@ -71,6 +71,7 @@ function Item({ done, label, href }: { done: boolean; label: string; href: strin
 function ActivateDialog({
   clubSlug,
   incomplete,
+  duesModeOk,
   publishing,
   error,
   onConfirm,
@@ -78,6 +79,7 @@ function ActivateDialog({
 }: {
   clubSlug:    string
   incomplete:  { label: string; href: string }[]
+  duesModeOk:  boolean
   publishing:  boolean
   error:       string | null
   onConfirm:   () => void
@@ -163,6 +165,23 @@ function ActivateDialog({
           </div>
         )}
 
+        {/* Free membership note */}
+        {!duesModeOk && (
+          <div style={{
+            background: '#EDF0F5',
+            border: '1px solid #B0BACA',
+            borderRadius: 8,
+            padding: '10px 16px',
+            marginBottom: 16,
+            fontSize: 13,
+            color: '#3E5066',
+            lineHeight: 1.5,
+          }}>
+            <strong>Heads up:</strong> You haven&rsquo;t configured dues or payments yet — membership will be <strong>free</strong> until you do. Make sure that&rsquo;s intentional, or set it up in{' '}
+            <a href={`/${clubSlug}/admin/dues-payment`} style={{ color: '#1E4D8C', textDecoration: 'underline' }}>Dues &amp; payment</a> before activating.
+          </div>
+        )}
+
         {/* What's next */}
         <div style={{ marginBottom: 24 }}>
           <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 600, color: '#131F2E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -170,8 +189,7 @@ function ActivateDialog({
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[
-              { icon: '🔗', text: <>Share your site URL — <span style={{ fontFamily: 'monospace', fontSize: 12, background: '#F0F0F0', padding: '1px 5px', borderRadius: 3 }}>{siteUrl}</span> — so members can sign up</> },
-              { icon: '✉️', text: 'Send your club a note with the link and instructions for creating their account' },
+              { icon: '✉️', text: <>Invite your club members — share your site URL (<span style={{ fontFamily: 'monospace', fontSize: 12, background: '#F0F0F0', padding: '1px 5px', borderRadius: 3 }}>{siteUrl}</span>) so they can create their accounts right away</> },
               { icon: '👥', text: 'Review and approve any pending member applications in the Members section' },
               { icon: '📸', text: 'Set up your first competition so members can start submitting images' },
               { icon: '📣', text: 'Post a welcome message in the member feed to greet anyone who signs in' },
@@ -313,6 +331,7 @@ export default function DraftBanner({ checklist: initial }: { checklist: DraftCh
         <ActivateDialog
           clubSlug={clubSlug}
           incomplete={incompleteItems}
+          duesModeOk={duesModeOk}
           publishing={publishing}
           error={publishError}
           onConfirm={handleConfirm}

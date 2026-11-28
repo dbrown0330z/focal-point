@@ -26,6 +26,8 @@ export default function MemberNav({
   resourcesEnabled = true,
   galleriesEnabled = true,
   navPageOrder,
+  navTabOrder,
+  logoUrl,
 }: {
   clubSlug?:          string
   clubName?:          string
@@ -39,6 +41,8 @@ export default function MemberNav({
   resourcesEnabled?:  boolean
   galleriesEnabled?:  boolean
   navPageOrder?:      Record<string, string[]>
+  navTabOrder?:       string[]
+  logoUrl?:           string
 }) {
   const base = `/${clubSlug}`
 
@@ -69,11 +73,6 @@ export default function MemberNav({
       .filter(id => !filterFn || filterFn(id))
       .map(id => BUILTIN_LINKS[id])
   }
-
-  const topLinks = [
-    { href: `${base}`,          label: 'Home' },
-    { href: `${base}/calendar`, label: 'Calendar' },
-  ]
 
   const myImagesLinks = orderedLinks('images', [
     BUILTIN_LINKS['builtin:my-images'],
@@ -137,138 +136,101 @@ export default function MemberNav({
   const isCompActive     = pathname.startsWith(`/${clubSlug}/competitions`)
   const isOurClubActive  = pathname.startsWith(`/${clubSlug}/our-club`)
 
+  // Build tab definitions in admin-specified order (fallback: default order)
+  const DEFAULT_TAB_ORDER = ['home', 'calendar', 'images', 'competitions', 'our-club']
+  const orderedTabIds = navTabOrder?.length
+    ? navTabOrder.filter(id => DEFAULT_TAB_ORDER.includes(id))
+    : DEFAULT_TAB_ORDER
+
+  const chevron = (open: boolean) => (
+    <svg className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
+  )
+
+  const dropdownMenu = (links: { href: string; label: string }[], onClose: () => void) => (
+    <div className="absolute left-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-border-default bg-surface-2 shadow-lg">
+      {links.map(({ href, label }) => (
+        <Link
+          key={href}
+          href={href}
+          onClick={onClose}
+          className={`flex items-center px-4 py-2.5 text-sm transition-colors hover:bg-surface-1 ${
+            pathname === href || pathname.startsWith(href + '/')
+              ? 'font-medium text-content-primary'
+              : 'text-content-secondary'
+          }`}
+        >
+          {label}
+        </Link>
+      ))}
+    </div>
+  )
+
   return (
     <header className="border-b border-border-default bg-surface-2">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
 
         {/* Left: brand + nav links */}
         <nav className="flex items-center gap-6">
-          <span
-            className="mr-2 font-[family-name:var(--font-lora)]"
-            style={{ fontSize: 17, fontWeight: 700, color: 'var(--action-primary)', letterSpacing: '-0.01em', lineHeight: 1 }}
-          >
-            {clubName}
-          </span>
-          {topLinks.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`text-sm transition-colors ${
-                pathname === href
-                  ? 'font-medium text-content-primary'
-                  : 'text-content-secondary hover:text-content-primary'
-              }`}
-            >
-              {label}
-            </Link>
-          ))}
-
-          {/* My Images dropdown */}
-          <div className="relative" ref={myImgRef}>
-            <button
-              onClick={() => setMyImgOpen(o => !o)}
-              className={`flex items-center gap-1 text-sm transition-colors ${
-                isMyImagesActive
-                  ? 'font-medium text-content-primary'
-                  : 'text-content-secondary hover:text-content-primary'
-              }`}
-              aria-expanded={myImgOpen}
-            >
-              My Images
-              <svg className={`h-3 w-3 transition-transform ${myImgOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {myImgOpen && (
-              <div className="absolute left-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-xl border border-border-default bg-surface-2 shadow-lg">
-                {myImagesLinks.map(({ href, label }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setMyImgOpen(false)}
-                    className={`flex items-center px-4 py-2.5 text-sm transition-colors hover:bg-surface-1 ${
-                      pathname === href ? 'font-medium text-content-primary' : 'text-content-secondary'
-                    }`}
-                  >
-                    {label}
-                  </Link>
-                ))}
-              </div>
+          {/* Logo / club name */}
+          <div className="mr-2 flex items-center gap-2 flex-shrink-0">
+            {logoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt={clubName} style={{ height: 28, maxWidth: 80, objectFit: 'contain' }} />
             )}
+            <span
+              className="font-[family-name:var(--font-lora)]"
+              style={{ fontSize: 17, fontWeight: 700, color: 'var(--action-primary)', letterSpacing: '-0.01em', lineHeight: 1 }}
+            >
+              {clubName}
+            </span>
           </div>
 
-          {/* Competitions dropdown */}
-          <div className="relative" ref={compRef}>
-            <button
-              onClick={() => setCompOpen(o => !o)}
-              className={`flex items-center gap-1 text-sm transition-colors ${
-                isCompActive
-                  ? 'font-medium text-content-primary'
-                  : 'text-content-secondary hover:text-content-primary'
-              }`}
-              aria-expanded={compOpen}
-            >
-              Competitions
-              <svg className={`h-3 w-3 transition-transform ${compOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {compOpen && (
-              <div className="absolute left-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-border-default bg-surface-2 shadow-lg">
-                {competitionsLinks.map(({ href, label }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setCompOpen(false)}
-                    className={`flex items-center px-4 py-2.5 text-sm transition-colors hover:bg-surface-1 ${
-                      pathname === href || pathname.startsWith(href + '/')
-                        ? 'font-medium text-content-primary'
-                        : 'text-content-secondary'
-                    }`}
-                  >
-                    {label}
-                  </Link>
-                ))}
+          {/* Nav tabs in admin-specified order */}
+          {orderedTabIds.map(tabId => {
+            if (tabId === 'home') return (
+              <Link key="home" href={base}
+                className={`text-sm transition-colors ${pathname === base ? 'font-medium text-content-primary' : 'text-content-secondary hover:text-content-primary'}`}
+              >Home</Link>
+            )
+            if (tabId === 'calendar') return (
+              <Link key="calendar" href={`${base}/calendar`}
+                className={`text-sm transition-colors ${pathname === `${base}/calendar` ? 'font-medium text-content-primary' : 'text-content-secondary hover:text-content-primary'}`}
+              >Calendar</Link>
+            )
+            if (tabId === 'images') return (
+              <div key="images" className="relative" ref={myImgRef}>
+                <button onClick={() => setMyImgOpen(o => !o)} aria-expanded={myImgOpen}
+                  className={`flex items-center gap-1 text-sm transition-colors ${isMyImagesActive ? 'font-medium text-content-primary' : 'text-content-secondary hover:text-content-primary'}`}
+                >
+                  My Images {chevron(myImgOpen)}
+                </button>
+                {myImgOpen && dropdownMenu(myImagesLinks, () => setMyImgOpen(false))}
               </div>
-            )}
-          </div>
-
-          {/* Our Club dropdown */}
-          <div className="relative" ref={ourClubRef}>
-            <button
-              onClick={() => setOurClubOpen(o => !o)}
-              className={`flex items-center gap-1 text-sm transition-colors ${
-                isOurClubActive
-                  ? 'font-medium text-content-primary'
-                  : 'text-content-secondary hover:text-content-primary'
-              }`}
-              aria-expanded={ourClubOpen}
-            >
-              Our Club
-              <svg className={`h-3 w-3 transition-transform ${ourClubOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {ourClubOpen && (
-              <div className="absolute left-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-border-default bg-surface-2 shadow-lg">
-                {ourClubLinks.map(({ href, label }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setOurClubOpen(false)}
-                    className={`flex items-center px-4 py-2.5 text-sm transition-colors hover:bg-surface-1 ${
-                      pathname === href || pathname.startsWith(href + '/')
-                        ? 'font-medium text-content-primary'
-                        : 'text-content-secondary'
-                    }`}
-                  >
-                    {label}
-                  </Link>
-                ))}
+            )
+            if (tabId === 'competitions') return (
+              <div key="competitions" className="relative" ref={compRef}>
+                <button onClick={() => setCompOpen(o => !o)} aria-expanded={compOpen}
+                  className={`flex items-center gap-1 text-sm transition-colors ${isCompActive ? 'font-medium text-content-primary' : 'text-content-secondary hover:text-content-primary'}`}
+                >
+                  Competitions {chevron(compOpen)}
+                </button>
+                {compOpen && dropdownMenu(competitionsLinks, () => setCompOpen(false))}
               </div>
-            )}
-          </div>
-
+            )
+            if (tabId === 'our-club') return (
+              <div key="our-club" className="relative" ref={ourClubRef}>
+                <button onClick={() => setOurClubOpen(o => !o)} aria-expanded={ourClubOpen}
+                  className={`flex items-center gap-1 text-sm transition-colors ${isOurClubActive ? 'font-medium text-content-primary' : 'text-content-secondary hover:text-content-primary'}`}
+                >
+                  Our Club {chevron(ourClubOpen)}
+                </button>
+                {ourClubOpen && dropdownMenu(ourClubLinks, () => setOurClubOpen(false))}
+              </div>
+            )
+            return null
+          })}
         </nav>
 
         {/* Right: avatar + dropdown */}

@@ -48,7 +48,7 @@ export default async function MemberLayout({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (admin as any)
       .from('club_settings')
-      .select('club_name, page_visibility')
+      .select('club_name, logo_path, page_visibility')
       .eq('club_id', clubId)
       .single(),
     admin
@@ -92,9 +92,11 @@ export default async function MemberLayout({
           customPages={customPages ?? []}
           customTabs={customTabs ?? []}
           pendingCount={pendingCount ?? 0}
+          logoUrl={(clubSettings as any)?.logo_path ?? undefined}
           resourcesEnabled={(clubSettings as any)?.page_visibility?.resources_enabled !== false}
           galleriesEnabled={(clubSettings as any)?.page_visibility?.galleries_enabled !== false}
           navPageOrder={(clubSettings as any)?.page_visibility?.nav_page_order ?? undefined}
+          navTabOrder={(clubSettings as any)?.page_visibility?.nav_tab_order ?? undefined}
         />
         {!club?.is_published && membership?.role === 'admin' && (
           <DraftPreviewBanner clubSlug={clubSlug} />
